@@ -1,0 +1,11 @@
+.vscode/
+/examples/*
+!/examples/01_flyvision_connectome.ipynb
+!/examples/07_flyvision_providing_custom_stimuli.ipynb
+
+/data/*
+!/data/connectome/fib25-fib19_v2.2.json
+!/data/results
+
+*.code-workspace
+*.egg-info
