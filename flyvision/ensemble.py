@@ -10,6 +10,7 @@ from datamate import Directory
 from flyvision import results_dir
 from flyvision.network import NetworkView, NetworkDir
 from flyvision.plots.plt_utils import init_plot
+from flyvision.utils.nn_utils import simulation
 
 logging = logging.getLogger()
 
@@ -81,6 +82,11 @@ class Ensemble(dict):
         network = self[0].init_network(chkpt=checkpoint)
         for network_view in self.values():
             yield network_view.init_network(chkpt=checkpoint, network=network)
+
+    def yield_decoders(self, checkpoint="best_chkpt"):
+        decoder = self[0].init_decoder(chkpt=checkpoint)
+        for network_view in self.values():
+            yield network_view.init_decoder(chkpt=checkpoint, decoder=decoder)
 
     def validation_losses(self):
         losses = [network.dir.validation_loss[()] for network in self.values()]
@@ -199,6 +205,12 @@ class EnsembleView(Ensemble):
     def simulate(self, movie_input: torch.Tensor, dt: float):
         for network in self.yield_networks():
             yield network.simulate(movie_input, dt).cpu().numpy()
+
+    def decode(self, movie_input, dt):
+        responses = torch.tensor(list(self.simulate(movie_input, dt)))
+        for i, decoder in enumerate(self.yield_decoders()):
+            with simulation(decoder):
+                yield decoder(responses[i]).cpu().numpy()
 
     def cluster_indices(self, cell_type):
         cluster_indices = self.dir.clustering[cell_type].to_dict()

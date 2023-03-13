@@ -6,9 +6,12 @@ import torch
 import torch.nn.functional as nnf
 from torch import nn
 
+from datamate import Namespace
+
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params
 from flyvision.utils.hex_utils import get_hex_coords
+from flyvision.connectome import Connectome
 
 import logging
 
@@ -29,7 +32,7 @@ class ActivityDecoder(nn.Module):
         super().__init__()
         self.dvs_channels = LayerActivity(None, ctome, use_central=False)
         self.num_parameters = n_params(self)
-        radius = ctome.meta.spec.extent
+        radius = ctome.config.extent
         self.u, self.v = get_hex_coords(radius)
         self.u -= self.u.min()
         self.v -= self.v.min()
@@ -119,7 +122,7 @@ class Conv2dHexSpace(Conv2dConstWeight):
         if not kernel_size % 2:
             raise ValueError(f"{kernel_size} is even. Must be odd.")
         if kernel_size > 1:
-            u, v = hex_utils.get_hex_coords(kernel_size // 2)
+            u, v = get_hex_coords(kernel_size // 2)
             u -= u.min()
             v -= v.min()
             mask = np.zeros(tuple(self.weight.shape))
@@ -252,3 +255,11 @@ class DecoderGAVP(ActivityDecoder):
             )
 
         return out
+
+
+def init_decoder(decoder_config: Namespace, ctome: Connectome) -> nn.Module:
+    decoder_config = decoder_config.deepcopy()
+    _type = decoder_config.pop("type")
+    decoder_type = globals()[_type]
+    decoder_config.update(dict(ctome=ctome))
+    return decoder_type(**decoder_config)

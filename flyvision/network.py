@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 from datamate import Namespace, Directory
 
 from flyvision.connectome import Connectome
+from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
 from flyvision.initialization import Parameter, init_parameter
 from flyvision.dynamics import NetworkDynamics
@@ -924,7 +925,7 @@ class NetworkView:
     def __init__(self, network_dir: NetworkDir):
         self.dir = network_dir
         self.ctome = Connectome(self.dir.config.network.connectome)
-        self._initialized = dict(network=False)
+        self._initialized = dict(network=False, decoder=False)
 
     def reset_init(self, key):
         self._initialized[key] = False
@@ -937,6 +938,15 @@ class NetworkView:
         self.network.load_state_dict(state_dict["network"])
         self._initialized["network"] = True
         return self.network
+
+    def init_decoder(self, chkpt="best_chkpt", decoder=None):
+        if self._initialized["decoder"] and decoder is None:
+            return self.decoder
+        self.decoder = decoder or init_decoder(self.dir.config.task_decoder, self.ctome)
+        state_dict = torch.load(self.dir / chkpt)
+        self.decoder.load_state_dict(state_dict["decoder"]["flow"])
+        self._initialized["decoder"] = True
+        return self.decoder
 
     def __call__(self, movie_input, dt, initial_state=None, as_states=False):
         """Simulate the network activity from movie input.

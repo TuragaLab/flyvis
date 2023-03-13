@@ -1399,7 +1399,7 @@ def hex_flow(
     color_rgba[:, -1] = r
 
     # Add some coloured hexagons
-    x, y = utils.hex_to_pixel(u, v, mode=mode)
+    x, y = utils.hex_utils.hex_to_pixel(u, v, mode=mode)
     if origin == "upper":
         y = y[::-1]
     for _x, _y, c in zip(x, y, color_rgba):
@@ -1429,7 +1429,7 @@ def hex_flow(
             labelpad=cwheellabelpad,
         )
 
-    extent = utils.get_extent(u, v)
+    extent = utils.hex_utils.get_extent(u, v)
     ax.set_xlim(x.min() + x.min() / extent, x.max() + x.max() / extent)
     ax.set_ylim(y.min() + y.min() / extent, y.max() + y.max() / extent)
 
