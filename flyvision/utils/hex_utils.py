@@ -4,7 +4,7 @@ from numbers import Number
 
 import numpy as np
 import torch
-from matplotlib import cm
+from matplotlib import colormaps as cm
 
 import flyvision
 

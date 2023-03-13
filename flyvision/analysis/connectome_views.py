@@ -3,7 +3,7 @@ from typing import Iterable, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib import cm
+from matplotlib import colormaps as cm
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 from matplotlib.axis import Axis

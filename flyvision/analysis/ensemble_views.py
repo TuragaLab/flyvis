@@ -16,7 +16,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib import cm
+from matplotlib import colormaps as cm
 from matplotlib.colors import Colormap, Normalize, to_hex
 
 from dvs import analysis

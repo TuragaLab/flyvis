@@ -2,7 +2,7 @@
 """
 from fractions import Fraction
 
-from matplotlib import cm
+from matplotlib import colormaps as cm
 import matplotlib.pyplot as plt
 import numpy as np
 

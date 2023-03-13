@@ -19,7 +19,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.transforms import Bbox
-from matplotlib import cm
+from matplotlib import colormaps as cm
 
 # import dvs.utils
 # from dvs.plots.decoration import *
@@ -1609,7 +1609,8 @@ def divide_figure_to_grid(
         return slice(start, stop, step)
 
     fig = plt.figure(figsize=figsize) if fig is None else fig
-    fig.set_constrained_layout(constrained_layout)
+    if constrained_layout:
+        fig.set_layout_engine("constrained")
     matrix = np.ma.masked_invalid(matrix)
     rows, columns = matrix.shape
 
@@ -1635,6 +1636,7 @@ def divide_figure_to_grid(
             ax = fig.add_subplot(gs[_row_slc, _col_slc])
             ax.patch.set_alpha(alpha)
             rm_spines(ax, ("left", "right", "top", "bottom"))
+            ax.set_visible(False)
 
     if no_spines:
         for ax in axes.values():
@@ -2142,9 +2144,9 @@ cm_uniform_2d = np.array(
 
 cm_uniform_2d = colors.ListedColormap(cm_uniform_2d)
 try:
-    plt.get_cmap("cm_uniform_2d")
+    cm.get_cmap("cm_uniform_2d")
 except:
-    plt.cm.register_cmap("cm_uniform_2d", cmap=cm_uniform_2d)
+    cm.register(cm_uniform_2d, name="cm_uniform_2d")
 
 
 def standalone_colorwheel_2d(

@@ -9,7 +9,7 @@ logging = logging.getLogger("dvs")
 from toolz import valmap
 
 import matplotlib.pyplot as plt
-from matplotlib import cm
+from matplotlib import colormaps as cm
 import numpy as np
 import pandas as pd
 import torch

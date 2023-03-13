@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as ttf
 from itertools import product
 
-from flyvision.plots.plt_utils import init_plot
+from flyvision.plots.plt_utils import init_plot, rm_spines
 from flyvision.rendering.utils import (
     is_inside_hex,
     hex_center_coordinates,
@@ -30,12 +30,12 @@ class BoxEye:  # BoxEye
     Args:
         extent: int
         "Radius, in number of receptors, of the hexagonal array"
-        kernel_size: float
+        kernel_size: int
         "Photon collection radius, in pixels"
 
     """
 
-    def __init__(self, extent: int, kernel_size: float):
+    def __init__(self, extent: int = 15, kernel_size: int = 13):
         self.extent = extent
         self.kernel_size = kernel_size
         self.receptor_centers = (
@@ -151,8 +151,11 @@ class BoxEye:  # BoxEye
             .to(_device)
         )
 
-    def illustrate(self, figsize=[5, 5], fontsize=5):
-
+    def illustrate(
+        self,
+    ):
+        figsize = [2, 2]
+        fontsize = 5
         y_hc, x_hc = np.array(list(self._receptor_centers())).T
 
         height, width = self.min_frame_size.cpu().numpy()
@@ -178,19 +181,20 @@ class BoxEye:  # BoxEye
         vertices = np.transpose(vertices, (1, 2, 0))
 
         fig, ax = init_plot(figsize=figsize, fontsize=fontsize)
-        ax.scatter(x_hc, y_hc, color="#eb4034", zorder=1)
-        ax.scatter(x_img, y_img, color="#34ebd6", s=0.5, zorder=0)
+        ax.scatter(x_hc, y_hc, color="#00008B", zorder=1, s=0.5)
+        ax.scatter(x_img, y_img, color="#34ebd6", s=0.1, zorder=0)
 
         for h in range(len(x_hc)):
             for i in range(4):
                 y1, x1 = vertices[i, :, h]  # x1, y1: (n_hexagons)
                 y2, x2 = vertices[i + 1, :, h]
-                ax.plot([x1, x2], [y1, y2], c="black")
+                ax.plot([x1, x2], [y1, y2], c="black", lw=0.25)
 
         ax.set_xlim(-width / 2, width / 2)
         ax.set_ylim(-height / 2, height / 2)
+        rm_spines(ax)
         fig.tight_layout()
-        return fig, ax
+        return fig
 
 
 # ----- HexEye (slower, more precise) ----------------------------------------

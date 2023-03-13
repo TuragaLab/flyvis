@@ -4,9 +4,9 @@ from numbers import Number
 
 import numpy as np
 import torch
-from matplotlib import cm
+from matplotlib import colormaps as cm
 
-# import flyvision
+import flyvision
 
 
 def pad_to_regular_hex(

@@ -49,6 +49,8 @@ class Imshow(Animation):
 
     def init(self, frame=0):
         self.img = self.ax.imshow(self.images[self.batch_sample, frame], **self.kwargs)
+        if self.sleep is not None:
+            sleep(self.sleep)
 
     def animate(self, frame):
 

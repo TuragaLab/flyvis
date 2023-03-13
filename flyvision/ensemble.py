@@ -200,6 +200,10 @@ class EnsembleView(Ensemble):
         for network in self.yield_networks():
             yield network.simulate(movie_input, dt).cpu().numpy()
 
+    def cluster_indices(self, cell_type):
+        cluster_indices = self.dir.clustering[cell_type].to_dict()
+        return dict(sorted({int(k): v for k, v in cluster_indices.items()}.items()))
+
 
 def model_paths_from_parent(path):
     model_paths = sorted(

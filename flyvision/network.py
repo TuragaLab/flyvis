@@ -923,6 +923,7 @@ class NetworkDir(Directory):
 class NetworkView:
     def __init__(self, network_dir: NetworkDir):
         self.dir = network_dir
+        self.ctome = Connectome(self.dir.config.network.connectome)
         self._initialized = dict(network=False)
 
     def reset_init(self, key):

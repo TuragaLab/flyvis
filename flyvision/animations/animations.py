@@ -35,7 +35,7 @@ class Animation:
     def _cleanup(self):
         if self.path.exists():
             for p in sorted(self.path.iterdir()):
-                if re.match("\.\d{4}$", p.name):
+                if re.match(r"\.\d{4}$", p.name):
                     shutil.rmtree(p)
 
     def init(self, frame=0):

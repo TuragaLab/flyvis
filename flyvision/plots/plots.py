@@ -12,7 +12,7 @@ logging = logging.getLogger("dvs")
 import pandas as pd
 import torch
 
-from matplotlib import cm
+from matplotlib import colormaps as cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import LogFormatter, ScalarFormatter, NullFormatter
 from matplotlib.patches import RegularPolygon

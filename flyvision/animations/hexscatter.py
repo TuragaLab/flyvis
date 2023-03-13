@@ -1,7 +1,7 @@
 """HexScatter animation.
 """
 import numpy as np
-from matplotlib import cm
+from matplotlib import colormaps as cm
 
 from flyvision import utils
 from flyvision.plots import plots, plt_utils

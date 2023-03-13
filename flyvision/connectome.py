@@ -4,16 +4,18 @@ import json
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple, Iterable
+from typing import List, Optional, Tuple
 from toolz import groupby, valmap
 import matplotlib.path as mp
 import matplotlib.pyplot as plt
-from matplotlib import cm
+from matplotlib import colormaps as cm
 from matplotlib.figure import Figure
 from matplotlib.axis import Axis
 from matplotlib.colors import Colormap
 from matplotlib.colorbar import Colorbar
 import numpy as np
+from pandas import DataFrame
+import networkx as nx
 
 from datamate import Directory, Namespace, ArrayFile, root
 
@@ -452,17 +454,6 @@ class ConnectomeView:
         self.edges = self.ctome.edges
 
         self.nodes = self.ctome.nodes
-        if "prior_param_api" in ctome:
-            self.nodes.update(ctome.prior_param_api.nodes, suffix="_prior")
-            self.edges.update(ctome.prior_param_api.edges, suffix="_prior")
-            if "weight_prior" not in self.edges:
-                self.edges.weight_prior = self._weights(n_syn=False, trained=False)
-
-        if "param_api" in ctome:
-            self.nodes.update(ctome.param_api.nodes, suffix="_trained")
-            self.edges.update(ctome.param_api.edges, suffix="_trained")
-            if "weight_trained" not in self.edges:
-                self.edges.weight_trained = self._weights(n_syn=False, trained=True)
 
         self.node_types_unsorted = self.ctome.unique_node_types[:].astype(str)
 
@@ -470,51 +461,11 @@ class ConnectomeView:
             self.node_types_sorted,
             self.node_types_sort_index,
         ) = nodes_edges_utils.order_nodes_list(
-            self.ctome.unique_node_types[:].astype(str)
+            self.ctome.unique_node_types[:].astype(str), groups
         )
 
-        if "layout" not in self.ctome:
-            layout = []
-            layout.extend(
-                list(
-                    zip(
-                        self.ctome.input_node_types,
-                        [b"retina" for _ in range(len(self.ctome.input_node_types))],
-                    )
-                )
-            )
-            layout.extend(
-                list(
-                    zip(
-                        self.ctome.intermediate_node_types,
-                        [
-                            b"intermediate"
-                            for _ in range(len(self.ctome.intermediate_node_types))
-                        ],
-                    )
-                )
-            )
-            layout.extend(
-                list(
-                    zip(
-                        self.ctome.output_node_types,
-                        [b"output" for _ in range(len(self.ctome.output_node_types))],
-                    )
-                )
-            )
-            self.ctome.layout = np.string_(layout)
         self.layout = dict(self.ctome.layout[:].astype(str))
         self.node_indexer = nodes_edges_utils.NodeIndexer(self.ctome)
-
-    def _weights(self):
-        return self.edges.sign[:] * self.edges.n_syn[:]
-
-    def get_uv(self, node_type):
-        """return coordinates of a particular node type"""
-        nodes = self.nodes.to_df()
-        nodes = nodes[nodes.type == node_type]
-        u, v = nodes[["u", "v"]].values.T
-        return u, v
 
     # ---- CONNECTIVITY MATRIX
 
@@ -550,7 +501,7 @@ class ConnectomeView:
                 symlog=1e-5,
                 grid=True,
                 cmap=cmap or cm.get_cmap("seismic"),
-                title=title or "Number of Input Synapses",
+                title=title or "Connectivity between identified cell types",
                 cbar_label=cbar_label or r"$\pm\sum_{pre} N_\mathrm{syn.}^{pre, post}$",
                 size_scale=size_scale or 0.05,
             ),
@@ -559,7 +510,7 @@ class ConnectomeView:
                 cmap=cmap or cm.get_cmap("seismic"),
                 midpoint=0,
                 title=title or "Number of Input Neurons",
-                cbar_label=cbar_label or "$\sum_{pre} 1$",
+                cbar_label=cbar_label or r"$\sum_{pre} 1$",
                 size_scale=size_scale or 0.05,
             ),
         )
@@ -615,88 +566,11 @@ class ConnectomeView:
         else:
             raise ValueError
 
-        return plots.heatmap(matrix, node_types, **kwargs)
+        fig, axes, cbar, matrix = plots.heatmap(matrix, node_types, **kwargs)
+        return fig
 
-    # ---- NODE LAYOUTS
-
-    def hex_layout(
-        self,
-        node_type,
-        edgecolor="black",
-        edgewidth=0.5,
-        alpha=1,
-        fill=True,
-        max_extent=5,
-        cmap=cm.get_cmap("binary"),
-        fig=None,
-        ax=None,
-        **kwargs,
-    ):
-        """
-        Plot the node_types layout on the regular hex grid.
-        """
-        nodes = self.nodes.to_df()
-        node_condition = nodes.type == node_type
-        u, v = nodes.u[node_condition], nodes.v[node_condition]
-        max_extent = hex_utils.get_extent(u, v) if max_extent is None else max_extent
-        extent_condition = (
-            (-max_extent <= u)
-            & (u <= max_extent)
-            & (-max_extent <= v)
-            & (v <= max_extent)
-            & (-max_extent <= u + v)
-            & (u + v <= max_extent)
-        )
-        u, v = u[extent_condition].values, v[extent_condition].values
-        return plots.hex_scatter(
-            u,
-            v,
-            color=1,
-            label=node_type,
-            fig=fig,
-            ax=ax,
-            edgecolor=edgecolor,
-            edgewidth=edgewidth,
-            alpha=alpha,
-            fill=fill,
-            cmap=cmap,
-            cbar=False,
-            **kwargs,
-        )
-
-    def hex_layout_all(
-        self,
-        node_types=None,
-        anatomic_order=False,
-        edgecolor="black",
-        alpha=1,
-        fill=True,
-        max_extent=5,
-        cmap=cm.get_cmap("binary"),
-        fig=None,
-        axes=None,
-        **kwargs,
-    ):
-        """Plot all node type layouts."""
-        node_types = self.node_types_sorted if node_types is None else node_types
-        if not (fig and axes):
-            fig, axes, (gw, gh) = plt_utils.get_axis_grid(self.node_types_sorted)
-        if anatomic_order:
-            node_types = [key for key in self.layout.keys() if key in node_types]
-        for i, node_type in enumerate(node_types):
-            self.hex_layout(
-                node_type,
-                edgecolor=edgecolor,
-                edgewidth=0.1,
-                alpha=alpha,
-                fill=fill,
-                max_extent=max_extent,
-                cmap=cmap,
-                fig=fig,
-                ax=axes[i],
-                **kwargs,
-            )
-        return fig, axes
+    def _weights(self):
+        return self.edges.sign[:] * self.edges.n_syn[:]
 
     # ---- NETWORK GRAPHS
 
@@ -709,8 +583,7 @@ class ConnectomeView:
         fig=None,
         **kwargs,
     ):
-        """Plot all node type layouts in a graph."""
-        import networkx as nx
+        """Show hexagonal lattice columnar organization of the network."""
 
         fig = fig or plt.figure(figsize=[20, 10])
 
@@ -772,6 +645,93 @@ class ConnectomeView:
 
         return fig
 
+    def hex_layout(
+        self,
+        node_type,
+        edgecolor="black",
+        edgewidth=0.5,
+        alpha=1,
+        fill=True,
+        max_extent=5,
+        cmap=cm.get_cmap("binary"),
+        fig=None,
+        ax=None,
+        **kwargs,
+    ):
+        """
+        Plot the layout of a node type on a regular hex grid.
+        """
+        nodes = self.nodes.to_df()
+        node_condition = nodes.type == node_type
+        u, v = nodes.u[node_condition], nodes.v[node_condition]
+        max_extent = hex_utils.get_extent(u, v) if max_extent is None else max_extent
+        extent_condition = (
+            (-max_extent <= u)
+            & (u <= max_extent)
+            & (-max_extent <= v)
+            & (v <= max_extent)
+            & (-max_extent <= u + v)
+            & (u + v <= max_extent)
+        )
+        u, v = u[extent_condition].values, v[extent_condition].values
+        fig, ax, _ = plots.hex_scatter(
+            u,
+            v,
+            color=1,
+            label=node_type,
+            fig=fig,
+            ax=ax,
+            edgecolor=edgecolor,
+            edgewidth=edgewidth,
+            alpha=alpha,
+            fill=fill,
+            cmap=cmap,
+            cbar=False,
+            **kwargs,
+        )
+        return fig
+
+    def hex_layout_all(
+        self,
+        node_types=None,
+        anatomic_order=False,
+        edgecolor="black",
+        alpha=1,
+        fill=True,
+        max_extent=5,
+        cmap=cm.get_cmap("binary"),
+        fig=None,
+        axes=None,
+        **kwargs,
+    ):
+        """Plot the layout of a node type on a regular hex grid."""
+        node_types = self.node_types_sorted if node_types is None else node_types
+        if not (fig and axes):
+            fig, axes, (gw, gh) = plt_utils.get_axis_grid(self.node_types_sorted)
+        if anatomic_order:
+            node_types = [key for key in self.layout.keys() if key in node_types]
+        for i, node_type in enumerate(node_types):
+            self.hex_layout(
+                node_type,
+                edgecolor=edgecolor,
+                edgewidth=0.1,
+                alpha=alpha,
+                fill=fill,
+                max_extent=max_extent,
+                cmap=cmap,
+                fig=fig,
+                ax=axes[i],
+                **kwargs,
+            )
+        return fig
+
+    def get_uv(self, node_type):
+        """hex-coordinates of a particular node type"""
+        nodes = self.nodes.to_df()
+        nodes = nodes[nodes.type == node_type]
+        u, v = nodes[["u", "v"]].values.T
+        return u, v
+
     # ---- RECEPTIVE FIELDS
 
     def sources_list(self, node_type):
@@ -786,23 +746,21 @@ class ConnectomeView:
         self,
         source="Mi9",
         target="T4a",
-        n_syn=True,
         rfs=None,
         max_extent=None,
         vmin=None,
         vmax=None,
         title="{source} :→ {target}",
-        trained=False,
         **kwargs,
     ):
         """
         Plots the receptive field from 'taregt' from 'source'.
         """
         if rfs is None:
-            rfs = receptive_fields_edge_dfs(target, self.edges.to_df())
+            rfs = ReceptiveFields(target, self.edges.to_df())
             max_extent = max_extent or rfs.max_extent
         # weights
-        weights = self._weights(trained, n_syn)
+        weights = self._weights()
 
         # to derive color range values taking all inputs into account
         vmin = min(
@@ -831,18 +789,14 @@ class ConnectomeView:
             title=title.format(**locals()),
             **kwargs,
         )
-        plt_utils.patch_type_texts(ax)
-        return fig, ax, (label_text, scalarmapper)
+        return fig
 
     def receptive_fields_grid(
         self,
         target,
         sources=None,
         sort_alphabetically=True,
-        scale=5,
         aspect_ratio=1,
-        trained=False,
-        n_syn=True,
         ax_titles="{source} :→ {target}",
         figsize=[20, 20],
         max_h_axes=None,
@@ -861,9 +815,9 @@ class ConnectomeView:
         Plots all receptive fields of 'target' inside a regular grid of axes.
         """
 
-        rfs = receptive_fields_edge_dfs(target, self.edges.to_df())
+        rfs = ReceptiveFields(target, self.edges.to_df())
         max_extent = max_extent or rfs.max_extent
-        weights = self._weights(trained, n_syn)
+        weights = self._weights()
 
         # to sort in descending order by sum of inputs
         sorted_sum_of_inputs = dict(
@@ -916,8 +870,6 @@ class ConnectomeView:
                     fig=fig,
                     ax=axes[i],
                     title=ax_titles,
-                    trained=trained,
-                    n_syn=n_syn,
                     vmin=vmin,
                     vmax=vmax,
                     rfs=rfs,
@@ -930,7 +882,7 @@ class ConnectomeView:
                     pass
                 else:
                     raise e
-        return fig, axes, (vmin, vmax)
+        return fig
 
     # ---- PROJECTIVE FIELDS
 
@@ -938,9 +890,7 @@ class ConnectomeView:
         self,
         source="Mi9",
         target="T4a",
-        n_syn=True,
         title="{source} →: {target}",
-        trained=False,
         prfs=None,
         max_extent=None,
         vmin=None,
@@ -951,11 +901,11 @@ class ConnectomeView:
         Plots the projective field from 'source' to 'target'.
         """
         if prfs is None:
-            prfs = projective_fields_edge_dfs(source, self.edges.to_df())
+            prfs = ProjectiveFields(source, self.edges.to_df())
             max_extent = max_extent or prfs.max_extent
         if max_extent is None:
             return None
-        weights = self._weights(trained, n_syn)
+        weights = self._weights()
 
         # to derive color range values taking all inputs into account
         vmin = min(
@@ -983,19 +933,16 @@ class ConnectomeView:
             title=title.format(**locals()),
             **kwargs,
         )
-        plt_utils.patch_type_texts(ax)
-        return fig, ax, (label_text, scalarmapper)
+        return fig
 
     def projective_fields_grid(
         self,
         source,
         targets=None,
-        scale=5,
         fig=None,
         axes=None,
         aspect_ratio=1,
         figsize=[20, 20],
-        n_syn=True,
         ax_titles="{source} →: {target}",
         max_h_axes=None,
         max_v_axes=None,
@@ -1003,17 +950,17 @@ class ConnectomeView:
         wspace=0.0,
         min_axes=-1,
         keep_nan_axes=True,
-        trained=False,
         max_extent=None,
         sort_alphabetically=False,
+        ignore_sign_error=False,
         **kwargs,
     ):
         """
         Plots all projective field of 'source' inside a regular grid of axes.
         """
-        prfs = projective_fields_edge_dfs(source, self.edges.to_df())
+        prfs = ProjectiveFields(source, self.edges.to_df())
         max_extent = max_extent or prfs.max_extent
-        weights = self._weights(trained, n_syn)
+        weights = self._weights()
         sorted_sum_of_outputs = dict(
             sorted(
                 valmap(lambda v: weights[v.index].sum(), prfs).items(),
@@ -1050,250 +997,64 @@ class ConnectomeView:
                 keep_nan_axes=keep_nan_axes,
             )
 
+        cbar = kwargs.get("cbar", False)
         for i, target in enumerate(targets):
-            self.projective_field(
-                source=source,
-                target=target,
-                fig=fig,
-                ax=axes[i],
-                title=ax_titles,
-                trained=trained,
-                n_syn=n_syn,
-                prfs=prfs,
-                max_extent=max_extent,
-                vmin=vmin,
-                vmax=vmax,
-                annotate_coords=False,
-                **kwargs,
-            )
-        return fig, axes, (vmin, vmax)
+            if i == 0 and cbar:
+                cbar = True
+                kwargs.update(cbar=cbar)
+            else:
+                cbar = False
+                kwargs.update(cbar=cbar)
+            try:
+                self.projective_field(
+                    source=source,
+                    target=target,
+                    fig=fig,
+                    ax=axes[i],
+                    title=ax_titles,
+                    prfs=prfs,
+                    max_extent=max_extent,
+                    vmin=vmin,
+                    vmax=vmax,
+                    annotate_coords=False,
+                    **kwargs,
+                )
+            except plots.SignError as e:
+                if ignore_sign_error:
+                    pass
+                else:
+                    raise e
+        return fig
 
     def receptive_fields_df(self, target_type):
-        return receptive_fields_edge_dfs(target_type, self.edges.to_df())
+        return ReceptiveFields(target_type, self.edges.to_df())
 
     def projective_fields_df(self, source_type):
-        return projective_fields_edge_dfs(source_type, self.edges.to_df())
+        return ProjectiveFields(source_type, self.edges.to_df())
 
     def receptive_fields_sum(self, target_type):
-        return receptive_fields_sum(target_type, self.edges.to_df())
+        return ReceptiveFields(target_type, self.edges.to_df()).sum()
 
     def projective_fields_sum(self, source_type):
-        return projective_fields_sum(source_type, self.edges.to_df())
+        return ProjectiveFields(source_type, self.edges.to_df()).sum()
 
 
-# -- other plots
-
-
-def input_T4(edges):
-    """Shinomiya et al. 2019 - Figure 2"""
-    cells = [
-        "Mi1",
-        "Mi4",
-        "Mi9",
-        "Mi13",
-        "Tm3",
-        "CT1(M10)",
-        "TmY15",
-        "TmY18",  # equals TmY18
-        "C3",
-        "T4a",
-        "T4b",
-        "T4c",
-        "T4d",
-        "other",
-    ]
-    n_syn = np.zeros([4, len(cells), 1])
-    other = {}
-    for i, t4typ in enumerate(["T4a", "T4b", "T4c", "T4d"]):
-        other[t4typ] = []
-        rfs = receptive_fields_edge_dfs(t4typ, edges)
-        for j, cell in enumerate(cells[:-1]):
-            if cell in rfs:
-                n_syn[i, j] = np.sum(rfs[cell].n_syn)
-            else:
-                n_syn[i, j] = np.nan
-        for cell in rfs:
-            if cell not in cells:
-                n_syn[i, -1] += np.sum(rfs[cell].n_syn)
-                other[t4typ].append(cell)
-    n_syn = np.swapaxes(n_syn, 0, 1)
-
-    fig, ax, C = plots.violin_groups(
-        n_syn,
-        xticklabels=cells,
-        as_bars=True,
-        colors=["#2AB155", "#EB4E2F", "#FAD23A", "#2174B6"],
-        legend=["T4a", "T4b", "T4c", "T4d"],
-        legend_kwargs={"fontsize": 10, "loc": 1},
-        width=0.7,
-    )
-    ax.set_ylabel("number of synapses")
-    fig.suptitle("input to T4", x=0.25, y=0.75)
-    return fig, ax
-
-
-def output_T4(edges, invert_y=False, ylim=None):
-    """Shinomiya et al. 2019 - Figure 2"""
-    cells = [
-        "Mi1",
-        "Mi4",
-        "Mi9",
-        "Mi13",
-        "Tm3",
-        "CT1(M10)",
-        "TmY15",
-        "TmY18",  # equals TmY18
-        "C3",
-        "T4a",
-        "T4b",
-        "T4c",
-        "T4d",
-        "other",
-    ]
-    n_syn = np.zeros([4, len(cells), 1])
-    other = {}
-    for i, t4typ in enumerate(["T4a", "T4b", "T4c", "T4d"]):
-        other[t4typ] = []
-        prfs = projective_fields_edge_dfs(t4typ, edges)
-        for j, cell in enumerate(cells[:-1]):
-            if cell in prfs:
-                n_syn[i, j] = np.sum(prfs[cell].n_syn)
-            else:
-                n_syn[i, j] = np.nan
-        for cell in prfs:
-            if cell not in cells:
-                n_syn[i, -1] += np.sum(prfs[cell].n_syn)
-                other[t4typ].append(cell)
-    n_syn = np.swapaxes(n_syn, 0, 1)
-    fig, ax, C = plots.violin_groups(
-        n_syn,
-        xticklabels=cells,
-        as_bars=True,
-        colors=["#2AB155", "#EB4E2F", "#FAD23A", "#2174B6"],
-        legend=["T4a", "T4b", "T4c", "T4d"],
-        legend_kwargs={"fontsize": 10, "loc": 2},
-        width=0.7,
-    )
-    ax.set_ylabel("number of synapses")
-    fig.suptitle("output from T4", y=0.25, x=0.25)
-    if ylim is not None:
-        ax.set_ylim(*ylim)
-    if invert_y:
-        ax.invert_yaxis()
-        plt_utils.rm_spines(ax, ["bottom"], rm_xticks=True)
-    return fig, ax
-
-
-def input_T5(edges):
-    """Shinomiya et al. 2019 - Figure 2"""
-    cells = [
-        "Tm1",
-        "Tm2",
-        "Tm4",
-        "Tm9",
-        "CT1(Lo1)",
-        "TmY15",
-        "LT33",
-        "Tm23",
-        "T2",
-        "T5a",
-        "T5b",
-        "T5c",
-        "T5d",
-        "other",
-    ]
-    n_syn = np.zeros([4, len(cells), 1])
-    other = {}
-    for i, t5typ in enumerate(["T5a", "T5b", "T5c", "T5d"]):
-        other[t5typ] = []
-        rfs = receptive_fields_edge_dfs(t5typ, edges)
-        for j, cell in enumerate(cells[:-1]):
-            if cell in rfs:
-                n_syn[i, j] = np.sum(rfs[cell].n_syn)
-            else:
-                n_syn[i, j] = np.nan
-        for cell in rfs:
-            if cell not in cells:
-                n_syn[i, -1] += np.sum(rfs[cell].n_syn)
-                other[t5typ].append(cell)
-    n_syn = np.swapaxes(n_syn, 0, 1)
-    fig, ax, C = plots.violin_groups(
-        n_syn,
-        xticklabels=cells,
-        as_bars=True,
-        colors=["#2AB155", "#EB4E2F", "#FAD23A", "#2174B6"],
-        legend=["T5a", "T5b", "T5c", "T5d"],
-        legend_kwargs={"fontsize": 10, "loc": 2},
-        width=0.7,
-    )
-    ax.set_ylabel("number of synapses")
-    fig.suptitle("input to T5", x=0.25, y=0.75)
-    return fig, ax
-
-
-def output_T5(edges, invert_y=False, ylim=None, fig=None, ax=None):
-    """Shinomiya et al. 2019 - Figure 2"""
-    cells = [
-        "Tm1",
-        "Tm2",
-        "Tm4",
-        "Tm9",
-        "CT1(Lo1)",
-        "TmY15",
-        "LT33",
-        "Tm23",
-        "T2",
-        "T5a",
-        "T5b",
-        "T5c",
-        "T5d",
-        "other",
-    ]
-    n_syn = np.zeros([4, len(cells), 1])
-    other = {}
-    for i, t5typ in enumerate(["T5a", "T5b", "T5c", "T5d"]):
-        other[t5typ] = []
-        prfs = projective_fields_edge_dfs(t5typ, edges)
-        for j, cell in enumerate(cells[:-1]):
-            if cell in prfs:
-                n_syn[i, j] = np.sum(prfs[cell].n_syn)
-            else:
-                n_syn[i, j] = np.nan
-        for cell in prfs:
-            if cell not in cells:
-                n_syn[i, -1] += np.sum(prfs[cell].n_syn)
-                other[t5typ].append(cell)
-    n_syn = np.swapaxes(n_syn, 0, 1)
-    fig, ax, C = plots.violin_groups(
-        n_syn,
-        xticklabels=cells,
-        as_bars=True,
-        colors=["#2AB155", "#EB4E2F", "#FAD23A", "#2174B6"],
-        legend=["T5a", "T5b", "T5c", "T5d"],
-        legend_kwargs={"fontsize": 10, "loc": 2},
-        width=0.7,
-        fig=fig,
-        ax=ax,
-    )
-    ax.set_ylabel("number of synapses")
-    fig.suptitle("output from T5", y=0.25, x=0.25)
-    if ylim is not None:
-        ax.set_ylim(*ylim)
-    if invert_y:
-        ax.invert_yaxis()
-        plt_utils.rm_spines(ax, ["bottom"], rm_xticks=True)
-    return fig, ax
-
-
-# -- utility functions
 class ReceptiveFields(Namespace):
-    "Mapping of source types to pandas DataFrames"
+    """Dictionary of receptive field dataframes for a specific cell type.
 
-    def __init__(self, target_type, source_types, *args, **kwargs):
+    Args:
+        target_type: target cell type.
+        edges: all edges of a Connectome.
+
+    Attributes:
+        target_type str
+        source_types List[str]
+    """
+
+    def __init__(self, target_type, edges, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        object.__setattr__(self, "target_type", target_type)
-        object.__setattr__(self, "source_types", source_types)
         object.__setattr__(self, "_extents", [])
+        _receptive_fields_edge_dfs(self, target_type, edges)
 
     @property
     def extents(self):
@@ -1306,54 +1067,26 @@ class ReceptiveFields(Namespace):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.target_type})"
 
-
-def receptive_fields_edge_dfs(target_type, edges) -> ReceptiveFields:
-    """Return all receptive fields edges as separate dataframes.
-
-    Args:
-        target_type (str): name of target neuron type.
-        edges (DataFrame): edges DataFrame.
-
-    Returns:
-        dict: receptive fields dict with source neuron type - edge dataframe
-                pairs, and all columns contained in the edges dataframe.
-        int: maximal extent of all source receptive fields for plotting on
-                the same grid.
-    """
-
-    edges = edges[edges.target_type == target_type]
-    source_types = edges.source_type.unique()
-
-    rfs = ReceptiveFields(target_type, source_types)
-
-    for source_type in source_types:
-        _edges = edges[edges.source_type == source_type]
-
-        most_central_edge = _edges.iloc[
-            np.argmin(np.abs(_edges.target_u) + np.abs(_edges.target_v))
-        ]
-        target_u_min = most_central_edge.target_u
-        target_v_min = most_central_edge.target_v
-
-        rfs[source_type] = _edges[
-            (_edges.target_u == target_u_min) & (_edges.target_v == target_v_min)
-        ]
-        rfs._extents.append(
-            hex_utils.get_extent(rfs[source_type].du, rfs[source_type].dv)
-        )
-    # max_extent = max(extents) if extents else None
-
-    return rfs
+    def sum(self):
+        return {key: self[key].n_syn.sum() for key in self}
 
 
 class ProjectiveFields(Namespace):
-    "Mapping of source types to pandas DataFrames"
+    """Dictionary of projective field dataframes for a specific cell type.
 
-    def __init__(self, source_type, target_types, *args, **kwargs):
+    Args:
+        source_type: target cell type.
+        edges: all edges of a Connectome.
+
+    Attributes:
+        source_type str
+        target_types List[str]
+    """
+
+    def __init__(self, source_type: str, edges: DataFrame, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        object.__setattr__(self, "source_type", source_type)
-        object.__setattr__(self, "target_types", target_types)
         object.__setattr__(self, "_extents", [])
+        _projective_fields_edge_dfs(self, source_type, edges)
 
     @property
     def extents(self):
@@ -1366,25 +1099,49 @@ class ProjectiveFields(Namespace):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.source_type})"
 
+    def sum(self):
+        return {key: self[key].n_syn.sum() for key in self}
 
-def projective_fields_edge_dfs(source_type, edges) -> ProjectiveFields:
-    """Return all projective fields edges as separate dataframes.
 
-    Args:
-        source_type (str): name of target neuron type.
-        edges (DataFrame): edges DataFrame.
+def _receptive_fields_edge_dfs(
+    cls: ReceptiveFields, target_type: str, edges: DataFrame
+) -> ReceptiveFields:
+    """Populate ReceptiveFields."""
 
-    Returns:
-        dict: projective fields dict with target neuron type - edge dataframe
-                pairs, and all columns contained in the edges dataframe.
-        int: maximal extent of all target projective fields for plotting on
-                the same grid.
-    """
+    edges = edges[edges.target_type == target_type]
+    source_types = edges.source_type.unique()
+
+    object.__setattr__(cls, "target_type", target_type)
+    object.__setattr__(cls, "source_types", source_types)
+
+    for source_type in source_types:
+        _edges = edges[edges.source_type == source_type]
+
+        most_central_edge = _edges.iloc[
+            np.argmin(np.abs(_edges.target_u) + np.abs(_edges.target_v))
+        ]
+        target_u_min = most_central_edge.target_u
+        target_v_min = most_central_edge.target_v
+
+        cls[source_type] = _edges[
+            (_edges.target_u == target_u_min) & (_edges.target_v == target_v_min)
+        ]
+        cls._extents.append(
+            hex_utils.get_extent(cls[source_type].du, cls[source_type].dv)
+        )
+    return cls
+
+
+def _projective_fields_edge_dfs(
+    cls: ProjectiveFields, source_type: str, edges: DataFrame
+) -> ProjectiveFields:
+    """Populate ProjectiveFields."""
 
     edges = edges[edges.source_type == source_type]
     target_types = edges.target_type.unique()
 
-    prfs = ProjectiveFields(source_type, target_types)
+    object.__setattr__(cls, "source_type", source_type)
+    object.__setattr__(cls, "target_types", target_types)
 
     for target_type in target_types:
         _edges = edges[edges.target_type == target_type]
@@ -1393,23 +1150,11 @@ def projective_fields_edge_dfs(source_type, edges) -> ProjectiveFields:
         ]
         source_u_min = most_central_edge.source_u
         source_v_min = most_central_edge.source_v
-        prfs[target_type] = _edges[
+        cls[target_type] = _edges[
             (_edges.source_u == source_u_min) & (_edges.source_v == source_v_min)
         ]
-        prfs._extents.append(
-            hex_utils.get_extent(prfs[target_type].du, prfs[target_type].dv)
+        cls._extents.append(
+            hex_utils.get_extent(cls[target_type].du, cls[target_type].dv)
         )
 
-    # max_extent = max(extents) if extents else None
-
-    return prfs  # , max_extent
-
-
-def receptive_fields_sum(target, edges):
-    rfs = receptive_fields_edge_dfs(target, edges)
-    return {key: rfs[key].n_syn.sum() for key in rfs}
-
-
-def projective_fields_sum(source, edges):
-    prfs = projective_fields_edge_dfs(source, edges)
-    return {key: prfs[key].n_syn.sum() for key in prfs}
+    return cls  # , max_extent

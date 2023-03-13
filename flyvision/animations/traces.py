@@ -1,6 +1,6 @@
 """Animations of traces."""
 import numpy as np
-from matplotlib import cm
+from matplotlib import colormaps as cm
 
 from flyvision import utils
 from flyvision.plots import plots
@@ -49,9 +49,10 @@ class Trace(Animation):
         contour=None,
         label="Sample: {}\nFrame: {}",
         labelxy=(0.1, 0.95),
-        fontsize=10,
+        fontsize=5,
+        figsize=(2, 2),
     ):
-        self.trace = utils.to_numpy(trace)
+        self.trace = utils.tensor_utils.to_numpy(trace)
         self.n_samples, self.frames = self.trace.shape
         self.fig = fig
         self.ax = ax
@@ -74,6 +75,7 @@ class Trace(Animation):
                 [plt_utils.get_lims(c, 0.01) for c in self.contour]
             )
         self.dt = dt
+        self.figsize = figsize
         super().__init__(path, self.fig)
 
     def init(self, frame=0):
@@ -95,6 +97,7 @@ class Trace(Animation):
             ylabel=self.ylabel,
             fontsize=self.fontsize,
             title=self.title,
+            figsize=self.figsize,
         )
 
         self._plot_contour()
@@ -213,7 +216,7 @@ class MultiTrace(Animation):
         fontsize=10,
         path=None,
     ):
-        self.trace = utils.to_numpy(trace)
+        self.trace = utils.tensor_utils.to_numpy(trace)
         self.n_samples, self.frames, self.n_trace = self.trace.shape
         self.fig = fig
         self.ax = ax
@@ -273,11 +276,7 @@ class MultiTrace(Animation):
         for n in range(self.n_trace):
             self.ax.lines[n].set_data(x, trace[:, n])
 
-        contour = (
-            self.contour[self.batch_sample]
-            if self.contour is not None
-            else None
-        )
+        contour = self.contour[self.batch_sample] if self.contour is not None else None
 
         if self.batch_sample != self._sample and contour is not None:
             self.ax.collections = []
@@ -304,9 +303,7 @@ class MultiTrace(Animation):
             self.ax.axis([xmin, xmax, ymin, ymax])
 
         if self.label:
-            self.label_text.set_text(
-                self.label.format(self.batch_sample, frame)
-            )
+            self.label_text.set_text(self.label.format(self.batch_sample, frame))
 
         if self.update:
             self.update_figure()
