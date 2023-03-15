@@ -270,7 +270,7 @@ class ActivationGridPlusTraces(AnimationCollector):
         time_constants = ista["time_const"]
         # ylims = np.array([(-lim, lim) for lim in ista["crange"]])
 
-        ylims = plt_utils.node_type_collection_ax_lims_per_batch(
+        ylims = plt_utils.cell_type_collection_ax_lims_per_batch(
             {key: value.sum(-1) for key, value in ista["source_current"].items()},
             offset=0.2,
         )
@@ -405,7 +405,7 @@ class ActivationGridPlusTraces_v2(AnimationCollector):
         path=None,
     ):
 
-        global_trace_ylims = plt_utils.node_type_collection_ax_lims_per_batch(
+        global_trace_ylims = plt_utils.cell_type_collection_ax_lims_per_batch(
             {
                 **{key: value.sum(-1) for key, value in source_currents.items()},
                 **{"target_currents": target_currents.sum(-1)},
@@ -414,7 +414,7 @@ class ActivationGridPlusTraces_v2(AnimationCollector):
         )
 
         global_cmap_lims = np.abs(
-            plt_utils.node_type_collection_ax_lims_per_batch(
+            plt_utils.cell_type_collection_ax_lims_per_batch(
                 source_currents, offset=0.05
             )
         ).max(axis=1)
@@ -782,7 +782,7 @@ class LayerActivityGrid(Animation):
         self.layout = utils.nodes_edges_utils.layout
 
         self.neuron_types = utils.nodes_edges_utils.order_nodes_list(
-            ctome.unique_node_types[:].astype(str)
+            ctome.unique_cell_types[:].astype(str)
         )[0]
         self.fig, self.axes = plots._network_graph_ax_scatter(
             self.neuron_types,
@@ -811,7 +811,7 @@ class LayerActivityGrid(Animation):
                 )[0]
 
         if color_norm_per == "batch":
-            # Store one scalarmapper per batch samples and node type.
+            # Store one scalarmapper per batch samples and cell type.
             self.sms = np.zeros([self.n_samples, len(self.neuron_types)], dtype=object)
             for i in range(self.n_samples):
                 for j, nt in enumerate(self.neuron_types):

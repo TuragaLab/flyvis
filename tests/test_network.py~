@@ -18,7 +18,7 @@ default_network_config = flyvision.get_default_config().solver.network
 def test_network_forward_steady_state():
     network = Network(**default_network_config)
     steady_state = network.steady_state(1.0, 1 / 10, 1)
-    assert list(steady_state.keys()) == ["nodes", "edges", "sources", "targets"]
+    assert list(steady_state.keys()) == ["cells", "edges", "sources", "targets"]
     assert len(steady_state.nodes.activity) == 1
 
 

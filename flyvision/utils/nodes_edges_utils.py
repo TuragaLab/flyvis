@@ -17,7 +17,7 @@ def order_nodes_list(
         r"Tm.*\d{1,2}.*",
     ],
 ):
-    """Orders a list of node types by the regular expressions defined in groups.
+    """Orders a list of cell types by the regular expressions defined in groups.
 
     Args:
         nodes_list (list): messy list of nodes.
@@ -46,16 +46,16 @@ def order_nodes_list(
     #     breakpoint()
     type_groups = {index: [] for index in range(len(groups))}
     type_groups.update({len(groups) + 1: []})  # for unmatched types.
-    matched = {node_type: False for node_type in nodes_list}
-    for node_index, node_type in enumerate(nodes_list):
+    matched = {cell_type: False for cell_type in nodes_list}
+    for node_index, cell_type in enumerate(nodes_list):
         for group_index, regular_expression in enumerate(groups):
-            if re.match(regular_expression, node_type):
-                type_groups[group_index].append((node_index, node_type))
-                matched[node_type] = True
-        if matched[node_type]:
+            if re.match(regular_expression, cell_type):
+                type_groups[group_index].append((node_index, cell_type))
+                matched[cell_type] = True
+        if matched[cell_type]:
             pass
         else:
-            type_groups[len(groups) + 1].append((node_index, node_type))
+            type_groups[len(groups) + 1].append((node_index, cell_type))
 
     # ordered = [y for x in type_groups.values() for y in sorted(x, key=lambda z: sort_fn(z[1]))]
     ordered = []
@@ -68,7 +68,7 @@ def order_nodes_list(
     if set(nodes_list) - set(nodes):
         print(set(nodes_list) - set(nodes))
         raise AssertionError(
-            "Defined sorting through regular expressions does not include all node types."
+            "Defined sorting through regular expressions does not include all cell types."
         )
 
     if _len != len(nodes) or _len != len(index):
@@ -80,26 +80,26 @@ def order_nodes_list(
 
 
 class NodeIndexer(dict):
-    def __init__(self, ctome=None, unique_node_types=None):
-        if ctome is not None and unique_node_types is None:
-            self.unique_node_types = ctome.unique_node_types[:].astype("str")
-            self.central_nodes_index = ctome.central_nodes_index[:]
-        elif ctome is None and unique_node_types is not None:
-            self.unique_node_types = unique_node_types
+    def __init__(self, ctome=None, unique_cell_types=None):
+        if ctome is not None and unique_cell_types is None:
+            self.unique_cell_types = ctome.unique_cell_types[:].astype("str")
+            self.central_cells_index = ctome.central_cells_index[:]
+        elif ctome is None and unique_cell_types is not None:
+            self.unique_cell_types = unique_cell_types
         else:
             raise ValueError("either cell_types or ctome must be specified")
-        for index, node_type in enumerate(self.unique_node_types):
-            super().__setitem__(node_type, index)
+        for index, cell_type in enumerate(self.unique_cell_types):
+            super().__setitem__(cell_type, index)
 
     def __dir__(self):
         return list(set([*dict.__dir__(self), *dict.__iter__(self)]))
 
     def __len__(self):
-        return len(self.unique_node_types)
+        return len(self.unique_cell_types)
 
     def __iter__(self):
-        for node_type in self.unique_node_types:
-            yield node_type
+        for cell_type in self.unique_cell_types:
+            yield cell_type
 
     def __getattr__(self, key):
         if isinstance(key, str):
@@ -132,8 +132,8 @@ class CellTypeArray:
         self.node_indexer = NodeIndexer(ctome, cell_types)
 
     def __iter__(self):
-        for node_type in self.node_indexer.unique_node_types:
-            yield node_type
+        for cell_type in self.node_indexer.unique_cell_types:
+            yield cell_type
 
     def __dir__(self):
         return list(
@@ -166,15 +166,15 @@ class CellTypeArray:
         return [(k, self[k]) for k in self]
 
     def __len__(self):
-        return len(self.node_indexer.unique_node_types)
+        return len(self.node_indexer.unique_cell_types)
 
     def __getattr__(self, key):
 
         if self.node_indexer is not None:
-            if isinstance(key, str) and key in self.node_indexer.unique_node_types:
+            if isinstance(key, str) and key in self.node_indexer.unique_cell_types:
                 indices = np.int_([dict.__getitem__(self.node_indexer, key)])
             elif isinstance(key, Iterable) and any(
-                [_key in self.node_indexer.unique_node_types for _key in key]
+                [_key in self.node_indexer.unique_cell_types for _key in key]
             ):
                 indices = np.int_(
                     [dict.__getitem__(self.node_indexer, _key) for _key in key]
@@ -190,11 +190,11 @@ class CellTypeArray:
         return self.__getattr__(key)
 
     def __setitem__(self, key, value):
-        if self.node_indexer is not None and key in self.node_indexer.unique_node_types:
+        if self.node_indexer is not None and key in self.node_indexer.unique_cell_types:
             if value.shape[-1] != 1:
                 value = np.expand_dims(value, self.dim)
             if self.array is None:
-                n_cell_types = len(self.node_indexer.unique_node_types)
+                n_cell_types = len(self.node_indexer.unique_cell_types)
                 shape = list(value.shape)
                 shape[self.dim] = n_cell_types
                 self.array = np.zeros(shape)

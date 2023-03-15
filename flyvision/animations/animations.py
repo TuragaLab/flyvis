@@ -2,6 +2,7 @@ import itertools
 import shutil
 from time import sleep
 from pathlib import Path
+from typing import Iterable
 import weakref
 import re
 import logging
@@ -61,20 +62,22 @@ class Animation:
             edgecolor="none",
         )
 
+    def _get_indices(self, key, input):
+        _indices = set(range(self.__getattribute__(key)))
+        if isinstance(input, str) and input == "all":
+            indices = _indices
+        elif isinstance(input, Iterable):
+            indices = _indices.intersection(set(input))
+        else:
+            raise ValueError(key, input)
+        return indices
+
     def notebook_animation(self, frames="all", samples="all", repeat=1):
         """Play animation within a jupyter notebook."""
         self.update = True
         self.init()
-        _frames = set(range(self.frames))
-        if frames != "all":
-            frames = _frames.intersection(set(frames))
-        else:
-            frames = _frames
-        _samples = set(range(self.n_samples))
-        if samples != "all":
-            samples = _samples.intersection(set(samples))
-        else:
-            samples = _samples
+        frames = self._get_indices("frames", frames)
+        samples = self._get_indices("n_samples", samples)
         _break = False
         while repeat:
             for sample in sorted(samples):
@@ -128,16 +131,8 @@ class Animation:
         # Once self is garbage-collected, the temporary folder is rm'd.
         self.update = True
         self.init()
-        _frames = set(range(self.frames))
-        if frames != "all":
-            frames = _frames.intersection(set(frames))
-        else:
-            frames = _frames
-        _samples = set(range(self.n_samples))
-        if samples != "all":
-            samples = _samples.intersection(set(samples))
-        else:
-            samples = _samples
+        frames = self._get_indices("frames", frames)
+        samples = self._get_indices("n_samples", samples)
         try:
             for sample in sorted(samples):
                 self.batch_sample = sample

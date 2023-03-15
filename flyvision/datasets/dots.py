@@ -241,7 +241,7 @@ class Dots(StimulusDataset):
 
     def response(
         self,
-        node_type=None,
+        cell_type=None,
         intensity=None,
         offset=None,
         u=None,
@@ -254,13 +254,13 @@ class Dots(StimulusDataset):
         time_slice = slice(None)
         if not pre_stim:
             time_slice = slice(int(self.t_pre / self.dt), None)
-        if node_type is not None:
-            return self.central_activity[node_type][mask][:, time_slice].squeeze()
+        if cell_type is not None:
+            return self.central_activity[cell_type][mask][:, time_slice].squeeze()
         else:
             return self.central_activity[:][mask][:, time_slice].squeeze()
 
-    def receptive_field(self, node_type, intensity, time_window=None):
-        response = self.response(node_type=node_type, intensity=intensity)
+    def receptive_field(self, cell_type, intensity, time_window=None):
+        response = self.response(cell_type=cell_type, intensity=intensity)
         # n_frames, #n_hexals
         rf = np.ones([response.shape[1], len(self.extent_condition)]) * np.nan
         rf[:, self.extent_condition] = response.T
@@ -270,12 +270,12 @@ class Dots(StimulusDataset):
 
         return rf
 
-    def receptive_field_vertical(self, node_type, intensity):
-        rf = self.receptive_field(node_type, intensity)
+    def receptive_field_vertical(self, cell_type, intensity):
+        rf = self.receptive_field(cell_type, intensity)
         return rf[:, self.vline]
 
-    def receptive_field_horizontal(self, node_type, intensity):
-        rf = torch.tensor(self.receptive_field(node_type, intensity), device="cpu")
+    def receptive_field_horizontal(self, cell_type, intensity):
+        rf = torch.tensor(self.receptive_field(cell_type, intensity), device="cpu")
         u, v = hex_utils.get_hex_coords(15)
         rf = (
             scatter_mean(
@@ -297,7 +297,7 @@ class Dots(StimulusDataset):
 
     def plot(
         self,
-        node_type,
+        cell_type,
         intensity,
         orientation,
         figsize=[5, 4],
@@ -318,11 +318,11 @@ class Dots(StimulusDataset):
 
         if orientation == "vertical":
             if rf is None:
-                rf = self.receptive_field_vertical(node_type, intensity)
+                rf = self.receptive_field_vertical(cell_type, intensity)
             ylabel = "elevation"
         elif orientation == "horizontal":
             if rf is None:
-                rf = self.receptive_field_horizontal(node_type, intensity)
+                rf = self.receptive_field_horizontal(cell_type, intensity)
             ylabel = "azimuth"
 
         if subtract_baseline:
@@ -388,13 +388,13 @@ class Dots(StimulusDataset):
             )
             cbar.ax.locator_params(nbins=5)
 
-        ax.set_title(node_type, fontsize=fontsize)
+        ax.set_title(cell_type, fontsize=fontsize)
 
         return fig, ax
 
     def plot_hex(
         self,
-        node_type,
+        cell_type,
         intensity,
         figsize=[5, 4],
         rf=None,
@@ -402,4 +402,4 @@ class Dots(StimulusDataset):
         xticks=6,
         fontsize=10,
     ):
-        rf = self.receptive_field(node_type, intensity)
+        rf = self.receptive_field(cell_type, intensity)

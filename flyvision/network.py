@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from datamate import Namespace, Directory
 
-from flyvision.connectome import Connectome
+from flyvision.connectome import ConnectomeDir
 from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
 from flyvision.initialization import Parameter, init_parameter
@@ -96,7 +96,7 @@ class Network(nn.Module):
         )
     """
 
-    ctome: Connectome
+    ctome: ConnectomeDir
     dynamics: NetworkDynamics
     node_params: Dict[str, Parameter]
     edge_params: Dict[str, Parameter]
@@ -132,19 +132,19 @@ class Network(nn.Module):
         edge_config = edge_config.deepcopy()
 
         # Store the connectome, dynamics, and parameters.
-        self.ctome = Connectome(connectome)
+        self.ctome = ConnectomeDir(connectome)
         self.dynamics = NetworkDynamics(dynamics)
 
         # Accessing the h5 datasets in every loop leads to network and read/write bandwidth issues.
         # Therefore, we load those indices into memory, as they are constant during training.
 
-        _node_types = self.ctome.nodes.type[:]
+        _cell_types = self.ctome.nodes.type[:]
         self.input_indices = np.array(
-            [np.nonzero(_node_types == t)[0] for t in self.ctome.input_node_types]
+            [np.nonzero(_cell_types == t)[0] for t in self.ctome.input_cell_types]
         )
         self.output_indices = torch.tensor(
             np.array(
-                [np.nonzero(_node_types == t)[0] for t in self.ctome.output_node_types]
+                [np.nonzero(_cell_types == t)[0] for t in self.ctome.output_cell_types]
             )
         )
 
@@ -567,7 +567,7 @@ class Network(nn.Module):
     def forward(self, x, dt, state=None, as_states=False):
         """
         Args:
-            x (Tensor): whole-network stimulus of shape (#samples, #frames, #nodes).
+            x (Tensor): whole-network stimulus of shape (#samples, #frames, #cells).
             dt (float): integration time constant.
         """
         # To keep the parameters within their valid domain, they get clamped.
@@ -924,7 +924,7 @@ class NetworkDir(Directory):
 class NetworkView:
     def __init__(self, network_dir: NetworkDir):
         self.dir = network_dir
-        self.ctome = Connectome(self.dir.config.network.connectome)
+        self.ctome = ConnectomeDir(self.dir.config.network.connectome)
         self._initialized = dict(network=False, decoder=False)
 
     def reset_init(self, key):

@@ -461,7 +461,7 @@ class Movingbar(StimulusDataset):
 
     def response(
         self,
-        node_type=None,
+        cell_type=None,
         angle=None,
         width=None,
         intensity=None,
@@ -482,8 +482,8 @@ class Movingbar(StimulusDataset):
                 speed=speed,
             )
             # breakpoint()
-            if node_type is not None:
-                responses = self.central_activity[node_type][mask]
+            if cell_type is not None:
+                responses = self.central_activity[cell_type][mask]
             else:
                 responses = self.central_activity[:][:][mask]
 
@@ -505,10 +505,10 @@ class Movingbar(StimulusDataset):
 
             shape = responses.shape
             if len(shape) == 2:
-                n_node_types = 1
+                n_cell_types = 1
                 n_samples, n_frames = shape
             else:
-                n_samples, n_frames, n_node_types = shape
+                n_samples, n_frames, n_cell_types = shape
 
             if nonlinearity:
                 responses = np.maximum(responses, 0)
@@ -522,13 +522,13 @@ class Movingbar(StimulusDataset):
                 len(intensity),
                 len(speed),
                 n_frames,
-                n_node_types,
+                n_cell_types,
             )
         return responses
 
     def peak_response_angular(
         self,
-        node_type=None,
+        cell_type=None,
         width=None,
         intensity=None,
         speed=None,
@@ -558,11 +558,11 @@ class Movingbar(StimulusDataset):
             width=width,
             intensity=intensity,
             speed=speed,
-            node_type=None,
+            cell_type=None,
             pre_stim=pre_stim,
             post_stim=post_stim,
         )
-        n_samples, n_frames, n_node_types = responses.shape
+        n_samples, n_frames, n_cell_types = responses.shape
 
         if nonlinearity:
             responses = np.maximum(responses, 0)
@@ -576,7 +576,7 @@ class Movingbar(StimulusDataset):
             len(intensity),
             len(speed),
             n_frames,
-            n_node_types,
+            n_cell_types,
         )
 
         # for speeds > min(speeds) we pad nans after the post stimulus duration
@@ -598,7 +598,7 @@ class Movingbar(StimulusDataset):
                 # to compute the normalizer as peak response given all possible
                 # stimuli, we set width, intensity, speed to None
                 _peak_resp_angular, _ = self.peak_response_angular(
-                    node_type=node_type,
+                    cell_type=cell_type,
                     width=None,
                     intensity=None,
                     speed=None,
@@ -619,16 +619,16 @@ class Movingbar(StimulusDataset):
                 np.nansum(np.abs(_peak_resp_angular), axis=(0, 1, 2, 3)) + 1e-15
             )
 
-        if node_type is not None:
+        if cell_type is not None:
             return np.take(
-                peak_resp_angular, self.central_activity.index[node_type], -1
+                peak_resp_angular, self.central_activity.index[cell_type], -1
             ), (width, intensity, speed)
 
         return peak_resp_angular, (width, intensity, speed)
 
     def dsi(
         self,
-        node_type=None,
+        cell_type=None,
         round_angle=False,
         width=None,
         intensity=None,
@@ -644,7 +644,7 @@ class Movingbar(StimulusDataset):
         #     intensity,
         #     speed,
         # ) = self.peak_response_angular(
-        #     node_type=None,
+        #     cell_type=None,
         #     width=width,
         #     intensity=intensity,
         #     speed=speed,
@@ -659,7 +659,7 @@ class Movingbar(StimulusDataset):
         # raise NotImplementedError
         # breakpoint()
         peak_resp_angular, (width, _, speed,) = self.peak_response_angular(
-            node_type=None,
+            cell_type=None,
             width=width,
             intensity=None,
             speed=speed,
@@ -701,9 +701,9 @@ class Movingbar(StimulusDataset):
         )
         theta_pref = all_theta_pref[intensity_index].squeeze()
 
-        if node_type is None:
+        if cell_type is None:
             nodes_list, index = utils.order_nodes_list(
-                self.tnn.ctome.unique_node_types[:].astype(str)
+                self.tnn.ctome.unique_cell_types[:].astype(str)
             )
             # breakpoint()
             return (
@@ -712,20 +712,20 @@ class Movingbar(StimulusDataset):
                 np.take(theta_pref, index, axis=-1),
             )
         # breakpoint()
-        node_type_index = self.central_activity.index[node_type]
-        dsi_node_type = np.take(dsis_absolute, node_type_index, axis=-1)
+        cell_type_index = self.central_activity.index[cell_type]
+        dsi_cell_type = np.take(dsis_absolute, cell_type_index, axis=-1)
         # breakpoint()
         peak_resp_angular = peak_resp_angular[:, :, intensity_index][
-            :, :, :, :, node_type_index
+            :, :, :, :, cell_type_index
         ]
-        # _peak_resp_angular = _peak_resp_angular[:, :, :, :, node_type_index]
+        # _peak_resp_angular = _peak_resp_angular[:, :, :, :, cell_type_index]
 
         # summing over n_widths, n_intentieis, n_speeds to get
         # n_angles peak responses in complex space
         # breakpoint()
-        # z_node_type =
+        # z_cell_type =
         # theta_pref = utils.round_angles(
-        #     np.degrees(np.angle(z_node_type.sum())), self.angles, round_angle
+        #     np.degrees(np.angle(z_cell_type.sum())), self.angles, round_angle
         # )
         # breakpoint()
         dsis = dsi_from_peak_angular_responses(
@@ -773,11 +773,11 @@ class Movingbar(StimulusDataset):
         theta_pref = all_theta_pref.flatten()[argmax_index]
         r = np.abs(np.nansum(peak_resp_angular, axis=(1, 2, 3)))
 
-        return dsi_node_type, theta_pref, argmax, (self.angles, r), dsi_table
+        return dsi_cell_type, theta_pref, argmax, (self.angles, r), dsi_table
 
     def max_dsi_trace(
         self,
-        node_type,
+        cell_type,
         width=None,
         speed=None,
         intensity=None,
@@ -785,7 +785,7 @@ class Movingbar(StimulusDataset):
         angle=None,
     ):
         _, pd, argmax, _, _ = self.dsi(
-            node_type,
+            cell_type,
             round_angle=round_angle,
             width=width,
             speed=speed,
@@ -802,7 +802,7 @@ class Movingbar(StimulusDataset):
             width=width,
             speed=speed,
             intensity=intensity,
-            node_type=node_type,
+            cell_type=cell_type,
         ).squeeze()
         stimulus = self.stimulus(
             angle=angle, width=width, speed=speed, intensity=intensity
@@ -811,14 +811,14 @@ class Movingbar(StimulusDataset):
 
     def max_dsi(
         self,
-        node_type,
+        cell_type,
         width=None,
         speed=None,
         intensity=None,
         round_angle=True,
     ):
         _, _, argmax, _, _ = self.dsi(
-            node_type,
+            cell_type,
             round_angle=round_angle,
             width=width,
             speed=speed,
@@ -826,7 +826,7 @@ class Movingbar(StimulusDataset):
         )
         _, width, intensity, speed = argmax
         return self.dsi(
-            node_type,
+            cell_type,
             round_angle=True,
             width=[width],
             speed=[speed],
@@ -835,7 +835,7 @@ class Movingbar(StimulusDataset):
 
     def traces(
         self,
-        node_type,
+        cell_type,
         angle,
         width,
         speed,
@@ -855,7 +855,7 @@ class Movingbar(StimulusDataset):
             post_stim=post_stim,
         )
         resp = self.response(
-            node_type=node_type,
+            cell_type=cell_type,
             pre_stim=pre_stim,
             post_stim=post_stim,
             angle=angle,
@@ -864,7 +864,7 @@ class Movingbar(StimulusDataset):
             intensity=intensity,
         )
         opposite_resp = self.response(
-            node_type=node_type,
+            cell_type=cell_type,
             pre_stim=pre_stim,
             post_stim=post_stim,
             angle=(angle + 180) % 360,
@@ -910,10 +910,10 @@ class Movingbar(StimulusDataset):
         return time, stim, resp, opposite_resp
 
     def preferred_direction(
-        self, node_type, nonlinearity=True, round_angle=True, intensity=None
+        self, cell_type, nonlinearity=True, round_angle=True, intensity=None
     ):
-        dsi_node_type, theta_pref, argmax, (angles, r), dsi_table = self.dsi(
-            node_type,
+        dsi_cell_type, theta_pref, argmax, (angles, r), dsi_table = self.dsi(
+            cell_type,
             nonlinearity=nonlinearity,
             round_angle=round_angle,
             intensity=intensity,
@@ -948,7 +948,7 @@ class Movingbar(StimulusDataset):
 
     def peak_response(
         self,
-        node_type=None,
+        cell_type=None,
         angle=None,
         width=None,
         intensity=None,
@@ -983,12 +983,12 @@ class Movingbar(StimulusDataset):
             width=width,
             intensity=intensity,
             speed=speed,
-            node_type=None,
+            cell_type=None,
             pre_stim=pre_stim,
             post_stim=post_stim,
         )
         # breakpoint()
-        n_samples, n_frames, n_node_types = responses.shape
+        n_samples, n_frames, n_cell_types = responses.shape
 
         if nonlinearity:
             responses = np.maximum(responses, 0)
@@ -1002,7 +1002,7 @@ class Movingbar(StimulusDataset):
             len(intensity),
             len(speed),
             n_frames,
-            n_node_types,
+            n_cell_types,
         )
 
         responses[np.isnan(responses)] = 0
@@ -1016,7 +1016,7 @@ class Movingbar(StimulusDataset):
                 # stimuli, we set angle, width, intensity, speed to None
                 _peak_resp, _ = self.peak_response(
                     self,
-                    node_type=node_type,
+                    cell_type=cell_type,
                     angle=angle,
                     width=None,
                     intensity=None,
@@ -1037,8 +1037,8 @@ class Movingbar(StimulusDataset):
             # directional vectors
             peak_resp /= np.abs(_peak_resp).sum(axis=(0, 1, 2, 3)) + 1e-15
 
-        if node_type is not None:
-            return np.take(peak_resp, self.central_activity.index[node_type], -1), (
+        if cell_type is not None:
+            return np.take(peak_resp, self.central_activity.index[cell_type], -1), (
                 width,
                 intensity,
                 speed,

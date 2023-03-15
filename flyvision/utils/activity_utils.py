@@ -1,4 +1,4 @@
-"""Attribute-style access to activity of particular node types.
+"""Attribute-style access to activity of particular cell types.
 
 Example:
     layer_activity = LayerActivity(activity, network.ctome)
@@ -24,16 +24,14 @@ class _Activity(dict):
         return list(set([*dict.__dir__(self), *dict.__iter__(self)]))
 
     def __len__(self):
-        return len(self.unique_node_types)
+        return len(self.unique_cell_types)
 
     def __iter__(self):
-        for node_type in self.unique_node_types:
-            yield node_type
+        for cell_type in self.unique_cell_types:
+            yield cell_type
 
     def __repr__(self):
-        return "Activity of: \n{}".format(
-            "\n".join(wrap(", ".join(list(self))))
-        )
+        return "Activity of: \n{}".format("\n".join(wrap(", ".join(list(self)))))
 
     def update(self, activity):
         self.activity = activity
@@ -49,15 +47,13 @@ class _Activity(dict):
         if activity is None:
             return
         if isinstance(key, list):
-            index = np.stack(
-                list(map(lambda key: dict.__getitem__(self, key), key))
-            )
+            index = np.stack(list(map(lambda key: dict.__getitem__(self, key), key)))
             slices = self._slices(len(activity.shape) - 1)
             slices += (index,)
             return activity[slices]
         elif key == slice(None):
             return activity
-        elif key in self.unique_node_types:
+        elif key in self.unique_cell_types:
             slices = self._slices(len(activity.shape) - 1)
             slices += (dict.__getitem__(self, key),)
             return activity[slices]
@@ -70,17 +66,17 @@ class _Activity(dict):
             slices += (self.input_indices,)
             return activity[slices]
         elif "+" in key:
-            _node_types = key.split("+")
-            return sum(map(self.__getattr__, _node_types))
+            _cell_types = key.split("+")
+            return sum(map(self.__getattr__, _cell_types))
         elif "-" in key:
-            _node_types = key.split("-")
-            return reduce(operator.sub, map(self.__getattr__, _node_types))
+            _cell_types = key.split("-")
+            return reduce(operator.sub, map(self.__getattr__, _cell_types))
         elif "*" in key:
-            _node_types = key.split("*")
-            return reduce(operator.mul, map(self.__getattr__, _node_types))
+            _cell_types = key.split("*")
+            return reduce(operator.mul, map(self.__getattr__, _cell_types))
         elif "/" in key:
-            _node_types = key.split("/")
-            return reduce(operator.truediv, map(self.__getattr__, _node_types))
+            _cell_types = key.split("/")
+            return reduce(operator.truediv, map(self.__getattr__, _cell_types))
         elif key in self.__dict__.keys():
             return self.__dict__[key]
         else:
@@ -108,16 +104,16 @@ class CentralActivity(_Activity):
     """Attribute-style access to central activity.
 
     Args:
-        activity (array-like): activity of shape (..., #nodes)
+        activity (array-like): activity of shape (..., #cells)
         ctome (Folder): connectome wrap with reference to
                         - ctome.nodes.layer_index
-                        - ctome.unique_node_types
-                        - ctome.central_nodes_index
+                        - ctome.unique_cell_types
+                        - ctome.central_cells_index
 
 
     Attributes:
-        activity (array-like): activity of shape (..., #nodes)
-        unique_node_types (array)
+        activity (array-like): activity of shape (..., #cells)
+        unique_cell_types (array)
 
     Note: also allows 'virtual types' that are basic operations of individuals
     >>> a = LayerActivity(activity, network.ctome)
@@ -128,18 +124,18 @@ class CentralActivity(_Activity):
         super().__init__(keepref)
         self.index = nodes_edges_utils.NodeIndexer(ctome)
 
-        unique_node_types = ctome.unique_node_types[:]
-        input_node_types = ctome.input_node_types[:]
-        output_node_types = ctome.output_node_types[:]
+        unique_cell_types = ctome.unique_cell_types[:]
+        input_cell_types = ctome.input_cell_types[:]
+        output_cell_types = ctome.output_cell_types[:]
         self.input_indices = np.array(
-            [np.nonzero(unique_node_types == t)[0] for t in input_node_types]
+            [np.nonzero(unique_cell_types == t)[0] for t in input_cell_types]
         )
         self.output_indices = np.array(
-            [np.nonzero(unique_node_types == t)[0] for t in output_node_types]
+            [np.nonzero(unique_cell_types == t)[0] for t in output_cell_types]
         )
         # breakpoint()
         self.activity = activity
-        self.unique_node_types = unique_node_types.astype(str)
+        self.unique_cell_types = unique_cell_types.astype(str)
 
     def __getattr__(self, key):
         activity = self.activity() if not self.keepref else self.activity
@@ -152,7 +148,7 @@ class CentralActivity(_Activity):
             return activity[slices]
         elif key == slice(None):
             return activity
-        elif key in self.index.unique_node_types:
+        elif key in self.index.unique_cell_types:
             slices = self._slices(len(activity.shape) - 1)
             slices += (self.index[key],)
             return activity[slices]
@@ -165,17 +161,17 @@ class CentralActivity(_Activity):
             slices += (self.input_indices,)
             return activity[slices]
         elif "+" in key:
-            _node_types = key.split("+")
-            return sum(map(self.__getattr__, _node_types))
+            _cell_types = key.split("+")
+            return sum(map(self.__getattr__, _cell_types))
         elif "-" in key:
-            _node_types = key.split("-")
-            return reduce(operator.sub, map(self.__getattr__, _node_types))
+            _cell_types = key.split("-")
+            return reduce(operator.sub, map(self.__getattr__, _cell_types))
         elif "*" in key:
-            _node_types = key.split("*")
-            return reduce(operator.mul, map(self.__getattr__, _node_types))
+            _cell_types = key.split("*")
+            return reduce(operator.mul, map(self.__getattr__, _cell_types))
         elif "/" in key:
-            _node_types = key.split("/")
-            return reduce(operator.truediv, map(self.__getattr__, _node_types))
+            _cell_types = key.split("/")
+            return reduce(operator.truediv, map(self.__getattr__, _cell_types))
         elif key in self.__dict__.keys():
             return self.__dict__[key]
         else:
@@ -184,9 +180,9 @@ class CentralActivity(_Activity):
     def __setattr__(self, key, value):
         # TODO: case when value is ReferenceType and whole layers.
         if key == "activity" and value is not None:
-            if len(self.index.unique_node_types) != value.shape[-1]:
+            if len(self.index.unique_cell_types) != value.shape[-1]:
                 slices = self._slices(len(value.shape) - 1)
-                slices += (self.index.central_nodes_index,)
+                slices += (self.index.central_cells_index,)
                 value = value[slices]
                 self.keepref = True
             if self.keepref is False:
@@ -196,41 +192,41 @@ class CentralActivity(_Activity):
             object.__setattr__(self, key, value)
 
     def __len__(self):
-        return len(self.unique_node_types)
+        return len(self.unique_cell_types)
 
     def __iter__(self):
-        for node_type in self.unique_node_types:
-            yield node_type
+        for cell_type in self.unique_cell_types:
+            yield cell_type
 
 
 class LayerActivity(_Activity):
     """Attribute-style access to layer activity.
 
     Args:
-        activity (array-like): activity of shape (..., #nodes)
+        activity (array-like): activity of shape (..., #cells)
         ctome (Folder): connectome wrap with reference to
                         - ctome.nodes.layer_index
-                        - ctome.unique_node_types
-                        - ctome.central_nodes_index
-                        - ctome.input_node_types
-                        - ctome.output_node_types
+                        - ctome.unique_cell_types
+                        - ctome.central_cells_index
+                        - ctome.input_cell_types
+                        - ctome.output_cell_types
 
     Attributes:
         central (CentralActivity): central activity mapping,
             giving attribute-style access to central nodes of particular types.
-        activity (array-like): activity of shape (..., #nodes)
+        activity (array-like): activity of shape (..., #cells)
         ctome (Folder): connectome wrap with reference to
                         - ctome.nodes.layer_index
-                        - ctome.unique_node_types
-                        - ctome.central_nodes_index
-                        - ctome.input_node_types
-                        - ctome.output_node_types
-        unique_node_types (array)
+                        - ctome.unique_cell_types
+                        - ctome.central_cells_index
+                        - ctome.input_cell_types
+                        - ctome.output_cell_types
+        unique_cell_types (array)
         input_indices (array)
         output_indices (array)
         input (array)
         output (array)
-        <node_types> (array)
+        <cell_types> (array)
 
 
     Note: central activity can be accessed by
@@ -245,9 +241,9 @@ class LayerActivity(_Activity):
     central = {}
     activity = None
     ctome = None
-    unique_node_types = []
-    input_node_types = []
-    output_node_types = []
+    unique_cell_types = []
+    input_cell_types = []
+    output_cell_types = []
 
     def __init__(self, activity, ctome, keepref=False, use_central=True):
         super().__init__(keepref)
@@ -259,26 +255,20 @@ class LayerActivity(_Activity):
 
         self.activity = activity
         self.ctome = ctome
-        self.unique_node_types = ctome.unique_node_types[:].astype("str")
-        for node_type in self.unique_node_types:
-            index = ctome.nodes.layer_index[node_type][:]
-            self[node_type] = index
+        self.unique_cell_types = ctome.unique_cell_types[:].astype("str")
+        for cell_type in self.unique_cell_types:
+            index = ctome.nodes.layer_index[cell_type][:]
+            self[cell_type] = index
 
-        _node_types = self.ctome.nodes.type[:]
+        _cell_types = self.ctome.nodes.type[:]
         self.input_indices = np.array(
-            [
-                np.nonzero(_node_types == t)[0]
-                for t in self.ctome.input_node_types
-            ]
+            [np.nonzero(_cell_types == t)[0] for t in self.ctome.input_cell_types]
         )
         self.output_indices = np.array(
-            [
-                np.nonzero(_node_types == t)[0]
-                for t in self.ctome.output_node_types
-            ]
+            [np.nonzero(_cell_types == t)[0] for t in self.ctome.output_cell_types]
         )
-        self.input_node_types = self.ctome.input_node_types[:].astype(str)
-        self.output_node_types = self.ctome.output_node_types[:].astype(str)
+        self.input_cell_types = self.ctome.input_cell_types[:].astype(str)
+        self.output_cell_types = self.ctome.output_cell_types[:].astype(str)
         self.n_nodes = len(self.ctome.nodes.type)
 
     def __setattr__(self, key, value):

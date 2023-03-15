@@ -20,6 +20,9 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.transforms import Bbox
 from matplotlib import colormaps as cm
+from matplotlib.colors import hex2color
+from matplotlib.colors import to_rgba, ListedColormap
+
 
 # import dvs.utils
 # from dvs.plots.decoration import *
@@ -530,6 +533,46 @@ def trim_axis(ax, xaxis=True, yaxis=True):
             newticks = newticks.compress(newticks >= firsttick)
             ax.set_yticks(newticks)
             ax.set_yticks(new_minor_ticks, minor=True)
+
+
+def is_hex(color):
+    return "#" in color
+
+
+def is_integer_rgb(color):
+    try:
+        return any([c > 1 for c in color])
+    except:
+        return False
+
+
+def single_color_cmap(color):
+
+    if is_hex(color):
+        color = to_rgba(color)
+    elif is_integer_rgb(color):
+        color = np.array(color) / 255
+    else:
+        pass
+
+    return ListedColormap(color)
+
+
+def get_alpha_colormap(saturated_color, number_of_shades):
+    """To create a colormap from a color and a number of shades."""
+    if is_hex(saturated_color):
+        rgba = [*hex2color(saturated_color)[:3], 0]
+    elif is_integer_rgb(saturated_color):
+        rgba = [*list(np.array(saturated_color) / 255.0), 0]
+
+    N = number_of_shades
+    colors = []
+    alphas = np.linspace(1 / N, 1, N)[::-1]
+    for alpha in alphas:
+        rgba[-1] = alpha
+        colors.append(rgba.copy())
+
+    return ListedColormap(colors)
 
 
 def get_polar_colormap(
@@ -1359,11 +1402,11 @@ def get_lims(z, offset, min=None, max=None):
     return _min, _max
 
 
-def node_type_collection_ax_lims_per_batch(data, neuron_types=None, offset=0.1):
+def cell_type_collection_ax_lims_per_batch(data, neuron_types=None, offset=0.1):
     """
 
     Args:
-        data (Dict[str, array]): maps node types onto
+        data (Dict[str, array]): maps cell types onto
                             activity of shape (#samples, #frames, ...).
 
     Returns:
@@ -1372,7 +1415,7 @@ def node_type_collection_ax_lims_per_batch(data, neuron_types=None, offset=0.1):
 
     neuron_types = neuron_types or list(data.keys())
 
-    # stack as #node_types, #samples, #frames, ...
+    # stack as #cell_types, #samples, #frames, ...
     stacked_data = []
     for neuron_type in neuron_types:
         trace = dvs.utils.to_numpy(data[neuron_type])

@@ -450,7 +450,7 @@ class RestingPotential(Parameter):
     """Initialize resting potentials a.k.a. biases for cell types."""
 
     def __init__(self, param_config: Namespace, nodes_wrap: Nodeswrap):
-        # equals order in ctome.unique_node_types
+        # equals order in ctome.unique_cell_types
         nodes = pd.DataFrame(
             dict(type=nodes_wrap.type[:].astype(str))
         ).drop_duplicates()
@@ -686,7 +686,7 @@ def symmetry_mask_for_nodes(
     and gather operations.
 
     Args:
-        symmetric: list of tuples of node types that share parameters.
+        symmetric: list of tuples of cell types that share parameters.
         nodes: DataFrame containing 'type' column.
 
     Returns:
@@ -704,9 +704,9 @@ def symmetry_mask_for_nodes(
     symmetry_masks = [
         torch.zeros(len(nodes)).bool() for _ in symmetric
     ]  # type: List[torch.Tensor]
-    for i, node_types in enumerate(symmetric):
+    for i, cell_types in enumerate(symmetric):
         for index, row in nodes.iterrows():
-            if row.type in node_types:
+            if row.type in cell_types:
                 symmetry_masks[i][index] = torch.tensor(1).bool()
     return symmetry_masks
 

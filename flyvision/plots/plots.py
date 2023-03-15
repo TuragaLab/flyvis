@@ -66,7 +66,7 @@ def heatmap_uniform(
 
     Args:
         matrix (array): square image.
-        nodes (list): list of node types.
+        nodes (list): list of cell types.
         cmap (Colorbar, optional): Defaults to cm.get_cmap("seismic").
         symlog (float, optional): Symmetric log scaling with
             (-symlog, symlog) linear range around zero.
@@ -496,7 +496,7 @@ def network_graph(
     """Network graph.
 
     Args:
-        nodes (array): a list of node types.
+        nodes (array): a list of cell types.
         edges (array): a list of edge tuples [(source, target), ...].
         node_color (array, optional): values for coloring the nodes.
             Defaults to None.
@@ -660,7 +660,7 @@ def network_graph(
 
 def network_layout_axes(
     layout,
-    node_types=None,
+    cell_types=None,
     fig=None,
     figsize=[16, 10],
     region_spacing=2,
@@ -674,7 +674,7 @@ def network_layout_axes(
     pos = {
         key: value
         for key, value in pos.items()
-        if (node_types is None or key in node_types)
+        if (cell_types is None or key in cell_types)
     }
     xy = np.array(list(pos.values()))
     # why pad this?
@@ -697,14 +697,14 @@ def network_layout_axes(
     if as_dict:
         return (
             fig,
-            {node_type: axes[i] for i, node_type in enumerate(new_pos)},
+            {cell_type: axes[i] for i, cell_type in enumerate(new_pos)},
             new_pos,
         )
     return fig, axes, new_pos
 
 
 def _network_graph_ax_scatter(
-    node_types,
+    cell_types,
     nodes,
     edges,
     layout,
@@ -782,7 +782,7 @@ def _network_graph_ax_scatter(
 
     fig, axes, positions = network_layout_axes(
         layout,
-        node_types,
+        cell_types,
         fig,
         figsize,
         region_spacing,
@@ -814,14 +814,14 @@ def _network_graph_ax_scatter(
     }
     # fig.positions = positions
 
-    assert set(layout) == set(node_types), "Subset of node types not supported."
-    # nodes = utils.filter_df_by_list(node_types,
+    assert set(layout) == set(cell_types), "Subset of cell types not supported."
+    # nodes = utils.filter_df_by_list(cell_types,
     #                                         nodes,
     #                                         column="type")
-    # edges = utils.filter_df_by_list(node_types,
+    # edges = utils.filter_df_by_list(cell_types,
     #                                         edges,
     #                                         column="source_type")
-    # edges = utils.filter_df_by_list(node_types,
+    # edges = utils.filter_df_by_list(cell_types,
     #                                         edges,
     #                                         column="target_type")
 
@@ -833,10 +833,10 @@ def _network_graph_ax_scatter(
     #             return ax
 
     # positions = {
-    #     node_type: plt_utils.get_ax_positions(_get_ax(fig, node_type))[1][
+    #     cell_type: plt_utils.get_ax_positions(_get_ax(fig, cell_type))[1][
     #         0
     #     ].flatten()
-    #     for node_type in nodes
+    #     for cell_type in nodes
     # }
 
     if edge_color_key is not None:
@@ -2831,8 +2831,8 @@ def potentials(
 ):
     """Plots the membrane potential.
     Args:
-        ylabels (List): rows with node types.
-        activity (array): (#frames, #nodes).
+        ylabels (List): rows with cell types.
+        activity (array): (#frames, #cells).
         time_const (bool): optional time constant annotation.
     """
     fig, ax = plt_utils.init_plot(
@@ -2924,8 +2924,8 @@ def potential_over_frames(
 ):
     """Plots the membrane potential.
     Args:
-        nodes (dataframe): rows with node types, time constants.
-        activity (array): (#frames, #nodes).
+        nodes (dataframe): rows with cell types, time constants.
+        activity (array): (#frames, #cells).
         time_const (bool): optional time constant annotation.
     """
     fig, ax = plt_utils.init_plot(
@@ -2967,7 +2967,7 @@ def potential_over_frames(
     if y_axis is False:
         ax = plt_utils.rm_spines(ax, ["left"], rm_xticks=False, rm_yticks=True)
 
-    # Annotate with node types and time constants.
+    # Annotate with cell types and time constants.
     nodes.insert(
         0,
         "y_offset_initial",
@@ -3830,7 +3830,7 @@ def gratings_traces(
 
 def speed_width_on_off_tuning(
     activities,
-    node_type="T4d",
+    cell_type="T4d",
     cmap=cm.get_cmap("coolwarm_r"),
     ax=None,
     fig=None,
@@ -3854,8 +3854,8 @@ def speed_width_on_off_tuning(
     for on_or_off, activity_i in activities.items():
         for w, activity_ij in activity_i.items():
             for s, activity_ijk in activity_ij.items():
-                ymin = min(activity_ijk[node_type].min(), ymin)
-                ymax = max(activity_ijk[node_type].max(), ymax)
+                ymin = min(activity_ijk[cell_type].min(), ymin)
+                ymax = max(activity_ijk[cell_type].max(), ymax)
 
     rows = len(activities)
     columns = len(activities[next(iter(activities.keys()))])
@@ -3867,7 +3867,7 @@ def speed_width_on_off_tuning(
         gridheight=rows,
         projection="polar",
     )
-    fig.suptitle(node_type)
+    fig.suptitle(cell_type)
     axes = np.array(axes).reshape(gh, gw)
     for i, (on_or_off, activity) in enumerate(activities.items()):
         for j, (w, activity_given_width_and_speeds) in enumerate(activity.items()):
@@ -3878,7 +3878,7 @@ def speed_width_on_off_tuning(
                 activity_given_width_and_speeds,
                 ylabel=ylabel,
                 xlabel=xlabel,
-                node_type=node_type,
+                cell_type=cell_type,
                 fig=fig,
                 ax=axes[i, j],
                 ymin=ymin,
@@ -3953,7 +3953,7 @@ def speed_polar(
 
 def speed_tuning(
     activities,
-    node_type="T4d",
+    cell_type="T4d",
     cmap=cm.get_cmap("coolwarm_r"),
     ax=None,
     fig=None,
@@ -3986,7 +3986,7 @@ def speed_tuning(
         # print(speed, cmap(i))
         fig, ax = polar(
             activity.batch_dim,
-            activity[node_type],
+            activity[cell_type],
             color=cmap(i),
             linestyle="-",
             marker="",
@@ -4079,7 +4079,7 @@ def binary_shading(ax, time, conditions, cmap=cm.get_cmap("binary")):
 
 def flash_response(
     activities,
-    node_type="T4a",
+    cell_type="T4a",
     fig=None,
     ax=None,
     cmap=cm.get_cmap("binary_r"),
@@ -4112,7 +4112,7 @@ def flash_response(
     ymin, ymax = 1e5, 1e-5
     for i, (key, activity) in enumerate(activities.items()):
 
-        a = activity[node_type].squeeze()
+        a = activity[cell_type].squeeze()
         ymin, ymax = min(ymin, a.min()), max(ymax, a.max())
         traces(
             a,

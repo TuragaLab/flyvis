@@ -11,7 +11,7 @@ from datamate import Namespace
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params
 from flyvision.utils.hex_utils import get_hex_coords
-from flyvision.connectome import Connectome
+from flyvision.connectome import ConnectomeDir
 
 import logging
 
@@ -27,7 +27,7 @@ class ActivityDecoder(nn.Module):
 
         Args:
             ctome (Datawrap): connectome datawrap with keys
-                ctome.output_node_types.
+                ctome.output_cell_types.
         """
         super().__init__()
         self.dvs_channels = LayerActivity(None, ctome, use_central=False)
@@ -41,11 +41,11 @@ class ActivityDecoder(nn.Module):
     def forward(self, activity):
         """
         Args:
-            activity (tensor): tensor of shape n_samples, n_frames, n_nodes.
+            activity (tensor): tensor of shape n_samples, n_frames, n_cells.
 
         Returns:
             tensor (tensor): tensor of shape
-                    n_samples, n_frames, output_node_types, n_hexals.
+                    n_samples, n_frames, output_cell_types, n_hexals.
         """
         self.dvs_channels.update(activity)
         return self.dvs_channels
@@ -159,7 +159,7 @@ class DecoderGAVP(ActivityDecoder):
     ):
         super().__init__(ctome)
         p = int((kernel_size - 1) / 2)
-        in_channels = len(ctome.output_node_types)
+        in_channels = len(ctome.output_cell_types)
         out_channels = shape[-1]
         self._out_channels = out_channels
         self.out_channels = (
@@ -257,7 +257,7 @@ class DecoderGAVP(ActivityDecoder):
         return out
 
 
-def init_decoder(decoder_config: Namespace, ctome: Connectome) -> nn.Module:
+def init_decoder(decoder_config: Namespace, ctome: ConnectomeDir) -> nn.Module:
     decoder_config = decoder_config.deepcopy()
     _type = decoder_config.pop("type")
     decoder_type = globals()[_type]

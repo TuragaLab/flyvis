@@ -1,1 +1,1 @@
-from flyvision.rendering.eye import HexEye, BoxEye
+from flyvision.rendering.eye import BoxEye

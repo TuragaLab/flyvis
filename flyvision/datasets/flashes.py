@@ -161,14 +161,14 @@ class Flashes(SequenceDataset):
         stim = self[key][:, 360].cpu().numpy()
         return stim
 
-    def response(self, intensity=None, radius=None, node_type=None):
+    def response(self, intensity=None, radius=None, cell_type=None):
         """
         #TODO: docstring
         """
         assert self.tnn
         mask = self.mask(intensity, radius)
-        if node_type is not None:
-            return self.centralactivity[node_type][mask].squeeze()
+        if cell_type is not None:
+            return self.centralactivity[cell_type][mask].squeeze()
         return self.centralactivity[:][mask].squeeze()
 
     def mask(self, intensity=None, radius=None):
@@ -200,19 +200,19 @@ class Flashes(SequenceDataset):
 
     def argmax_fri(self):
         """
-        Returns the argmax fri for each node type.
+        Returns the argmax fri for each cell type.
         #TODO: docstring, check deprecated
         """
-        node_types = self.tnn.ctome.unique_node_types[:].astype(str)
-        fri = np.zeros(len(node_types))
-        argmax = np.zeros([3, len(node_types)])
+        cell_types = self.tnn.ctome.unique_cell_types[:].astype(str)
+        fri = np.zeros(len(cell_types))
+        argmax = np.zeros([3, len(cell_types)])
         for (baseline, intensity), radius in self.values:
             _fri = self.flash_response_index(baseline, intensity, radius)[0]
             mask = np.abs(_fri) > np.abs(fri)
             argmax[:, mask] = np.array([baseline, intensity, radius])[:, None]
             fri[mask] = _fri[mask]
         return argmax, {
-            node_type: argmax[:, i] for i, node_type in enumerate(node_types)
+            cell_type: argmax[:, i] for i, cell_type in enumerate(cell_types)
         }
 
     def flash_response_index(
@@ -224,7 +224,7 @@ class Flashes(SequenceDataset):
         nonnegative=True,
     ):
         """
-        Returns the fri for each node type.
+        Returns the fri for each cell type.
         """
         # logging.warning(
         #     f"{subtract_baseline}, {nonlinearity}, {nonnegative}, {mode}"
@@ -328,9 +328,9 @@ class Flashes(SequenceDataset):
             )
 
         return fri, {
-            node_type: fri[i]
-            for i, node_type in enumerate(
-                self.tnn.ctome.unique_node_types[:].astype(str)
+            cell_type: fri[i]
+            for i, cell_type in enumerate(
+                self.tnn.ctome.unique_cell_types[:].astype(str)
             )
         }
 
