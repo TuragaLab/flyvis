@@ -12,10 +12,10 @@ import torch.nn.functional as F
 def median(x, kernel_size, stride=1, n_chunks=10):
     """Median image filter with reflected padding.
 
-    x (array or tensor): (#samples, #frames, height, width).
+    x (array or tensor): (#samples, n_frames, height, width).
                         First and second dimension are optional.
     kernel_size (int): size of the boxes.
-    n_chunks (int): chunksize over #samples, #frames to process the data on the
+    n_chunks (int): chunksize over #samples, n_frames to process the data on the
         gpu if it runs out of memory.
 
     Note: On the gpu it creates a tensor of kernel_size ** 2 * prod(x.shape)

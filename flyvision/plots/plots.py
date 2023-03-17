@@ -2832,7 +2832,7 @@ def potentials(
     """Plots the membrane potential.
     Args:
         ylabels (List): rows with cell types.
-        activity (array): (#frames, #cells).
+        activity (array): (n_frames, #cells).
         time_const (bool): optional time constant annotation.
     """
     fig, ax = plt_utils.init_plot(
@@ -2925,7 +2925,7 @@ def potential_over_frames(
     """Plots the membrane potential.
     Args:
         nodes (dataframe): rows with cell types, time constants.
-        activity (array): (#frames, #cells).
+        activity (array): (n_frames, #cells).
         time_const (bool): optional time constant annotation.
     """
     fig, ax = plt_utils.init_plot(

@@ -22,17 +22,17 @@ class ActivityDecoder(nn.Module):
 
     dvs_channels: Dict[str, torch.Tensor]
 
-    def __init__(self, ctome):
+    def __init__(self, connectome):
         """ActivityDecoder.
 
         Args:
-            ctome (Datawrap): connectome datawrap with keys
-                ctome.output_cell_types.
+            connectome (Datawrap): connectome datawrap with keys
+                connectome.output_cell_types.
         """
         super().__init__()
-        self.dvs_channels = LayerActivity(None, ctome, use_central=False)
+        self.dvs_channels = LayerActivity(None, connectome, use_central=False)
         self.num_parameters = n_params(self)
-        radius = ctome.config.extent
+        radius = connectome.config.extent
         self.u, self.v = get_hex_coords(radius)
         self.u -= self.u.min()
         self.v -= self.v.min()
@@ -147,7 +147,7 @@ class DecoderGAVP(ActivityDecoder):
 
     def __init__(
         self,
-        ctome,
+        connectome,
         shape,
         kernel_size,
         p_dropout=0.5,
@@ -157,9 +157,9 @@ class DecoderGAVP(ActivityDecoder):
         normalize_last=True,
         activation="Softplus",
     ):
-        super().__init__(ctome)
+        super().__init__(connectome)
         p = int((kernel_size - 1) / 2)
-        in_channels = len(ctome.output_cell_types)
+        in_channels = len(connectome.output_cell_types)
         out_channels = shape[-1]
         self._out_channels = out_channels
         self.out_channels = (
@@ -221,30 +221,30 @@ class DecoderGAVP(ActivityDecoder):
         # Ensure that the outputs of the dvs-model are rectified potentials.
         x = nnf.relu(self.dvs_channels.output)
 
-        # (#frames, #samples, #outputneurons, #hexals)
+        # (n_frames, #samples, #outputneurons, n_hexals)
         n_samples, n_frames, in_channels, n_hexals = x.shape
 
         # Store hexals in square map.
-        # (#frames, #samples, #outputneurons, H, W)
+        # (n_frames, #samples, #outputneurons, H, W)
         x_map = torch.zeros([n_samples, n_frames, in_channels, self.H, self.W])
         x_map[:, :, :, self.u, self.v] = x
 
         # Concatenate actual batch dimension with the frame dimension.
-        # torch.flatten(x_map, 0, 1)  # (#samples*#frames, #outputneurons, H, W)
+        # torch.flatten(x_map, 0, 1)  # (#samples*n_frames, #outputneurons, H, W)
         x_map = x_map.view(-1, in_channels, self.H, self.W)
 
         # Run decoder.
-        # (#frames*#samples, out_channels + 1, H, W)
+        # (n_frames*#samples, out_channels + 1, H, W)
         out = self.decoder(self.base(x_map))
 
         if self.normalize_last:
             # Do some normalization with the additional channel.
-            # (#frames*#samples, out_channels, H, W)
+            # (n_frames*#samples, out_channels, H, W)
             out = out[:, : self.out_channels] / (
                 nnf.softplus(out[:, self.out_channels :]) + 1
             )
 
-        # Bring back into shape: # (#samples, #frames, out_channels, #hexals)
+        # Bring back into shape: # (#samples, n_frames, out_channels, n_hexals)
         out = out.view(n_samples, n_frames, self.out_channels, self.H, self.W)[
             :, :, :, self.u, self.v
         ]
@@ -257,9 +257,9 @@ class DecoderGAVP(ActivityDecoder):
         return out
 
 
-def init_decoder(decoder_config: Namespace, ctome: ConnectomeDir) -> nn.Module:
+def init_decoder(decoder_config: Namespace, connectome: ConnectomeDir) -> nn.Module:
     decoder_config = decoder_config.deepcopy()
     _type = decoder_config.pop("type")
     decoder_type = globals()[_type]
-    decoder_config.update(dict(ctome=ctome))
+    decoder_config.update(dict(connectome=connectome))
     return decoder_type(**decoder_config)

@@ -1,33 +1,36 @@
 # Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution
 
-Janne K. Lappalainen,<sup>1,2</sup> Fabian D. Tschopp,<sup>2</sup> Sridhama Prakhya,<sup>2</sup> Mason McGill,<sup>2,3</sup>
-Aljoscha Nern,<sup>2</sup> Kazunori Shinomiya,<sup>2</sup> Shin-ya Takemura,<sup>2</sup> Eyal Gruntman,<sup>2</sup>
-Jakob H. Macke,<sup>1,4</sup> Srinivas C. Turaga<sup>2∗</sup>
+This repository is the official implementation of [Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
 
+We provide our deep mechanistic networks as discovery tool for generating and testing hypotheses about neural
+computations with connectomes.
 
-<sup>1</sup>Machine Learning in Science, Tübingen University and Tübingen AI Center, Germany
-<sup>2</sup>HHMI Janelia Research Campus, Ashburn, VA, USA
-<sup>3</sup>Computation and Neural Systems, California Institute of Technology, Pasadena, CA, USA
-<sup>4</sup>Max Planck Institute for Intelligent Systems, Tübingen, Germany
-<sup>∗</sup>turagas@janelia.hhmi.org.
+## Generating hypotheses about neural computations with connectomes
 
+### Getting started
+Try our models inside our Google Colab notebooks. We first release our tools to explore the connectome and how to provide custom
+stimuli to the models and explore their responses:
 
-We release our connectome, task, and single-neuron dynamics constrained deep mechanistic network models of the Drosophila visual system.
+- Documentation 🔜
+- Explore the connectome 🔜
+- Provide custom stimuli 🔜
 
-# Examples
+All in between, touching
+results already described on the paper, will be coming soon.
 
-The following example notebooks show how to use our library.
+### More coming soon 🔜
+- Optic flow task 🔜
+- Flash responses 🔜
+- Moving edge responses 🔜
+- Naturalistic stimuli responses 🔜
+- Predictions for unknown cell types 🔜
 
-- 01_flyvision_connectome.ipynb to visualize connectivity
-- 02_flyvision_optic_flow_task.ipynb to compute and visualize optic flow (tbd)
-- 03_flyvision_flash_responses.ipynb to compute and visualize flash responses (tbd)
-- 04_flyvision_moving_edge_responses.ipynb to compute and visualize moving edge responses (tbd)
-- 05_flyvision_naturalistic_stimuli_responses.ipynb to compute and visualize responses to naturalistic stimuli (tbd)
-- 06_flyvision_tmy_predictions.ipynb to compute and visualize TmY3 responses (tbd)
-- 07_flyvision_providing_custom_stimuli.ipynb to compute and visualize responses to your own stimuli
+### Local installation
 
-# Installation
-
+To install requirements:
+```setup
+pip install -r requirements.txt
+```
 1. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
 2. make sure conda is installed
 3. create a new conda environment `conda create --name flyvision -y`
@@ -37,14 +40,36 @@ The following example notebooks show how to use our library.
 7. install pytorch, torchvision, cuda `conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3.1 -c pytorch`
 8. run `pytest`
 
+## Background
 
-# Help and support
-lappalainenjk@gmail.com
+How useful is a connectome? We show that you can predict quite a bit about the neural activity of a circuit from just measurements of its connectivity.
 
-# Acknowledgements
+<p style="text-align:center;">
+<img src="images/tweet_1_intro.png"  width="60%" height="30%">
+</p>
+
+We built a convolutional recurrent network of the fly visual system--on a hexagonal grid, matching the columnar structure of the optic lobe. Weights (connections + filter weights) come from the connectome: A deep neural network which precisely maps onto a real brain circuit!
+
+<p style="text-align:center;">
+<img src="images/tweet_4_network.gif"  width="60%" height="30%" class="center">
+</p>
+
+Our connectome-constrained “deep mechanistic network” (DMN) has 64 identified cell-types, 44K neurons + over 1 Mio. connections.
+We trained its free parameters (single-cell + synapse dynamics) on optic flow
+computation from naturalistic movie inputs.
+
+<p style="text-align:center;">
+<img src="images/tweet_5_training_light.gif"  width="60%" height="30%" class="center">
+</p>
 
 
-# Citation
+## Contributors
+
+- Janne ([@lappalainenj](https://github.com/lappalainenj), lappalainenjk@gmail.com)
+- Mason ([@MasonMcGill](https://github.com/MasonMcGill))
+
+## Citation
+
 ```
 @article{lappalainen2023connectome,
   title={Connectome-constrained deep mechanistic networks predict neural
@@ -56,8 +81,3 @@ lappalainenjk@gmail.com
   year={2023}
 }
 ```
-
-# License
-
-# Contributing
-

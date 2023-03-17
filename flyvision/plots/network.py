@@ -10,11 +10,11 @@ from flyvision.plots.plots import network_layout_axes
 
 
 class WholeNetworkFigure:
-    def __init__(self, ctome):
-        self.nodes = ctome.nodes.to_df()
-        self.edges = ctome.edges.to_df()
-        self.layout = dict(ctome.layout[:].astype(str))
-        self.cell_types = ctome.unique_cell_types[:].astype(str)
+    def __init__(self, connectome):
+        self.nodes = connectome.nodes.to_df()
+        self.edges = connectome.edges.to_df()
+        self.layout = dict(connectome.layout[:].astype(str))
+        self.cell_types = connectome.unique_cell_types[:].astype(str)
 
     def init_figure(self, figsize=[15, 6], fontsize=6):
         self.fig, self.axes, self.axes_centers = network_layout_axes(

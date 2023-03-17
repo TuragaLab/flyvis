@@ -10,7 +10,7 @@ import pandas as pd
 
 
 class RefTensor:
-    """Stores values and indices as tensors.
+    """Stores tensors of values and indices as references for the last dimension.
 
     Args:
         values (tensor)
@@ -31,9 +31,7 @@ class RefTensor:
         return len(self.values)
 
     def __repr__(self):
-        return "\nValues:\n{}\nReferences:\n{}\nDereferenced:\n{}".format(
-            self.values, self.indices, self.deref()
-        )
+        return "RefTensor(values={}, indices={})".format(self.values.data, self.indices)
 
     @staticmethod
     def get_ref_indices(dataframe, groupby, group=pd.core.groupby.GroupBy.first):
@@ -74,16 +72,15 @@ class RefTensor:
 
 
 class AutoDeref(dict):
-    """
-    An auto-dereferencing namespace.
+    """An auto-dereferencing namespace.
 
-    Note: dereferencing - obtain data address from pointer.
-    Here, if attributes are RefTensors, __getitem__ will "deref"
-    the tensor with the given indices.
+    Note: dereferencing here means that if attributes are RefTensors,
+    __getitem__ will call RefTebsir.deref() to obtain the values at the
+    given indices.
 
     The cache speeds up processing if the same
     parameter is referenced multiple times in the dynamics.
-    Is constructed in network._param_api(), i.e. cache is destroyed
+    Is constructed in Network._param_api(), i.e. cache is destroyed
     at each forward call.
     """
 
@@ -164,7 +161,6 @@ class AutoDeref(dict):
 
     def clear_cache(self):
         object.__setattr__(self, "_cache", {})
-
         return clone(self)
 
     def detach(self):
@@ -289,30 +285,6 @@ def where_equal_rows(matrix1, matrix2, as_mask=False) -> NDArray[int]:
         for index in rows[equal_rows]:
             where.append(index)
     return np.array(where)
-
-
-# def ipython_variables_of_type(_globals, _type=torch.Tensor):
-#     """To find the stale variables in a notebook to free gpu mem"""
-#     stale = []
-#     declared = []
-#     for k, v in _globals.items():
-#         if isinstance(v, _type):
-#             if k.startswith("_"):
-#                 stale.append(k)
-#             else:
-#                 declared.append(k)
-#     return stale, declared
-
-
-# def delete_stale_ipython_variables_of_type(_globals, _type=torch.Tensor):
-#     """Actually deleting the stale variables in a notebook to free gpu mem"""
-#     import gc
-
-#     stale, declared = ipython_variables_of_type(_globals, _type)
-#     for key in stale:
-#         del _globals[key]
-#     gc.collect()
-#     torch.cuda.empty_cache()
 
 
 def broadcast(src: torch.Tensor, other: torch.Tensor, dim: int):

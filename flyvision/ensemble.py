@@ -1,13 +1,16 @@
+from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator, List, Tuple, Union
 import logging
 from os import PathLike
 from copy import deepcopy
+from matplotlib.colors import Colormap, Normalize
+from matplotlib import cm
 import torch
 import numpy as np
 from contextlib import contextmanager
 from datamate import Directory
 
-from flyvision import results_dir
+from flyvision import plots, results_dir
 from flyvision.network import NetworkView, NetworkDir
 from flyvision.plots.plt_utils import init_plot
 from flyvision.utils.nn_utils import simulation
@@ -173,6 +176,31 @@ class Ensemble(dict):
                 self._best_ratio = 0.5
                 self._worst_ratio = 0.5
 
+    def task_error(
+        self,
+        cmap="Blues_r",
+        truncate=None,
+        vmin=None,
+        vmax=None,
+    ):
+
+        error = self.validation_losses()
+
+        if truncate is None:
+            # truncate because the maxval would be white with the default colormap
+            # which would be invisible on a white background
+            truncate = {"minval": 0.0, "maxval": 0.9, "n": 256}
+        cmap = cm.get_cmap(cmap) if isinstance(cmap, str) else cmap
+        cmap = plots.plt_utils.truncate_colormap(cmap, **truncate)
+        sm, norm = plots.plt_utils.get_scalarmapper(
+            cmap=cmap,
+            vmin=vmin or np.min(error),
+            vmax=vmax or np.max(error),
+        )
+        colors = sm.to_rgba(np.array(error))
+
+        return TaskError(error, colors, cmap, norm, sm)
+
 
 class EnsembleDir(Directory):
     pass
@@ -251,3 +279,12 @@ def model_paths_from_names_or_paths(paths):
         _ensemble_paths.append(model_paths[-1].parent)
     ensemble_path = np.unique(_ensemble_paths)[0]
     return model_paths, ensemble_path
+
+
+@dataclass
+class TaskError:
+    values: np.ndarray
+    colors: np.ndarray
+    cmap: Colormap
+    norm: Normalize
+    scalarmappable: cm.ScalarMappable

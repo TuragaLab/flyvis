@@ -13,7 +13,7 @@ class HexFlow(Animation):
     """Hexscatter of a color encoded flow field.
 
     Args:
-        flow (array or tensor): optic flow of shape (#samples, #frames, 2, #hexals).
+        flow (array or tensor): optic flow of shape (#samples, n_frames, 2, n_hexals).
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         batch_sample (int): batch sample to start from. Defaults to 0.

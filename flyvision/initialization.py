@@ -450,7 +450,7 @@ class RestingPotential(Parameter):
     """Initialize resting potentials a.k.a. biases for cell types."""
 
     def __init__(self, param_config: Namespace, nodes_wrap: Nodeswrap):
-        # equals order in ctome.unique_cell_types
+        # equals order in connectome.unique_cell_types
         nodes = pd.DataFrame(
             dict(type=nodes_wrap.type[:].astype(str))
         ).drop_duplicates()
@@ -663,7 +663,7 @@ def gather_indices(param_config: Namespace, nodes_or_edges_wrap: Edgeswrap) -> T
     """
     # to get all mutual keys between the connectome part and the param config
     mutual_keys = set(nodes_or_edges_wrap).intersection(set(param_config))
-    # concatenation of all ctome elements to keys
+    # concatenation of all connectome elements to keys
     ctome_elements = zip(*[nodes_or_edges_wrap[k][:] for k in mutual_keys])
     # concatenation of all param elements to keys
     param_elements = zip(*[param_config[k][:] for k in mutual_keys])

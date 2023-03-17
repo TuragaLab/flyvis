@@ -1314,11 +1314,10 @@ def get_norm(norm=None, vmin=None, vmax=None, midpoint=None, log=None, symlog=No
         vmax += 1e-15
 
     if all(val is not None for val in (vmin, vmax, midpoint)):
-        if np.isclose(vmin, midpoint, atol=1e-9):
+        if vmin > midpoint or np.isclose(vmin, midpoint, atol=1e-9):
             vmin = midpoint - vmax
-        if np.isclose(vmax, midpoint, atol=1e-9):
+        if vmax < midpoint or np.isclose(vmax, midpoint, atol=1e-9):
             vmax = midpoint - vmin
-        # print(vmin, midpoint, vmax)
         return TwoSlopeNorm(vcenter=midpoint, vmin=vmin, vmax=vmax)
     elif all(val is not None for val in (vmin, vmax, log)):
         return mpl.colors.LogNorm(vmin=vmin, vmax=vmax)
@@ -1387,6 +1386,8 @@ def get_lims(z, offset, min=None, max=None):
 
     if isinstance(z, (tuple, list)):
         z = list(map(lambda x: get_lims(x, offset), z))
+    if isinstance(z, torch.Tensor):
+        z = z.detach().cpu().numpy()
     z = np.array(z)[~np.isinf(z)]
     if not z.any():
         return -1, 1
@@ -1407,7 +1408,7 @@ def cell_type_collection_ax_lims_per_batch(data, neuron_types=None, offset=0.1):
 
     Args:
         data (Dict[str, array]): maps cell types onto
-                            activity of shape (#samples, #frames, ...).
+                            activity of shape (#samples, n_frames, ...).
 
     Returns:
         List[Tuple]: list of length #samples with ax min and ax max limits.
@@ -1415,7 +1416,7 @@ def cell_type_collection_ax_lims_per_batch(data, neuron_types=None, offset=0.1):
 
     neuron_types = neuron_types or list(data.keys())
 
-    # stack as #cell_types, #samples, #frames, ...
+    # stack as #cell_types, #samples, n_frames, ...
     stacked_data = []
     for neuron_type in neuron_types:
         trace = dvs.utils.to_numpy(data[neuron_type])

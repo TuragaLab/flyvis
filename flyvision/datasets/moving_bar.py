@@ -213,7 +213,7 @@ class Movingbar(StimulusDataset):
                 self.tnn, _ = init_network_wrap(tnn, None, None)
             self.central_activity = utils.CentralActivity(
                 self.tnn[self.subwrap].network_states.nodes.activity_central,
-                self.tnn.ctome,
+                self.tnn.connectome,
                 keepref=True,
             )
         stored_config = self.tnn[self.subwrap].config
@@ -703,7 +703,7 @@ class Movingbar(StimulusDataset):
 
         if cell_type is None:
             nodes_list, index = utils.order_nodes_list(
-                self.tnn.ctome.unique_cell_types[:].astype(str)
+                self.tnn.connectome.unique_cell_types[:].astype(str)
             )
             # breakpoint()
             return (

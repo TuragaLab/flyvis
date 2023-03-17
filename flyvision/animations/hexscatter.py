@@ -15,7 +15,7 @@ class HexScatter(Animation):
     pad_to_regular_hex.
 
     Args:
-        hexarray (array or tensor): shape (#samples, #frames, 1, #hexals)
+        hexarray (array or tensor): shape (#samples, n_frames, 1, n_hexals)
         cranges (List[float]): color minimal and maximal abs value (#samples).
         vmin (float): color minimal value.
         vmax (flot): color maximal value.
@@ -44,6 +44,8 @@ class HexScatter(Animation):
     def __init__(
         self,
         hexarray,
+        u=None,
+        v=None,
         cranges=None,
         vmin=None,
         vmax=None,
@@ -51,13 +53,11 @@ class HexScatter(Animation):
         ax=None,
         batch_sample=0,
         cmap=cm.get_cmap("binary_r"),
-        edgecolor="k",
-        edgewidth=0.25,
-        update_edge_color=False,
+        edgecolor=None,
+        update_edge_color=True,
         update=False,
         label="Sample: {}\nFrame: {}",
-        labelxy=(0.2, 0.9),
-        figsize=[2, 2],
+        labelxy=(0.1, 0.95),
         fontsize=5,
         cbar=True,
         background_color="none",
@@ -82,12 +82,14 @@ class HexScatter(Animation):
         self.n_samples, self.frames = hexarray.shape[0:2]
         self.extent = utils.hex_utils.get_hextent(hexarray.shape[-1])
         self.edgecolor = edgecolor
-        self.edgewidth = edgewidth
         self.update_edge_color = update_edge_color
         path = None
         self.fontsize = fontsize
-        self.figsize = figsize
         self.cbar = cbar
+        if u is None or v is None:
+            u, v = utils.hex_utils.get_hex_coords(self.extent)
+        self.u = u
+        self.v = v
         super().__init__(path, self.fig)
 
     def init(self, frame=0):
@@ -122,8 +124,8 @@ class HexScatter(Animation):
             midpoint=self.midpoint,
         )
         self.fig, self.ax, (self.label_text, _) = plots.hex_scatter(
-            u,
-            v,
+            self.u,
+            self.v,
             values,
             fig=self.fig,
             midpoint=None,
@@ -135,11 +137,9 @@ class HexScatter(Animation):
             labelxy=self.labelxy,
             label=self.label.format(self.batch_sample, frame),
             edgecolor=self.edgecolor,
-            edgewidth=self.edgewidth,
             fill=False,
             cbar=False,
             fontsize=self.fontsize,
-            figsize=self.figsize,
             **self.kwargs
         )
         self.fig.patch.set_facecolor(self.background_color)
@@ -154,10 +154,12 @@ class HexScatter(Animation):
                 x_offset=-2,
                 cmap=self.cmap,
                 norm=norm,
-                fontsize=self.fontsize,
+                fontsize=self.fontsize - 1,
                 tick_length=1,
                 tick_width=0.25,
                 rm_outline=True,
+                n_ticks=5,
+                n_decimals=0,
             )
         self.fig.tight_layout()
 
@@ -205,10 +207,12 @@ class HexScatter(Animation):
                 x_offset=-2,
                 cmap=self.cmap,
                 norm=norm,
-                fontsize=self.fontsize,
+                fontsize=self.fontsize - 1,
                 tick_length=1,
                 tick_width=0.25,
                 rm_outline=True,
+                n_ticks=5,
+                n_decimals=0,
             )
         fcolors = scalarmapper.to_rgba(values)
         for i, fc in enumerate(fcolors):
@@ -232,8 +236,8 @@ class HexScatterCompare(AnimationCollector):
         array.
 
     Args:
-        hexarray1 (array): shape (#samples, #frames, #hexals)
-        hexarray2 (array): shape (#samples, #frames, #hexals)
+        hexarray1 (array): shape (#samples, n_frames, n_hexals)
+        hexarray2 (array): shape (#samples, n_frames, n_hexals)
         crange (Tuple[Float]): optional color range vmin, vmax.
         batch_sample (int): batch sample to start from. Defaults to 0.
     """

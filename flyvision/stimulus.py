@@ -15,13 +15,13 @@ class Stimulus:
     Args:
         n_samples (int): number of samples.
         n_frames (int): number of stimulus frames.a
-        ctome (Connectome): instance of a connectome.
+        connectome (Connectome): instance of a connectome.
 
     Returns:
-        Tensor: stimulus of shape (#samples, #frames, #cells)
+        Tensor: stimulus of shape (#samples, n_frames, #cells)
 
     Example:
-        stim = Stimulus(24, 4, 44986, network.ctome)
+        stim = Stimulus(24, 4, 44986, network.connectome)
         stim.add_input(x)
         stim.add_layer_noise("Tm1", mean=0, std=0)
 
@@ -38,26 +38,27 @@ class Stimulus:
     n_nodes: int
     stimulus: Tensor
 
-    def __init__(self, n_samples, n_frames, ctome, _init=True):
+    def __init__(self, n_samples, n_frames, connectome, _init=True):
         self.layer_index = {
-            cell_type: index[:] for cell_type, index in ctome.nodes.layer_index.items()
+            cell_type: index[:]
+            for cell_type, index in connectome.nodes.layer_index.items()
         }
         self.central_cells_index = dict(
             zip(
-                ctome.unique_cell_types[:].astype(str),
-                ctome.central_cells_index[:],
+                connectome.unique_cell_types[:].astype(str),
+                connectome.central_cells_index[:],
             )
         )
         self.input_index = np.array(
             [
                 self.layer_index[cell_type.decode()]
-                for cell_type in ctome.input_cell_types[:]
+                for cell_type in connectome.input_cell_types[:]
             ]
         )
         self.n_samples, self.n_frames, self.n_nodes = (
             n_samples,
             n_frames,
-            len(ctome.nodes.type),
+            len(connectome.nodes.type),
         )
         if _init:
             self.zero()
@@ -76,7 +77,7 @@ class Stimulus:
         """Adds input to the photoreceptor indices.
 
         Args:
-            x (Tensor): an input video of shape (#samples, #frames, 1, #hexals).
+            x (Tensor): an input video of shape (#samples, n_frames, 1, n_hexals).
         """
         shape = x.shape
         if len(shape) != 4:
@@ -96,6 +97,7 @@ class Stimulus:
             n_samples, n_frames = shape[:2]
             if n_frames != self.n_frames or n_samples != self.n_samples:
                 self.zero(n_samples, n_frames)
+
         self.stimulus[:, slice(start, stop), self.input_index] += x.cuda().view(
             n_samples, n_frames, 1, x.shape[-1]
         )
@@ -121,7 +123,7 @@ class Stimulus:
 
         Args:
             cell_type (str): a cell type, e.g. "T4a"
-            x (Tensor): an input sequence of shape (#samples, #frames, 1, #hexals).
+            x (Tensor): an input sequence of shape (#samples, n_frames, 1, n_hexals).
         """
         self.stimulus[:, :, self.layer_index[cell_type]] += x
 
@@ -130,7 +132,7 @@ class Stimulus:
 
         Args:
             cell_type (str): a cell type, e.g. "T4a"
-            x (Tensor): an input sequence of shape (#samples, #frames).
+            x (Tensor): an input sequence of shape (#samples, n_frames).
         """
         self.stimulus[:, :, self.central_cells_index[cell_type]] += x
 

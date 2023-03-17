@@ -600,10 +600,10 @@ class HexEye:
 def median(x, kernel_size, stride=1, n_chunks=10):
     """Median image filter with reflected padding.
 
-    x (array or tensor): (#samples, #frames, height, width).
+    x (array or tensor): (#samples, n_frames, height, width).
                         First and second dimension are optional.
     kernel_size (int): size of the boxes.
-    n_chunks (int): chunksize over #samples, #frames to process the data on the
+    n_chunks (int): chunksize over #samples, n_frames to process the data on the
         gpu if it runs out of memory.
 
     Note: On the gpu it creates a tensor of kernel_size ** 2 * prod(x.shape)
@@ -972,12 +972,12 @@ def resample(stims, t_stim, dt, dim=0, device="cuda"):
     """Resamples set of stims for given stimulus duration and dt.
 
     Args:
-        stims (tensor): stims of shape (#conditions, #hexals).
+        stims (tensor): stims of shape (#conditions, n_hexals).
         t_stim (float): stimulus duration in seconds.
         dt (float): integration time constant in seconds.
 
     Returns:
-        tensor: stims of shape (#frames, #hexals).
+        tensor: stims of shape (n_frames, n_hexals).
     """
     n_offsets = stims.shape[dim]
     repeats = torch.linspace(0, n_offsets - 1, int(t_stim / dt), device=device).long()
@@ -988,7 +988,7 @@ def shuffle(stims, randomstate=None):
     """To randomly shuffle stims along the frame dimension.
 
     Args:
-        stims (tensor): of shape (N (optional), #frames, #hexals)
+        stims (tensor): of shape (N (optional), n_frames, n_hexals)
     """
     if len(stims.shape) == 3:
         # assume (smples frames hexals)

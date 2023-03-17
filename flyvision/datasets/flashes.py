@@ -39,7 +39,7 @@ class MultiParameterFlash(Directory):
         values = np.array(list(zip(baseline, intensity)))
         samples = dict(v=values, r=config.radius)
         values = list(product(*(v for v in samples.values())))
-        sequence = []  # samples, #frames, width, height
+        sequence = []  # samples, n_frames, width, height
         for (baseline, intensity), radius in tqdm(values, desc="Flashes"):
             sequence.append(
                 get_flash(
@@ -112,7 +112,7 @@ class Flashes(SequenceDataset):
         if self.tnn:
             self.centralactivity = utils.CentralActivity(
                 self.tnn[subdir].network_states.nodes.activity_central[:],
-                self.tnn.ctome,
+                self.tnn.connectome,
                 keepref=True,
             )
 
@@ -203,7 +203,7 @@ class Flashes(SequenceDataset):
         Returns the argmax fri for each cell type.
         #TODO: docstring, check deprecated
         """
-        cell_types = self.tnn.ctome.unique_cell_types[:].astype(str)
+        cell_types = self.tnn.connectome.unique_cell_types[:].astype(str)
         fri = np.zeros(len(cell_types))
         argmax = np.zeros([3, len(cell_types)])
         for (baseline, intensity), radius in self.values:
@@ -330,7 +330,7 @@ class Flashes(SequenceDataset):
         return fri, {
             cell_type: fri[i]
             for i, cell_type in enumerate(
-                self.tnn.ctome.unique_cell_types[:].astype(str)
+                self.tnn.connectome.unique_cell_types[:].astype(str)
             )
         }
 
@@ -364,7 +364,7 @@ def get_flash(
             rotation.
 
     Returns:
-        (array): sequences come in shape (#frames, #hexals).
+        (array): sequences come in shape (n_frames, n_hexals).
     """
     min_frame_size = (
         receptors.min_frame_size.cpu().numpy()

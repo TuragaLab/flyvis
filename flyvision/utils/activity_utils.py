@@ -1,7 +1,7 @@
 """Attribute-style access to activity of particular cell types.
 
 Example:
-    layer_activity = LayerActivity(activity, network.ctome)
+    layer_activity = LayerActivity(activity, network.connectome)
     T4a = layer_activity.T4a
     T5a = layer_activity.T5a
     T4b_central = layer_activity.central.T4a
@@ -105,10 +105,10 @@ class CentralActivity(_Activity):
 
     Args:
         activity (array-like): activity of shape (..., #cells)
-        ctome (Folder): connectome wrap with reference to
-                        - ctome.nodes.layer_index
-                        - ctome.unique_cell_types
-                        - ctome.central_cells_index
+        connectome (Folder): connectome wrap with reference to
+                        - connectome.nodes.layer_index
+                        - connectome.unique_cell_types
+                        - connectome.central_cells_index
 
 
     Attributes:
@@ -116,17 +116,17 @@ class CentralActivity(_Activity):
         unique_cell_types (array)
 
     Note: also allows 'virtual types' that are basic operations of individuals
-    >>> a = LayerActivity(activity, network.ctome)
+    >>> a = LayerActivity(activity, network.connectome)
     >>> summed_a = a['L2+L4*L3/L5']
     """
 
-    def __init__(self, activity, ctome, keepref=False):
+    def __init__(self, activity, connectome, keepref=False):
         super().__init__(keepref)
-        self.index = nodes_edges_utils.NodeIndexer(ctome)
+        self.index = nodes_edges_utils.NodeIndexer(connectome)
 
-        unique_cell_types = ctome.unique_cell_types[:]
-        input_cell_types = ctome.input_cell_types[:]
-        output_cell_types = ctome.output_cell_types[:]
+        unique_cell_types = connectome.unique_cell_types[:]
+        input_cell_types = connectome.input_cell_types[:]
+        output_cell_types = connectome.output_cell_types[:]
         self.input_indices = np.array(
             [np.nonzero(unique_cell_types == t)[0] for t in input_cell_types]
         )
@@ -204,23 +204,23 @@ class LayerActivity(_Activity):
 
     Args:
         activity (array-like): activity of shape (..., #cells)
-        ctome (Folder): connectome wrap with reference to
-                        - ctome.nodes.layer_index
-                        - ctome.unique_cell_types
-                        - ctome.central_cells_index
-                        - ctome.input_cell_types
-                        - ctome.output_cell_types
+        connectome (Folder): connectome wrap with reference to
+                        - connectome.nodes.layer_index
+                        - connectome.unique_cell_types
+                        - connectome.central_cells_index
+                        - connectome.input_cell_types
+                        - connectome.output_cell_types
 
     Attributes:
         central (CentralActivity): central activity mapping,
             giving attribute-style access to central nodes of particular types.
         activity (array-like): activity of shape (..., #cells)
-        ctome (Folder): connectome wrap with reference to
-                        - ctome.nodes.layer_index
-                        - ctome.unique_cell_types
-                        - ctome.central_cells_index
-                        - ctome.input_cell_types
-                        - ctome.output_cell_types
+        connectome (Folder): connectome wrap with reference to
+                        - connectome.nodes.layer_index
+                        - connectome.unique_cell_types
+                        - connectome.central_cells_index
+                        - connectome.input_cell_types
+                        - connectome.output_cell_types
         unique_cell_types (array)
         input_indices (array)
         output_indices (array)
@@ -230,46 +230,46 @@ class LayerActivity(_Activity):
 
 
     Note: central activity can be accessed by
-    >>> a = LayerActivity(activity, network.ctome)
+    >>> a = LayerActivity(activity, network.connectome)
     >>> central_T4a = a.central.T4a
 
     Note: also allows 'virtual types' that are the sum of individuals
-    >>> a = LayerActivity(activity, network.ctome)
+    >>> a = LayerActivity(activity, network.connectome)
     >>> summed_a = a['L2+L4']
     """
 
     central = {}
     activity = None
-    ctome = None
+    connectome = None
     unique_cell_types = []
     input_cell_types = []
     output_cell_types = []
 
-    def __init__(self, activity, ctome, keepref=False, use_central=True):
+    def __init__(self, activity, connectome, keepref=False, use_central=True):
         super().__init__(keepref)
         self.keepref = keepref
 
         self.use_central = use_central
         if use_central:
-            self.central = CentralActivity(activity, ctome, keepref)
+            self.central = CentralActivity(activity, connectome, keepref)
 
         self.activity = activity
-        self.ctome = ctome
-        self.unique_cell_types = ctome.unique_cell_types[:].astype("str")
+        self.connectome = connectome
+        self.unique_cell_types = connectome.unique_cell_types[:].astype("str")
         for cell_type in self.unique_cell_types:
-            index = ctome.nodes.layer_index[cell_type][:]
+            index = connectome.nodes.layer_index[cell_type][:]
             self[cell_type] = index
 
-        _cell_types = self.ctome.nodes.type[:]
+        _cell_types = self.connectome.nodes.type[:]
         self.input_indices = np.array(
-            [np.nonzero(_cell_types == t)[0] for t in self.ctome.input_cell_types]
+            [np.nonzero(_cell_types == t)[0] for t in self.connectome.input_cell_types]
         )
         self.output_indices = np.array(
-            [np.nonzero(_cell_types == t)[0] for t in self.ctome.output_cell_types]
+            [np.nonzero(_cell_types == t)[0] for t in self.connectome.output_cell_types]
         )
-        self.input_cell_types = self.ctome.input_cell_types[:].astype(str)
-        self.output_cell_types = self.ctome.output_cell_types[:].astype(str)
-        self.n_nodes = len(self.ctome.nodes.type)
+        self.input_cell_types = self.connectome.input_cell_types[:].astype(str)
+        self.output_cell_types = self.connectome.output_cell_types[:].astype(str)
+        self.n_nodes = len(self.connectome.nodes.type)
 
     def __setattr__(self, key, value):
         if key == "activity" and value is not None:

@@ -1,9 +1,12 @@
 """Classes defining the voltage initialization, voltage and current dynamics."""
 
+from typing import Callable
 import torch
 from torch import nn
 
-__all__ = ["NetworkDynamics", "StaticSynapses"]
+from flyvision.utils.tensor_utils import AutoDeref, RefTensor
+
+__all__ = ["NetworkDynamics", "PPNeuronIGRSynapses"]
 
 activation_fns = {
     "relu": nn.ReLU,
@@ -18,21 +21,12 @@ activation_fns = {
 
 
 class NetworkDynamics:
-    """
-    Defines the initialization and behavior of a network during simulation
-
-    There are two node state variable names with special semantics:
-
-        - "activity" is the state variable written to by network inputs, and
-            read by decoders trying to perform tasks based on the network's
-            state.
-        - "energy_use" is read by regularizers during network training.
-    """
+    """Defines the initialization and behavior of a Network during simulation."""
 
     class Config:
         activation: str = "relu"
 
-    def __new__(cls, config):
+    def __new__(cls, config: Config = {}):
         return _forward_subclass(cls, config)
 
     def __init__(self, config: Config):
@@ -41,9 +35,11 @@ class NetworkDynamics:
             **config.activation
         )
 
-    def write_derived_params(self, params) -> None:
+    def write_derived_params(
+        self, params: AutoDeref[str, AutoDeref[str, RefTensor]], **kwargs
+    ) -> None:
         """
-        Augment `params`, called once at every forward passs.
+        Augment `params`, called once at every forward pass.
 
         Parameters:
             params: A namespace containing two subnamespaces: `nodes` and
@@ -52,10 +48,17 @@ class NetworkDynamics:
         This is called at the beginning of a stimulus presentation, before
         `write_initial_state`. Parameter transformations can be moved here to
         avoid repeating them at every timestep.
+
+        Note: called by Network._param_api.
         """
         pass
 
-    def write_initial_state(self, state, params) -> None:
+    def write_initial_state(
+        self,
+        state: AutoDeref[str, AutoDeref[str, RefTensor]],
+        params: AutoDeref[str, AutoDeref[str, RefTensor]],
+        **kwargs
+    ) -> None:
         """
         Initialize a network's state variables from its network parameters.
 
@@ -73,15 +76,22 @@ class NetworkDynamics:
         """
         pass
 
-    def write_state_velocity(self, vel, state, params, target_sum) -> None:
+    def write_state_velocity(
+        self,
+        vel: AutoDeref[str, AutoDeref[str, RefTensor]],
+        state: AutoDeref[str, AutoDeref[str, RefTensor]],
+        params: AutoDeref[str, AutoDeref[str, RefTensor]],
+        target_sum: Callable,
+        **kwargs
+    ) -> None:
         """
-        Compute δvar/δtime for each state variable.
+        Compute dx/dt for each state variable.
 
         Parameters:
             vel: A namespace containing two subnamspaces: `nodes` and
-                `edges`. Write δvar/δtime for node and edge state variables
+                `edges`. Write dx/dt for node and edge state variables
                 into them, respectively.
-            state: A namespace containing two subnamspaces: `nodes` and
+            state: A namespace containing two subnamespaces: `nodes` and
                 `edges`, containing node and edge state variable values,
                 respectively.
             params: A namespace containing four subnamespaces: `nodes`,
@@ -89,10 +99,36 @@ class NetworkDynamics:
                 node and edges parameters, respectively. `sources` and
                 `targets` provide access to the node parameters associated with
                 the source node and target node of each edge, respectively.
-            target_sum: Sum the entries in a `len(edges)` tensor corresponding to edges
-                with the same target node, yielding a `len(nodes)` tensor.
+            target_sum: Sums the entries in a `len(edges)` tensor corresponding
+                to edges with the same target node, yielding a `len(nodes)`
+                tensor.
 
         Note: called by Network._next_state.
+        """
+        pass
+
+    def currents(
+        self,
+        state: AutoDeref[str, AutoDeref[str, RefTensor]],
+        params: AutoDeref[str, AutoDeref[str, RefTensor]],
+    ):
+        """
+        Compute the current flowing through each edge.
+
+        Parameters:
+            state: A namespace containing two subnamespaces: `nodes` and
+                `edges`, containing node and edge state variable values,
+                respectively.
+            params: A namespace containing four subnamespaces: `nodes`,
+                `edges`, `sources`, and `targets`. `nodes` and `edges` contain
+                node and edges parameters, respectively. `sources` and
+                `targets` provide access to the node parameters associated with
+                the source node and target node of each edge, respectively.
+
+        Returns:
+            A tensor of currents flowing through each edge.
+
+        Note: called by Network.current_response.
         """
         pass
 
@@ -101,35 +137,20 @@ class NetworkDynamics:
 
 
 class PPNeuronIGRSynapses(NetworkDynamics):
-    def write_derived_params(self, params, chem_indices, elec_indices, **kwargs):
+    """Passive point neurons with instantaneous graded release synapses."""
+
+    def write_derived_params(self, params, **kwargs):
+        """Weights are the product of the sign, synapse count, and strength."""
         params.edges.weight = (
             params.edges.sign * params.edges.syn_count * params.edges.syn_strength
         )
 
-        # CHEMICAL SYNAPSES (DEFAULT)
-        weight_chem = torch.zeros_like(params.edges.weight)
-        weight_chem[chem_indices] = params.edges.weight.index_select(-1, chem_indices)
-        params.edges.weight_chem = weight_chem
-
-        if elec_indices.any():
-            # ELECTRICAL SYNAPSES (CT1)
-            weight_elec = torch.zeros_like(params.edges.weight)
-            weight_elec[elec_indices] = params.edges.weight.index_select(
-                -1, elec_indices
-            )
-            params.edges.weight_elec = weight_elec  # external stimulus
-
-    def write_initial_state(self, state, params, source_indices, mean, std):
-        if mean is not None and std is not None:
-            state.nodes.activity = (
-                torch.distributions.Normal(mean, std)
-                .sample(params.nodes.bias.size())
-                .clamp_(0.0)
-            )
-        else:
-            state.nodes.activity = params.nodes.bias
+    def write_initial_state(self, state, params, **kwargs):
+        """Initial state is the bias."""
+        state.nodes.activity = params.nodes.bias
 
     def write_state_velocity(self, vel, state, params, target_sum, x_t, dt, **kwargs):
+        """Velocity is the bias plus the sum of the weighted rectified inputs."""
         vel.nodes.activity = (
             1
             / torch.max(params.nodes.time_const, torch.tensor(dt).float())
@@ -137,35 +158,19 @@ class PPNeuronIGRSynapses(NetworkDynamics):
                 -state.nodes.activity
                 + params.nodes.bias
                 + target_sum(
-                    params.edges.weight_chem * self.activation(state.sources.activity)
+                    params.edges.weight * self.activation(state.sources.activity)
                 )  # internal chemical current
-                + (
-                    target_sum(
-                        (state.sources.activity - state.targets.activity)
-                        * params.edges.weight_elec
-                    )
-                    if "weight_elec" in params.edges
-                    else 0
-                )
                 + x_t
             )
         )
 
-    def currents(self, state, params, electric=False, both=False):
-        if electric:
-            return (
-                state.sources.activity - state.targets.activity
-            ) * params.edges.weight_elec
-        elif both:
-            return (
-                params.edges.weight_chem * self.activation(state.sources.activity)
-                + (state.sources.activity - state.targets.activity)
-                * params.edges.weight_elec
-            )
-        return params.edges.weight_chem * self.activation(state.sources.activity)
+    def currents(self, state, params):
+        """Return the internal chemical current."""
+        return params.edges.weight * self.activation(state.sources.activity)
 
 
 def _forward_subclass(cls: type, config: object = {}) -> object:
+    """Forward to a subclass based on the `type` key in `config`"""
     target_subclass = config.pop("type", None)
     for subclass in cls.__subclasses__():
         if target_subclass == subclass.__qualname__:

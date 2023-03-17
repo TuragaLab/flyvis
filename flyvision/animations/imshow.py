@@ -9,7 +9,7 @@ class Imshow(Animation):
     """Animates an array of images using imshow.
 
     Args:
-        images: (#samples, #frames, height, width)
+        images: (#samples, n_frames, height, width)
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         dpi (int): dots per inch.

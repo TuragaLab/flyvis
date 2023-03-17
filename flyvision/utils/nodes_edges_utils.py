@@ -80,14 +80,14 @@ def order_nodes_list(
 
 
 class NodeIndexer(dict):
-    def __init__(self, ctome=None, unique_cell_types=None):
-        if ctome is not None and unique_cell_types is None:
-            self.unique_cell_types = ctome.unique_cell_types[:].astype("str")
-            self.central_cells_index = ctome.central_cells_index[:]
-        elif ctome is None and unique_cell_types is not None:
+    def __init__(self, connectome=None, unique_cell_types=None):
+        if connectome is not None and unique_cell_types is None:
+            self.unique_cell_types = connectome.unique_cell_types[:].astype("str")
+            self.central_cells_index = connectome.central_cells_index[:]
+        elif connectome is None and unique_cell_types is not None:
             self.unique_cell_types = unique_cell_types
         else:
-            raise ValueError("either cell_types or ctome must be specified")
+            raise ValueError("either cell_types or connectome must be specified")
         for index, cell_type in enumerate(self.unique_cell_types):
             super().__setitem__(cell_type, index)
 
@@ -118,7 +118,7 @@ class CellTypeArray:
     Args:
         array: has the dim-th axis corresponding to unique cell types
             in the connectome.
-        ctome: Connectome object.
+        connectome: Connectome object.
         dim: axis correpsonding to unique cell types.
     """
 
@@ -126,10 +126,10 @@ class CellTypeArray:
     array: np.ndarray = None
     dim: float = None
 
-    def __init__(self, array, ctome=None, cell_types=None, dim=-1):
+    def __init__(self, array, connectome=None, cell_types=None, dim=-1):
         self.array = array
         self.dim = dim
-        self.node_indexer = NodeIndexer(ctome, cell_types)
+        self.node_indexer = NodeIndexer(connectome, cell_types)
 
     def __iter__(self):
         for cell_type in self.node_indexer.unique_cell_types:

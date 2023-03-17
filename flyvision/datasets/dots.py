@@ -131,7 +131,7 @@ class Dots(StimulusDataset):
                 self.tnn, _ = init_network_dir(tnn, None, None)
             self.central_activity = activity_utils.CentralActivity(
                 self.tnn[self.subdir].network_states.nodes.activity_central[:],
-                self.tnn.ctome,
+                self.tnn.connectome,
                 keepref=True,
             )
         self.spec = self.tnn[self.subdir].spec

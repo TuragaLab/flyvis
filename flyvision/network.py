@@ -1,7 +1,9 @@
 """
 Deep mechanistic network module.
 """
-from typing import Any, Dict, Iterable, List, Union, Callable
+from numbers import Number
+from os import PathLike
+from typing import Any, Dict, Iterable, List, Optional, Union, Callable
 from contextlib import contextmanager
 
 import numpy as np
@@ -13,7 +15,7 @@ from torch.utils.data import DataLoader
 
 from datamate import Namespace, Directory
 
-from flyvision.connectome import ConnectomeDir
+from flyvision.connectome import ConnectomeDir, ConnectomeView
 from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
 from flyvision.initialization import Parameter, init_parameter
@@ -22,94 +24,39 @@ from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.tensor_utils import RefTensor, AutoDeref
-
+from flyvision.datasets.base import SequenceDataset
 import logging
 
 logging = logging.getLogger()
 
 
 class Network(nn.Module):
-    """
-    A connectome-constrained network with nodes, edges, and dynamics.
-    Fixed Retina Neurons.
+    """A connectome-constrained network with nodes, edges, and dynamics.
 
     Args:
-        config (Namespace): configuration of connectome, dynamics and all parameters.
+        connectome: Connectome config.
+        dynamics: Dynamics config.
+        node_config: Node config.
+        edge_config: Edge config.
 
-        Example configuration:
-
-        Namespace(
-        connectome = Namespace(
-            type = 'Connectome',
-            path = '/groups/turaga/home/lappalainenj/FlyVis/dvs-sim/data/fib25-fib19_v2.2.json',
-            extent = 15,
-            n_syn_fill = 1,
-            rotate_filt_n60 = 0
-        ),
-        dynamics = Namespace(type='StaticSynapses', activation=Namespace(type='relu')),
-        node_config = Namespace(
-            bias = Namespace(
-            type = 'NeuronBias',
-            keys = ['type'],
-            form = 'normal',
-            mode = 'sample',
-            requires_grad = True,
-            mean = 0.5,
-            std = 0.05,
-            penalize = Namespace(activity=True),
-            seed = 0,
-            symmetric = []
-            ),
-            time_const = Namespace(
-            type = 'NeuronTimeConst',
-            keys = ['type'],
-            form = 'value',
-            value = 0.05,
-            requires_grad = True,
-            symmetric = []
-            )
-        ),
-        edge_config = Namespace(
-            sign = Namespace(type='EdgeSign', form='value', requires_grad=False),
-            syn_count = Namespace(
-            type = 'SynCountSymmetry',
-            form = 'lognormal',
-            mode = 'mean',
-            requires_grad = False,
-            std = 1.0,
-            clamp = 'non_negative',
-            penalize = Namespace(function='weight_decay', args=[0.0]),
-            symmetric = []
-            ),
-            syn_strength = Namespace(
-            type = 'NSynStrengthPRFSymmetry',
-            form = 'value',
-            requires_grad = True,
-            scale_elec = 0.01,
-            scale_chem = 0.01,
-            clamp = 'non_negative',
-            penalize = Namespace(function='weight_decay', args=[0.0]),
-            symmetric = []
-            )
-        ),
-        sigma = 0.0
-        )
+    Attributes:
+        connectome (ConnectomeDir): Connectome.
+        dynamics (NetworkDynamics): Dynamics.
+        node_params (Dict[str, Parameter]): Node parameters.
+        edge_params (Dict[str, Parameter]): Edge parameters.
+        n_nodes (int): Number of nodes.
+        n_edges (int): Number of edges.
+        num_parameters (int): Number of parameters.
+        config (Namespace): Config namespace.
+        input_indices (np.ndarray): Input indices.
+        output_indices (np.ndarray): Output indices.
+        _source_indices (np.ndarray): Source indices.
+        _target_indices (np.ndarray): Target indices.
+        symmetry_config (Dict[str, Dict[str, Tensor]]): Symmetry config.
+        clamp_config (Dict[str, Dict[str, Tensor]]): Clamp config.
+        stimulus (Stimulus): Stimulus.
+        state_hooks (Namespace): State hook.
     """
-
-    ctome: ConnectomeDir
-    dynamics: NetworkDynamics
-    node_params: Dict[str, Parameter]
-    edge_params: Dict[str, Parameter]
-    _source_indices: torch.Tensor
-    _target_indices: torch.Tensor
-    elec_indices: torch.Tensor
-    chem_indices: torch.Tensor
-    symmetry_mask: Dict
-    n_nodes: int
-    n_edges: int
-    num_parameters: int
-    config: Dict
-    _state_hook: Dict
 
     def __init__(
         self,
@@ -117,10 +64,6 @@ class Network(nn.Module):
         dynamics: Namespace,
         node_config: Namespace,
         edge_config: Namespace,
-        initial_state_mean=None,
-        initial_state_std=None,
-        sigma=0,
-        **kwargs,
     ):
 
         super().__init__()
@@ -130,51 +73,39 @@ class Network(nn.Module):
         dynamics = dynamics.deepcopy()
         node_config = node_config.deepcopy()
         edge_config = edge_config.deepcopy()
+        self.config = Namespace(
+            connectome=connectome,
+            dynamics=dynamics,
+            node_config=node_config,
+            edge_config=edge_config,
+        ).deepcopy()
 
         # Store the connectome, dynamics, and parameters.
-        self.ctome = ConnectomeDir(connectome)
+        self.connectome = ConnectomeDir(connectome)
+        self.cell_types = self.connectome.unique_cell_types[:].astype(str)
         self.dynamics = NetworkDynamics(dynamics)
 
-        # Accessing the h5 datasets in every loop leads to network and read/write bandwidth issues.
-        # Therefore, we load those indices into memory, as they are constant during training.
-
-        _cell_types = self.ctome.nodes.type[:]
-        self.input_indices = np.array(
-            [np.nonzero(_cell_types == t)[0] for t in self.ctome.input_cell_types]
-        )
-        self.output_indices = torch.tensor(
-            np.array(
-                [np.nonzero(_cell_types == t)[0] for t in self.ctome.output_cell_types]
-            )
-        )
-
+        # Load constant indices into memory.
         # Store source/target indices.
-        self._source_indices = torch.tensor(self.ctome.edges.source_index[:])
-        self._target_indices = torch.tensor(self.ctome.edges.target_index[:])
+        self._source_indices = torch.tensor(self.connectome.edges.source_index[:])
+        self._target_indices = torch.tensor(self.connectome.edges.target_index[:])
 
-        # Store chem/elec indices.
-        self.elec_indices = torch.tensor(
-            np.nonzero(self.ctome.edges.edge_type[:] == b"elec")[0]
-        ).long()
-        self.chem_indices = torch.tensor(
-            np.nonzero(self.ctome.edges.edge_type[:] == b"chem")[0]
-        ).long()
-        # self._source_indices_elec = self._source_indices[self.elec_indices]
-        # self._source_indices_chem = self._source_indices[self.chem_indices]
-        # self._target_indices_elec = self._target_indices[self.elec_indices]
-        # self._target_indices_chem = self._target_indices[self.chem_indices]
-        self.n_nodes = len(self.ctome.nodes.type)
-        self.n_edges = len(self.ctome.edges.edge_type)
+        self.n_nodes = len(self.connectome.nodes.type)
+        self.n_edges = len(self.connectome.edges.edge_type)
 
-        # Another way of parameter sharing is averaging at every call with
-        # precomputed masks. E.g. used for CT1 compartment model.
+        # Optional way of parameter sharing is averaging at every call across
+        # precomputed masks. This can be useful for e.g. symmetric electrical
+        # compartments.
+        # Theses masks are collected from Parameters into this namespace.
         self.symmetry_config = Namespace()  # type: Dict[str, List[torch.Tensor]]
+        # Clamp configuration is collected from Parameter into this Namespace
+        # for projected gradient descent.
         self.clamp_config = Namespace()
 
         # Construct node parameter sets.
         self.node_params = Namespace()
         for param_name, param_config in node_config.items():
-            param = init_parameter(param_config, self.ctome.nodes)
+            param = init_parameter(param_config, self.connectome.nodes)
 
             # register parameter to module
             self.register_parameter(f"nodes_{param_name}", param.raw_values)
@@ -203,7 +134,7 @@ class Network(nn.Module):
         # Construct edge parameter sets.
         self.edge_params = Namespace()
         for param_name, param_config in edge_config.items():
-            param = init_parameter(param_config, self.ctome.edges)
+            param = init_parameter(param_config, self.connectome.edges)
 
             self.register_parameter(f"edges_{param_name}", param.raw_values)
 
@@ -220,54 +151,31 @@ class Network(nn.Module):
                 param_config, "clamp", None
             )
 
-        self.num_parameters = n_params(self)
-        self.config = Namespace(
-            connectome=connectome,
-            dynamics=dynamics,
-            node_config=node_config,
-            edge_config=edge_config,
-        )
-        self._state_hook = None  # Namespace(hook=_state_hook, args=[], kwargs={})
+        # Store chem/elec indices for electrical compartments specified by
+        # the connectome.
+        self._elec_indices = torch.tensor(
+            np.nonzero(self.connectome.edges.edge_type[:] == b"elec")[0]
+        ).long()
+        self._chem_indices = torch.tensor(
+            np.nonzero(self.connectome.edges.edge_type[:] == b"chem")[0]
+        ).long()
 
-        self.initial_state_mean = initial_state_mean
-        self.initial_state_std = initial_state_std
-        self.sigma = torch.tensor(sigma)
-        self.stimulus = Stimulus(1, 1, self.ctome, _init=False)
+        self.num_parameters = n_params(self)
+        self._state_hooks = tuple()
+
+        self.stimulus = Stimulus(1, 1, self.connectome, _init=False)
 
         logging.info(f"Initialized network with {self.num_parameters} parameters.")
-        logging.info(f"Internal noise described by sigma={sigma}.")
 
     def __repr__(self):
-        return f"Network({repr(self.config)})"
+        return self.config.__repr__().replace("Namespace", "Network", 1)
 
-    def param_api(self, as_reftensor=True) -> Dict[str, Dict[str, Tensor]]:
-        """
-        Public parameter api. Returns shared parameter and gathering indices.
+    def param_api(self) -> Dict[str, Dict[str, Tensor]]:
+        """Param api for inspection.
 
-        Note, the full api may look like this:
-
-        Namespace(
-            nodes = Namespace(
-                bias = Namespace(
-                        values = Parameter containing:
-                                 tensor([0.5563, 0.4876, 0.3637,  ..., 0.4837, 0.5469, 0.3965],
-                                 requires_grad=True),
-                        indices = tensor([ 0,  0,  0,  ..., 65, 65, 65])
-                ),
-                time_const = Namespace(
-                        values = Parameter containing:
-                                 tensor([0., 0., 0.,  ..., 0., 0., 0.], requires_grad=True),
-                        indices = tensor([ 0,  0,  0,  ..., 65, 65, 65])
-                )
-            ),
-            edges = Namespace(
-                sign = Namespace(
-                        values = Parameter containing:
-                                 tensor([-1., -1., -1.,  ...,  1.,  1.,  1.]),
-                        indices = tensor([  0,   0,   0,  ..., 604, 604, 604])
-                [...]
-                )
-            )
+        Note, that this is not the same as the parameter api passed to the
+        dynamics. This is a convenience function to inspect the parameters,
+        but does not write derived parameters or sources and targets states.
         """
         # Construct the base parameter namespace.
         params = Namespace(
@@ -282,36 +190,12 @@ class Network(nn.Module):
         }.items():
             values = parameter.semantic_values
             for route, indices in parameter.readers.items():
-                # route is either ("nodes", "sources", "target") or "edges" as specified in the readers
-                # RefTensor stores parameters, e.g. "initial_input" for nodes alongside corresponding indices in the lattice
-                params[route][param_name] = (
-                    RefTensor(values, indices)
-                    if as_reftensor
-                    else Namespace(parameter=values, indices=indices)
-                )
+                # route one of ("nodes", "sources", "target", "edges")
+                params[route][param_name] = Namespace(parameter=values, indices=indices)
         return params
 
-    def _param_api(self) -> Dict[str, Dict[str, Tensor]]:
-        """
-        Private parameter api, returns the "params" object passed to "self.dynamics".
-
-        Note, the full api may look like this:
-
-        AutoDeref("nodes": AutoDeref("initial_input": <dvs.networks.RefTensor object at 0x7f2847e53c18>,
-                       "bias": <dvs.networks.RefTensor object at 0x7f2775f72278>,
-                       "time_const": <dvs.networks.RefTensor object at 0x7f2775e94550>),
-           "edges": AutoDeref("sign": <dvs.networks.RefTensor object at 0x7f2775e94908>,
-                       "syn_count": <dvs.networks.RefTensor object at 0x7f2775e94ac8>,
-                       "syn_strength": <dvs.networks.RefTensor object at 0x7f2775e94b00>),
-           "sources": AutoDeref("initial_input": <dvs.networks.RefTensor object at 0x7f2775e943c8>,
-                         "bias": <dvs.networks.RefTensor object at 0x7f2775e94588>,
-                         "time_const": <dvs.networks.RefTensor object at 0x7f2775e94940>),
-           "targets": AutoDeref("initial_input": <dvs.networks.RefTensor object at 0x7f2775e94860>,
-                         "bias": <dvs.networks.RefTensor object at 0x7f286c4adf60>,
-                         "time_const": <dvs.networks.RefTensor object at 0x7f2775e945c0>))
-
-        TODO: with new param initialization creating RefTensors at beginning this can be faster.
-        """
+    def _param_api(self) -> AutoDeref[str, AutoDeref[str, RefTensor]]:
+        """Returns params object passed to `dynamics`."""
         # Construct the base parameter namespace.
         params = AutoDeref(
             nodes=AutoDeref(),
@@ -323,20 +207,16 @@ class Network(nn.Module):
             **self.node_params,
             **self.edge_params,
         }.items():
-            # E.g. for syn count semantic values is exp(syn_count)
             values = parameter.semantic_values
             for route, indices in parameter.readers.items():
-                # route is either ("nodes", "sources", "target") or "edges" as specified in the readers
-                # RefTensor stores parameters, e.g. "initial_input" for nodes alongside corresponding indices in the lattice
+                # route one of ("nodes", "sources", "target", "edges")
                 params[route][param_name] = RefTensor(values, indices)
         # Add derived parameters.
         self.dynamics.write_derived_params(
-            params,
-            chem_indices=self.chem_indices,
-            elec_indices=self.elec_indices,
+            params, chem_indices=self._chem_indices, elec_indices=self._elec_indices
         )
         for k, v in params.nodes.items():
-            if k not in params.sources:  # ?
+            if k not in params.sources:
                 params.sources[k] = self._source_gather(v)
                 params.targets[k] = self._target_gather(v)
 
@@ -344,48 +224,60 @@ class Network(nn.Module):
 
     # -- Scatter/gather operations -------------------------
 
-    def _source_gather(self, x: Tensor) -> Tensor:
-        """Gathers values from x at source indices, e.g. distributes source node activity over edges."""
+    def _source_gather(self, x: Tensor) -> RefTensor:
+        """Gathers source node states across edges.
+
+        Args:
+            x: abstractly node-level activation, e.g. voltages,
+                Shape is (n_nodes).
+
+        Returns:
+            RefTensor of edge-level representation.
+              Shape is (n_edges).
+
+        Note, for edge-level access to target node states for elementwise
+        operations.
+
+        Called in _param_api and _state_api.
+        """
         return RefTensor(x, self._source_indices)
 
-    def _target_gather(self, x: Tensor) -> Tensor:
-        """Gathers values from x at target indices, e.g. distributes target node activity over edges."""
+    def _target_gather(self, x: Tensor) -> RefTensor:
+        """Gathers target node states across edges.
+
+        Args:
+            x: abstractly node-level activation, e.g. voltages.
+                Shape is (n_nodes).
+
+        Returns:
+            RefTensor of edge-level representation.
+              Shape is (n_edges).
+
+         Note, for edge-level access to target node states for elementwise
+         operations.
+
+        Called in _param_api and _state_api.
+        """
         return RefTensor(x, self._target_indices)
 
     def target_sum(self, x: Tensor) -> Tensor:
-        """Sums all values from x into result at the indices specified in the index tensor along a given axis dim.
+        """Scatter sum operation creating target node states from inputs.
+
         Args:
-            x (tensor): Input "weight * source activity". Corresponds to synaptic currents. Must be aggregated over receptive fields.
+            x: abstractly, edge inputs to targets, e.g. currents.
+                Shape is (batch_size, n_edges).
 
-        Node: If multiple indices reference the same location, their contributions add.
-        Analog to pandas groupby("target_indices").sum() in multiple dimensions.
+        Returns:
+            RefTensor of node-level input. Shape is (batch_size, n_nodes).
         """
-        result = torch.zeros((*x.shape[:-1], self.n_nodes))  # (n_frames, n_nodes)
-        # args = dim, index, other
-        result.scatter_add_(
-            -1,  # n_nodes dim
-            self._target_indices.expand(
-                *x.shape
-            ),  # view of indexing vector expanded over dims of x
-            x,
-        )
-        return result
 
-    def target_sum(self, x: Tensor) -> Tensor:
-        """Sums all values from x into result at the indices specified in the index tensor along a given axis dim.
-        Args:
-            x (tensor): Input "weight * source activity". Corresponds to synaptic currents. Must be aggregated over receptive fields.
-
-        Node: If multiple indices reference the same location, their contributions add.
-        Analog to pandas groupby("target_indices").sum() in multiple dimensions.
-        """
-        result = torch.zeros((*x.shape[:-1], self.n_nodes))  # (n_frames, n_nodes)
-        # args = dim, index, other
+        result = torch.zeros((*x.shape[:-1], self.n_nodes))
+        # signature: tensor.scatter_add_(dim, index, other)
         result.scatter_add_(
-            -1,  # n_nodes dim
-            self._target_indices.expand(
+            -1,  # nodes dim
+            self._target_indices.expand(  # view of index expanded over dims of x
                 *x.shape
-            ),  # view of indexing vector expanded over dims of x
+            ),
             x,
         )
         return result
@@ -393,20 +285,20 @@ class Network(nn.Module):
     # ------------------------------------------------------
 
     def _initial_state(
-        self, params: Dict[str, Dict[str, Tensor]], batch_size: int
-    ) -> Dict[str, Dict[str, Tensor]]:
-        """
-        Compute the initial state given the stimulus "x".
+        self, params: AutoDeref[str, AutoDeref[str, RefTensor]], batch_size: int
+    ) -> AutoDeref[str, AutoDeref[str, Union[Tensor, RefTensor]]]:
+        """Compute the initial state, given the parameters and batch size.
+
+        Args:
+            params: parameter namespace.
+            batch_size: batch size.
+
+        Returns:
+            initial_state: namespace of node, edge, source, and target states.
         """
         # Initialize the network.
         state = AutoDeref(nodes=AutoDeref(), edges=AutoDeref())
-        self.dynamics.write_initial_state(
-            state,
-            params,
-            self._source_indices,
-            self.initial_state_mean,
-            self.initial_state_std,
-        )
+        self.dynamics.write_initial_state(state, params)
 
         # Expand over batch dimension.
         for k, v in state.nodes.items():
@@ -418,23 +310,30 @@ class Network(nn.Module):
 
     def _next_state(
         self,
-        params: Dict[str, Dict[str, Tensor]],
-        state: Dict[str, Dict[str, Tensor]],
+        params: AutoDeref[str, AutoDeref[str, RefTensor]],
+        state: AutoDeref[str, AutoDeref[str, Union[Tensor, RefTensor]]],
         x_t: Tensor,
         dt: float,
-    ) -> Dict[str, Dict[str, Tensor]]:
+    ) -> AutoDeref[str, AutoDeref[str, Union[Tensor, RefTensor]]]:
+        """Compute the next state, given the current `state` and stimulus `x_t`.
+
+        Args:
+            params: parameters
+            state: current state
+            x_t: stimulus at time t. Shape is (batch_size, n_nodes).
+            dt: time step.
+
+        Returns:
+            next_state: namespace of node, edge, source, and target states.
+
+        Note: simple, elementwise Euler integration.
         """
-        Compute the next state, given the current state ("s") and the stimulus
-        ("x").
-        """
-        # Compute state velocities.
         vel = AutoDeref(nodes=AutoDeref(), edges=AutoDeref())
 
         self.dynamics.write_state_velocity(
-            vel, state, params, self.target_sum, x_t, dt=dt, sigma=self.sigma
+            vel, state, params, self.target_sum, x_t, dt=dt
         )
 
-        # Construct and return the next state.
         next_state = AutoDeref(
             nodes=AutoDeref(
                 **{k: state.nodes[k] + vel.nodes[k] * dt for k in state.nodes}
@@ -447,21 +346,16 @@ class Network(nn.Module):
         return self._state_api(next_state)
 
     def _state_api(
-        self, state: Dict[str, Dict[str, Tensor]]
-    ) -> Dict[str, Dict[str, Tensor]]:
-        """
-        Return the "state" object passed to "self.dynamics".
+        self, state: AutoDeref[str, AutoDeref[str, Union[Tensor, RefTensor]]]
+    ) -> AutoDeref[str, AutoDeref[str, Union[Tensor, RefTensor]]]:
+        """Populate sources and targets states from nodes states.
 
-        Note, the full api may look like this:
-
-        {"nodes": {"activity": tensor([[1.1998, 1.1596, 1.1748,  ..., 0.0000, 0.0000, 0.0000]], grad_fn=<AsStridedBackward>)},
-         "edges": {"current": tensor([[-1.1377e-04, -1.1377e-04, -1.1377e-04,  ...,  8.5991e-05, 8.5991e-05,  8.5991e-05]], grad_fn=<ExpandBackward>)},
-         "sources": {"activity": <dvs.networks.RefTensor object at 0x7f85e2b61940>},
-         "targets": {"activity": <dvs.networks.RefTensor object at 0x7f85e2b619b0>}}
+        Note, optional state hooks are called here (in order of registration).
+        Note, this is returned by _initial_state and _next_state.
         """
 
-        if self._state_hook is not None:
-            _state = self._state_hook.hook(state, **self._state_hook.kwargs)
+        for hook in self._state_hooks:
+            _state = hook(state)
             if _state is not None:
                 state = _state
 
@@ -471,34 +365,38 @@ class Network(nn.Module):
             sources=AutoDeref(**valmap(self._source_gather, state.nodes)),
             targets=AutoDeref(**valmap(self._target_gather, state.nodes)),
         )
+
         return state
 
-    def register_state_hook(
-        self, state_hook: Dict[str, Union[Callable, Dict[str, Any]]]
-    ) -> None:
+    def register_state_hook(self, state_hook: Callable, **kwargs) -> None:
         """Register a state hook to retrieve or modify the state.
 
+        E.g. for a targeted perturbation.
+
         Args:
-            state_hook: provides the callable and key word arguments for it.
+            state_hook: provides the callable.
+            kwargs: keyword arguments to pass to the callable.
 
         Note: the hook is called in _state_api.
         """
-        if self._state_hook is not None and self._state_hook != state_hook:
-            raise ValueError(
-                "call remove_state_hook to remove the existing state hook first."
-            )
-        if all((key in state_hook for key in ["hook", "kwargs"])):
-            self._state_hook = state_hook
-        else:
-            raise ValueError("Violating state_hook api")
 
-    def remove_state_hook(self):
-        self._state_hook = None
+        class StateHook:
+            def __init__(self, hook, **kwargs):
+                self.hook = hook
+                self.kwargs = kwargs or {}
 
-    def init_from_other(self, other, params):
-        for param_name in params:
-            tensor = getattr(self, param_name)
-            tensor.data = getattr(other, param_name).data
+            def __call__(self, state):
+                return self.hook(state, **self.kwargs)
+
+        if not isinstance(state_hook, Callable):
+            raise ValueError
+
+        self._state_hooks += (StateHook(state_hook, **kwargs),)
+
+    def clear_state_hooks(self, clear=True):
+        """Clear all state hooks."""
+        if clear:
+            self._state_hooks = tuple()
 
     def simulate(
         self,
@@ -510,7 +408,7 @@ class Network(nn.Module):
         """Simulate the network activity from movie input.
 
         Args:
-            movie_input: tensor requiring shape (#samples, #frames, 1, hexals)
+            movie_input: tensor requiring shape (batch_size, n_frames, 1, hexals)
             dt: integration time constant. Must be 1/50 or less.
             initial_state: network activity at the beginning of the simulation.
                 Either use fade_in_state or steady_state, to compute the
@@ -520,7 +418,7 @@ class Network(nn.Module):
                 a tensor. Defaults to False.
 
         Returns:
-            activity tensor of shape (#samples, #frames, #neurons)
+            activity tensor of shape (batch_size, n_frames, #neurons)
 
         Raises:
             ValueError if the movie_input is not four-dimensional.
@@ -535,43 +433,90 @@ class Network(nn.Module):
         if dt > 1 / 50:
             raise ValueError
 
-        n_samples, n_frames = movie_input.shape[:2]
+        batch_size, n_frames = movie_input.shape[:2]
         if initial_state == "auto":
-            initial_state = self.steady_state(1.0, dt, movie_input.shape[0])
+            initial_state = self.steady_state(1.0, dt, batch_size)
         with simulation(self):
             assert self.training == False and all(
                 not p.requires_grad for p in self.parameters()
             )
-            self.stimulus.zero(n_samples, n_frames)
+            self.stimulus.zero(batch_size, n_frames)
             self.stimulus.add_input(movie_input)
             return self.forward(self.stimulus(), dt, initial_state, as_states)
 
-    def simulate_ablate(
+    def simulate_clamp(
         self,
         movie_input: torch.Tensor,
         dt: float,
         initial_state: Union[AutoDeref, None],
-        ablate_cell_type: str,
-        ablation_mode: "str",
+        cell_type: Union[str, Iterable[str]],
+        mode="layer",
+        substitute=0,
+        clear_state_hooks: bool = True,
     ):
-        activity = self.simulate(movie_input, dt, initial_state, as_states=False)
+        """Simulate with clamping cell type voltage in the network.
 
-        if ablation_mode == "mean":
-            activity[:, :, self.stimulus.layer_index[ablate_cell_type]] = activity[
-                :, :, self.stimulus.layer_index[ablate_cell_type]
-            ].mean(dim=(-1, -2))
-        elif ablation_mode == "zero":
-            activity[:, :, self.stimulus.layer_index[ablate_cell_type]] = 0
+        Note, this method registers a state hook that clamps the activity
+        of a single cell type. The hooks are cleared before and after the
+        simulation by default.
+
+        Args:
+            movie_input: tensor requiring shape (batch_size, n_frames, 1, n_hexals)
+            dt: integration time constant. Must be 1/50 or less.
+            initial_state: network activity at the beginning of the simulation.
+                Either use fade_in_state or steady_state, to compute the
+                initial state from grey input or from ramping up the contrast of
+                the first movie frame.
+            cell_type: cell type(s) to clamp.
+            mode: "layer" or "central" to clamp whole cell type
+                layer or central cell.
+            substitute: number or "resting" to substitute the activity.
+            clear_state_hooks: clear all state hooks before and after simulation.
+                Note, this can interfere with other state hooks.
+
+
+        Returns:
+            clamped activity tensor of shape (batch_size, n_frames, #neurons).
+
+        Raises: see simulate.
+        """
+        self.clear_state_hooks(clear_state_hooks)
+
+        if isinstance(cell_type, str):
+            cell_type = (cell_type,)
+
+        self.clear_state_hooks(clear_state_hooks)
+        for ct in cell_type:
+            if ct not in self.cell_types:
+                raise ValueError(f"unknown cell type {ct}")
+            self.register_state_hook(
+                clamp_hook,
+                cls=self,
+                cell_type=ct,
+                mode=mode,
+                substitute=substitute,
+            )
+        activity = self.simulate(movie_input, dt, initial_state, as_states=False)
+        self.clear_state_hooks(clear_state_hooks)
         return activity
 
-    def forward(self, x, dt, state=None, as_states=False):
-        """
+    def forward(
+        self, x: Tensor, dt: float, state: AutoDeref = None, as_states: bool = False
+    ) -> Union[torch.Tensor, AutoDeref]:
+        """Forward pass of the network.
+
         Args:
-            x (Tensor): whole-network stimulus of shape (#samples, #frames, #cells).
-            dt (float): integration time constant.
+            x: whole-network stimulus of shape (batch_size, n_frames, #cells).
+            dt: integration time constant.
+            state: initial state of the network. If not given,
+                computed from NetworksDynamics.write_initial_state.
+                initial_state and fade_in_state are convenience functions to
+                compute initial steady states.
+            as_states: if True, returns the states as List[AutoDeref],
+                else concatenates the activity of the nodes and returns a tensor.
         """
         # To keep the parameters within their valid domain, they get clamped.
-        self._clamp(dt)
+        self._clamp()
         # Construct the parameter API.
         params = self._param_api()
 
@@ -580,7 +525,7 @@ class Network(nn.Module):
             state = self._initial_state(params, x.shape[0])
 
         def handle(state):
-            # For simulating the dynamics, we loop over the temporal dimension.
+            # loop over the temporal dimension for integration of dynamics
             for i in range(x.shape[1]):
                 state = self._next_state(params, state, x[:, i], dt)
                 if as_states is False:
@@ -594,57 +539,71 @@ class Network(nn.Module):
 
     def steady_state(
         self,
-        t_pre,
-        dt,
-        batch_size,
-        value=0.5,
-        initial_frames=None,
-        state=None,
-        no_grad=True,
-    ):
-        """State after grey-scale or initial frame fade in stimulus.
+        t_pre: float,
+        dt: float,
+        batch_size: int,
+        value: float = 0.5,
+        state: Optional[AutoDeref] = None,
+        grad: bool = False,
+    ) -> AutoDeref:
+        """State after grey-scale stimulus.
 
-        initial_frames of shape (#samples, 1, n_hexals)
+        Args:
+            t_pre: time of the grey-scale stimulus.
+            dt: integration time constant.
+            batch_size: batch size.
+            value: value of the grey-scale stimulus.
+            state: initial state of the network. If not given,
+                computed from NetworksDynamics.write_initial_state.
+                initial_state and fade_in_state are convenience functions to
+                compute initial steady states.
+            grad: if True, the state is computed with gradient.
+
+        Returns:
+            steady state of the network after a grey-scale stimulus.
         """
         if t_pre is None or t_pre <= 0.0:
             return state
-        if value is not None and initial_frames is None:
-            self.stimulus.zero(batch_size, int(t_pre / dt))
-            self.stimulus.add_pre_stim(value)
-        elif value is None and initial_frames is not None:
-            raise ValueError("use fade_in_state method instead")
-            # replicate initial frame over int(t_pre/dt) - fade in
-            self.stimulus.zero(batch_size, int(t_pre / dt))
-            initial_frames = (
-                torch.linspace(0, 1, int(t_pre / dt))[None, :, None]
-                * (initial_frames.repeat(1, int(t_pre / dt), 1) - 0.5)
-                + 0.5
-            )
-            self.stimulus.add_input(initial_frames)
-        else:
+
+        if value is None:
             return state
-        if no_grad:
-            with torch.no_grad():
-                return self(self.stimulus(), dt, as_states=True, state=state)[-1]
-        else:
+
+        self.stimulus.zero(batch_size, int(t_pre / dt))
+        self.stimulus.add_pre_stim(value)
+
+        with self.enable_grad(grad):
             return self(self.stimulus(), dt, as_states=True, state=state)[-1]
 
     def fade_in_state(
         self,
-        t_fade_in,
-        dt,
+        t_fade_in: float,
+        dt: float,
         initial_frames,
         state=None,
-        no_grad=True,
-    ):
-        """State after grey-scale or initial frame fade in stimulus.
+        grad=False,
+    ) -> AutoDeref:
+        """State after fade-in stimulus of initial_frames.
 
-        initial_frames of shape (#samples, 1, n_hexals)
+        Args:
+            t_fade_in: time of the fade-in stimulus.
+            dt: integration time constant.
+            initial_frames: tensor of shape (batch_size, 1, n_hexals)
+            state: initial state of the network. If not given,
+                computed from NetworksDynamics.write_initial_state.
+                initial_state and fade_in_state are convenience functions to
+                compute initial steady states.
+            grad: if True, the state is computed with gradient.
+
+
+        initial_frames of shape (batch_size, 1, n_hexals)
         """
         if t_fade_in is None or t_fade_in <= 0.0:
             return state
+
         batch_size = initial_frames.shape[0]
-        # replicate initial frame over int(t_fade_in/dt) - fade in
+
+        # replicate initial frame over int(t_fade_in/dt) frames and fade in
+        # by ramping up the contrast
         self.stimulus.zero(batch_size, int(t_fade_in / dt))
         initial_frames = (
             torch.linspace(0, 1, int(t_fade_in / dt))[None, :, None]
@@ -652,30 +611,19 @@ class Network(nn.Module):
             + 0.5
         )
         self.stimulus.add_input(initial_frames[:, :, None])
-        if no_grad:
-            with torch.no_grad():
-                return self(self.stimulus(), dt, as_states=True, state=state)[-1]
-        else:
+        with self.enable_grad(grad):
             return self(self.stimulus(), dt, as_states=True, state=state)[-1]
 
-    def forward_single(self, x, dt, state=None, params=None):
-        if params is None:
-            params = self._param_api()
-        if state is None:
-            state = self._initial_state(params, x.shape[0])
-        return self._next_state(params, state, x, dt)
+    def _clamp(self):
+        """Clamp free parameters to their range specifid in their config.
 
-    def _clamp(self, dt=None):
+        Valid configs are `non_negative` to clamp at zero and tuple of the form
+        (min, max) to clamp to an arbitrary range.
+
+        Note, this function also enforces symmetry constraints.
         """
-        To clamp parameters to their range specifid in their config.
-        Nodes and edges parameters are combined in clamp_config.
-        Clamp modes can be:
-            - non_negative to clamp at zero
-            - tuple of the form (min, max) to clamp to an arbitrary range
-            - time_const (deprecated has no effect since time constants are
-                now clamped in the dynamics) to clamp to the current integration
-                time step dt
-        """
+
+        # clamp parameters
         for param_name, mode in self.clamp_config.items():
             param = getattr(self, param_name)
             if param.requires_grad:
@@ -683,25 +631,21 @@ class Network(nn.Module):
                     pass
                 elif mode == "non_negative":
                     param.data.clamp_(0)
-                # elif mode == "time_const":
-                #     pass
-                # #     param.data.clamp_(dt)
                 elif isinstance(mode, Iterable) and len(mode) == 2:
                     param.data.clamp_(*mode)
                 else:
                     raise NotImplementedError(f"Clamping mode {mode} not implemented.")
+
+        # enforce symmetry constraints
         for param_name, masks in self.symmetry_config.items():
             param = getattr(self, param_name)
             if param.requires_grad:
                 for symmetry in masks:
                     param.data[symmetry] = param.data[symmetry].mean()
-        # for param_name, index in self.clamp_config_dt.items():
-        #     param = getattr(self, param_name)
-        #     if param.requires_grad:
-        #         param.data[index] = param.data[index].mean()
 
     @contextmanager
     def enable_grad(self, grad=True):
+        """Context manager to enable or disable gradient computation."""
         prev = torch.is_grad_enabled()
         torch.set_grad_enabled(grad)
         try:
@@ -711,14 +655,34 @@ class Network(nn.Module):
 
     def stimulus_response(
         self,
-        stim_dataset,
-        dt,
-        indices=None,
-        t_pre=1.0,
-        t_fade_in=0.0,
-        grad=False,
-        default_stim_key="lum",
+        stim_dataset: SequenceDataset,
+        dt: float,
+        indices: Iterable[int] = None,
+        t_pre: float = 1.0,
+        t_fade_in: float = 0.0,
+        grad: bool = False,
+        default_stim_key: Any = "lum",
     ):
+        """Compute stimulus responses for a given stimulus dataset.
+
+        Args:
+            stim_dataset: stimulus dataset.
+            dt: integration time constant.
+            indices: indices of the stimuli to compute the response for.
+                If not given, all stimuli responses are computed.
+            t_pre: time of the grey-scale stimulus.
+            t_fade_in: time of the fade-in stimulus (slow).
+            grad: if True, the state is computed with gradient.
+            default_stim_key: key of the stimulus in the dataset if it returns
+                a dictionary.
+
+        Note: per default, applies a grey-scale stimulus for 1 second, no
+            fade-in stimulus.
+
+        Returns:
+            iterator over stimuli and respective responses as numpy
+            arrays.
+        """
         stim_dataset.dt = dt
         if indices is None:
             indices = np.arange(len(stim_dataset))
@@ -727,16 +691,20 @@ class Network(nn.Module):
         )
 
         stimulus = self.stimulus
+
+        # compute initial state
         initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
+
         with self.enable_grad(grad):
             logging.info(f"Computing {len(indices)} stimulus responses.")
             for i, stim in enumerate(stim_loader):
 
-                # to avoid having to write an only-lum version for task datasets
+                # when datasets return dictionaries, we assume that the stimulus
+                # is stored under the key `default_stim_key`
                 if isinstance(stim, dict):
                     stim = stim[default_stim_key].squeeze(-2)
 
-                # returns initial state if t_fade_in is 0
+                # fade in stimulus
                 fade_in_state = self.fade_in_state(
                     t_fade_in=t_fade_in,
                     dt=dt,
@@ -746,111 +714,60 @@ class Network(nn.Module):
 
                 def handle_stim():
 
-                    # Resets the stimulus buffer (#samples, #frames, #neurons).
-                    n_samples, n_frames, _ = stim.shape
-                    stimulus.zero(n_samples, n_frames)
+                    # reset stimulus
+                    batch_size, n_frames = stim.shape[:2]
+                    stimulus.zero(batch_size, n_frames)
 
-                    # Add batch of hex-videos (#samples, #frames, #hexals) as
-                    # photorecptor stimuli.
-                    stimulus.add_input(stim.unsqueeze(2))
+                    # add stimulus
+                    stimulus.add_input(stim)
 
+                    # compute response
                     with stimulus.memory_friendly():
                         if grad is False:
                             return (
+                                stim.cpu().numpy(),
                                 self(stimulus(), dt, state=fade_in_state)
                                 .detach()
                                 .cpu()
                                 .numpy(),
-                                stim.cpu().numpy(),
                             )
                         elif grad is True:
                             return (
+                                stim.cpu().numpy(),
                                 self(stimulus(), dt, state=fade_in_state),
-                                stim.cpu().numpy(),
                             )
-
-                yield handle_stim()
-
-    def stimulus_responses(
-        self,
-        stim_dataset,
-        dt,
-        indices=None,
-        t_pre=1.0,
-        t_fade_in=0.0,
-        grad=False,
-        default_stim_key="lum",
-    ):
-        stim_dataset.dt = dt
-        if indices is None:
-            indices = np.arange(len(stim_dataset))
-        stim_loader = DataLoader(
-            stim_dataset, batch_size=1, sampler=IndexSampler(indices)
-        )
-
-        stimulus = self.stimulus
-        initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
-        with self.enable_grad(grad):
-            logging.info(f"Computing {len(indices)} stimulus responses.")
-            for i, stim in enumerate(stim_loader):
-
-                # to avoid having to write an only-lum version for task datasets
-                if isinstance(stim, dict):
-                    stim = stim[default_stim_key].squeeze(-2)
-
-                # returns initial state if t_fade_in is 0
-                fade_in_state = self.fade_in_state(
-                    t_fade_in=t_fade_in,
-                    dt=dt,
-                    initial_frames=stim[:, 0].unsqueeze(1),
-                    state=initial_state,
-                )
-
-                def handle_stim():
-
-                    # Resets the stimulus buffer (#samples, #frames, #neurons).
-                    n_samples, n_frames, _ = stim.shape
-                    print(n_frames, dt, stim_dataset.dt)
-                    stimulus.zero(n_samples, n_frames)
-
-                    # Add batch of hex-videos (#samples, #frames, #hexals) as
-                    # photorecptor stimuli.
-                    stimulus.add_input(stim.unsqueeze(2))
-
-                    with stimulus.memory_friendly():
-                        if grad is False:
-                            return (
-                                self(stimulus(), dt, state=fade_in_state)
-                                .detach()
-                                .cpu()
-                                .numpy()
-                            )
-                        elif grad is True:
-                            return self(stimulus(), dt, state=fade_in_state)
 
                 yield handle_stim()
 
     def current_response(
         self,
-        stim_dataset,
-        dt,
-        indices=None,
-        t_pre=1.0,
-        default_stim_key="lum",
-        t_fade_in=0,
+        stim_dataset: SequenceDataset,
+        dt: float,
+        indices: Iterable[int] = None,
+        t_pre: float = 1.0,
+        t_fade_in: float = 0,
+        default_stim_key: Any = "lum",
     ):
-        """To return postsynaptic currents.
+        """Compute stimulus currents and responses for a given stimulus dataset.
 
-        Note, requires Dynamics to implement currents method and expects
-        that this is weights * activation(presynaptic voltage).
+        Note, requires Dynamics to implement `currents`.
+
+        Args:
+            stim_dataset: stimulus dataset.
+            dt: integration time constant.
+            indices: indices of the stimuli to compute the response for.
+                If not given, all stimuli responses are computed.
+            t_pre: time of the grey-scale stimulus.
+            t_fade_in: time of the fade-in stimulus (slow).
+            grad: if True, the state is computed with gradient.
+            default_stim_key: key of the stimulus in the dataset if it returns
+                a dictionary.
 
         Returns:
-            stims: the stimulus
-            currents: postsynaptic currents per synapse (edge).
-            target_currents: postsynaptic currents per postsynaptic cell (node).
-            activities: full postsynaptic voltage.
+            iterator over stimuli, currents and respective responses as numpy
+            arrays.
         """
-        self._clamp(dt)
+        self._clamp()
         # Construct the parameter API.
         params = self._param_api()
 
@@ -861,20 +778,15 @@ class Network(nn.Module):
             stim_dataset, batch_size=1, sampler=IndexSampler(indices)
         )
 
-        stimulus = Stimulus(1, 1, self.ctome)
+        stimulus = self.stimulus
         initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
-        stims = []
-        currents = []
-        activities = []
         with torch.no_grad():
             logging.info(f"Computing {len(indices)} stimulus responses.")
             for i, stim in enumerate(stim_loader):
 
-                # to avoid having to write an only-lum version for task datasets
                 if isinstance(stim, dict):
                     stim = stim[default_stim_key].squeeze(-2)
 
-                # returns initial state if t_fade_in is 0
                 fade_in_state = self.fade_in_state(
                     t_fade_in=t_fade_in,
                     dt=dt,
@@ -884,53 +796,71 @@ class Network(nn.Module):
 
                 def handle_stim():
 
-                    # Resets the stimulus buffer (#samples, #frames, #neurons).
-                    n_samples, n_frames, _ = stim.shape
-                    stimulus.zero(n_samples, n_frames)
+                    # reset stimulus
+                    batch_size, n_frames, _ = stim.shape
+                    stimulus.zero(batch_size, n_frames)
 
-                    # Add batch of hex-videos (#samples, #frames, #hexals) as
-                    # photorecptor stimuli.
+                    # add stimulus
                     stimulus.add_input(stim.unsqueeze(2))
 
+                    # compute response
                     with stimulus.memory_friendly():
                         states = self(
                             stimulus(), dt, state=fade_in_state, as_states=True
                         )
                         return (
+                            stim.cpu().numpy().squeeze(),
                             torch.stack(
                                 [s.nodes.activity.cpu() for s in states],
                                 dim=1,
-                            ).numpy(),
+                            )
+                            .numpy()
+                            .squeeze(),
                             torch.stack(
                                 [
                                     self.dynamics.currents(s, params).cpu()
                                     for s in states
                                 ],
                                 dim=1,
-                            ).numpy(),
+                            )
+                            .numpy()
+                            .squeeze(),
                         )
 
-                activity, current = handle_stim()
-                stims.append(stim.cpu().numpy().squeeze())
-                activities.append(activity.squeeze())
-                currents.append(current.squeeze())
-        return np.array(stims), np.array(currents), np.array(activities)
+                yield handle_stim()
 
 
 class NetworkDir(Directory):
+    """Directory for a network."""
+
     pass
 
 
 class NetworkView:
-    def __init__(self, network_dir: NetworkDir):
+    """Views and convenience methods for trained networks."""
+
+    def __init__(self, network_dir: Union[PathLike, NetworkDir]):
+        if isinstance(network_dir, PathLike):
+            network_dir = NetworkDir(network_dir)
         self.dir = network_dir
-        self.ctome = ConnectomeDir(self.dir.config.network.connectome)
+        self.connectome = ConnectomeDir(self.dir.config.network.connectome)
+        self.connectome_view = ConnectomeView(self.connectome)
         self._initialized = dict(network=False, decoder=False)
 
     def reset_init(self, key):
+        """Reset initialization of a component."""
         self._initialized[key] = False
 
-    def init_network(self, chkpt="best_chkpt", network=None):
+    def init_network(self, chkpt="best_chkpt", network: Optional[Network] = None):
+        """Initialize the network.
+
+        Args:
+            chkpt: checkpoint to load.
+            network: network instance to initialize.
+
+        Returns:
+            network instance.
+        """
         if self._initialized["network"] and network is None:
             return self.network
         self.network = network or Network(**self.dir.config.network)
@@ -940,19 +870,32 @@ class NetworkView:
         return self.network
 
     def init_decoder(self, chkpt="best_chkpt", decoder=None):
+        """Initialize the decoder.
+
+        Args:
+            chkpt: checkpoint to load.
+            decoder: decoder instance to initialize.
+
+        Returns:
+            decoder instance.
+        """
         if self._initialized["decoder"] and decoder is None:
             return self.decoder
-        self.decoder = decoder or init_decoder(self.dir.config.task_decoder, self.ctome)
+        self.decoder = decoder or init_decoder(
+            self.dir.config.task_decoder, self.connectome
+        )
         state_dict = torch.load(self.dir / chkpt)
         self.decoder.load_state_dict(state_dict["decoder"]["flow"])
         self._initialized["decoder"] = True
         return self.decoder
 
     def __call__(self, movie_input, dt, initial_state=None, as_states=False):
-        """Simulate the network activity from movie input.
+        """Convenience method to simulate the network activity from movie input.
+
+        Note, the nn.Module itself provides more flexibility.
 
         Args:
-            movie_input: tensor requiring shape (#samples, #frames, 1, hexals)
+            movie_input: tensor requiring shape (batch_size, n_frames, 1, hexals)
             dt: integration time constant. Must be 1/50 or less.
             initial_state: network activity at the beginning of the simulation.
                 Either use fade_in_state or steady_state, to compute the
@@ -962,7 +905,7 @@ class NetworkView:
                 a tensor. Defaults to False.
 
         Returns:
-            activity tensor of shape (#samples, #frames, #neurons)
+            LayerActivity object.
 
         Raises:
             ValueError if the movie_input is not four-dimensional.
@@ -971,15 +914,45 @@ class NetworkView:
                 parameters require grad.
         """
         if not self._initialized["network"]:
-            self._init_network()
+            self.init_network()
         return LayerActivity(
-            self.network.simulate(movie_input, dt, initial_state, as_states),
-            self.network.ctome,
+            self.network.simulate(movie_input, dt, initial_state, as_states).cpu(),
+            self.network.connectome,
             keepref=True,
         )
 
 
-# -- State hook ---------------------------------------------------------------
-def _state_hook(x, *args, **kwargs):
-    """Default state hook returning identity."""
-    return x
+# - state hooks ----------------------------------------------------------------
+
+
+def clamp_hook(state, cls, cell_type, mode="layer", substitute=0):
+    """State hook to perturb the activity of a given cell type.
+
+    Must be passed to Network.register_state_hook.
+
+    Args:
+        cls: Network instance.
+        cell_type: cell type to perturb.
+        mode: "layer" or "central" to perturb the layer or central cells.
+        substitute: value to substitute the activity with. Can be a number or
+            "resting" to substitute with the resting potential.
+    """
+    if mode == "layer":
+        ablation_index = cls.stimulus.layer_index[cell_type]
+    elif mode == "central":
+        ablation_index = cls.stimulus.central_cells_index[cell_type]
+    else:
+        raise ValueError
+
+    if isinstance(substitute, Number):
+        activity = state.nodes.activity.clone()
+        activity[:, ablation_index] = substitute
+        state.nodes.update(activity=activity)
+    elif substitute == "resting":
+        activity = state.nodes.activity.clone()
+        activity[:, ablation_index] = cls.node_params.bias[cell_type].data.item()
+        state.nodes.update(activity=activity)
+    else:
+        raise ValueError
+
+    return state

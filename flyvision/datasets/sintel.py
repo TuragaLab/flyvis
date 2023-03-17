@@ -25,10 +25,10 @@ def check_shape(f):
 
 @check_shape
 def mean_root_norm(y_gt, y_est, **kwargs):
-    """(#samples, #frames, ndim, #hexals/columns)
+    """(#samples, n_frames, ndim, n_hexals/columns)
 
-    Note, absolute magnitudes dependent on #frames and #hexals cause of sum.
-    To compare losses with different #frames, #hexals evaluate mean_root_average_norm.
+    Note, absolute magnitudes dependent on n_frames and n_hexals cause of sum.
+    To compare losses with different n_frames, n_hexals evaluate mean_root_average_norm.
     """
     error = y_est - y_gt
     return ((error**2).sum(dim=(1, 2, 3)) + 1e-9).sqrt().mean()
@@ -36,10 +36,10 @@ def mean_root_norm(y_gt, y_est, **kwargs):
 
 @check_shape
 def mean_root_average_norm(y_gt, y_est, **kwargs):
-    """(#samples, #frames, ndim, #hexals/columns)
+    """(#samples, n_frames, ndim, n_hexals/columns)
 
     Note, averages the norm in ndim (e.g. optic flow image plane coordinates)
-    across #frames and #hexals.
+    across n_frames and n_hexals.
     """
     error = y_est - y_gt
     return ((error**2).sum(dim=2).mean(dim=(1, 2)) + 1e-9).sqrt().mean()

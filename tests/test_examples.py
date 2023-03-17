@@ -86,10 +86,6 @@ def test_connectome_view(tmp_path):
     assert len(fig.axes) == 2
     assert isinstance(fig, Figure)
 
-    fig = connectome_view.network_layout()
-    assert len(fig.axes) == len(connectome.unique_cell_types) + 1
-    assert isinstance(fig, Figure)
-
     fig = connectome_view.receptive_fields_grid("T4c")
     assert (
         len([ax for ax in fig.axes if ax.get_visible()])
@@ -104,6 +100,10 @@ def test_connectome_view(tmp_path):
         == len(connectome_view.projective_fields_df("T4c"))
         == len(connectome_view.targets_list("T4c"))
     )
+    assert isinstance(fig, Figure)
+
+    fig = connectome_view.network_layout()
+    assert len(fig.axes) == len(connectome.unique_cell_types) + 2
     assert isinstance(fig, Figure)
 
 
@@ -183,7 +183,7 @@ def test_model_responses(tmp_path):
 
     assert responses.shape == (50, 1, 42, 45669)
 
-    voltages = LayerActivity(responses, ensemble[0].ctome, keepref=True)
+    voltages = LayerActivity(responses, ensemble[0].connectome, keepref=True)
 
     cell_type = "T4c"
     assert voltages[cell_type].shape == (50, 1, 42, 721)

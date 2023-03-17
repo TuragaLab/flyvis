@@ -32,7 +32,7 @@ class TwoBarFlashWrap(Directory):
         )
 
         values = list(product(*(v for v in samples.values())))
-        sequence = []  # samples, #frames, width, height
+        sequence = []  # samples, n_frames, width, height
         for t_stim, angle, width, (os_start, os_end), intensity in tqdm(
             values, desc="TwoBarFlash"
         ):
@@ -181,7 +181,7 @@ def get_bar_flash(
             stimulus width. Defaults to True, i.e. columns.
 
     Returns:
-        (array): shape #hexals
+        (array): shape n_hexals
     """
     orientation_angle = angle % 180
     col_extent = boxfilter.conf.extent

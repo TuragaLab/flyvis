@@ -1,6 +1,7 @@
 """Animations of neural activations.
 """
 from fractions import Fraction
+from typing import List
 
 from matplotlib import colormaps as cm
 import matplotlib.pyplot as plt
@@ -18,7 +19,7 @@ class ActivationPlusTrace(AnimationCollector):
     """Hex-scatter animation of an activation plus the central hexal's trace.
 
     Args:
-        activation (array): shape (#samples, #frames, #hexals)
+        activation (array): shape (#samples, n_frames, n_hexals)
         cranges (array): shape (#samples).
         vmin (float): color minimal value.
         vmax (flot): color maximal value.
@@ -381,10 +382,10 @@ class ActivationGridPlusTraces_v2(AnimationCollector):
         activations for a particular target neuron type.
 
     Args:
-        stimulus: (#samples, #frames, #hexals)
-        source_currents: postsynaptic currents per source. Dict[str, array (#samples, #frames, #hexals (RFs))]
-        target_currents: postsynaptic current of target. array (#samples, #frames, #hexals)
-        responses: response of target. array (#samples, #frames, #hexals)
+        stimulus: (#samples, n_frames, n_hexals)
+        source_currents: postsynaptic currents per source. Dict[str, array (#samples, n_frames, n_hexals (RFs))]
+        target_currents: postsynaptic current of target. array (#samples, n_frames, n_hexals)
+        responses: response of target. array (#samples, n_frames, n_hexals)
     """
 
     def __init__(
@@ -587,7 +588,7 @@ class CentralActivity(Animation):
         super().__init__(path, self.fig)
 
     def init(self, frame=0):
-        nodes = utils.order_nodes(self.tnn.ctome.nodes.to_df())
+        nodes = utils.order_nodes(self.tnn.connectome.nodes.to_df())
         self.central_nodes = nodes[(nodes.u == 0) & (nodes.v == 0)]
         activity = self.activity[
             self.batch_sample, frame, self.central_nodes.index
@@ -627,74 +628,89 @@ class CentralActivity(Animation):
             self.update_figure()
 
 
-class InputHexScatter(AnimationCollector):
+class StimulusResponse(AnimationCollector):
     """Hex-scatter animations for input and single activation.
 
     Args:
-        input (tensor): hexagonal input of shape (#samples, #frames, #hexals).
-        activation (tensor): hexagonal activation of particular neuron type
-            (#samples, #frames, #hexals).
-        crange_input (tuple): optional color range of the input.
+        stimulus (tensor): hexagonal input of shape (#samples, n_frames, n_hexals).
+        responses (tensor or List[tensor]): hexagonal activation of particular
+            neuron type (#samples, n_frames, n_hexals).
         batch_sample (int): batch sample to start from. Defaults to 0.
-        cbound (float): absolute color bound for the activation.
+        figsize (list): figure size in inches. Defaults to [2, 1].
+        fontsize (int): fontsize. Defaults to 5.
+        u (list): list of u coordinates of neurons to plot. Defaults to None.
+        v (list): list of v coordinates of neurons to plot. Defaults to None.
+
+    Note: if u and v are not specified, all neurons are plotted.
     """
 
     def __init__(
         self,
-        input,
-        activation,
-        crange_input=(None, None),
+        stimulus,
+        responses,
         batch_sample=0,
-        cbound=0,
+        figsize_scale=1,
+        fontsize=5,
+        u=None,
+        v=None,
     ):
-        self.input = input
-        self.activation = activation
-        self.crange_input = crange_input
-        self.update = False
-        self.n_samples, self.frames = self.activation.shape[:2]
-        self.fig, self.axes, (gw, gh) = plt_utils.get_axis_grid(
-            range(2), figsize=[9, 3]
-        )
-        animations = []
-        input = utils.to_numpy(self.input)
-        if not all([r is None for r in self.crange_input]):
-            vmin, vmax = self.crange_input
+        self.stimulus = utils.tensor_utils.to_numpy(stimulus)
+
+        # case: multiple response
+        if isinstance(responses, List):
+            self.responses = [utils.tensor_utils.to_numpy(r) for r in responses]
         else:
-            vmin, vmax = 0, np.std(input) * 3
+            self.responses = [utils.tensor_utils.to_numpy(responses)]
+
+        self.update = False
+        self.n_samples, self.frames = self.responses[0].shape[:2]
+        self.fig, self.axes, (gw, gh) = plt_utils.get_axis_grid(
+            gridheight=1,
+            gridwidth=1 + len(self.responses),
+            scale=figsize_scale,
+            figsize=None,
+            fontsize=fontsize,
+        )
+
+        stimulus_samples = self.stimulus.shape[0]
+        if stimulus_samples != self.n_samples and stimulus_samples == 1:
+            self.stimulus = np.repeat(self.stimulus, self.n_samples, axis=0)
+
+        animations = []
+
         animations.append(
             HexScatter(
-                input,
-                vmin=vmin,
-                vmax=vmax,
-                edgecolor="k",
+                self.stimulus,
                 fig=self.fig,
                 ax=self.axes[0],
-                title="input",
+                title="stimulus",
                 labelxy=(-0.1, 1),
+                update=False,
             )
         )
 
-        activation = utils.to_numpy(self.activation)
+        cranges = [
+            np.max(np.abs(plt_utils.get_lims([r[i] for r in self.responses], 0.1)))
+            for i in range(1)
+        ]
 
-        self.cbound = cbound
-        if self.cbound != 0:
-            cbound = np.abs(activation).max()
-            vmin, vmax = -cbound, cbound
-        else:
-            vmin, vmax = -self.cbound, self.cbound
-
-        animations.append(
-            HexScatter(
-                self.activation,
-                vmin=vmin,
-                vmax=vmax,
-                fig=self.fig,
-                ax=self.axes[1],
-                cmap=cm.get_cmap("seismic"),
-                title="activation",
-                label="",
+        for i, responses in enumerate(self.responses, 1):
+            animations.append(
+                HexScatter(
+                    responses,
+                    fig=self.fig,
+                    ax=self.axes[i],
+                    cmap=cm.get_cmap("seismic"),
+                    title=f"response {i}" if len(self.responses) > 1 else "response",
+                    label="",
+                    midpoint=0,
+                    update=False,
+                    u=u,
+                    v=v,
+                    cranges=cranges,
+                    cbar=i == len(self.responses),
+                )
             )
-        )
 
         self.animations = animations
         self.batch_sample = batch_sample
@@ -711,7 +727,7 @@ class LayerActivityGrid(Animation):
     Args:
         tnn (DataWrap): trained network datawrap instance.
         activity (array): activation of all neurons
-            of shape (#samples, #frames, #neurons).
+            of shape (#samples, n_frames, #neurons).
         activity_type (str): activity_type allows to refer to differently named
             activity arrays belonging to the tnn. E.g. activity_argmax_T4.
         rectify (bool): whether to rectify the activity. Defaults to False.
@@ -743,7 +759,7 @@ class LayerActivityGrid(Animation):
 
     def __init__(
         self,
-        ctome,
+        connectome,
         activity,
         rectify=False,
         batch_type="validation",
@@ -764,7 +780,7 @@ class LayerActivityGrid(Animation):
         **kwargs,
     ):
         plt.rc("axes", titlepad=titlepad)
-        self.ctome = ctome
+        self.connectome = connectome
         self.batch_sample = batch_sample
         self.kwargs = kwargs
         self.update = update
@@ -777,12 +793,12 @@ class LayerActivityGrid(Animation):
         self.ax_label = ax_label
         self.rectify = rectify
 
-        self.nodes = self.ctome.nodes.to_df()
-        self.edges = self.ctome.edges.to_df()
+        self.nodes = self.connectome.nodes.to_df()
+        self.edges = self.connectome.edges.to_df()
         self.layout = utils.nodes_edges_utils.layout
 
         self.neuron_types = utils.nodes_edges_utils.order_nodes_list(
-            ctome.unique_cell_types[:].astype(str)
+            connectome.unique_cell_types[:].astype(str)
         )[0]
         self.fig, self.axes = plots._network_graph_ax_scatter(
             self.neuron_types,
@@ -798,7 +814,7 @@ class LayerActivityGrid(Animation):
 
         self.activity = utils.activity_utils.LayerActivity(
             activity,
-            ctome,
+            connectome,
             keepref=True,
         )
 

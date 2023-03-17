@@ -1,4 +1,4 @@
-"""Connectome compiler and ConnectomeView."""
+"""Connectome compiler and visualizer."""
 
 import json
 from contextlib import suppress
@@ -18,6 +18,7 @@ from pandas import DataFrame
 from datamate import Directory, Namespace, ArrayFile, root
 
 import flyvision
+from flyvision.plots.figsize_utils import figsize_from_n_items
 from flyvision.plots.network import WholeNetworkFigure
 from flyvision.utils import nodes_edges_utils, df_utils, hex_utils
 from flyvision.plots import plots, plt_utils
@@ -28,7 +29,7 @@ __all__ = ["ConnectomeDir", "ConnectomeView"]
 # -- `Connectome` --------------------------------------------------------------
 @root(flyvision.root_dir / "connectome")
 class ConnectomeDir(Directory):
-    """Compiles average convolutional filters to a connectome graph.
+    """Compiles a connectome graph from average convolutional filters.
 
     The graph is cells (nodes) and synapse sets (edges).
 
@@ -90,7 +91,8 @@ class ConnectomeDir(Directory):
                     "offsets": [[
                         [<du:int>, <dv:int>],
                         <n_synapses:number>
-                    ]*]
+                    ]*],
+                    "edge_type": "chem" | "elec"
                 }*]
             }
 
@@ -376,25 +378,25 @@ def add_conv_edges(
                 seq.append(Edge(len(seq), src, tgt, sign, n_syn, type, n_syn_certainty))
 
 
-# ---- ConnectomeView
+# -- ConnectomeView ------------------------------------------------------------
 
 
 class ConnectomeView:
     """Visualization of the connectome data.
 
     Args:
-        ctome (ConnectomeDir): Directory of the connectome.
+        connectome (ConnectomeDir): Directory of the connectome.
         groups (List[str]): regular expressions to sort the nodes by.
 
     Attributes:
-        ctome (ConnectomeDir): ctome of connectome.
+        connectome (ConnectomeDir): connectome of connectome.
         nodes (Directory): node table.
         edges (Directory): edge table.
     """
 
     def __init__(
         self,
-        ctome: ConnectomeDir,
+        connectome: ConnectomeDir,
         groups=[
             r"R\d",
             r"L\d",
@@ -407,27 +409,27 @@ class ConnectomeView:
             r"Tm.*\d{1,2}.*",
         ],
     ):
-        self.ctome = ctome
+        self.connectome = connectome
 
-        assert "nodes" in self.ctome and "edges" in self.ctome
+        assert "nodes" in self.connectome and "edges" in self.connectome
 
-        self.edges = self.ctome.edges
+        self.edges = self.connectome.edges
 
-        self.nodes = self.ctome.nodes
+        self.nodes = self.connectome.nodes
 
-        self.cell_types_unsorted = self.ctome.unique_cell_types[:].astype(str)
+        self.cell_types_unsorted = self.connectome.unique_cell_types[:].astype(str)
 
         (
             self.cell_types_sorted,
             self.cell_types_sort_index,
         ) = nodes_edges_utils.order_nodes_list(
-            self.ctome.unique_cell_types[:].astype(str), groups
+            self.connectome.unique_cell_types[:].astype(str), groups
         )
 
-        self.layout = dict(self.ctome.layout[:].astype(str))
-        self.node_indexer = nodes_edges_utils.NodeIndexer(self.ctome)
+        self.layout = dict(self.connectome.layout[:].astype(str))
+        self.node_indexer = nodes_edges_utils.NodeIndexer(self.connectome)
 
-    # ---- CONNECTIVITY MATRIX
+    # -- connectivity matrix -------------------------------------------------------
 
     def connectivity_matrix(
         self,
@@ -532,7 +534,7 @@ class ConnectomeView:
     def _weights(self) -> np.ndarray:
         return self.edges.sign[:] * self.edges.n_syn[:]
 
-    # ---- NETWORK GRAPHS
+    # -- network graphs ------------------------------------------------------------
 
     def network_layout(
         self,
@@ -544,7 +546,7 @@ class ConnectomeView:
         Args:
             max_extent: integer column radius to visualize.
         """
-        backbone = WholeNetworkFigure(self.ctome)
+        backbone = WholeNetworkFigure(self.connectome)
         backbone.init_figure(figsize=[7, 3])
         return self.hex_layout_all(
             max_extent=max_extent, fig=backbone.fig, axes=backbone.axes, **kwargs
@@ -641,7 +643,7 @@ class ConnectomeView:
         u, v = nodes[["u", "v"]].values.T
         return u, v
 
-    # ---- RECEPTIVE FIELDS
+    # -- receptive fields ----------------------------------------------------------
 
     def sources_list(self, cell_type: str) -> np.ndarray:
         """Presynaptic cell types."""
@@ -705,19 +707,16 @@ class ConnectomeView:
         target: str,
         sources: Iterable[str] = None,
         sort_alphabetically=True,
-        aspect_ratio=1,
         ax_titles="{source} :→ {target}",
         figsize=[20, 20],
-        max_h_axes=None,
-        max_v_axes=None,
-        hspace=0,
-        wspace=0.0,
-        min_axes=-1,
-        keep_nan_axes=True,
         max_extent=None,
         fig=None,
         axes=None,
         ignore_sign_error=False,
+        max_figure_height_cm=22,
+        panel_height_cm=3,
+        max_figure_width_cm=18,
+        panel_width_cm=3.6,
         **kwargs,
     ):
         """Receptive fields of target inside a regular grid of axes."""
@@ -743,25 +742,18 @@ class ConnectomeView:
         vmin = min(0, min(weights[rfs[source].index].min() for source in sources))
         vmax = max(0, max(weights[rfs[source].index].max() for source in sources))
 
-        num_axes = max(min_axes, len(sources))
-
         if fig is None or axes is None:
-            width, height = plt_utils.width_n_height(
-                num_axes,
-                aspect_ratio,
-                max_width=max_h_axes,
-                max_height=max_v_axes,
+            figsize = figsize_from_n_items(
+                len(rfs.source_types),
+                max_figure_height_cm=max_figure_height_cm,
+                panel_height_cm=panel_height_cm,
+                max_figure_width_cm=max_figure_width_cm,
+                panel_width_cm=panel_width_cm,
             )
-            panels = np.arange(width * height).astype(float)
-            panels[panels > len(sources) - 1] = np.nan
-            panels = panels.reshape(height, width)
-            fig, axes = plt_utils.divide_figure_to_grid(
-                panels,
-                figsize=figsize,
-                wspace=wspace,
-                hspace=hspace,
-                keep_nan_axes=keep_nan_axes,
+            fig, axes = figsize.axis_grid(
+                unmask_n=len(rfs.source_types), hspace=0.0, wspace=0
             )
+
         cbar = kwargs.get("cbar", False)
         for i, src in enumerate(sources):
             if i == 0 and cbar:
@@ -781,7 +773,9 @@ class ConnectomeView:
                     vmax=vmax,
                     rfs=rfs,
                     max_extent=max_extent,
+                    annotate=False,
                     annotate_coords=False,
+                    title_y=0.9,
                     **kwargs,
                 )
             except plots.SignError as e:
@@ -791,7 +785,7 @@ class ConnectomeView:
                     raise e
         return fig
 
-    # ---- PROJECTIVE FIELDS
+    # -- projective fields ---------------------------------------------------------
 
     def projective_field(
         self,
@@ -846,15 +840,13 @@ class ConnectomeView:
         targets: Iterable[str] = None,
         fig=None,
         axes=None,
-        aspect_ratio=1,
         figsize=[20, 20],
         ax_titles="{source} →: {target}",
-        max_h_axes=None,
-        max_v_axes=None,
-        hspace=0,
-        wspace=0.0,
         min_axes=-1,
-        keep_nan_axes=True,
+        max_figure_height_cm=22,
+        panel_height_cm=3,
+        max_figure_width_cm=18,
+        panel_width_cm=3.6,
         max_extent=None,
         sort_alphabetically=False,
         ignore_sign_error=False,
@@ -880,24 +872,17 @@ class ConnectomeView:
 
         vmin = min(0, min(weights[prfs[target].index].min() for target in targets))
         vmax = max(0, max(weights[prfs[target].index].max() for target in targets))
-        num_axes = max(min_axes, len(targets))
 
         if fig is None or axes is None:
-            width, height = plt_utils.width_n_height(
-                num_axes,
-                aspect_ratio,
-                max_width=max_h_axes,
-                max_height=max_v_axes,
+            figsize = figsize_from_n_items(
+                len(prfs.source_types),
+                max_figure_height_cm=max_figure_height_cm,
+                panel_height_cm=panel_height_cm,
+                max_figure_width_cm=max_figure_width_cm,
+                panel_width_cm=panel_width_cm,
             )
-            panels = np.arange(width * height).astype(float)
-            panels[panels > len(targets) - 1] = np.nan
-            panels = panels.reshape(height, width)
-            fig, axes = plt_utils.divide_figure_to_grid(
-                panels,
-                figsize=figsize,
-                wspace=wspace,
-                hspace=hspace,
-                keep_nan_axes=keep_nan_axes,
+            fig, axes = figsize.axis_grid(
+                unmask_n=len(prfs.source_types), hspace=0.0, wspace=0
             )
 
         cbar = kwargs.get("cbar", False)
@@ -920,6 +905,7 @@ class ConnectomeView:
                     vmin=vmin,
                     vmax=vmax,
                     annotate_coords=False,
+                    annotate=False,
                     **kwargs,
                 )
             except plots.SignError as e:
