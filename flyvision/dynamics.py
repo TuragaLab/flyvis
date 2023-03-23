@@ -4,6 +4,8 @@ from typing import Callable
 import torch
 from torch import nn
 
+from datamate import namespacify
+from flyvision.utils.class_utils import _forward_subclass
 from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
 __all__ = ["NetworkDynamics", "PPNeuronIGRSynapses"]
@@ -21,19 +23,24 @@ activation_fns = {
 
 
 class NetworkDynamics:
-    """Defines the initialization and behavior of a Network during simulation."""
+    """Defines the initialization and behavior of a Network during simulation.
+
+    Extension point: define a subclass of `NetworkDynamics` to implement a
+        custom network dynamics model. The subclass must implement the following
+        methods:
+            write_derived_params
+            write_initial_state
+            write_state_velocity
+        It can implement an __init__ method, to store additional attributes like
+        the activation function.
+    """
 
     class Config:
+        type: str = "NetworkDynamics"
         activation: str = "relu"
 
     def __new__(cls, config: Config = {}):
         return _forward_subclass(cls, config)
-
-    def __init__(self, config: Config):
-        config = config.deepcopy()
-        self.activation = activation_fns[config.activation.pop("type")](
-            **config.activation
-        )
 
     def write_derived_params(
         self, params: AutoDeref[str, AutoDeref[str, RefTensor]], **kwargs
@@ -139,6 +146,15 @@ class NetworkDynamics:
 class PPNeuronIGRSynapses(NetworkDynamics):
     """Passive point neurons with instantaneous graded release synapses."""
 
+    class Config:
+        type: str = "PPNeuronIGRSynapses"
+        activation: str = "relu"
+
+    def __init__(self, config: Config):
+        self.activation = activation_fns[config["activation"].pop("type")](
+            **config["activation"]
+        )
+
     def write_derived_params(self, params, **kwargs):
         """Weights are the product of the sign, synapse count, and strength."""
         params.edges.weight = (
@@ -169,9 +185,12 @@ class PPNeuronIGRSynapses(NetworkDynamics):
         return params.edges.weight * self.activation(state.sources.activity)
 
 
-def _forward_subclass(cls: type, config: object = {}) -> object:
-    """Forward to a subclass based on the `type` key in `config`"""
-    target_subclass = config.pop("type", None)
+def forward_subclass(cls: type, config: object = {}, subclass_key="type") -> object:
+    """Forward to a subclass based on the `<subclass_key>` key in `config`.
+
+    Forwards to the parent class if `<subclass_key>` is not in `config`.
+    """
+    target_subclass = config.pop(subclass_key, None)
     for subclass in cls.__subclasses__():
         if target_subclass == subclass.__qualname__:
             return object.__new__(subclass)

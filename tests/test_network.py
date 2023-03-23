@@ -1,13 +1,13 @@
+import pytest
 import torch
 from datamate import Namespace
 
 import flyvision
 from flyvision import Network
 
-network = None
 
-
-def get_network():
+@pytest.fixture(scope="module")
+def network() -> Network:
     network = Network(
         connectome=Namespace(
             type="ConnectomeDir", file="fib25-fib19_v2.2.json", extent=15, n_syn_fill=1
@@ -19,7 +19,7 @@ def get_network():
             bias=Namespace(
                 type="RestingPotential",
                 keys=["type"],
-                form="normal",
+                initial_dist="Normal",
                 mode="sample",
                 requires_grad=True,
                 mean=0.5,
@@ -30,23 +30,25 @@ def get_network():
             time_const=Namespace(
                 type="TimeConstant",
                 keys=["type"],
-                form="value",
+                initial_dist="Value",
                 value=0.05,
                 requires_grad=True,
             ),
         ),
         edge_config=Namespace(
-            sign=Namespace(type="SynapseSign", form="value", requires_grad=False),
+            sign=Namespace(
+                type="SynapseSign", initial_dist="Value", requires_grad=False
+            ),
             syn_count=Namespace(
                 type="SynapseCount",
-                form="lognormal",
+                initial_dist="Lognormal",
                 mode="mean",
                 requires_grad=False,
                 std=1.0,
             ),
             syn_strength=Namespace(
                 type="SynapseCountScaling",
-                form="value",
+                initial_dist="Value",
                 requires_grad=True,
                 scale_elec=0.01,
                 scale_chem=0.01,
@@ -57,9 +59,7 @@ def get_network():
     return network
 
 
-def test_init():
-    global network
-    network = get_network()
+def test_init(network):
     assert isinstance(network, Network)
     assert hasattr(network, "connectome")
     assert hasattr(network, "dynamics")
@@ -75,7 +75,7 @@ def test_init():
     assert hasattr(network, "stimulus")
 
 
-def test_param_api():
+def test_param_api(network):
 
     param_api = network._param_api()
     assert len(param_api) == 4
@@ -91,14 +91,14 @@ def test_param_api():
     assert len(param_api.targets.bias) == network.n_edges
 
 
-def test_target_sum():
+def test_target_sum(network):
 
     x = torch.Tensor(2, network.n_edges)
     y = network.target_sum(x)
     assert y.shape == (2, network.n_nodes)
 
 
-def test_initial_state():
+def test_initial_state(network):
 
     param_api = network._param_api()
     state = network._initial_state(param_api, 2)
@@ -109,7 +109,7 @@ def test_initial_state():
     assert state.nodes.activity.shape == (2, network.n_nodes)
 
 
-def test_next_state():
+def test_next_state(network):
 
     param_api = network._param_api()
     state = network._initial_state(param_api, 2)
@@ -123,7 +123,7 @@ def test_next_state():
     assert state.sources.activity.shape == (2, network.n_edges)
 
 
-def test_state_hook():
+def test_state_hook(network):
     assert not network._state_hooks
     assert not hasattr(network, "times_hooked")
 
@@ -158,7 +158,7 @@ def test_state_hook():
     assert network.times_hooked == 3
 
 
-def test_forward():
+def test_forward(network):
 
     x = torch.Tensor(2, 20, network.n_nodes).random_(2)
     activity = network.forward(x, 1 / 50)
@@ -166,22 +166,28 @@ def test_forward():
     assert activity.grad_fn.name() == "StackBackward0"
 
 
-def test_simulate():
+def test_simulate(network):
     x = torch.Tensor(2, 20, 1, 721).random_(2)
     activity = network.simulate(x, 1 / 50)
     assert activity.shape == (2, 20, network.n_nodes)
 
+    with pytest.raises(ValueError):
+        network.simulate(torch.Tensor(20, 1, 721).random_(2), 1 / 50)
 
-def test_simulate_perturb():
+    with pytest.raises(ValueError):
+        network.simulate(x, 1 / 49)
+
+
+def test_simulate_clamp(network):
 
     x = torch.Tensor(2, 20, 1, 721).random_(2)
-    activity = network.simulate_perturb(
+    activity = network.simulate_clamp(
         x, 1 / 50, None, "T4c", mode="central", substitute=0.0
     )
     assert (activity[:, :, network.stimulus.central_cells_index["T4c"]] == 0).all()
     assert not network._state_hooks
 
-    activity = network.simulate_perturb(
+    activity = network.simulate_clamp(
         x, 1 / 50, None, "R1", mode="layer", substitute="resting"
     )
     assert (
@@ -192,10 +198,26 @@ def test_simulate_perturb():
     ).all()
     assert not network._state_hooks
 
+    activity = network.simulate_clamp(
+        x, 1 / 50, None, ["R1", "R2", "R3"], mode="layer", substitute=1.0
+    )
+    assert all(
+        [
+            torch.eq(activity[:, :, network.stimulus.layer_index[cell_type]], 1.0)
+            .all()
+            .item()
+            for cell_type in ["R1", "R2", "R3"]
+        ]
+    )
+    assert not network._state_hooks
 
-def test_steady_state():
+    with pytest.raises(ValueError):
+        network.simulate_clamp(x, 1 / 50, None, "test", mode="layer", substitute=0.5)
+
+
+def test_steady_state(network):
     pass
 
 
-def test_fade_in_state():
+def test_fade_in_state(network):
     pass

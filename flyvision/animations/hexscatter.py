@@ -231,7 +231,7 @@ class HexScatter(Animation):
 class HexScatterCompare(AnimationCollector):
     """Animates a color encoded flow field.
 
-    Note: either initialized with a trained network datawrap instance and
+    Note: either initialized with a trained network directory instance and
         a batch_type and optional activity_type or with a ready-made activity
         array.
 

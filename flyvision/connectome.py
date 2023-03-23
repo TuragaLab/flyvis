@@ -46,7 +46,7 @@ class ConnectomeDir(Directory):
 
         SubDirs:
 
-            nodes (Directory): A table with a row for each node.
+            nodes (NodeDir): A table with a row for each node.
 
                 Files:
                     type (str): cell type names
@@ -62,7 +62,7 @@ class ConnectomeDir(Directory):
                             <cell_type> (int): all cell indices of cell_type in
                                 nodes.
 
-            edges (Directory): A table with a row for each edge.
+            edges (EdgeDir): A table with a row for each edge.
 
                 Files:
                     source_index (str): presynaptic cell
@@ -248,6 +248,10 @@ class Node:
     "stride in v"
 
 
+class NodeDir(Directory):
+    """Stored data of the compiled Connectome describing the nodes."""
+    pass
+
 def add_nodes(seq: List[Node], node_spec: dict, extent: int) -> None:
     """Add nodes to `seq`, based on `node_spec`."""
     for n in node_spec:
@@ -301,6 +305,11 @@ class Edge:
     "synapse type"
     n_syn_certainty: float
 
+
+
+class EdgeDir(Directory):
+    """Stored data of the compiled Connectome describing the edges."""
+    pass
 
 def add_edges(
     seq: List[Edge], nodes: List[Node], edge_spec: dict, n_syn_fill: float
@@ -875,14 +884,14 @@ class ConnectomeView:
 
         if fig is None or axes is None:
             figsize = figsize_from_n_items(
-                len(prfs.source_types),
+                len(prfs.target_types),
                 max_figure_height_cm=max_figure_height_cm,
                 panel_height_cm=panel_height_cm,
                 max_figure_width_cm=max_figure_width_cm,
                 panel_width_cm=panel_width_cm,
             )
             fig, axes = figsize.axis_grid(
-                unmask_n=len(prfs.source_types), hspace=0.0, wspace=0
+                unmask_n=len(prfs.target_types), hspace=0.0, wspace=0
             )
 
         cbar = kwargs.get("cbar", False)

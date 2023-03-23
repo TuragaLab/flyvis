@@ -84,9 +84,12 @@ class BoxEye:
     def __call__(self, sequence, ftype="mean", hex_sample=True):
         """Applies a box kernel to all frames in a sequence.
 
-        Arguments:
+        Args:
             sequence (torch.Tensor): shape (samples, frames, height, width)
-            ftype: filter type, 'mean' or 'median'.
+            ftype: filter type, 'mean', 'sum' or 'median'.
+
+        Return
+            torch.Tensor: shape (samples, frames, hexals)
         """
         samples, frames, height, width = sequence.shape
 
@@ -95,6 +98,7 @@ class BoxEye:
 
         if (self.min_frame_size > torch.tensor([height, width])).any():
             sequence = ttf.resize(sequence, self.min_frame_size.tolist())
+            height, width = sequence.shape[2:]
 
         if ftype == "mean":
 

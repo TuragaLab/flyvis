@@ -16,9 +16,10 @@ from torch.utils.data import DataLoader
 from datamate import Namespace, Directory
 
 from flyvision.connectome import ConnectomeDir, ConnectomeView
-from flyvision.decoder import init_decoder
+
+# from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
-from flyvision.initialization import Parameter, init_parameter
+from flyvision.initialization import Parameter
 from flyvision.dynamics import NetworkDynamics
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params, simulation
@@ -105,7 +106,7 @@ class Network(nn.Module):
         # Construct node parameter sets.
         self.node_params = Namespace()
         for param_name, param_config in node_config.items():
-            param = init_parameter(param_config, self.connectome.nodes)
+            param = Parameter(param_config, self.connectome)
 
             # register parameter to module
             self.register_parameter(f"nodes_{param_name}", param.raw_values)
@@ -134,7 +135,7 @@ class Network(nn.Module):
         # Construct edge parameter sets.
         self.edge_params = Namespace()
         for param_name, param_config in edge_config.items():
-            param = init_parameter(param_config, self.connectome.edges)
+            param = Parameter(param_config, self.connectome)
 
             self.register_parameter(f"edges_{param_name}", param.raw_values)
 
@@ -836,7 +837,7 @@ class NetworkDir(Directory):
     pass
 
 
-class NetworkView:
+class NetworkView(ConnectomeView):
     """Views and convenience methods for trained networks."""
 
     def __init__(self, network_dir: Union[PathLike, NetworkDir]):
@@ -844,7 +845,7 @@ class NetworkView:
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
-        self.connectome_view = ConnectomeView(self.connectome)
+        super().__init__(self.connectome)
         self._initialized = dict(network=False, decoder=False)
 
     def reset_init(self, key):

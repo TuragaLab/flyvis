@@ -105,7 +105,7 @@ class CentralActivity(_Activity):
 
     Args:
         activity (array-like): activity of shape (..., #cells)
-        connectome (Folder): connectome wrap with reference to
+        connectome (Folder): connectome dir with reference to
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
                         - connectome.central_cells_index
@@ -204,7 +204,7 @@ class LayerActivity(_Activity):
 
     Args:
         activity (array-like): activity of shape (..., #cells)
-        connectome (Folder): connectome wrap with reference to
+        connectome (Folder): connectome dir with reference to
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
                         - connectome.central_cells_index
@@ -215,7 +215,7 @@ class LayerActivity(_Activity):
         central (CentralActivity): central activity mapping,
             giving attribute-style access to central nodes of particular types.
         activity (array-like): activity of shape (..., #cells)
-        connectome (Folder): connectome wrap with reference to
+        connectome (Folder): connectome dir with reference to
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
                         - connectome.central_cells_index

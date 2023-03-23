@@ -102,7 +102,7 @@ class Ensemble(dict):
         ascending order.
 
         This method sorts the self.names attribute temporarily, which serve as
-        references to the Datawrap instances of the trained Networks.
+        references to the Directory instances of the trained Networks.
         """
         _names = deepcopy(self.names)
 

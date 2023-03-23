@@ -533,7 +533,7 @@ class CentralActivity(Animation):
     """Bar chart of the activity of all central nodes.
 
     Args:
-        tnn (DataWrap): trained network datawrap instance.
+        tnn (Directory): trained network directory instance.
         batch_type (str): displayed batch, assuming that recordings for it exist.
             E.g. 'tracked_train_batch', 'validation', 'full_val'.
         fig (Figure): existing Figure instance or None.
@@ -551,7 +551,7 @@ class CentralActivity(Animation):
         passed to ~dvs.plots.plots.activity_bars.
 
 
-    Note: activity is assumed to be stored as h5 file in the Datawrap under
+    Note: activity is assumed to be stored as h5 file in the Directory under
         tnn[batch_type].network_states.nodes.activity.
 
     TODO: can be deprecated in favor of more generic Bars animation.
@@ -720,12 +720,12 @@ class StimulusResponse(AnimationCollector):
 class LayerActivityGrid(Animation):
     """Hex-scatter animations for activation arranged on a network graph layout.
 
-    Note: either initialized with a trained network datawrap instance and
+    Note: either initialized with a trained network directory instance and
         a batch_type and optional activity_type or with a ready-made activity
         array.
 
     Args:
-        tnn (DataWrap): trained network datawrap instance.
+        tnn (Directory): trained network directory instance.
         activity (array): activation of all neurons
             of shape (#samples, n_frames, #neurons).
         activity_type (str): activity_type allows to refer to differently named

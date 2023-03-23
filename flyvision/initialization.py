@@ -9,7 +9,8 @@ Note: to maintain compatibility with old configurations, e.g. to reinitialize
     a trained network, careful when refactoring any of these types or syntax.
 """
 
-from typing import Any, Dict, Iterable, List
+from copy import deepcopy
+from typing import Any, Dict, Iterable, List, Union
 import logging
 import numpy as np
 import pandas as pd
@@ -18,65 +19,56 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 
-from datamate import Directory, Namespace
+from datamate import Namespace
+
+from flyvision.utils.class_utils import _forward_subclass
+from flyvision.connectome import ConnectomeDir, NodeDir, EdgeDir
 
 logging = logging.getLogger()
 
-# -- Supplementary Error types
+# --- Supplementary Error types -------------------------------------------------
 
 
 class ParameterConfigError(ValueError):
     pass
 
 
-# -- Initial distribution types
+# --- Initial distribution types ------------------------------------------------
 
 
 class InitialDistribution:
 
     """Initial distribution base class.
 
-    Types for initial parameters must store raw_values as attribute.
+    Attributes:
+        raw_values: initial parameters must store raw_values as attribute in
+            their __init__.
+        readers: readers will be written by the network during initialization.
+
+    Extension point: to add a new initial distribution type, subclass this
+        class and implement the __init__ method. The __init__ method
+        should take the param_config as its first argument, and should store
+        the attribute raw_values as a torch.nn.Parameter.
+
+    An example of a viable param_config is:
+        param_config = Namespace(
+            requires_grad=True,
+            initial_dist="Normal",
+            mean=0,
+            std=1,
+            mode="sample",
+        )
     """
 
     raw_values: Tensor
     readers: Dict[str, Tensor]
 
-    def __new__(cls, param_config, *args, **kwargs):
-
-        distributions = dict(
-            value=Value,
-            normal=Normal,
-            trunc_normal=TruncatedNormal,
-            lognormal=Lognormal,
-            tanh=Tanh,
-            sign=Sign,
-            uniform=Uniform,
-            uniform_from_mean_std=UniformFromMeanStd,
-        )
-
-        form = param_config.get("form", None)
-
-        if form is None:
-            raise ParameterConfigError(
-                "Initial distribution not specified. Specify 'form'"
-                " attribute in the Parameter configuration. 'form'"
-                f" can be one of {list(distributions.keys())}"
-            )
-
-        try:
-            _type = distributions[form]
-        except KeyError as e:
-            raise ParameterConfigError(
-                f"form={form} is not a valid initial distribution."
-                f" form can be one of {list(distributions.keys())}."
-            )
-
-        obj = object.__new__(_type)
-        return obj
+    def __new__(cls, param_config: Namespace, *args, **kwargs):
+        return _forward_subclass(cls, param_config, subclass_key="initial_dist")
 
     @property
     def semantic_values(self):
+        """Optional reparametrization of raw values invoked for computation."""
         return self.raw_values
 
     def __repr__(self):
@@ -86,14 +78,11 @@ class InitialDistribution:
         return len(self.raw_values)
 
     def clamp(self, values, param_config):
-        """To clamp the parameter at initialization before training.
+        """To clamp the raw_values of the parameters at initialization.
 
-        TODO: clashes with raw_values/semantic_values distinction, because
-        lognormal implements raw_values.exp() as semantic values and clamp
-        would clamp the raw values. I think this could be more straightforward
-        by either getting rid of semantic_values and making syn count normally dist.
-        parameters that are getting clamped or by returning a temporary clamped
-        version as semantic values based on the clamp configuration (complicated).
+        Note, mild clash with raw_values/semantic_values reparametrization.
+        Parameters that use reparametrization in terms of semantic_values
+        should not use clamp.
         """
         mode = param_config.get("clamp", False)
         if mode == "non_negative":
@@ -108,70 +97,18 @@ class InitialDistribution:
 
 
 class Value(InitialDistribution):
-    """Samples uniformly between mean ± 3 * std.
+    """Initializes parameters with a single value.
 
-    Args:
-        param_config: requires value: array
-                               requires_grad: bool
-                               min: float optional
-                               max: float optional
-                               seed: int optional
-    """
-
-    def __init__(self, param_config) -> None:
-        _values = torch.tensor(param_config.value[:])
-        _values = self.clamp(_values, param_config)
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
+    Example param_config:
+        param_config = Namespace(
+            requires_grad=True,
+            initial_dist="Value",
+            value=0,
         )
-
-
-class Uniform(InitialDistribution):
-    """Samples uniformly between low and high.
-
-    Args:
-        param_config: requires low: float
-                               high: float
-                               count: int = number of parameters to sample
-                               requires_grad: bool
-                               min: float optional
-                               max: float optional
-                               seed: int optional
     """
 
-    def __init__(self, param_config) -> None:
-        seed = param_config.get("seed", None)
-        if seed is not None:
-            torch.manual_seed(seed)
-        _values = torch.distributions.uniform.Uniform(
-            param_config.low, param_config.high
-        ).sample([param_config.count])
-        _values = self.clamp(_values, param_config)
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
-        )
-
-
-class UniformFromMeanStd(InitialDistribution):
-    """Samples uniformly between mean ± 3 * std.
-
-    Args:
-        param_config: requires mean: float
-                               std:  float
-                               requires_grad: bool
-                               min: float optional
-                               max: float optional
-                               seed: int optional
-    """
-
-    def __init__(self, param_config) -> None:
-        seed = param_config.get("seed", None)
-        if seed is not None:
-            torch.manual_seed(seed)
-        _values = torch.distributions.uniform.Uniform(
-            torch.tensor(param_config.mean - 3 * param_config.std),
-            torch.tensor(param_config.mean + 3 * param_config.std),
-        ).sample()
+    def __init__(self, param_config: Namespace) -> None:
+        _values = torch.tensor(param_config.value).float()
         _values = self.clamp(_values, param_config)
         self.raw_values = nn.Parameter(
             _values, requires_grad=param_config.requires_grad
@@ -179,28 +116,34 @@ class UniformFromMeanStd(InitialDistribution):
 
 
 class Normal(InitialDistribution):
-    """Samples from independent normal distributions defined by mean and std.
+    """Initializes parameters independently from normal distributions.
 
-    Args:
-        param_config: requires mean: float
-                               std:  float
-                               mode: 'mean' or 'sample'
-                               requires_grad: bool
-                               min: float optional
-                               max: float optional
-                               seed: int optional
+    Example param_config:
+        param_config = Namespace(
+            requires_grad=True,
+            initial_dist="Normal",
+            mean=0,
+            std=1,
+            mode="sample",
+        )
     """
 
-    def __init__(self, param_config) -> None:
+    def __init__(self, param_config: Namespace) -> None:
         if param_config.mode == "mean":
-            _values = torch.Tensor(param_config.mean[:])
+            _values = torch.tensor(param_config.mean).float()
         elif param_config.mode == "sample":
             seed = param_config.get("seed", None)
             if seed is not None:
                 torch.manual_seed(seed)
-            _values = torch.distributions.normal.Normal(
-                torch.Tensor(param_config.mean), torch.Tensor(param_config.std)
-            ).sample()
+            try:
+                _values = torch.distributions.normal.Normal(
+                    torch.tensor(param_config.mean).float(),
+                    torch.tensor(param_config.std).float(),
+                ).sample()
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"Failed to sample from normal distribution with mean {param_config.mean} and std {param_config.std}"
+                ) from e
         else:
             raise ValueError("Mode must be either mean or sample.")
         _values = self.clamp(_values, param_config)
@@ -209,74 +152,23 @@ class Normal(InitialDistribution):
         )
 
 
-class TruncatedNormal(InitialDistribution):
-    """Truncated normal distributions defined by mean, std and boundaries.
+class Lognormal(InitialDistribution):
+    """Initializes parameters independently from lognormal distributions.
 
-    Args:
-        param_config: requires mean: array
-                               std:  array
-                               clamp: Tuple[Optional[float], Optional[float]]
-                               mode: 'mean' or 'sample'
-                               requires_grad: bool
-                               min: float optional
-                               max: float optional
-                               seed: int optional
-    """
-
-    def __init__(self, param_config) -> None:
-
-        if not param_config.get("clamp", False):
-            raise ValueError("truncated normal distribution requires bounds")
-
-        # to handle False and None as infinite bounds
-        # clamp can be tuple, so to mutate make list
-        param_config.clamp = list(param_config.clamp)
-        if param_config.clamp[0] is None:
-            param_config.clamp[0] = -np.inf
-
-        if param_config.clamp[1] is None:
-            param_config.clamp[1] = np.inf
-
-        if param_config.mode == "mean":
-            _values = torch.Tensor(param_config.mean[:])
-        elif param_config.mode == "sample":
-            seed = param_config.get("seed", None)
-            if seed is not None:
-                torch.manual_seed(seed)
-            _values = torch.distributions.normal.Normal(
-                torch.Tensor(param_config.mean), torch.Tensor(param_config.std)
-            ).sample()
-            mask = (_values < param_config.clamp[0]) | (_values > param_config.clamp[1])
-            # rejection sampling
-            while mask.any():
-                _values[mask] = torch.distributions.normal.Normal(
-                    torch.Tensor(param_config.mean),
-                    torch.Tensor(param_config.std),
-                ).sample()[mask]
-                mask = (_values < param_config.clamp[0]) | (
-                    _values > param_config.clamp[1]
-                )
-        else:
-            raise ValueError("Mode must be either mean or sample.")
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
+    Example param_config:
+        param_config = Namespace(
+            requires_grad=True,
+            initial_dist="Lognormal",
+            mean=0,
+            std=1,
+            mode="sample",
         )
 
-
-class Lognormal(InitialDistribution):
-    """Samples from independent lognormal distributions defined by mean and std.
-
-    Args:
-        param_config: requires mean: float
-                               std:  float
-                               mode: 'mean' or 'sample'
-                               requires_grad: bool
-                               min: float optional
-                               max: float optional
-                               seed: int optional
+    Note, the lognormal distribution reparametrizes a normal through semantic
+    values.
     """
 
-    def __init__(self, param_config) -> None:
+    def __init__(self, param_config: Namespace) -> None:
 
         if param_config.get("clamp", False):
             logging.warning(
@@ -286,15 +178,21 @@ class Lognormal(InitialDistribution):
             )
 
         if param_config.mode == "mean":
-            _values = torch.Tensor(param_config.mean[:])
+            _values = torch.tensor(param_config.mean).float()
         elif param_config.mode == "sample":
             # The log is normally distributed and in the class SynCount we take the log, thus the normal distr. here.
             seed = param_config.get("seed", None)
             if seed is not None:
                 torch.manual_seed(seed)
-            _values = torch.distributions.normal.Normal(
-                torch.Tensor(param_config.mean), torch.Tensor(param_config.std)
-            ).sample()
+            try:
+                _values = torch.distributions.normal.Normal(
+                    torch.tensor(param_config.mean).float(),
+                    torch.tensor(param_config.std).float(),
+                ).sample()
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"Failed to sample from normal distribution with mean {param_config.mean} and std {param_config.std}"
+                ) from e
         else:
             raise ValueError("Mode must be either mean or sample.")
         self.raw_values = nn.Parameter(
@@ -307,90 +205,71 @@ class Lognormal(InitialDistribution):
         return self.raw_values.exp()
 
 
-class Tanh(InitialDistribution):
-    """Tanh for sign training."""
-
-    def __init__(self, param_config) -> None:
-        if param_config.mode == "mean":
-            return NotImplementedError
-            _values = torch.Tensor(param_config.mean[:])
-        elif param_config.mode == "sample":
-            seed = param_config.get("seed", None)
-            if seed is not None:
-                torch.manual_seed(seed)
-            _values = torch.distributions.uniform.Uniform(-1, 1).sample(
-                param_config.source_type.shape
-            )
-        else:
-            raise ValueError("Mode must be either mean or sample.")
-        _values = self.clamp(_values, param_config)
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
-        )
-        self.arg_gain = getattr(param_config, "arg_gain", 1)
-
-    @property
-    def semantic_values(self):
-        """n_syn ~ self._values.exp()."""
-        return torch.tanh(self.arg_gain * self.raw_values)
-
-
-class Sign(InitialDistribution):
-    """Tanh for sign training."""
-
-    def __init__(self, param_config) -> None:
-        if param_config.mode == "mean":
-            return NotImplementedError
-            _values = torch.Tensor(param_config.mean[:])
-        elif param_config.mode == "sample":
-            seed = param_config.get("seed", None)
-            if seed is not None:
-                torch.manual_seed(seed)
-            _values = torch.distributions.uniform.Uniform(-1, 1).sample(
-                param_config.source_type.shape
-            )
-        else:
-            raise ValueError("Mode must be either mean or sample.")
-        _values = self.clamp(_values, param_config)
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
-        )
-        self.arg_gain = getattr(param_config, "arg_gain", 1)
-
-    @property
-    def semantic_values(self):
-        """n_syn ~ self._values.exp()."""
-        return torch.sign(self.arg_gain * self.raw_values)
-
-
-# - Parameter types
+# --- Parameter types -----------------------------------------------------------
 
 
 class Parameter:
+    """Base class for all parameters.
+
+    Extension point: to add a new parameter type, subclass this
+        class and implement the __init__ method. The __init__ method
+        should take the param_config as its first argument, and the connectome
+        directory as its second argument. From the connectome directory,
+        the __init__ method should create an aggregated table of either nodes or
+        edges that share parameters based on their type, coordinates or similar
+        identifiers. The table is stored in the passed param_config as numpy arrays,
+        potentially overriding value of the passed param_config according to the
+        required InitialDistribution. The ultimate nn.Parameter is then created
+        by passing the param_config to the InitialDistribution. The scatter
+        indices are created by passing the param_config and the connectome sub directory
+        to the get_scatter_indices function. The __init__ method is also expected
+        to store a list of keys that can be used to access
+        to access the individual parameter values associated with certain
+        identifiers. It is also expected to store an optional
+        list of symmetry masks that can be used to apply symmetry constraints
+        to the parameter values. TODO: this is really complicated and implicit,
+        maybe we can simplify this framework.
+
+        Example:
+            class MyParameter(Parameter):
+                def __init__(self, param_config, connectome_dir):
+                    # create aggregated table of nodes or edges
+                    # that share parameters
+                    param_config.value = np.array([1, 2, 3])
+                    param_config.requires_grad = True
+                    param_config.initial_dist = "Value"
+                    param_config.mode = "mean"
+                    # create parameter
+                    self.parameter = InitialDistribution(param_config)
+                    # create scatter indices
+                    self.indices = get_scatter_indices(param_config, connectome_dir)
+                    # store keys
+                    self.keys = ["key1", "key2", "key3"]
+                    # store symmetry masks
+                    self.symmetry_masks = [mask1, mask2, mask3]
+
+    """
+
     parameter: InitialDistribution
     indices: torch.Tensor
     symmetry_masks: List[torch.Tensor]
     keys: List[Any]
 
-    def __new__(cls, param_config: Namespace, wrap: Directory):
-
-        obj = super(Parameter, cls).__new__(cls)
-        # first create a copy of the mutable param_config to not alter the
-        # config object externally
-        param_config = param_config.deepcopy()
-        # now make this config accesible as _config for debug the mutations
+    def __new__(cls, param_config: Namespace, *args, **kwargs):
+        obj = _forward_subclass(cls, param_config, subclass_key="type")
         object.__setattr__(obj, "_config", param_config)
-        # make a copy accesible that is not supposed to be altered
-        object.__setattr__(obj, "config", param_config.deepcopy())
+        object.__setattr__(obj, "config", deepcopy(param_config))
         return obj
 
     def __repr__(self):
         init_arg_names = list(self.__init__.__annotations__.keys())
-        wrap_type = self.__init__.__annotations__[init_arg_names[1]].__name__
-        return f"{self.__class__.__name__}({self.config}, {wrap_type})"
+        dir_type = self.__init__.__annotations__[init_arg_names[1]].__name__
+        return f"{self.__class__.__name__}({self.config}, {dir_type})"
 
     def __getitem__(self, key):
         if key in self.keys:
+            if self.parameter.raw_values.dim() == 0:
+                return self.parameter.raw_values
             return self.parameter.raw_values[self.keys.index(key)]
         else:
             raise ValueError(key)
@@ -400,17 +279,6 @@ class Parameter:
     @property
     def raw_values(self) -> torch.Tensor:
         return self.parameter.raw_values
-
-    # @raw_values.setter
-    # def raw_values(self, values: torch.Tensor) -> torch.Tensor:
-
-    #     if type(values) != type(self.parameter.raw_values):
-    #         raise ValueError("invalid type")
-
-    #     if values.shape != self.parameter.raw_values.shape:
-    #         raise ValueError("invalid shape")
-
-    #     self.parameter.raw_values = values
 
     @property
     def semantic_values(self) -> torch.Tensor:
@@ -425,85 +293,68 @@ class Parameter:
         self.parameter.readers = value
 
 
-class Nodeswrap(Directory):
-    """Part of the Connectome describing the nodes."""
-
-    pass
-
-
-class Edgeswrap(Directory):
-    """Part of the Connectome describing the edges."""
-
-    pass
-
-
-class NodesOrEdgeswrap(Directory):
-    pass
-
-
-# -- Node / Cell type parameter
-
-# ---_ Node / Cell bias parameter
+# --- node / Cell type parameter ------------------------------------------------
 
 
 class RestingPotential(Parameter):
     """Initialize resting potentials a.k.a. biases for cell types."""
 
-    def __init__(self, param_config: Namespace, nodes_wrap: Nodeswrap):
-        # equals order in connectome.unique_cell_types
-        nodes = pd.DataFrame(
-            dict(type=nodes_wrap.type[:].astype(str))
-        ).drop_duplicates()
+    def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
 
-        param_config["type"] = nodes["type"].values.astype("S")
-        param_config["mean"] = np.repeat(np.float32(param_config["mean"]), len(nodes))
-        param_config["std"] = np.repeat(np.float32(param_config["std"]), len(nodes))
+        nodes_dir = connectome.nodes
+
+        # equals order in connectome.unique_cell_types
+        nodes = pd.DataFrame(dict(type=nodes_dir.type[:].astype(str))).drop_duplicates()
+
+        param_config["type"] = nodes["type"].values
+        param_config["mean"] = np.repeat(param_config["mean"], len(nodes))
+        param_config["std"] = np.repeat(param_config["std"], len(nodes))
 
         self.symmetry_masks = symmetry_mask_for_nodes(
             param_config.get("symmetric", []), nodes
         )
 
-        self.indices = gather_indices(param_config, nodes_wrap)
+        self.indices = get_scatter_indices(param_config, nodes_dir)
         self.parameter = InitialDistribution(param_config)
-        self.keys = param_config["type"].astype(str).tolist()
-
-
-# ---- Node / Cell time constant parameter
+        self.keys = param_config["type"].tolist()
 
 
 class TimeConstant(Parameter):
-    def __init__(self, param_config: Namespace, nodes_wrap: Nodeswrap):
-        nodes = pd.DataFrame(
-            dict(type=nodes_wrap.type[:].astype(str))
-        ).drop_duplicates()
+    """Initialize time constants for cell types."""
 
-        param_config["type"] = nodes["type"].values.astype("S")
-        param_config["value"] = np.repeat(np.float32(param_config["value"]), len(nodes))
+    def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
+
+        nodes_dir = connectome.nodes
+
+        nodes = pd.DataFrame(dict(type=nodes_dir.type[:].astype(str))).drop_duplicates()
+
+        param_config["type"] = nodes["type"].values
+        param_config["value"] = np.repeat(param_config["value"], len(nodes))
 
         self.symmetry_masks = symmetry_mask_for_nodes(
             param_config.get("symmetric", []), nodes
         )
 
-        self.indices = gather_indices(param_config, nodes_wrap)
+        self.indices = get_scatter_indices(param_config, nodes_dir)
         self.parameter = InitialDistribution(param_config)
-        self.keys = param_config["type"].astype(str).tolist()
+        self.keys = param_config["type"].tolist()
 
 
-# --- Edge / 'synapse' parameter
-
-
-# ---- Edge / 'synapse' sign parameter
+# -- edge / synapse type parameter ----------------------------------------------
 
 
 class SynapseSign(Parameter):
-    """A PDF that generates edge signs from edges attributes"""
+    """Initialize synapse signs for edge types."""
 
-    def __init__(self, param_config: Namespace, edges_wrap: Edgeswrap) -> None:
+    def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
+
+        edges_dir = connectome.edges
+
         edges = pd.DataFrame(
             dict(
-                source_type=edges_wrap.source_type,
-                target_type=edges_wrap.target_type,
-                sign=edges_wrap.sign,
+                source_type=edges_dir.source_type,
+                target_type=edges_dir.target_type,
+                sign=edges_dir.sign,
             )
         )
         edges = edges.groupby(
@@ -513,35 +364,26 @@ class SynapseSign(Parameter):
             np.abs(edges.sign.values) == np.ones(len(edges))
         ), "Inconsistent edge signs."
 
-        param_config.source_type = edges.source_type.values.astype("S")
-        param_config.target_type = edges.target_type.values.astype("S")
-        param_config.value = edges.sign.values.astype("f")
-        self.indices = gather_indices(param_config, edges_wrap)
+        param_config.source_type = edges.source_type.values
+        param_config.target_type = edges.target_type.values
+        param_config.value = edges.sign.values
+        self.indices = get_scatter_indices(param_config, edges_dir)
         self.parameter = InitialDistribution(param_config)
         self.keys = list(
             zip(
-                param_config.source_type.astype(str).tolist(),
-                param_config.target_type.astype(str).tolist(),
+                param_config.source_type.tolist(),
+                param_config.target_type.tolist(),
             )
         )
-
-
-# ---- Edge / 'synapse' synapse count parameter
+        self.symmetry_masks = []
 
 
 class SynapseCount(Parameter):
-    """A PDF that generates synapse counts from edges attributes
+    """Initialize synapse counts for edge types."""
 
-    param_config contains, e.g.:
-        std: float
-        "The standard deviation, in log space"
-        form: str = "lognormal"
-        requires_grad: bool = True
-        mode: str = "mean"
-        symmetric: List[List[str]] = [[b"CT1", b"CT1L"], [b"CT1L", b"CT1G"]]
-    """
+    def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
 
-    def __init__(self, param_config: Namespace, edges_wrap: Edgeswrap) -> None:
+        edges_dir = connectome.edges
 
         mode = param_config.get("mode", "")
         if mode != "mean":
@@ -552,125 +394,126 @@ class SynapseCount(Parameter):
 
         edges = pd.DataFrame(
             dict(
-                source_type=edges_wrap.source_type,
-                target_type=edges_wrap.target_type,
-                du=edges_wrap.du,
-                dv=edges_wrap.dv,
-                n_syn=edges_wrap.n_syn,
+                source_type=edges_dir.source_type,
+                target_type=edges_dir.target_type,
+                du=edges_dir.du,
+                dv=edges_dir.dv,
+                n_syn=edges_dir.n_syn,
             )
         )
         offset_keys = ["source_type", "target_type", "du", "dv"]
         edges = edges.groupby(offset_keys, sort=False, as_index=False).mean()
 
-        param_config.source_type = edges.source_type.values.astype("S")
-        param_config.target_type = edges.target_type.values.astype("S")
+        param_config.source_type = edges.source_type.values
+        param_config.target_type = edges.target_type.values
         param_config.du = edges.du.values
         param_config.dv = edges.dv.values
 
         param_config.mode = "mean"
-        param_config.mean = np.log(edges.n_syn.values.astype("f"))
-        # param_config.std = param_config.std * np.ones(len(edges))
+        param_config.mean = np.log(edges.n_syn.values)
 
         self.symmetry_masks = symmetry_mask_for_edges(
             param_config.get("symmetric", []), edges
         )
-        self.indices = gather_indices(param_config, edges_wrap)
+        self.indices = get_scatter_indices(param_config, edges_dir)
         self.parameter = InitialDistribution(param_config)
         self.keys = list(
             zip(
-                param_config.source_type.astype(str).tolist(),
-                param_config.target_type.astype(str).tolist(),
+                param_config.source_type.tolist(),
+                param_config.target_type.tolist(),
                 param_config.du.tolist(),
                 param_config.dv.tolist(),
             )
         )
 
 
-# ---- Edge / 'synapse' synapse scaling parameter
-
-
 class SynapseCountScaling(Parameter):
-    """Synapse count scaling factor.
+    """Initialize synapse count scaling for edge types."""
 
-    One per receptive field for each target cell type.
-    Initial values scaled by scale * 1 / mean(n_syn) over receptive field.
-    """
+    def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
 
-    def __init__(self, param_config: Namespace, edges_wrap: Edgeswrap) -> None:
+        edges_dir = connectome.edges
+
         edges = pd.DataFrame(
             dict(
-                source_type=edges_wrap.source_type,
-                target_type=edges_wrap.target_type,
-                edge_type=edges_wrap.edge_type,
-                n_syn=edges_wrap.n_syn,
+                source_type=edges_dir.source_type,
+                target_type=edges_dir.target_type,
+                edge_type=edges_dir.edge_type,
+                n_syn=edges_dir.n_syn,
             )
         )
-        # Same if sorting by src-tar or tar-src!
         edges = edges.groupby(
             ["source_type", "target_type", "edge_type"],
             sort=False,
             as_index=False,
         ).mean()
-        syn_strength = 1 / edges.n_syn.values  # 1/<N>_rf
-        syn_strength[edges[edges.edge_type == b"chem"].index] *= param_config.scale_chem
-        syn_strength[edges[edges.edge_type == b"elec"].index] *= param_config.scale_elec
 
-        param_config.target_type = edges.target_type.values.astype("S")
-        param_config.source_type = edges.source_type.values.astype("S")
-        param_config.value = syn_strength.astype("f")
+        # to initialize synapse strengths with 1/<N>_rf
+        syn_strength = 1 / edges.n_syn.values  # 1/<N>_rf
+
+        # scale synapse strengths of chemical and electrical synapses
+        # individually
+        syn_strength[edges[edges.edge_type == b"chem"].index] *= getattr(
+            param_config, "scale_chem", 0.01
+        )
+        syn_strength[edges[edges.edge_type == b"elec"].index] *= getattr(
+            param_config, "scale_elec", 0.01
+        )
+
+        param_config.target_type = edges.target_type.values
+        param_config.source_type = edges.source_type.values
+        param_config.value = syn_strength
 
         self.symmetry_masks = symmetry_mask_for_edges(
             param_config.get("symmetric", []), edges
         )
 
-        self.indices = gather_indices(param_config, edges_wrap)
+        self.indices = get_scatter_indices(param_config, edges_dir)
         self.parameter = InitialDistribution(param_config)
         self.keys = list(
             zip(
-                param_config.source_type.astype(str).tolist(),
-                param_config.target_type.astype(str).tolist(),
+                param_config.source_type.tolist(),
+                param_config.target_type.tolist(),
             )
         )
 
 
-def init_parameter(
-    param_config: Namespace, nodes_or_edges_wrap: NodesOrEdgeswrap
-) -> Parameter:
-    param_config = param_config.deepcopy()
-    _type = param_config.type
-    param_type = globals()[_type]  # type: Parameter
-    param = param_type(param_config, nodes_or_edges_wrap)
-    return param
+def get_scatter_indices(
+    param_config: Namespace, nodes_or_edges_dir: Union[NodeDir, EdgeDir]
+) -> Tensor:
+    """Indices for scattering operations to share parameters.
 
-
-def gather_indices(param_config: Namespace, nodes_or_edges_wrap: Edgeswrap) -> Tensor:
-    """
-    One way to share parameters is through scatter and gather operation.
-
-    Return a length-'n_elems' vector of indices such that 'result[i]' is the
-    index of the row in 'param_config' corresponding to the 'i'th row of 'elems'.
-    Indices for gathering operations.
+    Maps each node/edge from the complete computational graph to a parameter
+    index.
 
     Note: 'param_config' must have all the attributes that exist as h5 files in
-        'node_or_edges_wrap' in order to group by them.
-
-    Note: this is equivalent to
-        np.concatenate([i * np.ones_like(index) for i, (key, index)
-                        in enumerate(gb.groups.items())])
-            where gb is a grouped dataframe object.
-
-    TODO: for speed up and straight-forwardness consider to change to the above.
+        'node_or_edges_dir' in order to group by them.
     """
-    # to get all mutual keys between the connectome part and the param config
-    mutual_keys = set(nodes_or_edges_wrap).intersection(set(param_config))
-    # concatenation of all connectome elements to keys
-    ctome_elements = zip(*[nodes_or_edges_wrap[k][:] for k in mutual_keys])
-    # concatenation of all param elements to keys
-    param_elements = zip(*[param_config[k][:] for k in mutual_keys])
-    # create a mapping from ctome_elements to param_elements
-    # (e.g. from all edges to shared edge parameters)
-    # to create indices mapping each node and edge to the respective parameters
+    groupby = set(nodes_or_edges_dir).intersection(set(param_config))
+
+    # to automatically cast the arrays in param_config to the same
+    # type that comes from the h5 data. mainly 'U'-strings to 'S'-strings
+    dtypes = {k: nodes_or_edges_dir[k][:].dtype for k in groupby}
+
+    def cast(array, key):
+        return array.astype(dtypes[key])
+
+    # to get all groupby shared in the connectome part and the param config
+    # e.g. ["type"] for nodes and ["source_type", "target_type"] for edges
+    # (e.g. to group by all edges to shared edge parameters)
+    groupby = set(nodes_or_edges_dir).intersection(set(param_config))
+    # creates a table for all groupby from the connectome part
+    ctome_elements = zip(
+        *[nodes_or_edges_dir[k][:] for k in groupby]
+    )  # type: zip[List[Any]]
+    # creates a table for all groupby from the param_config
+    param_elements = zip(
+        *[cast(param_config[k][:], k) for k in groupby]
+    )  # type: zip[List[Any]]
+    # create dictionary with rows from param_config as keys and indices as values
     mapping = {k: i for i, k in enumerate(param_elements)}
+    # to eventually map each row from the expanded connectome graph onto one
+    # entry in the parameter config
     return torch.tensor([mapping[k] for k in ctome_elements])
 
 
@@ -711,7 +554,7 @@ def symmetry_mask_for_nodes(
     return symmetry_masks
 
 
-def symmetry_mask_for_edges(symmetric: List[List[str]], edges: pd.DataFrame):
+def symmetry_mask_for_edges(symmetric: List[List[List[str]]], edges: pd.DataFrame):
     """One additional way to constrain network elements to have the same
     parameter values. Particularly for electric synapses.
 
