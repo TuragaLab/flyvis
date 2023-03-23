@@ -23,17 +23,17 @@ def test_call(boxeye: rendering.BoxEye):
     sequence = torch.ones((2, 2, 100, 100))
 
     rendered = boxeye(sequence, ftype="mean", hex_sample=True)
-    assert rendered.shape == (2, 2, boxeye.hexals)
+    assert rendered.shape == (2, 2, 1, boxeye.hexals)
     assert np.isclose(rendered.cpu().numpy().mean(), 1, atol=0.05)
 
     rendered = boxeye(sequence, ftype="sum", hex_sample=True)
-    assert rendered.shape == (2, 2, boxeye.hexals)
+    assert rendered.shape == (2, 2, 1, boxeye.hexals)
     assert np.isclose(rendered.cpu().numpy().mean(), boxeye.kernel_size**2, atol=5)
 
     sequence = torch.ones((2, 2, 100, 100)).random_(0, 11)
 
     rendered = boxeye(sequence, ftype="median", hex_sample=True)
-    assert rendered.shape == (2, 2, boxeye.hexals)
+    assert rendered.shape == (2, 2, 1, boxeye.hexals)
     assert np.isclose(rendered.cpu().numpy().mean(), 5, atol=0.05)
 
     rendered = boxeye(sequence.clone(), ftype="median", hex_sample=False)
@@ -51,4 +51,4 @@ def test_sample(boxeye: rendering.BoxEye):
 def test_hex_sample(boxeye: rendering.BoxEye):
     sequence = torch.ones((2, 2, 100, 100))
     rendered = boxeye.hex_sample(sequence)
-    assert rendered.shape == (2, 2, boxeye.hexals)
+    assert rendered.shape == (2, 2, 1, boxeye.hexals)

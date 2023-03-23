@@ -98,7 +98,7 @@ class Stimulus:
             if n_frames != self.n_frames or n_samples != self.n_samples:
                 self.zero(n_samples, n_frames)
 
-        self.stimulus[:, slice(start, stop), self.input_index] += x.cuda().view(
+        self.stimulus[:, slice(start, stop), self.input_index] += x.to(self.stimulus.device).view(
             n_samples, n_frames, 1, x.shape[-1]
         )
 

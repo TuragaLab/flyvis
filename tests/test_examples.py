@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import urllib
 import pytest
-
+import requests
+from pathlib import Path
 import torch
 import numpy as np
 from datamate import Directory
@@ -22,9 +23,7 @@ class RenderedData(Directory):
         path: PathLike
 
     def __init__(self, config: Config):
-
         sequences = np.load(self.config.path)
-        sequences = np.transpose(sequences, (1, 0, 2, 3)) / 255.0
         receptors = flyvision.rendering.BoxEye()
 
         rendered_sequences = []
@@ -33,12 +32,11 @@ class RenderedData(Directory):
             # break to only create one sequence
             break
 
-        rendered_sequences = np.array(rendered_sequences)
+        rendered_sequences = np.concatenate(rendered_sequences)
         self.sequences = rendered_sequences
 
 
 class CustomStimuli(SequenceDataset):
-
     dt = 1 / 50
     framerate = 24
     t_pre = 0.5
@@ -51,9 +49,7 @@ class CustomStimuli(SequenceDataset):
             self.dir = RenderedData(dict(path=raw_data_path))
         else:
             self.dir = RenderedData(rendered_path, dict(path=raw_data_path))
-        self.sequences = torch.permute(
-            torch.Tensor(self.dir.sequences[:]), (0, 2, 1, 3)
-        )
+        self.sequences = torch.Tensor(self.dir.sequences[:])
         self.n_sequences = self.sequences.shape[0]
 
     def get_item(self, key):
@@ -64,122 +60,120 @@ class CustomStimuli(SequenceDataset):
         return sequence[resample]
 
 
-def test_connectome(tmp_path):
-    connectome = ConnectomeDir(
-        tmp_path / "test", dict(file=connectome_file, extent=15, n_syn_fill=1)
+@pytest.fixture(scope="module")
+def rendered_dir(tmpdir_factory, sequence_path):
+    return RenderedData(
+        Path(tmpdir_factory.mktemp("tmp")) / "rendered", dict(path=sequence_path)
     )
+
+
+@pytest.fixture(scope="module")
+def custom_dataset(sequence_path, rendered_dir):
+    return CustomStimuli(sequence_path, rendered_dir.path)
+
+
+def test_connectome(connectome):
     assert isinstance(connectome, Directory)
     assert connectome.path.name == "test"
-    assert connectome.path.parent == tmp_path
 
 
-def test_connectome_view(tmp_path):
-
-    connectome = ConnectomeDir(
-        tmp_path / "test", dict(file=connectome_file, extent=15, n_syn_fill=1)
-    )
+def test_connectome_view(connectome):
     connectome_view = ConnectomeView(connectome)
-    assert isinstance(connectome, Directory)
     assert isinstance(connectome_view, ConnectomeView)
 
     fig = connectome_view.connectivity_matrix("n_syn")
+    fig.show()
     assert len(fig.axes) == 2
     assert isinstance(fig, Figure)
+    plt.close(fig)
 
     fig = connectome_view.receptive_fields_grid("T4c")
+    fig.show()
     assert (
         len([ax for ax in fig.axes if ax.get_visible()])
         == len(connectome_view.receptive_fields_df("T4c"))
         == len(connectome_view.sources_list("T4c"))
     )
     assert isinstance(fig, Figure)
+    plt.close(fig)
 
     fig = connectome_view.projective_fields_grid("T4c")
+    fig.show()
     assert (
         len([ax for ax in fig.axes if ax.get_visible()])
         == len(connectome_view.projective_fields_df("T4c"))
         == len(connectome_view.targets_list("T4c"))
     )
     assert isinstance(fig, Figure)
+    plt.close(fig)
 
     fig = connectome_view.network_layout()
+    fig.show()
     assert len(fig.axes) == len(connectome.unique_cell_types) + 2
     assert isinstance(fig, Figure)
+    plt.close(fig)
 
 
-def test_imshow():
-    # path to public moving mnist mirror
+def test_moving_mnist_url():
     moving_mnist_url = (
         "https://www.cs.toronto.edu/~nitish/unsupervised_video/mnist_test_seq.npy"
     )
 
-    # path to where moving mnist will be stored for this example
-    moving_mnist_path = flyvision.root_dir / "mnist_test_seq.npy"
+    def url_exists(url):
+        try:
+            response = requests.head(url)
+            if response.status_code == 200:
+                return True
+            else:
+                return False
+        except requests.ConnectionError as e:
+            return e
 
-    if not moving_mnist_path.exists():
-        urllib.request.urlretrieve(moving_mnist_url, moving_mnist_path)
+    assert url_exists(moving_mnist_url) == True
 
-    sequences = np.load(moving_mnist_path)
-    sequences = np.transpose(sequences, (1, 0, 2, 3)) / 255.0
+
+def test_imshow(sequence_path):
+    sequences = np.load(sequence_path)
     example_sequence_ids = np.random.randint(0, high=sequences.shape[0], size=10)
     animation = flyvision.animations.Imshow(sequences, cmap=plt.cm.binary_r)
     animation.notebook_animation(samples=example_sequence_ids, frames=[0])
 
 
-def test_boxeye():
+def test_boxeye(sequence_path):
     receptors = flyvision.rendering.BoxEye()
     fig = receptors.illustrate()
-
+    fig.show()
     assert isinstance(fig, Figure)
+    plt.close(fig)
 
-    moving_mnist_path = flyvision.root_dir / "mnist_test_seq.npy"
+    sequences = np.load(sequence_path)
 
-    sequences = np.load(moving_mnist_path)
-    sequences = np.transpose(sequences, (1, 0, 2, 3)) / 255.0
     single_frame = sequences[0, 0]
     single_frame = torch.Tensor(single_frame)
     single_frame = single_frame[None, None]
     rendered = receptors(single_frame)
 
-    assert rendered.shape == (1, 1, 721)
+    assert rendered.shape == (1, 1, 1, 721)
 
 
-def test_rendering(tmp_path):
-
-    moving_mnist_path = flyvision.root_dir / "mnist_test_seq.npy"
-    moving_mnist_rendered = RenderedData(
-        tmp_path / "test", dict(path=moving_mnist_path)
-    )
-    rendered_sequences = moving_mnist_rendered.sequences[:]
-    # to stick to our convention for dimensions (samples, frames, 1, hexals)
-    rendered_sequences = np.transpose(rendered_sequences, (0, 2, 1, 3))
+def test_rendering(rendered_dir):
+    rendered_sequences = rendered_dir.sequences[:]
 
     # just checking the visualzation runs
     animation = flyvision.animations.HexScatter(rendered_sequences, vmin=0, vmax=1)
     animation.notebook_animation(samples="all", frames=[0])
 
 
-def test_sequence_dataset(tmp_path):
-    moving_mnist_path = flyvision.root_dir / "mnist_test_seq.npy"
-
-    custom_stimuli_dataset = CustomStimuli(moving_mnist_path, tmp_path / "test")
-
-    assert custom_stimuli_dataset[0].shape == (42, 1, 721)
+def test_sequence_dataset(custom_dataset):
+    assert custom_dataset[0].shape == (42, 1, 721)
 
 
-def test_model_responses(tmp_path):
-
+def test_model_responses(custom_dataset):
     ensemble = EnsembleView(flyvision.results_dir / "opticflow/000")
 
-    moving_mnist_path = flyvision.root_dir / "mnist_test_seq.npy"
+    movie_input = custom_dataset[0]
 
-    custom_stimuli_dataset = CustomStimuli(moving_mnist_path, tmp_path / "test")
-
-    movie_input = custom_stimuli_dataset[0]
-
-    responses = np.array(
-        list(ensemble.simulate(movie_input[None], custom_stimuli_dataset.dt))
-    )
+    responses = np.array(list(ensemble.simulate(movie_input[None], custom_dataset.dt)))
 
     assert responses.shape == (50, 1, 42, 45669)
 
@@ -194,7 +188,6 @@ def test_model_responses(tmp_path):
 
 
 def test_cluster():
-
     from datamate import namespacify
 
     cell_type = "T4c"

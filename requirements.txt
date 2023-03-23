@@ -1,0 +1,4 @@
+datamate
+scipy
+networkx
+pytest

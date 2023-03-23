@@ -87,9 +87,11 @@ class BoxEye:
         Args:
             sequence (torch.Tensor): shape (samples, frames, height, width)
             ftype: filter type, 'mean', 'sum' or 'median'.
+            hex_sample: if False, returns filtered cartesian sequences.
+                Defaults to True.
 
-        Return
-            torch.Tensor: shape (samples, frames, hexals)
+        Returns
+            torch.Tensor: shape (samples, frames, 1, hexals)
         """
         samples, frames, height, width = sequence.shape
 
@@ -101,7 +103,6 @@ class BoxEye:
             height, width = sequence.shape[2:]
 
         if ftype == "mean":
-
             sequence = F.pad(sequence, self.pad)
 
             def conv(x):
@@ -112,7 +113,6 @@ class BoxEye:
             out /= self.kernel_size**2
 
         elif ftype == "sum":
-
             sequence = F.pad(sequence, self.pad)
 
             def conv(x):
@@ -128,15 +128,18 @@ class BoxEye:
 
         if hex_sample is True:
             out = self.hex_sample(out)
-            return out.reshape(samples, frames, -1)
+            return out.reshape(samples, frames, 1, -1)
 
         return out.reshape(samples, frames, height, width)
 
     def hex_sample(self, sequence):
-        h, w = sequence.shape[-2:]
+        h, w = sequence.shape[2:]
+        if (self.min_frame_size > torch.tensor([h, w])).any():
+            sequence = ttf.resize(sequence, self.min_frame_size.tolist())
+            h, w = sequence.shape[2:]
         c = self.receptor_centers + torch.tensor([h // 2, w // 2])
         out = sequence[:, :, c[:, 0], c[:, 1]]
-        return out
+        return out.view(*sequence.shape[:2], 1, -1)
 
     def sample(self, img, ftype="mean"):
         """Sample individual frames."""

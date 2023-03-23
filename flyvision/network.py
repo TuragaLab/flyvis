@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from datamate import Namespace, Directory
 
 from flyvision.connectome import ConnectomeDir, ConnectomeView
+import flyvision
 
 # from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
@@ -66,7 +67,6 @@ class Network(nn.Module):
         node_config: Namespace,
         edge_config: Namespace,
     ):
-
         super().__init__()
 
         # To be able to alter the passed configs without upstream effect.
@@ -699,7 +699,6 @@ class Network(nn.Module):
         with self.enable_grad(grad):
             logging.info(f"Computing {len(indices)} stimulus responses.")
             for i, stim in enumerate(stim_loader):
-
                 # when datasets return dictionaries, we assume that the stimulus
                 # is stored under the key `default_stim_key`
                 if isinstance(stim, dict):
@@ -714,7 +713,6 @@ class Network(nn.Module):
                 )
 
                 def handle_stim():
-
                     # reset stimulus
                     batch_size, n_frames = stim.shape[:2]
                     stimulus.zero(batch_size, n_frames)
@@ -784,7 +782,6 @@ class Network(nn.Module):
         with torch.no_grad():
             logging.info(f"Computing {len(indices)} stimulus responses.")
             for i, stim in enumerate(stim_loader):
-
                 if isinstance(stim, dict):
                     stim = stim[default_stim_key].squeeze(-2)
 
@@ -796,7 +793,6 @@ class Network(nn.Module):
                 )
 
                 def handle_stim():
-
                     # reset stimulus
                     batch_size, n_frames, _ = stim.shape
                     stimulus.zero(batch_size, n_frames)
@@ -865,7 +861,7 @@ class NetworkView(ConnectomeView):
         if self._initialized["network"] and network is None:
             return self.network
         self.network = network or Network(**self.dir.config.network)
-        state_dict = torch.load(self.dir / chkpt)
+        state_dict = torch.load(self.dir / chkpt, map_location=flyvision.device)
         self.network.load_state_dict(state_dict["network"])
         self._initialized["network"] = True
         return self.network
@@ -885,7 +881,7 @@ class NetworkView(ConnectomeView):
         self.decoder = decoder or init_decoder(
             self.dir.config.task_decoder, self.connectome
         )
-        state_dict = torch.load(self.dir / chkpt)
+        state_dict = torch.load(self.dir / chkpt, map_location=flyvision.device)
         self.decoder.load_state_dict(state_dict["decoder"]["flow"])
         self._initialized["decoder"] = True
         return self.decoder

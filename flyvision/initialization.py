@@ -169,7 +169,6 @@ class Lognormal(InitialDistribution):
     """
 
     def __init__(self, param_config: Namespace) -> None:
-
         if param_config.get("clamp", False):
             logging.warning(
                 f"clamping has no effect for {self.__class__.__name__} parameters"
@@ -300,7 +299,6 @@ class RestingPotential(Parameter):
     """Initialize resting potentials a.k.a. biases for cell types."""
 
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
-
         nodes_dir = connectome.nodes
 
         # equals order in connectome.unique_cell_types
@@ -323,7 +321,6 @@ class TimeConstant(Parameter):
     """Initialize time constants for cell types."""
 
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
-
         nodes_dir = connectome.nodes
 
         nodes = pd.DataFrame(dict(type=nodes_dir.type[:].astype(str))).drop_duplicates()
@@ -347,7 +344,6 @@ class SynapseSign(Parameter):
     """Initialize synapse signs for edge types."""
 
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
-
         edges_dir = connectome.edges
 
         edges = pd.DataFrame(
@@ -382,7 +378,6 @@ class SynapseCount(Parameter):
     """Initialize synapse counts for edge types."""
 
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
-
         edges_dir = connectome.edges
 
         mode = param_config.get("mode", "")
@@ -431,7 +426,6 @@ class SynapseCountScaling(Parameter):
     """Initialize synapse count scaling for edge types."""
 
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
-
         edges_dir = connectome.edges
 
         edges = pd.DataFrame(
