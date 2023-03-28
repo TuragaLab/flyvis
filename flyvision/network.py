@@ -62,10 +62,52 @@ class Network(nn.Module):
 
     def __init__(
         self,
-        connectome: Namespace,
-        dynamics: Namespace,
-        node_config: Namespace,
-        edge_config: Namespace,
+        connectome: Namespace = Namespace(
+            file="fib25-fib19_v2.2.json", extent=15, n_syn_fill=1
+        ),
+        dynamics: Namespace = Namespace(
+            type="PPNeuronIGRSynapses", activation=Namespace(type="relu")
+        ),
+        node_config: Namespace = Namespace(
+            bias=Namespace(
+                type="RestingPotential",
+                keys=["type"],
+                initial_dist="Normal",
+                mode="sample",
+                requires_grad=True,
+                mean=0.5,
+                std=0.05,
+                penalize=Namespace(activity=True),
+                seed=0,
+            ),
+            time_const=Namespace(
+                type="TimeConstant",
+                keys=["type"],
+                initial_dist="Value",
+                value=0.05,
+                requires_grad=True,
+            ),
+        ),
+        edge_config: Namespace = Namespace(
+            sign=Namespace(
+                type="SynapseSign", initial_dist="Value", requires_grad=False
+            ),
+            syn_count=Namespace(
+                type="SynapseCount",
+                initial_dist="Lognormal",
+                mode="mean",
+                requires_grad=False,
+                std=1.0,
+            ),
+            syn_strength=Namespace(
+                type="SynapseCountScaling",
+                initial_dist="Value",
+                requires_grad=True,
+                scale_elec=0.01,
+                scale_chem=0.01,
+                clamp="non_negative",
+            ),
+        ),
     ):
         super().__init__()
 
@@ -164,7 +206,7 @@ class Network(nn.Module):
         self.num_parameters = n_params(self)
         self._state_hooks = tuple()
 
-        self.stimulus = Stimulus(1, 1, self.connectome, _init=False)
+        self.stimulus = Stimulus(self.connectome, _init=False)
 
         logging.info(f"Initialized network with {self.num_parameters} parameters.")
 

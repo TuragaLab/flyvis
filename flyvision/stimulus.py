@@ -1,44 +1,53 @@
-from typing import Dict
+from typing import Dict, Union
 from contextlib import contextmanager
 
 import numpy as np
 import torch
 from torch import Tensor
 
+from flyvision.connectome import ConnectomeDir
+
 
 class Stimulus:
-    """Interface to control the neuron-specific stimulus for the network.
+    """Interface to control the cell-specific stimulus for the network.
 
-    Maps standard video input to the photoreceptors but can map
-    input to any other cell type as well, e.g. to do ablation experiments.
+    Creates a buffer and e.g. maps standard video input to the photoreceptors
+    but can map input to any other cell as well, e.g. to do perturbation
+    experiments.
 
     Args:
-        n_samples (int): number of samples.
-        n_frames (int): number of stimulus frames.a
-        connectome (Connectome): instance of a connectome.
+        connectome: connectome directory to retrieve indexes for the stimulus
+            buffer at the respective cell positions.
+        n_samples: optional number of samples to initialize the buffer with.
+            Defaults to 1. Else call `zero()` to resize the buffer.
+        n_frames: optional number of frames to initialize the buffer with.
+            Defaults to 1. Else call `zero()` to resize the buffer.
+        _init: if False, do not initialize the stimulus buffer.
 
     Returns:
         Tensor: stimulus of shape (#samples, n_frames, #cells)
 
     Example:
-        stim = Stimulus(24, 4, 44986, network.connectome)
+        stim = Stimulus(network.connectome, *x.shape[:2])
         stim.add_input(x)
-        stim.add_layer_noise("Tm1", mean=0, std=0)
-
-    Note, call .zero(n_samples, n_frames) to change the dimension of the
-    stimulus buffer.
+        response = network(stim(), dt)
     """
 
-    # TODO: samples first
     layer_index: Dict[str, np.ndarray]
     central_cells_index: Dict[str, int]
     input_index: np.ndarray
     n_frames: int
     n_samples: int
     n_nodes: int
-    stimulus: Tensor
+    buffer: Tensor
 
-    def __init__(self, n_samples, n_frames, connectome, _init=True):
+    def __init__(
+        self,
+        connectome: ConnectomeDir,
+        n_samples: int = 1,
+        n_frames: int = 1,
+        _init=True,
+    ):
         self.layer_index = {
             cell_type: index[:]
             for cell_type, index in connectome.nodes.layer_index.items()
@@ -68,25 +77,33 @@ class Stimulus:
         n_samples=None,
         n_frames=None,
     ):
-        """Resets the stimulus to zeros"""
-        self.n_samples = n_samples or self.n_samples
-        self.n_frames = n_frames or self.n_frames
-        self.stimulus = torch.zeros((self.n_samples, self.n_frames, self.n_nodes))
-
-    def add_input(self, x, start=None, stop=None):
-        """Adds input to the photoreceptor indices.
+        """Resets the stimulus buffer to zero.
 
         Args:
-            x (Tensor): an input video of shape (#samples, n_frames, 1, n_hexals).
+            n_samples: optional number of samples. If provided, the
+                buffer will be resized.
+            n_frames: optional number of frames. If provided, the
+                buffer will be resized.
+        """
+        self.n_samples = n_samples or self.n_samples
+        self.n_frames = n_frames or self.n_frames
+        self.buffer = torch.zeros((self.n_samples, self.n_frames, self.n_nodes))
+
+    def add_input(self, x: torch.Tensor, start=None, stop=None):
+        """Adds input to the input/photoreceptor cells.
+
+        Args:
+            x: an input video of shape (#samples, n_frames, 1, n_hexals).
+            start: optional temporal start index of the stimulus.
+            stop: optional temporal stop index of the stimulus.
         """
         shape = x.shape
         if len(shape) != 4:
             raise ValueError(
-                "not all dimensions specified. Before, 3 dimensions"
-                " were allowed but samples and frames was ambigious"
-                " leading to errors."
+                f"input has shape {x.shape} but must have (n_samples, n_frames, 1, n_hexals)"
             )
 
+        n_samples, n_frames = shape[:2]
         if start is not None and stop is not None:
             n_frames = stop - start
         elif start is not None and stop is None:
@@ -94,104 +111,101 @@ class Stimulus:
         elif start is None and stop is not None:
             n_frames = stop
         else:
-            n_samples, n_frames = shape[:2]
             if n_frames != self.n_frames or n_samples != self.n_samples:
                 self.zero(n_samples, n_frames)
 
-        self.stimulus[:, slice(start, stop), self.input_index] += x.to(self.stimulus.device).view(
-            n_samples, n_frames, 1, x.shape[-1]
-        )
+        self.buffer[:, slice(start, stop), self.input_index] += x.to(
+            self.buffer.device
+        ).view(n_samples, n_frames, 1, x.shape[-1])
 
-    def add_pre_stim(self, x, start=None, stop=None):
-        """Add a constant.
+    def add_pre_stim(self, x: torch.Tensor, start: int = None, stop: int = None):
+        """Adds a constant or sequence of constants to the input/photoreceptor cells.
 
         Args:
-            x (float or array): grey value(s). If array must have length stop-start.
-            start (int, optional): start index in time. Defaults to None.
-            stop (int, optional): stop index in time. Defaults to None.
+            x: grey value(s). If Tensor, must have length `n_frames` or `stop - start`.
+            start: start index in time. Defaults to None.
+            stop: stop index in time. Defaults to None.
         """
         if isinstance(x, torch.Tensor) and x.ndim != 0:
-            # This allows to have x vary over time.
-            self.stimulus[:, slice(start, stop), self.input_index] += x.view(
+            self.buffer[:, slice(start, stop), self.input_index] += x.view(
                 1, len(x), 1, 1
             )
         else:
-            self.stimulus[:, slice(start, stop), self.input_index] += x
+            self.buffer[:, slice(start, stop), self.input_index] += x
 
-    def add_layer_stim(self, cell_type, x):
-        """Adds a stimulus to a hexlattice of a specified cell type.
+    def add_layer_stim(self, cell_type: str, x: torch.Tensor):
+        """Adds a stimulus to cells of a specified cell type.
 
         Args:
-            cell_type (str): a cell type, e.g. "T4a"
-            x (Tensor): an input sequence of shape (#samples, n_frames, 1, n_hexals).
+            cell_type: a cell type, e.g. "T4a"
+            x: an input sequence of shape (#samples, n_frames, 1, n_hexals).
         """
-        self.stimulus[:, :, self.layer_index[cell_type]] += x
+        self.buffer[:, :, self.layer_index[cell_type]] += x
 
-    def add_central_stim(self, cell_type, x):
-        """Adds a stimulus to a central neuron of a specified cell type.
+    def add_central_stim(self, cell_type: str, x: torch.Tensor):
+        """Adds a stimulus to a central cell of a specified cell type.
 
         Args:
-            cell_type (str): a cell type, e.g. "T4a"
-            x (Tensor): an input sequence of shape (#samples, n_frames).
+            cell_type: a cell type, e.g. "T4a"
+            x: an input sequence of shape (#samples, n_frames).
         """
-        self.stimulus[:, :, self.central_cells_index[cell_type]] += x
+        self.buffer[:, :, self.central_cells_index[cell_type]] += x
 
-    def add_layer_noise(self, cell_type, mean, std):
-        """Adds gaussian noise to a hexlattice of a specified cell type.
+    def add_layer_noise(self, cell_type: str, mean: float, std: float):
+        """Adds gaussian noise to cells of a specified cell type.
 
         Args:
-            cell_type (str): a cell type, e.g. "T4a"
-            mean (float): mean of the gaussian noise.
-            std (float): standard deviation of the gaussian noise.
+            cell_type: a cell type, e.g. "T4a"
+            mean: mean of the gaussian noise.
+            std: standard deviation of the gaussian noise.
         """
         noise = (
-            torch.randn_like(self.stimulus[:, :, self.layer_index[cell_type]]) * std
+            torch.randn_like(self.buffer[:, :, self.layer_index[cell_type]]) * std
             + mean
         )
-        self.stimulus[:, :, self.layer_index[cell_type]] += noise
+        self.buffer[:, :, self.layer_index[cell_type]] += noise
 
-    def add_central_noise(self, cell_type, mean, std):
-        """Adds gaussian noise to the central neuron of a specified cell type.
+    def add_central_noise(self, cell_type: str, mean: float, std: float):
+        """Adds gaussian noise to the central cell of a specified cell type.
 
         Args:
-            cell_type (str): a cell type, e.g. "T4a"
-            mean (float): mean of the gaussian noise.
-            std (float): standard deviation of the gaussian noise.
+            cell_type: a cell type, e.g. "T4a"
+            mean: mean of the gaussian noise.
+            std: standard deviation of the gaussian noise.
         """
         noise = (
-            torch.randn_like(self.stimulus[:, :, self.central_cells_index[cell_type]])
+            torch.randn_like(self.buffer[:, :, self.central_cells_index[cell_type]])
             * std
             + mean
         )
-        self.stimulus[:, :, self.central_cells_index[cell_type]] += noise
+        self.buffer[:, :, self.central_cells_index[cell_type]] += noise
 
-    def suppress_layer(self, cell_type, value=-1e3):
-        """Adds large negative potential to a hexlattice of a specified cell type.
-
-        Args:
-            cell_type (str): a cell type, e.g. "T4a"
-            value (float): negative input.
-        """
-        self.stimulus[:, :, self.layer_index[cell_type]] += value
-
-    def suppress_center(self, cell_type, value=-1e3):
-        """Adds large negative potential to the central neuron of a specified cell type.
+    def suppress_layer(self, cell_type: str, value: float = -1e3):
+        """Adds large negative inputs to cells of a specified cell type.
 
         Args:
-            cell_type (str): a cell type, e.g. "T4a"
-            value (float): negative input.
+            cell_type: a cell type, e.g. "T4a"
+            value: negative input.
         """
-        self.stimulus[:, :, self.central_cells_index[cell_type]] += value
+        self.buffer[:, :, self.layer_index[cell_type]] += value
 
-    def __call__(self):
-        """Returns the stimulus tensor."""
-        return self.stimulus
+    def suppress_center(self, cell_type: str, value: float = -1e3):
+        """Adds large negative inputs to the central cell of a specified cell type.
+
+        Args:
+            cell_type: a cell type, e.g. "T4a"
+            value: negative input.
+        """
+        self.buffer[:, :, self.central_cells_index[cell_type]] += value
+
+    def __call__(self) -> torch.Tensor:
+        """Returns the buffer tensor."""
+        return self.buffer
 
     @contextmanager
     def memory_friendly(self):
-        """To remove the stimulus buffer temporarily to save GPU memory.
-
-        TODO: benchmark cost and effect to see if that is good.
-        """
-        yield
-        delattr(self, "stimulus")
+        """To remove the buffer temporarily to save GPU memory."""
+        try:
+            yield
+        finally:
+            delattr(self, "buffer")

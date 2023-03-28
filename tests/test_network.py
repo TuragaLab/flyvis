@@ -4,6 +4,7 @@ from datamate import Namespace
 
 import flyvision
 from flyvision import Network
+from flyvision.utils.tensor_utils import AutoDeref
 
 
 @pytest.fixture(scope="module")
@@ -76,7 +77,6 @@ def test_init(network):
 
 
 def test_param_api(network):
-
     param_api = network._param_api()
     assert len(param_api) == 4
     assert param_api.get("nodes", None) is not None
@@ -92,14 +92,12 @@ def test_param_api(network):
 
 
 def test_target_sum(network):
-
     x = torch.Tensor(2, network.n_edges)
     y = network.target_sum(x)
     assert y.shape == (2, network.n_nodes)
 
 
 def test_initial_state(network):
-
     param_api = network._param_api()
     state = network._initial_state(param_api, 2)
     assert state.get("nodes", None) is not None
@@ -110,7 +108,6 @@ def test_initial_state(network):
 
 
 def test_next_state(network):
-
     param_api = network._param_api()
     state = network._initial_state(param_api, 2)
     x_t = torch.Tensor(2, network.n_nodes)
@@ -159,7 +156,6 @@ def test_state_hook(network):
 
 
 def test_forward(network):
-
     x = torch.Tensor(2, 20, network.n_nodes).random_(2)
     activity = network.forward(x, 1 / 50)
     assert activity.shape == (2, 20, network.n_nodes)
@@ -179,7 +175,6 @@ def test_simulate(network):
 
 
 def test_simulate_clamp(network):
-
     x = torch.Tensor(2, 20, 1, 721).random_(2)
     activity = network.simulate_clamp(
         x, 1 / 50, None, "T4c", mode="central", substitute=0.0
@@ -215,9 +210,27 @@ def test_simulate_clamp(network):
         network.simulate_clamp(x, 1 / 50, None, "test", mode="layer", substitute=0.5)
 
 
-def test_steady_state(network):
-    pass
+def test_steady_state(network: Network):
+    steady_state = network.steady_state(1, 1 / 20, 2, 0.5, None, False)
+
+    assert isinstance(steady_state, AutoDeref)
+
+    assert list(steady_state.keys()) == ["nodes", "edges", "sources", "targets"]
+
+    assert steady_state["nodes"]["activity"].shape == (2, network.n_nodes)
+
+    assert steady_state["sources"]["activity"].shape == (2, network.n_edges)
+
+    assert steady_state["targets"]["activity"].shape == (2, network.n_edges)
 
 
 def test_fade_in_state(network):
-    pass
+    initial_frames = torch.Tensor(2, 1, 721).uniform_()
+
+    steady_state = network.fade_in_state(1, 1 / 20, initial_frames, None, False)
+
+    assert isinstance(steady_state, AutoDeref)
+    assert list(steady_state.keys()) == ["nodes", "edges", "sources", "targets"]
+    assert steady_state["nodes"]["activity"].shape == (2, network.n_nodes)
+    assert steady_state["sources"]["activity"].shape == (2, network.n_edges)
+    assert steady_state["targets"]["activity"].shape == (2, network.n_edges)
