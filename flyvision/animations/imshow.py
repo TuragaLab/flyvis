@@ -9,7 +9,7 @@ class Imshow(Animation):
     """Animates an array of images using imshow.
 
     Args:
-        images: (#samples, n_frames, height, width)
+        images: (n_samples, n_frames, height, width)
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         dpi (int): dots per inch.
@@ -53,7 +53,6 @@ class Imshow(Animation):
             sleep(self.sleep)
 
     def animate(self, frame):
-
         self.img.set_data(self.images[self.batch_sample, frame])
 
         if self.update:

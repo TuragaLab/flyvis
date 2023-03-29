@@ -279,7 +279,6 @@ def standalone_legend(
     labelspacing=0.5,
     handlelength=2.0,
 ):
-
     if legend_elements is None:
         from matplotlib.lines import Line2D
 
@@ -328,7 +327,6 @@ def add_legend(
     loc="center",
     override_alpha=False,
 ):
-
     if legend_elements is None:
         from matplotlib.lines import Line2D
 
@@ -458,7 +456,6 @@ def add_marker_legend(
     fontsize=5,
     markersize=5,
 ):
-
     from matplotlib.lines import Line2D
 
     if isinstance(colors, str):
@@ -501,7 +498,6 @@ def add_marker_legend(
 
 
 def trim_axis(ax, xaxis=True, yaxis=True):
-
     if xaxis:
         xticks = np.array(ax.get_xticks())
         minor_xticks = np.array(ax.get_xticks(minor=True))
@@ -547,7 +543,6 @@ def is_integer_rgb(color):
 
 
 def single_color_cmap(color):
-
     if is_hex(color):
         color = to_rgba(color)
     elif is_integer_rgb(color):
@@ -868,7 +863,6 @@ def standalone_colorbar(
     fig=None,
     ax=None,
 ):
-
     if fig is None or ax is None:
         fig = plt.figure(figsize=figsize)
         cbax = fig.add_axes([0, 0, 1, 1], label="cbar")
@@ -1408,15 +1402,15 @@ def cell_type_collection_ax_lims_per_batch(data, neuron_types=None, offset=0.1):
 
     Args:
         data (Dict[str, array]): maps cell types onto
-                            activity of shape (#samples, n_frames, ...).
+                            activity of shape (n_samples, n_frames, ...).
 
     Returns:
-        List[Tuple]: list of length #samples with ax min and ax max limits.
+        List[Tuple]: list of length n_samples with ax min and ax max limits.
     """
 
     neuron_types = neuron_types or list(data.keys())
 
-    # stack as #cell_types, #samples, n_frames, ...
+    # stack as #cell_types, n_samples, n_frames, ...
     stacked_data = []
     for neuron_type in neuron_types:
         trace = dvs.utils.to_numpy(data[neuron_type])
@@ -1473,7 +1467,6 @@ def smooth_gpu(trace, N):
 
 
 def width_n_height(N, aspect_ratio, max_width=None, max_height=None):
-
     if max_width is not None and max_height is not None:
         raise ValueError
 
@@ -1583,7 +1576,6 @@ def get_axis_grid(
         _sharex, _sharey = None, None
 
         for i, element in enumerate(alist):
-
             if i < unmask_n:
                 ax = subplot(
                     "",
@@ -1687,7 +1679,6 @@ def divide_figure_to_grid(
             rm_spines(ax, rm_xticks=True, rm_yticks=True)
 
     if as_matrix:
-
         if reshape_order == "special":
             ax_matrix = np.ones(matrix.shape, dtype=object) * np.nan
             for key, value in axes.items():
@@ -1757,9 +1748,7 @@ def divide_axis_to_grid(
     _ax_pos = {}
 
     for i, row in enumerate(matrix):
-
         for j, _ax in enumerate(row):
-
             # get occurence of unique element per row and column
             _ax_per_row = sum([1 for _ in np.array(matrix).T[j] if _ == _ax])
             _ax_per_col = sum([1 for _ in row if _ == _ax])
@@ -2365,7 +2354,6 @@ def patch_type_texts(ax):
 
 
 def patch_ax_texts(ax, original, replacement):
-
     title = ax.title
     if original in title.get_text():
         title.set_text(title.get_text().replace(original, replacement))

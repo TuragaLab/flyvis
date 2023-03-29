@@ -15,8 +15,8 @@ class HexScatter(Animation):
     pad_to_regular_hex.
 
     Args:
-        hexarray (array or tensor): shape (#samples, n_frames, 1, n_hexals)
-        cranges (List[float]): color minimal and maximal abs value (#samples).
+        hexarray (array or tensor): shape (n_samples, n_frames, 1, n_input_elements)
+        cranges (List[float]): color minimal and maximal abs value (n_samples).
         vmin (float): color minimal value.
         vmax (flot): color maximal value.
         fig (Figure): existing Figure instance or None.
@@ -236,8 +236,8 @@ class HexScatterCompare(AnimationCollector):
         array.
 
     Args:
-        hexarray1 (array): shape (#samples, n_frames, n_hexals)
-        hexarray2 (array): shape (#samples, n_frames, n_hexals)
+        hexarray1 (array): shape (n_samples, n_frames, n_input_elements)
+        hexarray2 (array): shape (n_samples, n_frames, n_input_elements)
         crange (Tuple[Float]): optional color range vmin, vmax.
         batch_sample (int): batch sample to start from. Defaults to 0.
     """

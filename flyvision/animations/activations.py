@@ -19,8 +19,8 @@ class ActivationPlusTrace(AnimationCollector):
     """Hex-scatter animation of an activation plus the central hexal's trace.
 
     Args:
-        activation (array): shape (#samples, n_frames, n_hexals)
-        cranges (array): shape (#samples).
+        activation (array): shape (n_samples, n_frames, n_input_elements)
+        cranges (array): shape (n_samples).
         vmin (float): color minimal value.
         vmax (flot): color maximal value.
         fig (Figure): existing Figure instance or None.
@@ -81,7 +81,6 @@ class ActivationPlusTrace(AnimationCollector):
         labelxy=(0.0, 1.0),
         fontsize=10,
     ):
-
         self.n_samples, self.frames = activation.shape[:-1]
 
         if fig is None and ax is None:
@@ -115,8 +114,8 @@ class ActivationPlusTrace(AnimationCollector):
         )
 
         if trace_mode == "center":
-            n_hexals = activation.shape[-1]
-            center = n_hexals // 2
+            n_input_elements = activation.shape[-1]
+            center = n_input_elements // 2
             trace = activation[:, :, center]
         elif trace_mode == "sum":
             trace = activation.sum(axis=-1)
@@ -382,10 +381,10 @@ class ActivationGridPlusTraces_v2(AnimationCollector):
         activations for a particular target neuron type.
 
     Args:
-        stimulus: (#samples, n_frames, n_hexals)
-        source_currents: postsynaptic currents per source. Dict[str, array (#samples, n_frames, n_hexals (RFs))]
-        target_currents: postsynaptic current of target. array (#samples, n_frames, n_hexals)
-        responses: response of target. array (#samples, n_frames, n_hexals)
+        stimulus: (n_samples, n_frames, n_input_elements)
+        source_currents: postsynaptic currents per source. Dict[str, array (n_samples, n_frames, n_input_elements (RFs))]
+        target_currents: postsynaptic current of target. array (n_samples, n_frames, n_input_elements)
+        responses: response of target. array (n_samples, n_frames, n_input_elements)
     """
 
     def __init__(
@@ -405,7 +404,6 @@ class ActivationGridPlusTraces_v2(AnimationCollector):
         trace_vertical_ratio=0.3,
         path=None,
     ):
-
         global_trace_ylims = plt_utils.cell_type_collection_ax_lims_per_batch(
             {
                 **{key: value.sum(-1) for key, value in source_currents.items()},
@@ -632,9 +630,9 @@ class StimulusResponse(AnimationCollector):
     """Hex-scatter animations for input and single activation.
 
     Args:
-        stimulus (tensor): hexagonal input of shape (#samples, n_frames, n_hexals).
+        stimulus (tensor): hexagonal input of shape (n_samples, n_frames, n_input_elements).
         responses (tensor or List[tensor]): hexagonal activation of particular
-            neuron type (#samples, n_frames, n_hexals).
+            neuron type (n_samples, n_frames, n_input_elements).
         batch_sample (int): batch sample to start from. Defaults to 0.
         figsize (list): figure size in inches. Defaults to [2, 1].
         fontsize (int): fontsize. Defaults to 5.
@@ -727,7 +725,7 @@ class LayerActivityGrid(Animation):
     Args:
         tnn (Directory): trained network directory instance.
         activity (array): activation of all neurons
-            of shape (#samples, n_frames, #neurons).
+            of shape (n_samples, n_frames, #neurons).
         activity_type (str): activity_type allows to refer to differently named
             activity arrays belonging to the tnn. E.g. activity_argmax_T4.
         rectify (bool): whether to rectify the activity. Defaults to False.

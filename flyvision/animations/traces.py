@@ -12,7 +12,7 @@ class Trace(Animation):
     """Animates a trace.
 
     Args:
-        trace: trace of shape (#samples, n_frames)
+        trace: trace of shape (n_samples, n_frames)
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         update (bool): whether to update the canvas after an animation step.
@@ -173,7 +173,7 @@ class MultiTrace(Animation):
     """Animates multiple traces.
 
     Args:
-        trace: trace of shape (#samples, n_frames, #traces)
+        trace: trace of shape (n_samples, n_frames, #traces)
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         update (bool): whether to update the canvas after an animation step.

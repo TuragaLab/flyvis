@@ -504,7 +504,7 @@ class Network(nn.Module):
         simulation by default.
 
         Args:
-            movie_input: tensor requiring shape (batch_size, n_frames, 1, n_hexals)
+            movie_input: tensor requiring shape (batch_size, n_frames, 1, n_input_elements)
             dt: integration time constant. Must be 1/50 or less.
             initial_state: network activity at the beginning of the simulation.
                 Either use fade_in_state or steady_state, to compute the
@@ -549,7 +549,7 @@ class Network(nn.Module):
         """Forward pass of the network.
 
         Args:
-            x: whole-network stimulus of shape (batch_size, n_frames, #cells).
+            x: whole-network stimulus of shape (batch_size, n_frames, n_cells).
             dt: integration time constant.
             state: initial state of the network. If not given,
                 computed from NetworksDynamics.write_initial_state.
@@ -630,7 +630,7 @@ class Network(nn.Module):
         Args:
             t_fade_in: time of the fade-in stimulus.
             dt: integration time constant.
-            initial_frames: tensor of shape (batch_size, 1, n_hexals)
+            initial_frames: tensor of shape (batch_size, 1, n_input_elements)
             state: initial state of the network. If not given,
                 computed from NetworksDynamics.write_initial_state.
                 initial_state and fade_in_state are convenience functions to
@@ -638,7 +638,7 @@ class Network(nn.Module):
             grad: if True, the state is computed with gradient.
 
 
-        initial_frames of shape (batch_size, 1, n_hexals)
+        initial_frames of shape (batch_size, 1, n_input_elements)
         """
         if t_fade_in is None or t_fade_in <= 0.0:
             return state

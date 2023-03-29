@@ -1294,11 +1294,11 @@ def hex_scatter(
 
 
 def hex_scatter_grid(hex_arrays, cmap="binary_r", cbar=False, **kwargs):
-    """(n_frames, n_hexals)"""
+    """(n_frames, n_input_elements)"""
     cmap = cm.get_cmap(cmap)
-    N, n_hexals = hex_arrays.shape
+    N, n_input_elements = hex_arrays.shape
     fig, axes, _ = plt_utils.get_axis_grid(list(range(N)))
-    u, v = utils.get_hex_coords(utils.get_hextent(n_hexals))
+    u, v = utils.get_hex_coords(utils.get_hextent(n_input_elements))
     for n in range(N):
         hex_scatter(
             u,
@@ -1320,12 +1320,12 @@ def quick_hex_flow(flow, **kwargs):
 
 
 def hex_flow_grid(hex_arrays, cmap=None, cwheel=False, **kwargs):
-    """(n_frames, 2, n_hexals)"""
+    """(n_frames, 2, n_input_elements)"""
     if cmap is None:
         cmap = plt_utils.cm_uniform_2d
-    N, _, n_hexals = hex_arrays.shape
+    N, _, n_input_elements = hex_arrays.shape
     fig, axes, _ = plt_utils.get_axis_grid(list(range(N)))
-    u, v = utils.get_hex_coords(utils.get_hextent(n_hexals))
+    u, v = utils.get_hex_coords(utils.get_hextent(n_input_elements))
     for n in range(N):
         hex_flow(
             u,
@@ -1710,7 +1710,6 @@ def bars(
     legend_kwargs={},
     **kwargs,
 ):
-
     xticklabels = np.array(xticklabels).astype(str)
 
     fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax, fig)
@@ -1903,9 +1902,9 @@ def violins(
     """
     Convenience function for violin_groups with good defaults.
 
-    data (Array): (<#groups>, #samples, #random variables) first dimension
+    data (Array): (<#groups>, n_samples, #random variables) first dimension
                         optional because mostly we have only one group.
-                        Will be extended to (1, #samples, #random variables),
+                        Will be extended to (1, n_samples, #random variables),
                         transposed, and passed to violin_groups.
     """
     if len(data.shape) == 3:
@@ -2180,7 +2179,7 @@ def violin_groups(
 ):
     """
     Args:
-        values: matrix of shape (#random variables, #groups, #samples).
+        values: matrix of shape (#random variables, #groups, n_samples).
                 random variables are labeled with xticklabels.
                 groups are labeled with legend.
         xticklabels: #independents labels
@@ -2301,7 +2300,6 @@ def violin_groups(
 
     for i in range(n_random_variables):
         for j in range(n_groups):
-
             if color_by == "experiments":
                 _color = C[i]
             elif color_by == "groups":
@@ -2366,7 +2364,6 @@ def multi_row_violins(
     colors=None,
     color_by="experiments",
 ):
-
     samples, features = Y.shape
     n_axes = int(features / min_features_per_ax)
     features_per_ax = min_features_per_ax + int(
@@ -2450,11 +2447,10 @@ def violin_groups_v2(
     color_by="groups",
     **kwargs,
 ):
-
     """Agnostic to same number of samples across groups!
 
     Args:
-        values: array-like of shape (#groups, #samples, #random variables).
+        values: array-like of shape (#groups, n_samples, #random variables).
                 random variables are labeled with xticklabels.
                 groups are labeled with legend.
         xticklabels: #independents labels
@@ -2645,11 +2641,10 @@ def violin_groups_v3(
     scatter_alpha=0.35,
     **kwargs,
 ):
-
     """Agnostic to same number of samples across random variables!
 
     Args:
-        values: array-like of shape (#groups, #random variables, #samples).
+        values: array-like of shape (#groups, #random variables, n_samples).
                 random variables are labeled with xticklabels.
                 groups are labeled with legend.
         xticklabels: #independents labels
@@ -2832,7 +2827,7 @@ def potentials(
     """Plots the membrane potential.
     Args:
         ylabels (List): rows with cell types.
-        activity (array): (n_frames, #cells).
+        activity (array): (n_frames, n_cells).
         time_const (bool): optional time constant annotation.
     """
     fig, ax = plt_utils.init_plot(
@@ -2925,7 +2920,7 @@ def potential_over_frames(
     """Plots the membrane potential.
     Args:
         nodes (dataframe): rows with cell types, time constants.
-        activity (array): (n_frames, #cells).
+        activity (array): (n_frames, n_cells).
         time_const (bool): optional time constant annotation.
     """
     fig, ax = plt_utils.init_plot(
@@ -2977,7 +2972,7 @@ def potential_over_frames(
         0, "y_offset_end", _activity[-1, :] if not label_at_offset else y_offset
     )
     nodes.reset_index(inplace=True)
-    for (i, row) in nodes.iterrows():
+    for i, row in nodes.iterrows():
         if node_label is True:
             ax.annotate(
                 row.type,
@@ -3005,7 +3000,6 @@ def potential_over_frames(
 
 
 def plot_complex(z, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5):
-
     fig, ax = plt_utils.init_plot(
         figsize=figsize, projection="polar", fontsize=fontsize, fig=fig, ax=ax
     )
@@ -3020,7 +3014,6 @@ def plot_complex(z, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5):
 def plot_complex_vector(
     z0, z1, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5
 ):
-
     fig, ax = plt_utils.init_plot(
         figsize=figsize, projection="polar", fontsize=fontsize, fig=fig, ax=ax
     )
@@ -3527,7 +3520,6 @@ def traces(
         )
 
     if contour is not None and contour_mode is not None:
-
         ylim = ylim or plt_utils.get_lims(
             np.array(
                 [
@@ -3906,7 +3898,6 @@ def speed_polar(
     cbar_offset=(1.1, 0),
     **kwargs,
 ):
-
     cmap = plt_utils.get_discrete_color_map(
         speeds, cmap, vmin=speeds.min(), vmax=speeds.max()
     )
@@ -4111,7 +4102,6 @@ def flash_response(
 
     ymin, ymax = 1e5, 1e-5
     for i, (key, activity) in enumerate(activities.items()):
-
         a = activity[cell_type].squeeze()
         ymin, ymax = min(ymin, a.min()), max(ymax, a.max())
         traces(

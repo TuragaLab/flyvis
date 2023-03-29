@@ -13,7 +13,7 @@ class HexFlow(Animation):
     """Hexscatter of a color encoded flow field.
 
     Args:
-        flow (array or tensor): optic flow of shape (#samples, n_frames, 2, n_hexals).
+        flow (array or tensor): optic flow of shape (n_samples, n_frames, 2, n_input_elements).
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         batch_sample (int): batch sample to start from. Defaults to 0.
@@ -95,7 +95,6 @@ class HexFlow(Animation):
         )
 
     def animate(self, frame):
-
         flow = self.flow[self.batch_sample, frame]
 
         r = np.sqrt(flow[0] ** 2 + flow[1] ** 2)
@@ -117,22 +116,18 @@ class HexFlow(Animation):
 class TwoFlows(AnimationCollector):
     def __init__(self, flow1, flow2):
         """
-        (n_frames, 2, n_hexals)
+        (n_frames, 2, n_input_elements)
         """
 
         self.fig, self.axes, _ = plt_utils.get_axis_grid(gridwidth=2, gridheight=1)
         self.animations = [
             HexFlow(
-                flow1[
-                    None,
-                ],
+                flow1[None,],
                 fig=self.fig,
                 ax=self.axes[0],
             ),
             HexFlow(
-                flow2[
-                    None,
-                ],
+                flow2[None,],
                 fig=self.fig,
                 ax=self.axes[1],
             ),

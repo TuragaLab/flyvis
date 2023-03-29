@@ -104,7 +104,7 @@ class CentralActivity(_Activity):
     """Attribute-style access to central activity.
 
     Args:
-        activity (array-like): activity of shape (..., #cells)
+        activity (array-like): activity of shape (..., n_cells)
         connectome (Folder): connectome dir with reference to
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
@@ -112,7 +112,7 @@ class CentralActivity(_Activity):
 
 
     Attributes:
-        activity (array-like): activity of shape (..., #cells)
+        activity (array-like): activity of shape (..., n_cells)
         unique_cell_types (array)
 
     Note: also allows 'virtual types' that are basic operations of individuals
@@ -203,7 +203,7 @@ class LayerActivity(_Activity):
     """Attribute-style access to layer activity.
 
     Args:
-        activity (array-like): activity of shape (..., #cells)
+        activity (array-like): activity of shape (..., n_cells)
         connectome (Folder): connectome dir with reference to
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
@@ -214,7 +214,7 @@ class LayerActivity(_Activity):
     Attributes:
         central (CentralActivity): central activity mapping,
             giving attribute-style access to central nodes of particular types.
-        activity (array-like): activity of shape (..., #cells)
+        activity (array-like): activity of shape (..., n_cells)
         connectome (Folder): connectome dir with reference to
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
@@ -273,7 +273,6 @@ class LayerActivity(_Activity):
 
     def __setattr__(self, key, value):
         if key == "activity" and value is not None:
-
             if self.keepref is False:
                 value = weakref.ref(value)
 

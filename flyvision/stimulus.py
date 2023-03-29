@@ -24,8 +24,18 @@ class Stimulus:
             Defaults to 1. Else call `zero()` to resize the buffer.
         _init: if False, do not initialize the stimulus buffer.
 
+    Attributes:
+        layer_index: dictionary of cell type to index array.
+        central_cells_index: dictionary of cell type to central cell index.
+        input_index: index array of photoreceptors.
+        n_frames: number of frames in the stimulus buffer.
+        n_samples: number of samples in the stimulus buffer.
+        n_nodes: number of nodes in the stimulus buffer.
+        n_input_elements: number of input elements.
+        buffer: stimulus buffer of shape (n_samples, n_frames, n_cells).
+
     Returns:
-        Tensor: stimulus of shape (#samples, n_frames, #cells)
+        Tensor: stimulus of shape (n_samples, n_frames, n_cells)
 
     Example:
         stim = Stimulus(network.connectome, *x.shape[:2])
@@ -39,6 +49,7 @@ class Stimulus:
     n_frames: int
     n_samples: int
     n_nodes: int
+    n_input_elements: int
     buffer: Tensor
 
     def __init__(
@@ -64,11 +75,13 @@ class Stimulus:
                 for cell_type in connectome.input_cell_types[:]
             ]
         )
+        self.n_input_elements = self.input_index.shape[1]
         self.n_samples, self.n_frames, self.n_nodes = (
             n_samples,
             n_frames,
             len(connectome.nodes.type),
         )
+        self.connectome = connectome
         if _init:
             self.zero()
 
@@ -87,38 +100,67 @@ class Stimulus:
         """
         self.n_samples = n_samples or self.n_samples
         self.n_frames = n_frames or self.n_frames
+        if hasattr(self, "buffer") and self.buffer.shape[:2] == (
+            self.n_samples,
+            self.n_frames,
+        ):
+            self.buffer.zero_()
+            return
         self.buffer = torch.zeros((self.n_samples, self.n_frames, self.n_nodes))
+        self._nonzero = False
 
-    def add_input(self, x: torch.Tensor, start=None, stop=None):
+    @property
+    def nonzero(self):
+        """Returns True if elements have been added to the stimulus buffer.
+
+        Note, even if those elements were all zero.
+        """
+        return self._nonzero
+
+    def add_input(
+        self,
+        x: torch.Tensor,
+        start=None,
+        stop=None,
+        n_frames_buffer=None,
+        cumulate=False,
+    ):
         """Adds input to the input/photoreceptor cells.
 
         Args:
-            x: an input video of shape (#samples, n_frames, 1, n_hexals).
+            x: an input video of shape (n_samples, n_frames, 1, n_input_elements).
             start: optional temporal start index of the stimulus.
             stop: optional temporal stop index of the stimulus.
+            n_frames_buffer: optional number of frames to resize the buffer to.
+            cumulate: if True, add input to the existing buffer.
         """
         shape = x.shape
         if len(shape) != 4:
             raise ValueError(
-                f"input has shape {x.shape} but must have (n_samples, n_frames, 1, n_hexals)"
+                f"input has shape {x.shape} but must have "
+                "(n_samples, n_frames, 1, n_input_elements)"
             )
+        n_samples, n_frames_input = shape[:2]
 
-        n_samples, n_frames = shape[:2]
-        if start is not None and stop is not None:
-            n_frames = stop - start
-        elif start is not None and stop is None:
-            n_frames = self.n_frames - start
-        elif start is None and stop is not None:
-            n_frames = stop
-        else:
-            if n_frames != self.n_frames or n_samples != self.n_samples:
-                self.zero(n_samples, n_frames)
+        if not hasattr(self, "buffer"):
+            self.zero(n_samples, n_frames_buffer or n_frames_input)
+        elif not cumulate and self.nonzero:
+            self.zero(n_samples, n_frames_buffer or n_frames_input)
 
-        self.buffer[:, slice(start, stop), self.input_index] += x.to(
-            self.buffer.device
-        ).view(n_samples, n_frames, 1, x.shape[-1])
+        try:
+            # add input to buffer
+            self.buffer[:, slice(start, stop), self.input_index] += x.to(
+                self.buffer.device
+            )
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"input has shape {x.shape} but buffer has shape {self.buffer.shape}"
+            ) from e
+        self._nonzero = True
 
-    def add_pre_stim(self, x: torch.Tensor, start: int = None, stop: int = None):
+    def add_pre_stim(
+        self, x: torch.Tensor, start: int = None, stop: int = None, n_frames_buffer=None
+    ):
         """Adds a constant or sequence of constants to the input/photoreceptor cells.
 
         Args:
@@ -126,77 +168,24 @@ class Stimulus:
             start: start index in time. Defaults to None.
             stop: stop index in time. Defaults to None.
         """
-        if isinstance(x, torch.Tensor) and x.ndim != 0:
-            self.buffer[:, slice(start, stop), self.input_index] += x.view(
-                1, len(x), 1, 1
-            )
-        else:
-            self.buffer[:, slice(start, stop), self.input_index] += x
 
-    def add_layer_stim(self, cell_type: str, x: torch.Tensor):
-        """Adds a stimulus to cells of a specified cell type.
+        if not hasattr(self, "buffer"):
+            self.zero(None, n_frames_buffer)
+        elif self.nonzero:
+            self.zero(None, n_frames_buffer)
 
-        Args:
-            cell_type: a cell type, e.g. "T4a"
-            x: an input sequence of shape (#samples, n_frames, 1, n_hexals).
-        """
-        self.buffer[:, :, self.layer_index[cell_type]] += x
-
-    def add_central_stim(self, cell_type: str, x: torch.Tensor):
-        """Adds a stimulus to a central cell of a specified cell type.
-
-        Args:
-            cell_type: a cell type, e.g. "T4a"
-            x: an input sequence of shape (#samples, n_frames).
-        """
-        self.buffer[:, :, self.central_cells_index[cell_type]] += x
-
-    def add_layer_noise(self, cell_type: str, mean: float, std: float):
-        """Adds gaussian noise to cells of a specified cell type.
-
-        Args:
-            cell_type: a cell type, e.g. "T4a"
-            mean: mean of the gaussian noise.
-            std: standard deviation of the gaussian noise.
-        """
-        noise = (
-            torch.randn_like(self.buffer[:, :, self.layer_index[cell_type]]) * std
-            + mean
-        )
-        self.buffer[:, :, self.layer_index[cell_type]] += noise
-
-    def add_central_noise(self, cell_type: str, mean: float, std: float):
-        """Adds gaussian noise to the central cell of a specified cell type.
-
-        Args:
-            cell_type: a cell type, e.g. "T4a"
-            mean: mean of the gaussian noise.
-            std: standard deviation of the gaussian noise.
-        """
-        noise = (
-            torch.randn_like(self.buffer[:, :, self.central_cells_index[cell_type]])
-            * std
-            + mean
-        )
-        self.buffer[:, :, self.central_cells_index[cell_type]] += noise
-
-    def suppress_layer(self, cell_type: str, value: float = -1e3):
-        """Adds large negative inputs to cells of a specified cell type.
-
-        Args:
-            cell_type: a cell type, e.g. "T4a"
-            value: negative input.
-        """
-        self.buffer[:, :, self.layer_index[cell_type]] += value
-
-    def suppress_center(self, cell_type: str, value: float = -1e3):
-        """Adds large negative inputs to the central cell of a specified cell type.
-
-        Args:
-            cell_type: a cell type, e.g. "T4a"
-            value: negative input.
-        """
-        self.buffer[:, :, self.central_cells_index[cell_type]] += value
+        try:
+            if isinstance(x, torch.Tensor) and x.ndim == 1:
+                self.buffer[:, slice(start, stop), self.input_index] += x.view(
+                    1, len(x), 1, 1
+                )
+            else:
+                self.buffer[:, slice(start, stop), self.input_index] += x
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"input has shape {x.shape} but buffer has shape {self.buffer.shape}"
+            ) from e
+        self._nonzero = True
 
     def __call__(self) -> torch.Tensor:
         """Returns the buffer tensor."""
