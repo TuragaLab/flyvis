@@ -8,6 +8,7 @@ computations with connectomes.
 ## Generating hypotheses about neural computations with connectomes
 
 ### Getting started
+
 Try our models inside our Google Colab notebooks. We first release our tools to explore the connectome and how to provide custom
 stimuli to the models and explore their responses:
 
@@ -19,6 +20,7 @@ All in between, touching
 results already described on the paper, will be coming soon.
 
 ### More coming soon 🔜
+
 - Optic flow task 🔜
 - Flash responses 🔜
 - Moving edge responses 🔜
@@ -27,18 +29,15 @@ results already described on the paper, will be coming soon.
 
 ### Local installation
 
-To install requirements:
-```setup
-pip install -r requirements.txt
-```
 1. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
 2. make sure conda is installed
 3. create a new conda environment `conda create --name flyvision -y`
 4. activate the new conda environment `conda activate flyvision`
 5. install python `conda install "python>=3.7.11,<3.10.0"`
-6. navigate to the repository and install in developer mode `pip install -e .`
-7. install pytorch, torchvision, cuda `conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3.1 -c pytorch`
-8. run `pytest`
+6. install requirements `pip install -r requirements.txt`
+7. navigate to the repository and install in developer mode `pip install -e .`
+8. install pytorch, torchvision, cuda `conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3.1 -c pytorch`
+9. (run `pytest` to check if all tests run through)
 
 ## Background
 
@@ -61,7 +60,6 @@ computation from naturalistic movie inputs.
 <p style="text-align:center;">
 <img src="images/tweet_5_training_light.gif"  width="60%" height="30%" class="center">
 </p>
-
 
 ## Contributors
 
