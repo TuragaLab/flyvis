@@ -1,11 +1,12 @@
+"""Utils for plotting whole network graph."""
 import numpy as np
 import networkx as nx
 from typing import Dict
+import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from toolz import valfilter
 
 from flyvision.plots import plt_utils
-from flyvision.plots.plots import network_layout_axes
 
 
 class WholeNetworkFigure:
@@ -224,3 +225,68 @@ class WholeNetworkFigure:
             va="top",
             ha="center",
         )
+
+
+def network_layout_axes(
+    layout,
+    cell_types=None,
+    fig=None,
+    figsize=[16, 10],
+    region_spacing=2,
+    wspace=0,
+    hspace=0,
+    as_dict=False,
+):
+    fig = fig or plt.figure(figsize=figsize)
+
+    pos = _network_graph_node_pos(layout, region_spacing=region_spacing)
+    pos = {
+        key: value
+        for key, value in pos.items()
+        if (cell_types is None or key in cell_types)
+    }
+    xy = np.array(list(pos.values()))
+    # why pad this?
+    # hpad = 0.05
+    # wpad = 0.05
+    hpad = 0.0
+    wpad = 0.0
+    fig, axes, xy_scaled = plt_utils.regular_ax_scatter(
+        xy[:, 0],
+        xy[:, 1],
+        fig=fig,
+        wspace=wspace,
+        hspace=hspace,
+        hpad=hpad,
+        wpad=wpad,
+        alpha=0,
+        labels=list(pos.keys()),
+    )
+    new_pos = {key: xy_scaled[i] for i, key in enumerate(pos.keys())}
+    if as_dict:
+        return (
+            fig,
+            {cell_type: axes[i] for i, cell_type in enumerate(new_pos)},
+            new_pos,
+        )
+    return fig, axes, new_pos
+
+
+def _network_graph_node_pos(layout, region_spacing=2):
+    # one way to compute (x,y) coordinates for nodes
+    x_coordinate = 0
+    types_per_column = 8
+    region_0 = "retina"
+    pos = {}
+    j = 0
+    for typ in layout:
+        if layout[typ] != region_0:
+            x_coordinate += region_spacing
+            j = 0
+        elif (j % types_per_column) == 0 and j != 0:
+            x_coordinate += 1
+        y_coordinate = types_per_column - 1 - j % types_per_column
+        pos[typ] = [x_coordinate, y_coordinate]
+        region_0 = layout[typ]
+        j += 1
+    return pos

@@ -1,168 +1,28 @@
-from typing import Iterable
+"""Plotting utils.""" ""
+from typing import Iterable, Tuple
 from numbers import Number
-from itertools import product
-import colorsys
+
 import torch
 import torch.nn.functional as F
 
 import numpy as np
 
-# import seaborn as sns
-# sns.set(font="Arial")
 import matplotlib as mpl
 from matplotlib.axes import Axes
-from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize, SymLogNorm, TwoSlopeNorm
+from matplotlib.colors import TwoSlopeNorm
 import matplotlib.colors as colors
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
-from matplotlib.transforms import Bbox
+
 from matplotlib import colormaps as cm
-from matplotlib.colors import hex2color
-from matplotlib.colors import to_rgba, ListedColormap
-
-
-# import dvs.utils
-# from dvs.plots.decoration import *
-# from dvs.utils.color_utils import get_alpha_colormap
-
-
-def default_save(fig, path):
-    fig.savefig(path, bbox_inches="tight", pad_inches=0, transparent=True, format="pdf")
-
-
-def rebuild_font_manager():
-    doc = """Sometimes matplotlib does not stick to arial because it falls back to DejaVuSans.
-
-    Workaround:
-    in the file built by the fontmanager,
-    the fallback option can be changed manually to Arial.
-    Or this could be coded up here. But once we changed that file manually, we actually don't want
-    to rebuild the font manager.
-    """
-    print(doc)
-
-
-#     plt.style.use('~/.config/matplotlib/matplotlibrc')
-#     matplotlib.font_manager._rebuild()
-#     plt.style.use('~/.config/matplotlib/matplotlibrc')
-
-
-def cm_to_inch(*args):
-    if len(args) == 1:
-        width = args[0][0]
-        height = args[0][1]
-    elif len(args) == 2:
-        width = args[0]
-        height = args[1]
-    return width / 2.54, height / 2.54
-
-
-class Arrow3D(FancyArrowPatch):
-    def __init__(self, p0, p1, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-        self._verts3d = p0, p1
-
-    def draw(self, renderer):
-        p0, p1 = self._verts3d
-        xs3d, ys3d, zs3d = (p0[0], p1[0]), (p0[1], p1[1]), (p0[2], p1[2])
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-        FancyArrowPatch.draw(self, renderer)
-
-    def do_3d_projection(self, renderer=None):
-        p0, p1 = self._verts3d
-        xs3d, ys3d, zs3d = (p0[0], p1[0]), (p0[1], p1[1]), (p0[2], p1[2])
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-        return np.min(zs)
-
-
-def figure(
-    figsize,
-    hspace=0.3,
-    wspace=0.1,
-    left=0.125,
-    right=0.9,
-    top=0.9,
-    bottom=0.1,
-    frameon=None,
-):
-    fig = plt.figure(figsize=figsize, frameon=frameon)
-    plt.subplots_adjust(
-        hspace=hspace,
-        wspace=wspace,
-        left=left,
-        top=top,
-        right=right,
-        bottom=bottom,
-    )
-    return fig
-
-
-def subplot(
-    title,
-    grid=(1, 1),
-    location=(0, 0),
-    colspan=1,
-    rowspan=1,
-    projection=None,
-    sharex=None,
-    sharey=None,
-    xlabel="",
-    ylabel="",
-    despine=True,
-    face_alpha=1.0,
-    offset=5,
-    trim=False,
-    title_fs=15,
-    title_pos="center",
-    position=None,
-    **kwargs,
-):
-    ax = plt.subplot2grid(
-        grid,
-        location,
-        colspan,
-        rowspan,
-        sharex=sharex,
-        sharey=sharey,
-        projection=projection,
-    )
-    if position:
-        ax.set_position(position)
-    ax.patch.set_alpha(face_alpha)
-
-    ax.set_title(title, fontsize=title_fs, loc=title_pos)
-
-    plt.xlabel(xlabel, fontsize=15)
-    plt.ylabel(ylabel, fontsize=15)
-
-    # sns.set(context='paper', style='ticks', font_scale=1.5)
-    # sns.axes_style({'axes.edgecolor': '.6', 'axes.linewidth': 5.0})
-    # if despine is True and not projection:
-    #     sns.despine(ax=ax, offset=offset, trim=trim)
-
-    return ax
-
-
-class MidpointNormalize(Normalize):
-    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
-        # TwoSlopeNorm
-        self.midpoint = midpoint
-        Normalize.__init__(self, vmin, vmax, clip)
-
-    def __call__(self, value, clip=None):
-        x, y = [self.vmin, self.midpoint, self.vmax], [0.0, 0.5, 1.0]
-        return np.ma.masked_array(np.interp(value, x, y))
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import hex2color, Normalize
+from matplotlib.colors import ListedColormap
 
 
 def init_plot(
     figsize=[1, 1],
     title="",
-    fontsize=10,
+    fontsize=5,
     ax=None,
     fig=None,
     projection=None,
@@ -174,27 +34,31 @@ def init_plot(
     title_y=None,
     **kwargs,
 ):
-    """Creates or returns existing fig and ax object with title being set.
+    """Creates fig and axis object with certain default settings.
 
     Args:
-        figsize (list, optional): width and height of the figure.
-            Defaults to [10, 10].
-        title (str, optional): axis title. Defaults to ''.
-        fontsize (int, optional): Defaults to 10.
-        ax (Axes, optional): Defaults to None.
-        fig (Figure, optional): Defaults to None.
-        projection (str, optional): e.g. polar. Defaults to None.
+        figsize (list, optional): Defaults to [1, 1].
+        title (str, optional): Defaults to ''.
+        fontsize (int, optional): Defaults to 5.
+        fig (Figure, optional): If None, creates new figure. Defaults to None.
+        ax (Axes, optional): If None, creates new axis. Defaults to None.
+            `fontsize` and `transparent` effect existing axis.
+        projection (str, optional): Defaults to None. E.g. `polar`.
+        set_axis_off (bool, optional): Defaults to False.
+        transparent (bool, optional): Defaults to False.
+        face_alpha (float, optional): Defaults to 0.
+        position (list, optional): Position for newly created axis.
+            Defaults to None.
+        title_pos (str, optional): Defaults to 'center'.
+        title_y (float, optional): Defaults to None.
 
     Returns:
         fig, ax
     """
-    # mpl.rc("font", **{"family": font_family, "sans-serif": font_type})
-    # mpl.rc("figure", dpi=dpi)
 
     # initialize figure and ax
     if fig is None:
         fig = plt.figure(figsize=figsize, layout="constrained")
-        # fig = figure(figsize)
     if ax is not None:
         ax.set_title(title, fontsize=fontsize, loc=title_pos, y=title_y)
     else:
@@ -204,9 +68,6 @@ def init_plot(
         ax.patch.set_alpha(face_alpha)
         ax.set_title(title, fontsize=fontsize, loc=title_pos, y=title_y)
 
-        # ax = subplot(
-        #     title, title_fs=fontsize, projection=projection, **kwargs
-        # )
         if set_axis_off:
             ax.set_axis_off()
     ax.tick_params(axis="both", which="major", labelsize=fontsize)
@@ -216,37 +77,12 @@ def init_plot(
 
 
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    """Truncate colormap."""
     new_cmap = colors.LinearSegmentedColormap.from_list(
         "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
         cmap(np.linspace(minval, maxval, n)),
     )
     return new_cmap
-
-
-def get_colors(num_colors):
-    rnd = np.random.RandomState(7)
-    colors = []
-    k = 0
-    for i in np.arange(0.0, 360.0, 360.0 / num_colors):
-        hue = i / 360.0
-        if k == 0:
-            lightness = (80 + rnd.rand() * 10) / 100.0
-            saturation = (50 + rnd.rand() * 10) / 100.0
-            k += 1
-        elif k == 1:
-            lightness = (50 + rnd.rand() * 10) / 100.0
-            saturation = (80 + rnd.rand() * 10) / 100.0
-            k += 1
-        elif k == 2:
-            lightness = (50 + rnd.rand() * 10) / 100.0
-            saturation = (50 + rnd.rand() * 10) / 100.0
-            k += 1
-        elif k == 3:
-            lightness = (80 + rnd.rand() * 10) / 100.0
-            saturation = (80 + rnd.rand() * 10) / 100.0
-            k = 0
-        colors.append(colorsys.hls_to_rgb(hue, lightness, saturation))
-    return colors
 
 
 def rm_spines(
@@ -256,6 +92,7 @@ def rm_spines(
     rm_xticks=True,
     rm_yticks=True,
 ):
+    """Removes spines and ticks from axis."""
     for spine in spines:
         ax.spines[spine].set_visible(visible)
     if ("top" in spines or "bottom" in spines) and rm_xticks:
@@ -267,114 +104,9 @@ def rm_spines(
     return ax
 
 
-def standalone_legend(
-    labels,
-    colors,
-    legend_elements=None,
-    alpha=1,
-    fontsize=6,
-    fig=None,
-    ax=None,
-    lw=4,
-    labelspacing=0.5,
-    handlelength=2.0,
-):
-    if legend_elements is None:
-        from matplotlib.lines import Line2D
-
-        legend_elements = []
-        for i, label in enumerate(labels):
-            legend_elements.append(
-                Line2D(
-                    [0],
-                    [0],
-                    color=colors[i],
-                    lw=lw,
-                    label=label,
-                    alpha=alpha,
-                    solid_capstyle="round",
-                )
-            )
-    if fig is None or ax is None:
-        fig, ax = plt.subplots(figsize=[0.1, 0.1 * len(labels)])
-    ax.legend(
-        handles=legend_elements,
-        loc="center",
-        edgecolor="white",
-        framealpha=1,
-        fontsize=fontsize,
-        bbox_to_anchor=(0, 1, 0, 1),
-        labelspacing=labelspacing,
-        handlelength=handlelength,
-    )
-    rm_spines(ax, rm_yticks=True, rm_xticks=True)
-    return fig, ax
-
-
-def add_legend(
-    ax,
-    labels,
-    colors,
-    legend_elements=None,
-    alpha=1,
-    fontsize=6,
-    lw=4,
-    labelspacing=0.5,
-    handlelength=2.0,
-    bbox_to_anchor=(1.1, 0.5),
-    edgecolor=None,
-    edgewidth=None,
-    loc="center",
-    override_alpha=False,
-):
-    if legend_elements is None:
-        from matplotlib.lines import Line2D
-
-        legend_elements = []
-        for i, label in enumerate(labels):
-            if len(colors[i]) == 4:
-                if not override_alpha:
-                    alpha = None
-            legend_elements.append(
-                Line2D(
-                    [0],
-                    [0],
-                    color=colors[i],
-                    lw=lw,
-                    label=label,
-                    alpha=alpha,
-                    solid_capstyle="round",
-                    markeredgecolor=edgecolor,
-                    markeredgewidth=edgewidth,
-                )
-            )
-    ax.legend(
-        handles=legend_elements,
-        loc=loc,
-        edgecolor="white",
-        framealpha=1,
-        fontsize=fontsize,
-        bbox_to_anchor=bbox_to_anchor,
-        labelspacing=labelspacing,
-        handlelength=handlelength,
-    )
-
-
-def get_ax_centers(axes):
-    return get_ax_positions(axes)[1][0]
-
-
-def get_ax_lbwh(axes):
-    (left, bottom, _, _), (_, width, height) = get_ax_positions(axes)
-    return left, bottom, width, height
-
-
-def get_ax_x0y0x1y1(axes):
-    return get_ax_positions(axes)[0]
-
-
 def get_ax_positions(axes):
-    """
+    """Returns the positions of the axes in the figure.
+
     Args:
         single ax or iterable of axes
 
@@ -391,170 +123,22 @@ def get_ax_positions(axes):
     return (lefts, bottoms, rights, tops), (centers, widths, heights)
 
 
-def standalone_marker_legend(
-    labels,
-    markers,
-    colors="#6CA2CA",
-    alpha=1,
-    fontsize=6,
-    markersize=10,
-    fig=None,
-    ax=None,
-):
-    from matplotlib.lines import Line2D
-
-    legend_elements = []
-
-    if isinstance(colors, str):
-        colors = (colors,) * len(labels)
-
-    for i, label in enumerate(labels):
-        legend_elements.append(
-            Line2D(
-                [],
-                [],
-                color=colors[i],
-                marker=markers[i],
-                linestyle="None",
-                label=label,
-                alpha=alpha,
-                markersize=markersize,
-            )
-        )
-    if fig is None:
-        fig, ax = plt.subplots(figsize=[0.1, 0.1 * len(labels)])
-        bbox_to_anchor = (0, 1, 0, 1)
-    else:
-        if ax is None:
-            ax = fig.add_axes([0, 0, 1, 1])
-        left, bottom, right, top = ax.get_position().extents
-        bbox_to_anchor = (left, right - left, bottom, top - bottom)
-
-    ax.legend(
-        handles=legend_elements,
-        loc="center",
-        edgecolor="white",
-        framealpha=1,
-        fontsize=fontsize,
-        bbox_to_anchor=bbox_to_anchor,
-    )
-    rm_spines(ax, rm_yticks=True, rm_xticks=True)
-    return fig, ax
-
-
-def add_marker_legend(
-    fig,
-    labels,
-    markers,
-    colors="#1A599D",
-    pos="right",
-    width=0.05,
-    height=0.5,
-    x_offset=0,
-    y_offset=0,
-    alpha=1,
-    fontsize=5,
-    markersize=5,
-):
-    from matplotlib.lines import Line2D
-
-    if isinstance(colors, str):
-        colors = (colors,) * len(labels)
-
-    legend_elements = [
-        Line2D(
-            [],
-            [],
-            color=colors[i],
-            marker=markers[i],
-            linestyle="None",
-            label=label,
-            alpha=alpha,
-            markersize=markersize,
-        )
-        for i, label in enumerate(labels)
-    ]
-
-    position = derive_position_for_supplementary_ax(
-        fig,
-        pos=pos,
-        width=width,
-        height=height,
-        x_offset=x_offset,
-        y_offset=y_offset,
-    )
-    # print(position)
-    legend_ax = fig.add_axes(position, label="marker legend", alpha=0)
-    legend_ax.legend(
-        handles=legend_elements,
-        loc="center",
-        edgecolor="white",
-        framealpha=0,
-        fontsize=fontsize,
-        # bbox_to_anchor=(0, 1, 0, 1),
-    )
-    rm_spines(legend_ax, rm_yticks=True, rm_xticks=True)
-    return legend_ax
-
-
-def trim_axis(ax, xaxis=True, yaxis=True):
-    if xaxis:
-        xticks = np.array(ax.get_xticks())
-        minor_xticks = np.array(ax.get_xticks(minor=True))
-        all_ticks = np.sort(np.concatenate((minor_xticks, xticks)))
-        if hasattr(xticks, "size"):
-            firsttick = np.compress(all_ticks >= min(ax.get_xlim()), all_ticks)[0]
-            lasttick = np.compress(all_ticks <= max(ax.get_xlim()), all_ticks)[-1]
-            ax.spines["top"].set_bounds(firsttick, lasttick)
-            ax.spines["bottom"].set_bounds(firsttick, lasttick)
-            new_minor_ticks = minor_xticks.compress(minor_xticks <= lasttick)
-            new_minor_ticks = new_minor_ticks.compress(new_minor_ticks >= firsttick)
-            newticks = xticks.compress(xticks <= lasttick)
-            newticks = newticks.compress(newticks >= firsttick)
-            ax.set_xticks(newticks)
-            ax.set_xticks(new_minor_ticks, minor=True)
-
-    if yaxis:
-        yticks = np.array(ax.get_yticks())
-        minor_yticks = np.array(ax.get_yticks(minor=True))
-        all_ticks = np.sort(np.concatenate((minor_yticks, yticks)))
-        if hasattr(yticks, "size"):
-            firsttick = np.compress(all_ticks >= min(ax.get_ylim()), all_ticks)[0]
-            lasttick = np.compress(all_ticks <= max(ax.get_ylim()), all_ticks)[-1]
-            ax.spines["left"].set_bounds(firsttick, lasttick)
-            ax.spines["right"].set_bounds(firsttick, lasttick)
-            new_minor_ticks = minor_yticks.compress(minor_yticks <= lasttick)
-            new_minor_ticks = new_minor_ticks.compress(new_minor_ticks >= firsttick)
-            newticks = yticks.compress(yticks <= lasttick)
-            newticks = newticks.compress(newticks >= firsttick)
-            ax.set_yticks(newticks)
-            ax.set_yticks(new_minor_ticks, minor=True)
-
-
 def is_hex(color):
+    """Checks if color is hex.""" ""
     return "#" in color
 
 
 def is_integer_rgb(color):
+    """Checks if color is integer rgb."""
     try:
         return any([c > 1 for c in color])
-    except:
+    # if color is string
+    except TypeError:
         return False
 
 
-def single_color_cmap(color):
-    if is_hex(color):
-        color = to_rgba(color)
-    elif is_integer_rgb(color):
-        color = np.array(color) / 255
-    else:
-        pass
-
-    return ListedColormap(color)
-
-
 def get_alpha_colormap(saturated_color, number_of_shades):
-    """To create a colormap from a color and a number of shades."""
+    """Create a colormap from a color and a number of shades."""
     if is_hex(saturated_color):
         rgba = [*hex2color(saturated_color)[:3], 0]
     elif is_integer_rgb(saturated_color):
@@ -570,54 +154,10 @@ def get_alpha_colormap(saturated_color, number_of_shades):
     return ListedColormap(colors)
 
 
-def get_polar_colormap(
-    fig, ax, size=0.2, xy=(), cmap=plt.cm.twilight_shifted, fontsize=10
-):
-    """Plots a new axis with polar colormap next to a figure.
-
-    Note: can only do 1d colorwheel. Seadd.
-    """
-    x0, y0, x1, y1 = ax.get_position().extents
-    left = xy[0] if xy else x1 + 0.1 * x1
-    bottom = xy[1] if xy else y1 - y1 / 2
-    cb = fig.add_axes([left, bottom, size, size], polar=True)
-    norm = plt.Normalize(0, 2 * np.pi)
-    n = 200  # the number of secants for the mesh
-    t = np.linspace(0, 2 * np.pi, n)  # theta values
-    r = np.linspace(0, 1, 2)  # radius values change 0.6 to 0 for full circle
-    rg, tg = np.meshgrid(r, t)  # create a r,theta meshgrid
-    # plot the colormesh on axis with colormap
-    im = cb.pcolormesh(t, r, tg.T, cmap=plt.cm.twilight_shifted, norm=norm)
-    cb.set_yticklabels([])  # turn of radial tick labels (yticks)
-    cb.tick_params(labelsize=fontsize)  # cosmetic changes to tick labels
-    cb.spines["polar"].set_visible(False)
-    return cb
-
-
-def complex_to_rgb(complex_data, invert=False):
-    """Computes RGB data from a complex array based on sinusoidal phase encoding."""
-    phase = np.angle(complex_data)
-    amplitude = np.abs(complex_data)
-    amplitude = amplitude / amplitude.max()
-    A = np.zeros([complex_data.shape[0], complex_data.shape[1], 4])
-    A[:, :, 0] = 0.5 * (np.cos(phase) + 1) * amplitude
-    A[:, :, 1] = 0.5 * (-np.cos(phase) + 1) * amplitude
-    A[:, :, 2] = 0.8  # *(np.cos(phase)+1)*amplitude
-    if invert:
-        A = 1 - A
-        A[:, :, -1] = amplitude
-        return A
-    else:
-        A[:, :, -1] = amplitude
-        return A
-
-
 def polar_to_cmap(
     r, theta, invert=True, cmap=plt.cm.twilight_shifted, norm=None, sm=None
 ):
-    """Computes RGB data from a complex array based on phase encoding by
-    indicated colormap or scalarmappable.
-    """
+    """Maps angle to rgb and amplitude to alpha and returns the resulting array."""
     sm = sm if sm else plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     r = r / r.max()
     A = np.zeros([theta.shape[0], theta.shape[1], 4])
@@ -632,111 +172,6 @@ def polar_to_cmap(
     else:
         A[:, :, -1] = r  # amplitude
         return A
-
-
-def coordinate_system_with_motion_direction(norm=None, sm=None):
-    fig, _, ax = standalone_colorwheel_2d(
-        figsize=cm_to_inch([1, 1]),
-        cmap=cm_uniform_2d,
-        labelpad=-17,
-        fontsize=5,
-        ticks=[0, 90, 180, 270],
-        mode="1d",
-        norm=norm,
-        sm=sm,
-    )
-    ax.set_title("motion\ndirection", fontsize=5, pad=0)
-    cs_ax = fig.add_axes([0, 0, 1, 1], label="cs_ax")
-    coordinate_system(fig=fig, ax=cs_ax)
-    return fig
-
-
-def add_coordinate_system_with_motion_direction(
-    fig, title="", pos="east", radius=0.25, x_offset=0, y_offset=0, fontsize=5
-):
-    cwheel_ax, _ = add_colorwheel_2d(
-        fig,
-        pos=pos,
-        radius=radius,
-        x_offset=x_offset,
-        y_offset=y_offset,
-        fontsize=fontsize,
-        labelpad=-17,
-        mode="1d",
-        ticks=[0, 90, 180, 270],
-    )
-    x0, y0, x1, y1 = cwheel_ax.get_position().extents
-    cs_ax = fig.add_axes([x0, y0, x1 - x0, y1 - y0], label="cs_ax")
-    coordinate_system(fig=fig, ax=cs_ax, xlabel="front", ylabel="up", fontsize=fontsize)
-    cs_ax.set_title(title, fontsize=fontsize)
-    return fig
-    fig, _, ax = standalone_colorwheel_2d(
-        figsize=cm_to_inch([1, 1]),
-        cmap=cm_uniform_2d,
-        labelpad=-17,
-        fontsize=5,
-        ticks=[0, 90, 180, 270],
-        mode="1d",
-        norm=norm,
-        sm=sm,
-    )
-    ax.set_title("motion\ndirection", fontsize=5, pad=0)
-    cs_ax = fig.add_axes([0, 0, 1, 1], label="cs_ax")
-
-
-def coordinate_system(
-    fig=None, ax=None, xlabel="posterior", ylabel="dorsal", fontsize=5
-):
-    fig, ax = init_plot(figsize=[0.3, 0.3], fontsize=fontsize, fig=fig, ax=ax)
-    rm_spines(ax, ("top", "right"))
-    ax.set_alpha(0)
-    ax.patch.set_alpha(0)
-    ax.spines["left"].set_position(("data", 0))
-    ax.spines["bottom"].set_position(("data", 0))
-    ax.plot(
-        1,
-        0,
-        ">k",
-        transform=ax.get_yaxis_transform(),
-        ms=1,
-        linewidth=0.5,
-        clip_on=False,
-    )
-    ax.plot(
-        0,
-        1,
-        "^k",
-        transform=ax.get_xaxis_transform(),
-        ms=1,
-        linewidth=0.5,
-        clip_on=False,
-    )
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.set_ylabel(ylabel, fontsize=fontsize, loc="bottom", labelpad=2)
-    ax.set_xlabel(xlabel, fontsize=fontsize, loc="left", labelpad=2)
-    ax.set_aspect("equal")
-    return fig
-
-
-def add_coordinate_system(
-    fig,
-    pos="southwest",
-    radius=0.1,
-    x_offset=0,
-    y_offset=0,
-    xlabel="posterior",
-    ylabel="dorsal",
-    fontsize=5,
-):
-    ax = add_positioned_axis_hex(
-        fig, radius=radius, pos=pos, x_offset=x_offset, y_offset=y_offset
-    )
-    _ = coordinate_system(
-        fig=fig, ax=ax, xlabel=xlabel, ylabel=ylabel, fontsize=fontsize
-    )
 
 
 def add_colorwheel_2d(
@@ -756,9 +191,10 @@ def add_colorwheel_2d(
     mode="2d",
     ticks=[0, 60, 120],
 ):
-    """
+    """Adds a colorwheel to a figure.
+
     Args:
-        pos: 'southeast', 'east', ...
+        pos: 'southeast', 'east', 'northeast', 'north', 'northwest', 'west', 'southwest', 'south', 'origin'.
         radius: radius in percentage of the ax radius
         x_offset: offset in percentage of cbar diameter
         y_offset: offset in percentage of cbar diameter
@@ -795,124 +231,16 @@ def add_colorwheel_2d(
     cs = fig.add_axes(pos, polar=True, label="annotation", alpha=0)
     cs.set_facecolor("none")
     cs.set_yticks([])
-    cs.set_yticklabels([])  # turn of radial tick labels (yticks)
+    cs.set_yticklabels([])  # turn off radial tick labels (yticks)
 
     # cosmetic changes to tick labels
     cs.tick_params(pad=labelpad, labelsize=fontsize)
-    cs.set_xticks(
-        np.radians(ticks)
-    )  # , np.radians(180), np.radians(240), np.radians(300)])  # , np.pi])
-    cs.set_xticklabels(
-        [x + "°" for x in np.array(ticks).astype(int).astype(str)]
-    )  # , r"180$^\circ$", r"-120$^\circ$", r"-60$^\circ$"])  # , "$\pi$"])
+    cs.set_xticks(np.radians(ticks))
+    cs.set_xticklabels([x + "°" for x in np.array(ticks).astype(int).astype(str)])
 
     plt.setp(cs.spines.values(), color="white", linewidth=2)
 
     return cb, cs
-
-
-def add_positioned_axis(
-    fig,
-    pos="right",
-    width=0.05,
-    height=0.5,
-    x_offset=0,
-    y_offset=0,
-):
-    pos = derive_position_for_supplementary_ax(
-        fig, pos, width, height, x_offset, y_offset
-    )
-    new_ax = fig.add_axes(pos, alpha=0)
-    new_ax.patch.set_alpha(0)
-    return new_ax
-
-
-def add_positioned_axis_hex(
-    fig,
-    pos="southwest",
-    radius=0.25,
-    x_offset=0,
-    y_offset=0,
-):
-    pos = derive_position_for_supplementary_ax_hex(
-        fig, pos=pos, radius=radius, x_offset=x_offset, y_offset=y_offset
-    )
-    new_ax = fig.add_axes(pos, alpha=0)
-    new_ax.patch.set_alpha(0)
-    return new_ax
-
-
-def standalone_colorbar(
-    cmap,
-    norm,
-    figsize=[0.1, 0.4],
-    orientation="vertical",
-    ticks=None,
-    alpha=1,
-    fontsize=5,
-    label="",
-    tick_width=1,
-    tick_length=2,
-    pos="right",
-    style="",
-    use_math_text=False,
-    scilimits=None,
-    tick_pad=0,
-    rm_outline=True,
-    plain=False,
-    fig=None,
-    ax=None,
-):
-    if fig is None or ax is None:
-        fig = plt.figure(figsize=figsize)
-        cbax = fig.add_axes([0, 0, 1, 1], label="cbar")
-    else:
-        cbax = ax
-    cbar = mpl.colorbar.ColorbarBase(
-        cbax,
-        cmap=cmap,
-        norm=norm,
-        orientation=orientation,
-        ticks=ticks,
-        alpha=alpha,
-    )
-    cbar.set_label(fontsize=fontsize, label=label)
-    cbar.ax.tick_params(
-        labelsize=fontsize, length=tick_length, width=tick_width, pad=tick_pad
-    )
-
-    if pos in ("left", "right"):
-        scalarformatter = isinstance(
-            cbar.ax.yaxis.get_major_formatter(), mpl.ticker.ScalarFormatter
-        )
-        cbar.ax.yaxis.set_ticks_position(pos)
-        cbar.ax.yaxis.set_label_position(pos)
-        cbar.ax.yaxis.get_offset_text().set_fontsize(fontsize)
-        cbar.ax.yaxis.get_offset_text().set_horizontalalignment("left")
-        cbar.ax.yaxis.get_offset_text().set_verticalalignment("bottom")
-    else:
-        scalarformatter = isinstance(
-            cbar.ax.xaxis.get_major_formatter(), mpl.ticker.ScalarFormatter
-        )
-        cbar.ax.xaxis.set_ticks_position(pos)
-        cbar.ax.xaxis.set_label_position(pos)
-        cbar.ax.xaxis.get_offset_text().set_fontsize(fontsize)
-        cbar.ax.xaxis.get_offset_text().set_verticalalignment("top")
-        cbar.ax.xaxis.get_offset_text().set_horizontalalignment("left")
-
-    if scalarformatter:
-        cbar.ax.ticklabel_format(
-            style=style, useMathText=use_math_text, scilimits=scilimits
-        )
-
-    if rm_outline:
-        cbar.outline.set_visible(False)
-
-    if plain:
-        cbar.set_ticks([])
-        # rm_spines(cbar.ax, rm_xticks=True, rm_yticks=True)
-
-    return fig, cbar
 
 
 def derive_position_for_supplementary_ax(
@@ -951,10 +279,6 @@ def derive_position_for_supplementary_ax(
             ax_width * width,
             ax_height * height,
         ],
-        # 'top_right': [x1 - x0 + (1 - width) * ax_width/2 + ax_width * width * x_offset,
-        #               y1 + ax_height * height / 2 + ax_height * height * y_offset,
-        #               ax_width * width,
-        #               ax_height * height],
         "bottom": [
             x0 + (1 - width) * ax_width / +ax_width * width * x_offset,
             y0 - 3 / 2 * ax_height * height + ax_height * height * y_offset,
@@ -975,8 +299,10 @@ def derive_position_for_supplementary_ax_hex(
 ):
     """Returns a position for a supplementary ax.
 
-    pos: southeast, east, northeast, north, northwest, west, southwest, south
-        referring to the edge in regular hex space that the ax will be placed on.
+    Args:
+        pos: 'southwest', 'southeast', 'northeast', 'northwest', 'north',
+            'south', 'east', 'west', 'origin'
+
     """
     axes = axes if axes is not None else fig.get_axes()
     x0, y0, x1, y1 = np.array([ax.get_position().extents for ax in axes]).T
@@ -1073,7 +399,6 @@ def add_colorbar_to_fig(
     tick_width=0.75,
     rm_outline=True,
     ticks=None,
-    formatter=None,
     norm=None,
     label="",
     plain=False,
@@ -1087,7 +412,8 @@ def add_colorbar_to_fig(
     discrete_labels=None,
     n_decimals=2,
 ):
-    """
+    """Adds a colorbar to a figure.
+
     Args:
         pos: either 'right', 'left', 'top', or 'bottom'
         width: cbar width in percentage of ax_width
@@ -1108,11 +434,7 @@ def add_colorbar_to_fig(
         axes=axes,
     )
     cbax = fig.add_axes(position, label="cbar")
-    # sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
-    # # breakpoint()
-    # cbar = plt.colorbar(
-    #     sm, cax=cbax, ticks=ticks, orientation=_orientation, alpha=alpha
-    # )
+
     cbar = mpl.colorbar.ColorbarBase(
         cbax,
         cmap=cmap,
@@ -1146,35 +468,25 @@ def add_colorbar_to_fig(
         cbar.ax.ticklabel_format(
             style=style, useMathText=use_math_text, scilimits=scilimits
         )
-        # ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
     if rm_outline:
         cbar.outline.set_visible(False)
 
     if isinstance(norm, TwoSlopeNorm):
-        # if isinstance(norm, MidpointNormalize):
-        # n_ticks = 7  # len(cbar.ax.yaxis.get_major_ticks())
         vmin = norm.vmin
         vmax = norm.vmax
-        # vcenter = norm.midpoint  # norm.vcenter
         vcenter = norm.vcenter
         left_ticks = np.linspace(vmin, vcenter, n_ticks // 2)
         right_ticks = np.linspace(vcenter, vmax, n_ticks // 2)
-        # print(left_ticks, right_ticks)
-        # right_ticks = np.linspace(vmax / (n_ticks // 2), vmax, n_ticks // 2)
         ticks = ticks or [*left_ticks, *right_ticks[1:]]
-        # print(ticks)
-        # print(cbar.ax.get_ylim())
         cbar.set_ticks(
             ticks,
             labels=[f"{t:.{n_decimals}f}" for t in ticks],
             fontsize=fontsize,
         )
-        # print(cbar.ax.get_ylim())
 
     if plain:
         cbar.set_ticks([])
-        # rm_spines(cbar.ax, rm_xticks=True, rm_yticks=True)
 
     if discrete:
         # to put ticklabels for discrete colors in the middle
@@ -1191,94 +503,10 @@ def add_colorbar_to_fig(
     return cbar
 
 
-def add_colorbar(
-    fig,
-    ax,
-    pos="right",
-    width=0.03,
-    height=0.5,
-    x_offset=0,
-    y_offset=0,
-    cmap=cm.get_cmap("binary"),
-    fontsize=10,
-    tick_length=2,
-    tick_width=1,
-    rm_outline=True,
-    ticks=None,
-    formatter=None,
-    norm=None,
-    label="",
-    plain=False,
-    use_math_text=False,
-    scilimits=None,
-    style="",
-    alpha=1,
-    discrete=False,
-    n_discrete=None,
-    discrete_labels=None,
-):
-    """
-    Args:
-        pos: either 'right', 'left', 'top', or 'bottom'
-        width: cbar width in percentage of ax_width
-        height: cbar height in percentage of ax_height
-        x_offset: offset in percentage of cbar width
-        y_offset: offset in percentage of cbar height
-    """
-    kwargs = vars()
-    kwargs.pop("ax")
-    return add_colorbar_to_fig(**kwargs)
-
-
-def cmap_map(function, cmap):
-    """Applies function (which should operate on vectors of shape 3: [r, g, b]), on colormap cmap.
-    This routine will break any discontinuous points in a colormap.
-    """
-    cdict = cmap._segmentdata
-    step_dict = {}
-    # Firt get the list of points where the segments start or end
-    for key in ("red", "green", "blue"):
-        step_dict[key] = list(map(lambda x: x[0], cdict[key]))
-    step_list = sum(step_dict.values(), [])
-    step_list = np.array(list(set(step_list)))
-    # Then compute the LUT, and apply the function to the LUT
-    reduced_cmap = lambda step: np.array(cmap(step)[0:3])
-    old_LUT = np.array(list(map(reduced_cmap, step_list)))
-    new_LUT = np.array(list(map(function, old_LUT)))
-    # Now try to make a minimal segment definition of the new LUT
-    cdict = {}
-    for i, key in enumerate(["red", "green", "blue"]):
-        this_cdict = {}
-        for j, step in enumerate(step_list):
-            if step in step_dict[key]:
-                this_cdict[step] = new_LUT[j, i]
-            elif new_LUT[j, i] != old_LUT[j, i]:
-                this_cdict[step] = new_LUT[j, i]
-        colorvector = list(map(lambda x: x + (x[1],), this_cdict.items()))
-        colorvector.sort()
-        cdict[key] = colorvector
-
-    return mpl.colors.LinearSegmentedColormap("colormap", cdict, 1024)
-
-
-def nbAgg(animation):
-    """Changes the matplotlib backend for animations in the notebook."""
-    import functools
-
-    @functools.wraps(animation)
-    def decorator(*args, **kwargs):
-        backend = mpl.get_backend()
-        if backend != "nbAgg":
-            mpl.pyplot.switch_backend("nbAgg")
-        value = animation(*args, **kwargs)
-        mpl.pyplot.switch_backend(backend)
-        return value
-
-    return decorator
-
-
-def get_norm(norm=None, vmin=None, vmax=None, midpoint=None, log=None, symlog=None):
-    """Returns a normalization object.
+def get_norm(
+    norm=None, vmin=None, vmax=None, midpoint=None, log=None, symlog=None
+) -> Normalize:
+    """Returns a normalization object for color normalization.
 
     Args:
         norm (Normalize, optional): A class which, when called, can normalize
@@ -1288,21 +516,20 @@ def get_norm(norm=None, vmin=None, vmax=None, midpoint=None, log=None, symlog=No
         midpoint (float, optional): Midpoint value so that data is normalized
             around it. Defaults to None.
         log (bool, optional): if to normalize on a log-scale. Defaults to None.
-        symlog (float, optional): if float, normalizes to symlog with linear range
+        symlog (float, optional): normalizes to symlog with linear range
             around the range (-symlog, symlog).
 
-    Behaviour:
-        1. returns existing norm if given.
-        2. returns TwoSlopeNorm if vmin, vmax and midpoint is not None.
-        3. returns LogNorm if vmin, vmax and log is not None.
-        4. returns regular Normalize object if vmin and vmax is not None.
-
     Returns:
-        Normalize object
+        1. existing norm if given.
+        2. else TwoSlopeNorm if vmin, vmax and midpoint is not None.
+        3. else LogNorm if vmin, vmax and log is not None.
+        4. else SymLogNorm if vmin, vmax and symlog is not None.
+        5. else regular Normalize object if vmin and vmax is not None.
+        6. else None.
     """
     if norm:
         return norm
-    # TODO: compose
+
     if all(val is not None for val in (vmin, vmax)):
         vmin -= 1e-15
         vmax += 1e-15
@@ -1321,7 +548,7 @@ def get_norm(norm=None, vmin=None, vmax=None, midpoint=None, log=None, symlog=No
     elif all(val is not None for val in (vmin, vmax)):
         return mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     else:
-        pass
+        return None
 
 
 def get_scalarmapper(
@@ -1333,16 +560,13 @@ def get_scalarmapper(
     midpoint=None,
     log=None,
     symlog=None,
-):
-    """Returns scalarmappable with appropiate colornorm.
+) -> Tuple[ScalarMappable, Normalize]:
+    """Returns scalarmappable with norm from `get_norm` and cmap.
 
     Args:
-        scalarmapper (Scalarmappable, optional): This is a mixin class to support
-            scalar data to RGBA mapping. Defaults to None.
+        scalarmapper (Scalarmappable, optional): for data to RGBA mapping.
+            Defaults to None.
         cmap (Colormap, optional): Defaults to None.
-
-    Returns:
-        scalarmapper, norm
     """
     if scalarmapper:
         return scalarmapper, norm
@@ -1358,20 +582,9 @@ def get_scalarmapper(
     return plt.cm.ScalarMappable(norm=norm, cmap=cmap), norm
 
 
-def get_discrete_color_map(array, cmap, vmin=None, vmax=None, midpoint=None):
-    """Get a listed colormap with len(array) values of colors according to cmap
-        and either linear or midpoint normalization.
-
-    Note: iterate through it with indices instead of values from array.
-    """
-    from matplotlib.colors import ListedColormap
-
-    sm, norm = get_scalarmapper(cmap=cmap, vmin=vmin, vmax=vmax, midpoint=midpoint)
-    colors = sm.to_rgba(array)
-    return ListedColormap(colors)
-
-
 def get_lims(z, offset, min=None, max=None):
+    """Get scalar bounds of Ndim-array-like structure with relative offset."""
+
     def sub_nan(val, sub):
         if np.isnan(val):
             return sub
@@ -1397,44 +610,6 @@ def get_lims(z, offset, min=None, max=None):
     return _min, _max
 
 
-def cell_type_collection_ax_lims_per_batch(data, neuron_types=None, offset=0.1):
-    """
-
-    Args:
-        data (Dict[str, array]): maps cell types onto
-                            activity of shape (n_samples, n_frames, ...).
-
-    Returns:
-        List[Tuple]: list of length n_samples with ax min and ax max limits.
-    """
-
-    neuron_types = neuron_types or list(data.keys())
-
-    # stack as #cell_types, n_samples, n_frames, ...
-    stacked_data = []
-    for neuron_type in neuron_types:
-        trace = dvs.utils.to_numpy(data[neuron_type])
-        stacked_data.append(trace)
-    stacked_data = np.array(stacked_data)
-
-    lims = []
-    for batch in range(stacked_data.shape[1]):
-        lims.append(get_lims(stacked_data[:, batch], offset))
-
-    return lims
-
-
-def filter_trace(trace, N):
-    """Filters trace with a bump of size N. Returns a masked array."""
-    trace = np.ma.masked_invalid(trace)
-    shape = trace.shape
-    _data = smooth_gpu(trace, N)
-    trace.data[:] = _data[..., : shape[1]].reshape(*shape)
-    trace.mask[:, :N] = np.ones(N)
-    trace.mask[:, -N:] = np.ones(N)
-    return trace
-
-
 def avg_pool(trace, N):
     """Smoothes (multiple) traces over the second dimension using the GPU.
 
@@ -1448,25 +623,8 @@ def avg_pool(trace, N):
     return trace_smooth.reshape(shape[0], -1)
 
 
-def smooth_gpu(trace, N):
-    """Smoothes (multiple) traces over the second dimension using the GPU.
-
-    Args:
-        trace (array): of shape (..., ..., t).
-    """
-    shape = trace.shape
-    trace = trace.reshape(np.prod(shape[:-1]), shape[-1])
-    with torch.no_grad():
-        conv = torch.nn.Conv1d(1, 1, N, bias=False, padding=int(N / 2))
-        conv.weight[:] = torch.exp(-torch.linspace(-1, 1, N) ** 2)
-        conv.weight /= conv.weight.sum()
-        # breakpoint()
-        trace_smooth = conv(torch.Tensor(trace).unsqueeze(1)).cpu().numpy()
-
-    return trace_smooth.squeeze()[..., : shape[-1]].reshape(*shape)
-
-
 def width_n_height(N, aspect_ratio, max_width=None, max_height=None):
+    """Integer width and height for a grid of N plots with aspect ratio."""
     if max_width is not None and max_height is not None:
         raise ValueError
 
@@ -1491,14 +649,6 @@ def width_n_height(N, aspect_ratio, max_width=None, max_height=None):
     return int(gridwidth), int(gridheight)
 
 
-def plot_stim_contour(
-    time, stim, ax, cmap=plt.cm.bone, alpha=0.3, vmin=0, vmax=1, levels=2
-):
-    y = np.linspace(-20_000, 20_000, 10)
-    Z = np.tile(stim, (len(y), 1))
-    ax.contourf(time, y, Z, cmap=cmap, levels=levels, alpha=alpha, vmin=vmin, vmax=vmax)
-
-
 def get_axis_grid(
     alist=None,
     gridwidth=None,
@@ -1509,7 +659,6 @@ def get_axis_grid(
     ax=None,
     axes=None,
     aspect_ratio=1,
-    offset=5,
     figsize=None,
     scale=3,
     projection=None,
@@ -1522,11 +671,34 @@ def get_axis_grid(
     sharey=None,
     unmask_n=None,
 ):
-    """Create a list of axes that are aligned in a grid.
+    """Create axis grid for a list of elements or integer width and height.
 
     Args:
         alist: list of elements to create grid for.
-        scale: figure scaling, figsize = scale*(num_rows, num_columns).
+        gridwidth: width of grid.
+        gridheight: height of grid.
+        max_width: maximum width of grid.
+        max_height: maximum height of grid.
+        fig: optional existing figure to use.
+        ax: optional existing axis to use. This ax will be divided into a grid
+            of axes with the same size as the grid.
+        axes: optional existing axes to use.
+        aspect_ratio: aspect ratio of grid.
+        figsize: figure size.
+        scale: scales figure size by this factor(s) times the grid width and height.
+        projection: projection of axes.
+        as_matrix: return axes as matrix.
+        fontsize: fontsize of axes.
+        wspace: width space between axes.
+        hspace: height space between axes.
+        alpha: alpha of axes.
+        sharex: share x axis. Only effective if a new grid of axes is created.
+        sharey: share y axis. Only effective if a new grid of axes is created.
+        unmask_n: number of elements to unmask. If None, all elements are unmasked.
+            If provided elements at indices >= unmask_n are padded with nans.
+
+    Returns:
+        fig, axes, (gridwidth, gridheight)
     """
     if alist is not None and (
         gridwidth is None or gridheight is None or gridwidth * gridheight != len(alist)
@@ -1599,7 +771,7 @@ def get_axis_grid(
 
     for ax in axes:
         if isinstance(ax, Axes):
-            set_label_size(ax, fontsize)
+            ax.tick_params(axis="both", which="major", labelsize=fontsize)
             ax.patch.set_alpha(alpha)
 
     if as_matrix:
@@ -1608,89 +780,66 @@ def get_axis_grid(
     return fig, axes, (gridwidth, gridheight)
 
 
-def set_label_size(ax, fontsize=5):
-    ax.tick_params(axis="both", which="major", labelsize=fontsize)
-
-
-def divide_figure_to_grid(
-    matrix=[
-        [0, 1, 1, 1, 2, 2, 2],
-        [3, 4, 5, 6, 2, 2, 2],
-        [3, 7, 7, 7, 2, 2, 2],
-        [3, 8, 8, 12, 2, 2, 2],
-        [3, 10, 11, 12, 2, 2, 2],
-    ],
-    as_matrix=False,
-    alpha=0,
-    constrained_layout=False,
-    fig=None,
-    figsize=[10, 10],
-    projection=None,
-    wspace=0.1,
+def figure(
+    figsize,
     hspace=0.3,
-    no_spines=False,
-    keep_nan_axes=False,
-    fontsize=5,
-    reshape_order="F",
+    wspace=0.1,
+    left=0.125,
+    right=0.9,
+    top=0.9,
+    bottom=0.1,
+    frameon=None,
 ):
-    """
-    Creates a figure grid specified by the arrangement of unique
-    elements in a matrix.
-    """
+    """Create a figure with the given size and spacing."""
+    fig = plt.figure(figsize=figsize, frameon=frameon)
+    plt.subplots_adjust(
+        hspace=hspace,
+        wspace=wspace,
+        left=left,
+        top=top,
+        right=right,
+        bottom=bottom,
+    )
+    return fig
 
-    def _array_to_slice(array):
-        step = 1
-        start = array.min()
-        stop = array.max() + 1
-        return slice(start, stop, step)
 
-    fig = plt.figure(figsize=figsize) if fig is None else fig
-    if constrained_layout:
-        fig.set_layout_engine("constrained")
-    matrix = np.ma.masked_invalid(matrix)
-    rows, columns = matrix.shape
+def subplot(
+    title,
+    grid=(1, 1),
+    location=(0, 0),
+    colspan=1,
+    rowspan=1,
+    projection=None,
+    sharex=None,
+    sharey=None,
+    xlabel="",
+    ylabel="",
+    face_alpha=1.0,
+    fontisze=5,
+    title_pos="center",
+    position=None,
+    **kwargs,
+):
+    """Create a subplot using subplot2grid with some extra options."""
+    ax = plt.subplot2grid(
+        grid,
+        location,
+        colspan,
+        rowspan,
+        sharex=sharex,
+        sharey=sharey,
+        projection=projection,
+    )
+    if position:
+        ax.set_position(position)
+    ax.patch.set_alpha(face_alpha)
 
-    gs = GridSpec(rows, columns, figure=fig, hspace=hspace, wspace=wspace)
+    ax.set_title(title, fontsize=fontisze, loc=title_pos)
 
-    axes = {}
-    for val in np.unique(matrix[~matrix.mask]):
-        _row_ind, _col_ind = np.where(matrix == val)
-        _row_slc, _col_slc = _array_to_slice(_row_ind), _array_to_slice(_col_ind)
+    plt.xlabel(xlabel, fontsize=fontisze)
+    plt.ylabel(ylabel, fontsize=fontisze)
 
-        _projection = projection[val] if isinstance(projection, dict) else projection
-        ax = fig.add_subplot(gs[_row_slc, _col_slc], projection=_projection)
-        ax.patch.set_alpha(alpha)
-        ax.tick_params(axis="both", which="major", labelsize=fontsize)
-        if projection is None:
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-        axes[val] = ax
-
-    if keep_nan_axes:
-        for _row_ind, _col_ind in np.array(np.where(np.isnan(matrix))).T:
-            _row_slc, _col_slc = _array_to_slice(_row_ind), _array_to_slice(_col_ind)
-            ax = fig.add_subplot(gs[_row_slc, _col_slc])
-            ax.patch.set_alpha(alpha)
-            rm_spines(ax, ("left", "right", "top", "bottom"))
-            ax.set_visible(False)
-
-    if no_spines:
-        for ax in axes.values():
-            rm_spines(ax, rm_xticks=True, rm_yticks=True)
-
-    if as_matrix:
-        if reshape_order == "special":
-            ax_matrix = np.ones(matrix.shape, dtype=object) * np.nan
-            for key, value in axes.items():
-                _row_ind, _col_ind = np.where(matrix == key)
-                ax_matrix[_row_ind, _col_ind] = value
-            axes = ax_matrix
-        else:
-            _axes = np.ones(matrix.shape, dtype=object).flatten() * np.nan
-            _axes[: len(axes)] = np.array(list(axes.values()), dtype=object)
-            axes = _axes.reshape(matrix.shape, order=reshape_order)
-
-    return fig, axes
+    return ax
 
 
 def divide_axis_to_grid(
@@ -1699,9 +848,6 @@ def divide_axis_to_grid(
     wspace=0.1,
     hspace=0.1,
     projection=None,
-    despine=True,
-    offset=5,
-    trim=False,
 ):
     """Divides an existing axis inside a figure to a grid specified by unique
         elements in a matrix.
@@ -1712,10 +858,12 @@ def divide_axis_to_grid(
             a new axis.
         wspace (float): horizontal space between new axes.
         hspace (float): vertical space between new axes.
+        projection (str): projection of new axes.
+
 
     Returns
-        tuple: fig, axes (dict)
-
+        dict: dictionary of new axes, where keys are unique elements in
+            the matrix.
 
     Example:
         >>> fig = plt.figure()
@@ -1734,7 +882,6 @@ def divide_axis_to_grid(
     ax.set_axis_off()
     ax.patch.set_alpha(0)
     fig = ax.figure
-    # ax.remove()
 
     # get grid shape
     n_row, n_col = np.array(matrix).shape
@@ -1768,53 +915,11 @@ def divide_axis_to_grid(
                 _ax_pos[_ax] = [left, bottom, _width, _height]
 
     # add axis to existing figure and store in dict
-    # sns.set(context='paper', style='ticks', font_scale=1.5)
-    # sns.axes_style({'axes.edgecolor': '.6', 'axes.linewidth': 5.0})
     axes = {k: None for k in _ax_pos}
     for _ax, pos in _ax_pos.items():
         axes[_ax] = fig.add_axes(pos, projection=projection)
-        # if despine is True:
-        #     sns.despine(ax=axes[_ax], offset=offset, trim=trim)
 
     return axes
-
-
-def merge_axes(fig, axes, fontsize=5):
-    """To merge multiple axis to one to allow flexible adapations of an axis grid.
-
-    Args:
-        axes: list of axes to 'merge'.
-
-    Note the merge is in fact superimposing a large ax on the maximal extents across
-    all provided individual axes.
-
-    Note the individual axes will be removed.
-
-    Note the new ax will take the first properties found on the first ax.
-    """
-
-    # determine the minimal (x0, y0) and maximal (x1, y1) to place one large axes across
-    x0, y0, x1, y1 = np.array([ax.get_position().extents for ax in axes]).T
-    new_x0, new_y0, new_x1, new_y1 = min(x0), min(y0), max(x1), max(y1)
-    new_width = new_x1 - new_x0
-    new_height = new_y1 - new_y0
-    superax = fig.add_axes([new_x0, new_y0, new_width, new_height])
-    superax.tick_params(axis="both", which="major", labelsize=fontsize)
-    for ax in axes:
-        ax.remove()
-    return superax
-
-
-def set_aspect(ax, ratio=1):
-    xleft, xright = ax.get_xlim()
-    ybottom, ytop = ax.get_ylim()
-    ax.set_aspect(abs((xright - xleft) / (ybottom - ytop)) * ratio)
-
-
-def regular_hex_ax_scatter(n_rows, n_columns, mode="pointy", **kwargs):
-    x, y = dvs.utils.hex_rows(n_rows, n_columns, mode=mode)
-    fig, axes, pos = dvs.plots.plt_utils.regular_ax_scatter(x, y, **kwargs)
-    return fig, axes, pos
 
 
 def regular_ax_scatter(
@@ -1828,9 +933,6 @@ def regular_ax_scatter(
     wpad=0.1,
     alpha=0,
     zorder=10,
-    offset=0,
-    trim=False,
-    as_matrix=False,
     projection=None,
     labels=None,
 ):
@@ -1841,9 +943,14 @@ def regular_ax_scatter(
         y (list or array): representing bottom coordinates of the axes.
         fig (None or maptlotlib.figure): Defaults to None.
         figsize (tuple or list): size of new figure. Without effect if a figure is provided. Defaults to [7, 7].
+        hspace (float): spacing between axes in horizontal direction. Defaults to 0.
+        wspace (float): spacing between axes in vertical direction. Defaults to 0.
         hpad (float): spacing to the horizontal borders of the figure. Defaults to 0.1.
         wpad (float): spacing to the vertical borders of the figure. Defaults to 0.1.
         alpha (float): alpha value for the white background of each ax. Defaults to 0.
+        zorder (int): zorder of the white background of each ax. Defaults to 10.
+        projection (str): projection of the axes. Defaults to None.
+        labels (list): list of labels for each ax. Defaults to None.
 
     Returns:
         fig
@@ -1854,7 +961,6 @@ def regular_ax_scatter(
     assert len(x) == len(y)
 
     # Min-Max Scale x-Positions.
-    # breakpoint()
     width = (1 - 2 * wpad) / (2 * np.ceil(np.median(np.unique(x))))
     width = width - wspace * width  # len(np.unique(np.round(x, 2)))#))
     x = (x - np.min(x)) / (np.max(x) + np.min(x)) * (1 - width) * (1 - wpad * 2) + wpad
@@ -1877,7 +983,6 @@ def regular_ax_scatter(
         )
         ax.set_zorder(zorder)
         ax.patch.set_alpha(alpha)
-        # sns.despine(ax=ax, offset=offset, trim=trim)
         axes.append(ax)
 
     center = []
@@ -1885,31 +990,6 @@ def regular_ax_scatter(
         _, (_center, _, _) = get_ax_positions(ax)
         center.append(_center.flatten().tolist())
     return fig, axes, center
-
-
-def black_or_white(background_rgb):
-    """Based on the value in hsv colorspace of the background, return the font color of the text object."""
-    if len(background_rgb) == 4:
-        # assume rgba
-        background_rgb = background_rgb[:-1]
-    assert len(background_rgb) == 3
-    return "white" if mpl.colors.rgb_to_hsv(background_rgb)[-1] < 0.5 else "black"
-
-
-def fit_fontsize(text, width, height, fig=None, ax=None):
-    """
-    Adjusts the fontsize of a matplotlib text object to fit into a given width and height.
-    """
-    fig = fig or plt.gcf()
-    ax = ax or plt.gca()
-    renderer = fig.canvas.get_renderer()
-    bbox_text = text.get_window_extent(renderer=renderer)
-    bbox_text = Bbox(ax.transData.inverted().transform(bbox_text))
-    fits_width = bbox_text.width < width
-    fits_height = bbox_text.height < height
-    if not all((fits_width, fits_height)):
-        text.set_fontsize(text.get_fontsize() - 1)
-        fit_fontsize(text, width, height, fig, ax)
 
 
 # colormap from
@@ -2180,313 +1260,3 @@ try:
     cm.get_cmap("cm_uniform_2d")
 except:
     cm.register(cm_uniform_2d, name="cm_uniform_2d")
-
-
-def standalone_colorwheel_2d(
-    figsize=[1, 1],
-    sm=None,
-    cmap=cm_uniform_2d,
-    norm=None,
-    fontsize=6,
-    N=512,
-    labelpad=0,
-    ticks=[0, 60, 120],
-    mode="2d",
-    invert_y=False,
-):
-    """
-    Args:
-        pos: 'southeast', 'east', ...
-        radius: radius in percentage of the ax radius
-        x_offset: offset in percentage of cbar diameter
-        y_offset: offset in percentage of cbar diameter
-    """
-    fig = plt.figure(figsize=figsize)
-
-    cb = fig.add_axes([0, 0, 1, 1])
-
-    x = np.linspace(-1, 1, N)
-    y = np.linspace(-1, 1, N)
-    X, Y = np.meshgrid(x, y)
-    if invert_y:
-        Y *= -1
-    R = np.sqrt(X * X + Y * Y)
-    circular_mask = R < 1
-    R[~circular_mask] = 0
-    if mode == "1d":
-        R[circular_mask] = 1
-    PHI = np.arctan2(Y, X)  # + np.pi
-    cb.imshow(
-        polar_to_cmap(R, PHI, invert=False, cmap=cmap, norm=norm, sm=sm),
-        origin="lower",
-        zorder=0,
-    )
-    cb.set_axis_off()
-
-    cs = fig.add_axes([0, 0, 1, 1], polar=True, label="annotation")
-    cs.set_facecolor("none")
-    cs.set_yticks([])
-    cs.set_yticklabels([])  # turn of radial tick labels (yticks)
-
-    # cosmetic changes to tick labels
-    cs.tick_params(pad=labelpad, labelsize=fontsize, zorder=5)
-    cs.set_xticks(
-        np.radians(ticks)
-    )  # , np.radians(180), np.radians(240), np.radians(300)])  # , np.pi])
-    cs.set_xticklabels(
-        [x + "°" for x in np.array(ticks).astype(int).astype(str)],
-    )  # , r"180$^\circ$", r"-120$^\circ$", r"-60$^\circ$"])  # , "$\pi$"])
-
-    plt.setp(cs.spines.values(), color="white", linewidth=2, zorder=3)
-
-    return fig, cb, cs
-
-
-def clear_font_cache():
-    import shutil
-    from pathlib import Path
-
-    shutil.rmtree(Path("~/.cache/matplotlib").expanduser())
-
-
-def scatter_on_violins_or_bars(
-    data,
-    ax,
-    xticks=None,
-    indices=None,
-    s=5,
-    zorder=100,
-    facecolor="none",
-    edgecolor="k",
-    linewidth=0.5,
-    alpha=0.35,
-    uniform=[-0.35, 0.35],
-    seed=42,
-    marker="o",
-    **kwargs,
-):
-    """
-    data (array): shape (n_samples, n_random_variables).
-    indices (array, optional): selection along sample dimension.
-    """
-    random = np.random.RandomState(seed)
-
-    if xticks is None:
-        xticks = ax.get_xticks()
-    indices = indices if indices is not None else range(data.shape[0])
-
-    if (
-        not isinstance(facecolor, Iterable)
-        or len(facecolor) != len(data)
-        or isinstance(facecolor, str)
-    ):
-        facecolor = (facecolor,) * len(indices)
-
-    if (
-        not isinstance(edgecolor, Iterable)
-        or len(edgecolor) != len(data)
-        or isinstance(edgecolor, str)
-    ):
-        edgecolor = (edgecolor,) * len(indices)
-
-    for i, model_index in enumerate(indices):
-        ax.scatter(
-            xticks + random.uniform(*uniform, size=len(xticks)),
-            data[model_index],
-            s=s,
-            zorder=zorder,
-            facecolor=facecolor[i],
-            edgecolor=edgecolor[i],
-            linewidth=linewidth,
-            alpha=alpha,
-            marker=marker,
-            **kwargs,
-        )
-
-
-def flash_response_color_labels(ax):
-    on = [
-        key for key, value in dvs.utils.groundtruth_utils.polarity.items() if value == 1
-    ]
-    off = [
-        key
-        for key, value in dvs.utils.groundtruth_utils.polarity.items()
-        if value == -1
-    ]
-    color_labels(on, dvs.utils.color_utils.ON_FR, ax)
-    color_labels(off, dvs.utils.color_utils.OFF_FR, ax)
-    return ax
-
-
-def color_labels(labels, color, ax):
-    for t in ax.texts:
-        if t.get_text() in labels:
-            t.set_color(color)
-
-    for tick in ax.xaxis.get_major_ticks():
-        if tick.label1.get_text() in labels:
-            tick.label1.set_color(color)
-
-    for tick in ax.yaxis.get_major_ticks():
-        if tick.label1.get_text() in labels:
-            tick.label1.set_color(color)
-
-
-def boldify_labels(labels, ax):
-    for t in ax.texts:
-        if t.get_text() in labels:
-            t.set_weight("bold")
-
-    for tick in ax.xaxis.get_major_ticks():
-        if tick.label1.get_text() in labels:
-            tick.label1.set_weight("bold")
-
-    for tick in ax.yaxis.get_major_ticks():
-        if tick.label1.get_text() in labels:
-            tick.label1.set_weight("bold")
-
-
-def patch_type_texts(ax):
-    patch_ax_texts(ax, "CT1(M10)", "CT1(M10)")
-    patch_ax_texts(ax, "CT1(Lo1)", "CT1(Lo1)")
-    patch_ax_texts(ax, "TmY18", "TmY18")
-    return ax
-
-
-def patch_ax_texts(ax, original, replacement):
-    title = ax.title
-    if original in title.get_text():
-        title.set_text(title.get_text().replace(original, replacement))
-
-    for t in ax.texts:
-        if original in t.get_text():
-            t.set_text(t.get_text().replace(original, replacement))
-
-    new = tuple()
-    for t in ax.xaxis.get_ticklabels():
-        if original in t.get_text():
-            t.set_text(t.get_text().replace(original, replacement))
-        new += (t,)
-    ax.xaxis.set_ticklabels(new)
-
-    new = tuple()
-    for t in ax.yaxis.get_ticklabels():
-        if original in t.get_text():
-            t.set_text(t.get_text().replace(original, replacement))
-        new += (t,)
-    ax.yaxis.set_ticklabels(new)
-    return ax
-
-
-def add_panel_letter(letter, fig, fontsize=12, fontweight="bold"):
-    axes = np.array(fig.axes)
-    lefts, bottoms, rights, tops = np.atleast_2d(
-        np.array([ax.get_position().extents for ax in axes])
-    ).T
-    #     #central coordinates
-    #     centers_x = lefts + (rights - lefts) / 2
-    #     centers_y = bottoms + (tops - bottoms) / 2
-
-    text_positions = []
-    for ax in axes:
-        title = ax.title
-        if title:
-            text_positions.append(
-                fig.transFigure.inverted().transform(
-                    title.get_transform().transform(title.get_position())
-                )
-            )
-        # for text in ax.texts:
-        #     transform = text.get_transform()
-        #     position = text.get_position()
-        #     # print(transform, position)
-        #     text_positions.append(fig.transFigure.inverted().transform(transform.transform(position)))
-
-    for text in fig.texts:
-        text_positions.append(text.get_position())
-
-    tp_x, tp_y = 1e15, -1e15
-    if text_positions:
-        tp_x, tp_y = np.array(text_positions).T
-    # breakpoint()
-    topmost = max(tops.max(), np.max(tp_y))
-    leftmost = min(lefts.min(), np.min(tp_x))
-    fig.text(
-        leftmost,
-        topmost,
-        letter,
-        fontweight=fontweight,
-        ha="right",
-        va="center",
-    )
-
-
-def set_spine_tick_params(
-    ax,
-    spinewidth=0.25,
-    tickwidth=0.25,
-    ticklength=3,
-    ticklabelpad=2,
-    labelsize=6,
-    spines=("top", "right", "bottom", "left"),
-):
-    """Set spine and tick widths and lengths."""
-    for s in spines:
-        ax.spines[s].set_linewidth(spinewidth)
-    ax.tick_params(axis="both", width=tickwidth, length=ticklength, pad=ticklabelpad)
-
-
-# def add_cluster_marker(
-#     fig, ax, marker="o", color="#6CA2CA", s=20, xy=(0.15, 0.15), pad=0.1
-# ):
-#     left, bottom, width, height = ax.get_position().bounds
-#     clm_ax = fig.add_axes(
-#         (
-#             left - left * pad,
-#             bottom - bottom * pad,
-#             width + width * pad,
-#             height + height * pad,
-#         ),
-#         label=marker,
-#     )
-#     clm_ax.patch.set_alpha(0)
-#     dvs.plots.plt_utils.rm_spines(
-#         clm_ax, visible=False, rm_xticks=True, rm_yticks=True
-#     )
-#     clm_ax.set_ylim(0, 1)
-#     clm_ax.set_xlim(0, 1)
-#     clm_ax.scatter(*xy, marker=marker, s=s, color=color)
-
-
-def add_cluster_marker(
-    fig, ax, marker="o", marker_size=15, color="#4F73AE", x_offset=0, y_offset=0
-):
-    # make all axes transparent to see the marker regardless where on the figure
-    # plane it is
-    for _ax in fig.axes:
-        _ax.patch.set_alpha(0)
-
-    # create an invisible ax that spans the entire figure to scatter the marker on it
-    overlay_ax = [ax for ax in fig.axes if ax.get_label() == "overlay"]
-    overlay_ax = (
-        overlay_ax[0] if overlay_ax else fig.add_axes([0, 0, 1, 1], label="overlay")
-    )
-    overlay_ax.set_ylim(0, 1)
-    overlay_ax.set_xlim(0, 1)
-    overlay_ax.patch.set_alpha(0)
-    dvs.plots.plt_utils.rm_spines(
-        overlay_ax, visible=False, rm_xticks=True, rm_yticks=True
-    )
-
-    # get where the axis is actually positioned, that will be annotated with the
-    # marker
-    left, bottom, width, height = ax.get_position().bounds
-
-    # scatter the marker relative to that position of the ax
-    overlay_ax.scatter(
-        left + x_offset * width,
-        bottom + y_offset * height,
-        marker=marker,
-        s=marker_size,
-        color=color,
-    )

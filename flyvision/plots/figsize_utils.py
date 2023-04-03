@@ -1,3 +1,4 @@
+"""Functions to calculate figure sizes for plotting."""
 from dataclasses import dataclass
 import flyvision
 
@@ -36,7 +37,7 @@ class FigsizeCM:
 
     @property
     def inches_wh(self):
-        return flyvision.plots.plt_utils.cm_to_inch(
+        return cm_to_inch(
             self.width + self.pad, self.height + self.pad
         )
 
@@ -96,7 +97,6 @@ def figure_size_cm(
         n_panel_columns = n_panel_columns - 1
         while n_panel_columns * n_panel_rows < n_panels:
             n_panel_rows += 1
-        #         print("new layout cause of width", n_panel_rows, n_panel_columns)
         return figure_size_cm(
             n_panel_rows=n_panel_rows,
             n_panel_columns=n_panel_columns,
@@ -110,7 +110,6 @@ def figure_size_cm(
         n_panel_rows = n_panel_rows - 1
         while n_panel_columns * n_panel_rows < n_panels:
             n_panel_columns += 1
-        #         print("new layout cause of height", n_panel_rows, n_panel_columns)
         return figure_size_cm(
             n_panel_rows=n_panel_rows,
             n_panel_columns=n_panel_columns,
@@ -153,7 +152,6 @@ def fit_panel_size(
     except ValueError:
         new_panel_width_cm = panel_width_cm - dw_cm
         new_panel_height_cm = new_panel_width_cm / ratio
-        #         print("new panel size", new_panel_width_cm, new_panel_height_cm)
         return fit_panel_size(
             n_panel_rows,
             n_panel_columns,
@@ -164,3 +162,13 @@ def fit_panel_size(
             dw_cm,
             allow_rearranging=allow_rearranging,
         )
+
+
+def cm_to_inch(*args):
+    if len(args) == 1:
+        width = args[0][0]
+        height = args[0][1]
+    elif len(args) == 2:
+        width = args[0]
+        height = args[1]
+    return width / 2.54, height / 2.54
