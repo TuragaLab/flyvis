@@ -1,5 +1,6 @@
 datamate
 scipy
 networkx
+ffmpeg
 black
 pytest
