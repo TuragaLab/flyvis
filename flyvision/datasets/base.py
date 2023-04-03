@@ -1,3 +1,4 @@
+"""Base classes for all dynamic stimuli datasets."""
 from typing import Iterable, Any, Union, Dict, List, Callable
 from contextlib import contextmanager
 import abc
@@ -6,6 +7,7 @@ import torch
 import numpy as np
 import pandas as pd
 
+__all__ = ["SequenceDataset", "StimulusDataset" , "MultiTaskDataset"]
 
 class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
     """Base class for all sequence datasets.
@@ -129,11 +131,7 @@ class StimulusDataset(SequenceDataset, metaclass=abc.ABCMeta):
         if requested_params is None:
             return slice(None)
         return np.array(
-            [
-                [i]
-                for i, param in enumerate(all_params)
-                if param in requested_params
-            ]
+            [[i] for i, param in enumerate(all_params) if param in requested_params]
         )
 
     def _get_sequence_id_from_arguments(self, args: Dict[str, Any]) -> int:
