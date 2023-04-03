@@ -3,15 +3,16 @@ from typing import Dict, Iterable, Iterator, List, Tuple, Union
 import logging
 from os import PathLike
 from copy import deepcopy
+from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
-from matplotlib import cm
+from matplotlib import colormaps as cm
 import torch
 import numpy as np
 from contextlib import contextmanager
 from datamate import Directory
 
 from flyvision import plots, results_dir
-from flyvision.network import NetworkView, NetworkDir
+from flyvision.network import Network, NetworkView, NetworkDir
 from flyvision.plots.plt_utils import init_plot
 from flyvision.utils.nn_utils import simulation
 
@@ -19,8 +20,29 @@ logging = logging.getLogger()
 
 
 class Ensemble(dict):
-    def __init__(self, path: Union[PathLike, Iterable, "EnsembleDir"]):
+    """Dictionary to a collection of trained networks.
 
+    Args:
+        path: Path to ensemble directory or list of paths to model directories.
+
+    Attributes:
+        names: List of model names.
+        name: Ensemble name.
+        path: Path to ensemble directory.
+        model_paths: List of paths to model directories.
+        dir: Directory object for ensemble directory.
+
+    Note, the ensemble is a dynamic dictionary, so you can access the networks
+    in the ensemble by name or index. For example, to access the first network
+    simply do:
+        ensemble[0]
+    or
+        ensemble['opticflow/000/0000'].
+    To create a subset of the ensemble, you can use the same syntax:
+        ensemble[0:2]
+    """
+
+    def __init__(self, path: Union[PathLike, Iterable, "EnsembleDir"]):
         # self.model_paths, self.path = model_paths_from_parent(path)
 
         if isinstance(path, EnsembleDir):
@@ -37,7 +59,7 @@ class Ensemble(dict):
         for i, name in enumerate(self.names):
             self[name] = NetworkView(NetworkDir(self.model_paths[i]))
 
-        self.dir = Directory(self.path)
+        self.dir = EnsembleDir(self.path)
 
         # rank by validation error by default
         self.names = sorted(
@@ -63,6 +85,9 @@ class Ensemble(dict):
         else:
             raise ValueError(f"{key}")
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.path})"
+
     def __dir__(self):
         return list({*dict.__dir__(self), *dict.__iter__(self)})
 
@@ -81,17 +106,34 @@ class Ensemble(dict):
     def values(self) -> List[NetworkView]:
         return [self[k] for k in self]
 
-    def yield_networks(self, checkpoint="best_chkpt"):
+    def yield_networks(self, checkpoint="best_chkpt") -> Iterator[Network]:
+        """Yield initialized networks from the ensemble."""
         network = self[0].init_network(chkpt=checkpoint)
         for network_view in self.values():
             yield network_view.init_network(chkpt=checkpoint, network=network)
 
     def yield_decoders(self, checkpoint="best_chkpt"):
+        """Yield initialized decoders from the ensemble."""
+        raise NotImplementedError("not implemented yet")
         decoder = self[0].init_decoder(chkpt=checkpoint)
         for network_view in self.values():
             yield network_view.init_decoder(chkpt=checkpoint, decoder=decoder)
 
+    def simulate(self, movie_input: torch.Tensor, dt: float):
+        """"""
+        for network in self.yield_networks():
+            yield network.simulate(movie_input, dt).cpu().numpy()
+
+    def decode(self, movie_input, dt):
+        """Decode the ensemble responses with the ensemble decoders."""
+        raise NotImplementedError("not implemented yet")
+        responses = torch.tensor(list(self.simulate(movie_input, dt)))
+        for i, decoder in enumerate(self.yield_decoders()):
+            with simulation(decoder):
+                yield decoder(responses[i]).cpu().numpy()
+
     def validation_losses(self):
+        """Return a list of validation losses for each network in the ensemble."""
         losses = [network.dir.validation_loss[()] for network in self.values()]
         return losses
 
@@ -120,9 +162,13 @@ class Ensemble(dict):
             self.names = list(_names)
 
     @contextmanager
-    def model_ratio(self, best=None, worst=None):
+    def ratio(self, best=None, worst=None):
         """To sort and filter the ensemble temporarily by a ratio of models that
-        are performing good or bad based on a type of task error."""
+        are performing best or worst based on a type of task error.
+
+        The temporary subset is a view of the original ensemble, so initialized
+        attributes of its values persist in memory.
+        """
         # no-op
         if best is None and worst is None:
             yield
@@ -182,8 +228,12 @@ class Ensemble(dict):
         truncate=None,
         vmin=None,
         vmax=None,
-    ):
+    ) -> "TaskError":
+        """Return a TaskError object for the ensemble.
 
+        The TaskError object contains the validation losses, the colors, the
+        colormap, the norm, and the scalar mapper.
+        """
         error = self.validation_losses()
 
         if truncate is None:
@@ -201,12 +251,57 @@ class Ensemble(dict):
 
         return TaskError(error, colors, cmap, norm, sm)
 
+    def cluster_indices(self, cell_type: str) -> Dict[int, np.ndarray[int]]:
+        """Clusters from responses to naturalistic stimuli of the given cell type.
+
+        Args:
+            cell_type: The cell type to return the clusters for.
+
+        Returns: keys are the cluster ids and the values are the model indices
+            in the ensemble.
+
+        Note, this method accesses precomputed clusters.
+
+        Example:
+            ensemble = Ensemble("path/to/ensemble")
+            cluster_indices = ensemble.cluster_indices("T4a")
+            first_cluster = ensemble[cluster_indices[0]]
+        """
+        if not self.dir.clustering:
+            raise ValueError("clustering not available")
+        if cell_type not in list(self.dir.clustering.keys()):
+            raise ValueError(f"cell type {cell_type} not available")
+        cluster_indices = self.dir.clustering[cell_type].to_dict()
+        import pdb
+
+        _models = sorted(
+            np.concatenate(list(self.dir.clustering[cell_type].to_dict().values()))
+        )
+        if len(_models) != len(self) or not np.all(_models == np.arange(len(self))):
+            raise ValueError("stored clustering does not match ensemble")
+
+        return dict(
+            sorted(
+                {int(k): v for k, v in cluster_indices.items() if k != "masked"}.items()
+            )
+        )
+
 
 class EnsembleDir(Directory):
+    """A directory that contains a collection of trained networks."""
+
     pass
 
 
 class EnsembleView(Ensemble):
+    """A view of an ensemble of trained networks."""
+
+    def __init__(self, path: Union[PathLike, Iterable, EnsembleDir, Ensemble]):
+        if isinstance(path, Ensemble):
+            super().__init__(path.dir)
+        else:
+            super().__init__(path)
+
     def loss_histogram(
         self,
         bins=None,
@@ -217,6 +312,7 @@ class EnsembleView(Ensemble):
         fig=None,
         ax=None,
     ):
+        """Plot a histogram of the validation losses of the ensemble."""
         losses = self.validation_losses()
         fig, ax = init_plot(figsize=figsize, fontsize=fontsize, fig=fig, ax=ax)
         ax.hist(
@@ -230,22 +326,9 @@ class EnsembleView(Ensemble):
         ax.set_ylabel("number models", fontsize=fontsize)
         return fig, ax
 
-    def simulate(self, movie_input: torch.Tensor, dt: float):
-        for network in self.yield_networks():
-            yield network.simulate(movie_input, dt).cpu().numpy()
-
-    def decode(self, movie_input, dt):
-        responses = torch.tensor(list(self.simulate(movie_input, dt)))
-        for i, decoder in enumerate(self.yield_decoders()):
-            with simulation(decoder):
-                yield decoder(responses[i]).cpu().numpy()
-
-    def cluster_indices(self, cell_type):
-        cluster_indices = self.dir.clustering[cell_type].to_dict()
-        return dict(sorted({int(k): v for k, v in cluster_indices.items()}.items()))
-
 
 def model_paths_from_parent(path):
+    """Return a list of model paths from a parent path."""
     model_paths = sorted(
         filter(
             lambda p: p.name.isnumeric() and p.is_dir(),
@@ -256,6 +339,7 @@ def model_paths_from_parent(path):
 
 
 def model_path_names(model_paths):
+    """Return a list of model names and an ensemble name from a list of model paths."""
     model_names = [
         str(path).replace(str(results_dir) + "/", "") for path in model_paths
     ]
@@ -264,6 +348,7 @@ def model_path_names(model_paths):
 
 
 def model_paths_from_names_or_paths(paths):
+    """Return a list of model paths and an ensemble path from a list of model names or paths."""
     model_paths = []
     _ensemble_paths = []
     for path in paths:
@@ -283,8 +368,11 @@ def model_paths_from_names_or_paths(paths):
 
 @dataclass
 class TaskError:
+    """A dataclass that contains the validation losses, the colors,
+    the colormap, the norm, and the scalar mapper."""
+
     values: np.ndarray
     colors: np.ndarray
     cmap: Colormap
     norm: Normalize
-    scalarmappable: cm.ScalarMappable
+    scalarmappable: ScalarMappable
