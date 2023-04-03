@@ -40,6 +40,9 @@ def test_call(boxeye: rendering.BoxEye):
     assert rendered.shape == (*sequence.shape[:2], *boxeye.min_frame_size.cpu().numpy())
     assert np.isclose(rendered.cpu().numpy().mean(), 5, atol=0.05)
 
+    with pytest.raises(ValueError):
+        boxeye(sequence, ftype="invalid", hex_sample=True)
+
 
 def test_sample(boxeye: rendering.BoxEye):
     frame = torch.ones((100, 100))

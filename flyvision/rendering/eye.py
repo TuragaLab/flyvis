@@ -21,10 +21,19 @@ class BoxEye:
     """BoxFilter to produce an array of hexals matching the photoreceptor array.
 
     Args:
-        extent: int
-        "Radius, in number of receptors, of the hexagonal array"
-        kernel_size: int
-        "Photon collection radius, in pixels"
+        extent: Radius, in number of receptors, of the hexagonal array
+        kernel_size: Photon collection radius, in pixels
+
+    Attributes:
+        extent: Radius, in number of receptors, of the hexagonal array
+        kernel_size: Photon collection radius, in pixels
+        receptor_centers: Tensor of shape (hexals, 2) containing the y, x
+            coordinates of the hexal centers
+        hexals: Number of hexals in the array
+        min_frame_size: Minimum frame size to contain the hexal array
+        pad: Padding to apply to the frame before convolution
+        conv (nn.Conv2d): Convolutional box filter to apply to the frame
+
 
     """
 
@@ -74,18 +83,21 @@ class BoxEye:
                 # xs.append()
                 # ys.append()
 
-    def _set_filter(self):
+    def _set_filter(self) -> None:
         self.conv = nn.Conv2d(1, 1, kernel_size=self.kernel_size, stride=1, padding=0)
         self.conv.weight.data /= self.conv.weight.data
         self.conv.bias.data.fill_(0)  # if not self.requires_grad else None
         self.conv.weight.requires_grad = False  # self.requires_grad
         self.conv.bias.requires_grad = False  # self.requires_grad
 
-    def __call__(self, sequence, ftype="mean", hex_sample=True):
+    def __call__(
+        self, sequence: torch.Tensor, ftype: str = "mean", hex_sample: bool = True
+    ) -> torch.Tensor:
         """Applies a box kernel to all frames in a sequence.
 
         Args:
-            sequence (torch.Tensor): shape (samples, frames, height, width)
+            sequence: cartesian movie sequences of shape
+                (samples, frames, height, width).
             ftype: filter type, 'mean', 'sum' or 'median'.
             hex_sample: if False, returns filtered cartesian sequences.
                 Defaults to True.
@@ -96,43 +108,49 @@ class BoxEye:
         samples, frames, height, width = sequence.shape
 
         if not isinstance(sequence, torch.cuda.FloatTensor):
+            # auto-moving to GPU in case default tensor is cuda but passed
+            # sequence is not for convenience
             sequence = torch.Tensor(sequence)
 
         if (self.min_frame_size > torch.tensor([height, width])).any():
+            # to rescale to the minimum frame size
             sequence = ttf.resize(sequence, self.min_frame_size.tolist())
             height, width = sequence.shape[2:]
 
+        def _convolve():
+            # convole each sample sequentially to avoid gpu memory issues
+            def conv(x):
+                return self.conv(x.unsqueeze(1))
+
+            return torch.cat(
+                tuple(map(conv, torch.unbind(F.pad(sequence, self.pad), dim=0))), dim=0
+            )
+
         if ftype == "mean":
-            sequence = F.pad(sequence, self.pad)
-
-            def conv(x):
-                return self.conv(x.unsqueeze(1))
-
-            out = torch.cat(tuple(map(conv, torch.unbind(sequence, dim=0))), dim=0)
-
-            out /= self.kernel_size**2
-
+            out = _convolve() / self.kernel_size**2
         elif ftype == "sum":
-            sequence = F.pad(sequence, self.pad)
-
-            def conv(x):
-                return self.conv(x.unsqueeze(1))
-
-            out = torch.cat(tuple(map(conv, torch.unbind(sequence, dim=0))), dim=0)
-
+            out = _convolve()
         elif ftype == "median":
             out = median(sequence, self.kernel_size)
-
         else:
             raise ValueError("ftype must be 'sum', 'mean', or 'median." f"Is {ftype}.")
 
         if hex_sample is True:
-            out = self.hex_sample(out)
-            return out.reshape(samples, frames, 1, -1)
+            return self.hex_sample(out).reshape(samples, frames, 1, -1)
 
         return out.reshape(samples, frames, height, width)
 
-    def hex_sample(self, sequence):
+    def hex_sample(self, sequence: torch.Tensor) -> torch.Tensor:
+        """Sample receptor locations from a sequence of cartesian frames.
+
+        Args:
+            sequence: cartesian movie sequences of shape (samples, frames, height, width).
+
+        Returns:
+            torch.Tensor: shape (samples, frames, 1, hexals)
+
+        Note: resizes the sequence to the minimum frame size if necessary.
+        """
         h, w = sequence.shape[2:]
         if (self.min_frame_size > torch.tensor([h, w])).any():
             sequence = ttf.resize(sequence, self.min_frame_size.tolist())
@@ -141,8 +159,16 @@ class BoxEye:
         out = sequence[:, :, c[:, 0], c[:, 1]]
         return out.view(*sequence.shape[:2], 1, -1)
 
-    def sample(self, img, ftype="mean"):
-        """Sample individual frames."""
+    def sample(self, img, ftype="mean") -> torch.Tensor:
+        """Sample individual frames.
+
+        Args:
+            img: a single frame of shape (height, width).
+            ftype: filter type, 'mean', 'sum' or 'median'.
+
+        Returns:
+            tensor of shape (hexals,)
+        """
         _type = np.asarray if isinstance(img, np.ndarray) else torch.Tensor
         _device = "cpu" if not isinstance(img, torch.cuda.FloatTensor) else "cuda"
         return _type(
@@ -154,6 +180,7 @@ class BoxEye:
     def illustrate(
         self,
     ):
+        """Illustrate the receptive field centers and the hexagonal sampling."""
         figsize = [2, 2]
         fontsize = 5
         y_hc, x_hc = np.array(list(self._receptor_centers())).T
@@ -193,5 +220,5 @@ class BoxEye:
         ax.set_xlim(-width / 2, width / 2)
         ax.set_ylim(-height / 2, height / 2)
         rm_spines(ax)
-        fig.tight_layout()
+        # fig.tight_layout()
         return fig
