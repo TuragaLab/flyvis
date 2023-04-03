@@ -26,6 +26,7 @@ from flyvision.plots import plots, plt_utils
 
 __all__ = ["ConnectomeDir", "ConnectomeView"]
 
+
 # -- `Connectome` --------------------------------------------------------------
 @root(flyvision.root_dir / "connectome")
 class ConnectomeDir(Directory):
@@ -140,7 +141,7 @@ class ConnectomeDir(Directory):
         self.unique_cell_types = np.string_([n["name"] for n in spec["nodes"]])
         self.input_cell_types = np.string_(spec["input_units"])
         self.output_cell_types = np.string_(spec["output_units"])
-        intermediate_cell_types, _ = nodes_edges_utils.order_nodes_list(
+        intermediate_cell_types, _ = nodes_edges_utils.oder_node_type_list(
             np.array(
                 list(
                     set(self.unique_cell_types)
@@ -250,7 +251,9 @@ class Node:
 
 class NodeDir(Directory):
     """Stored data of the compiled Connectome describing the nodes."""
+
     pass
+
 
 def add_nodes(seq: List[Node], node_spec: dict, extent: int) -> None:
     """Add nodes to `seq`, based on `node_spec`."""
@@ -306,10 +309,11 @@ class Edge:
     n_syn_certainty: float
 
 
-
 class EdgeDir(Directory):
     """Stored data of the compiled Connectome describing the edges."""
+
     pass
+
 
 def add_edges(
     seq: List[Edge], nodes: List[Node], edge_spec: dict, n_syn_fill: float
@@ -431,7 +435,7 @@ class ConnectomeView:
         (
             self.cell_types_sorted,
             self.cell_types_sort_index,
-        ) = nodes_edges_utils.order_nodes_list(
+        ) = nodes_edges_utils.oder_node_type_list(
             self.connectome.unique_cell_types[:].astype(str), groups
         )
 
@@ -498,10 +502,12 @@ class ConnectomeView:
 
         # filter edges to allow providing a subset of cell types
         cell_types = cell_types or self.cell_types_sorted
-        edges = df_utils.filter_df_by_list(
-            cell_types,
-            df_utils.filter_df_by_list(cell_types, edges, column="source_type"),
+        edges = df_utils.filter_by_column_values(
+            df_utils.filter_by_column_values(
+                edges, column="source_type", values=cell_types
+            ),
             column="target_type",
+            values=cell_types,
         )
         weights = self._weights()[edges.index]
 
@@ -744,7 +750,7 @@ class ConnectomeView:
         )
         # to sort alphabetically in case sources is specified
         if sort_alphabetically:
-            sources, _ = nodes_edges_utils.order_nodes_list(sources)
+            sources, _ = nodes_edges_utils.oder_node_type_list(sources)
         sources = sources or list(sorted_sum_of_inputs.keys())
 
         # to derive color range values taking all inputs into account
@@ -875,7 +881,7 @@ class ConnectomeView:
 
         # to sort alphabetically in case sources is specified
         if sort_alphabetically:
-            targets, _ = nodes_edges_utils.order_nodes_list(targets)
+            targets, _ = nodes_edges_utils.oder_node_type_list(targets)
 
         targets = targets or list(sorted_sum_of_outputs.keys())
 

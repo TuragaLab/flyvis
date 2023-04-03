@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from datamate import namespacify
-from flyvision.utils.class_utils import _forward_subclass
+from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
 __all__ = ["NetworkDynamics", "PPNeuronIGRSynapses"]
@@ -40,7 +40,7 @@ class NetworkDynamics:
         activation: str = "relu"
 
     def __new__(cls, config: Config = {}):
-        return _forward_subclass(cls, config)
+        return forward_subclass(cls, config)
 
     def write_derived_params(
         self, params: AutoDeref[str, AutoDeref[str, RefTensor]], **kwargs
@@ -183,15 +183,3 @@ class PPNeuronIGRSynapses(NetworkDynamics):
     def currents(self, state, params):
         """Return the internal chemical current."""
         return params.edges.weight * self.activation(state.sources.activity)
-
-
-def forward_subclass(cls: type, config: object = {}, subclass_key="type") -> object:
-    """Forward to a subclass based on the `<subclass_key>` key in `config`.
-
-    Forwards to the parent class if `<subclass_key>` is not in `config`.
-    """
-    target_subclass = config.pop(subclass_key, None)
-    for subclass in cls.__subclasses__():
-        if target_subclass == subclass.__qualname__:
-            return object.__new__(subclass)
-    return object.__new__(cls)

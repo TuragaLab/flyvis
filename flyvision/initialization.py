@@ -21,7 +21,7 @@ import torch.nn as nn
 
 from datamate import Namespace
 
-from flyvision.utils.class_utils import _forward_subclass
+from flyvision.utils.class_utils import forward_subclass
 from flyvision.connectome import ConnectomeDir, NodeDir, EdgeDir
 
 logging = logging.getLogger()
@@ -64,7 +64,7 @@ class InitialDistribution:
     readers: Dict[str, Tensor]
 
     def __new__(cls, param_config: Namespace, *args, **kwargs):
-        return _forward_subclass(cls, param_config, subclass_key="initial_dist")
+        return forward_subclass(cls, param_config, subclass_key="initial_dist")
 
     @property
     def semantic_values(self):
@@ -255,7 +255,7 @@ class Parameter:
     keys: List[Any]
 
     def __new__(cls, param_config: Namespace, *args, **kwargs):
-        obj = _forward_subclass(cls, param_config, subclass_key="type")
+        obj = forward_subclass(cls, param_config, subclass_key="type")
         object.__setattr__(obj, "_config", param_config)
         object.__setattr__(obj, "config", deepcopy(param_config))
         return obj
