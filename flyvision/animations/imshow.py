@@ -32,7 +32,6 @@ class Imshow(Animation):
         **kwargs
     ):
         super().__init__()
-        h, w = images.shape[2:]
         self.fig, self.ax = plt_utils.init_plot(
             figsize=figsize,
             fig=fig,

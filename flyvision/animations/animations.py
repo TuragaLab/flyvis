@@ -1,3 +1,4 @@
+"""Base class for animations.""" ""
 import itertools
 import shutil
 from time import sleep
@@ -7,19 +8,26 @@ import weakref
 import re
 import logging
 
-
-import matplotlib.pyplot as plt
-
-# import ffmpeg
+import ffmpeg
 
 from flyvision import animation_dir
 
 
-logging = logging.getLogger()
-
-
 class Animation:
-    """Base class for animations."""
+    """Base class for animations.
+
+    Subclasses must implement `init` and `animate` methods.
+    Subclasses must store the number of frames and samples in `frames` and
+    `n_samples` attributes, respectively. Also, `batch_sample` must be an
+    integer indicating the sample to animate. `update` must be a boolean
+    indicating whether to update the canvas after each animation step.
+
+    Args:
+        path (Path): path to save the animation.
+        fig (Figure): existing Figure instance or None.
+        suffix (str): suffix for the animation path. Defaults to
+            'animations/{}', which is formatted with the class name.
+    """
 
     fig = None
     update = True
@@ -72,8 +80,11 @@ class Animation:
             raise ValueError(key, input)
         return indices
 
-    def notebook_animation(self, frames="all", samples="all", repeat=1):
-        """Play animation within a jupyter notebook."""
+    def nb_anim(self, frames="all", samples="all", repeat=1):
+        """Play animation within a jupyter notebook.
+
+        Requires to set the backend to `notebook`, i.e. `%matplotlib notebook`.
+        """
         self.update = True
         self.init()
         frames = self._get_indices("frames", frames)
@@ -105,7 +116,7 @@ class Animation:
         self.batch_sample = _sample
 
     def _mk_dest(self, path=None):
-        """Creates a temporary subfolder as destination for the images."""
+        """Creates a temporary subdir as destination for the images."""
         for i in itertools.count():
             self._path = (path or self.path) / f".{i:04}"
             try:
@@ -126,9 +137,9 @@ class Animation:
         source_path=None,
         dest_path=None,
     ):
-        """Animates and saves the animation as mp4 video."""
+        """Animates, saves individual frames, and converts to mp4 using ffmpeg."""
         self._mk_dest(path=source_path)
-        # Once self is garbage-collected, the temporary folder is rm'd.
+        # Once self is garbage-collected, the temporary dir is rm'd.
         self.update = True
         self.init()
         frames = self._get_indices("frames", frames)
@@ -158,48 +169,19 @@ class Animation:
         framerate=30,
         source_path=None,
         dest_path=None,
+        type="mp4",
     ):
-        """Converts png files in the animations directory to mp4."""
+        """Converts png files in the animations dir to mp4."""
         convert(
             source_path or self._path,
-            ((dest_path or self.path) / f"{fname}").with_suffix(".mp4"),
+            ((dest_path or self.path) / f"{fname}").with_suffix(f".{type}"),
             framerate,
             delete_if_exists,
         )
 
-    def saveanim(
-        self,
-        fname,
-        frames="all",
-        dpi=100,
-        framerate=30,
-        samples="all",
-        delete_if_exists=False,
-    ):
-        """Save animation at specified path.
 
-        Mimics fig.savefig(fname) interface to save animation at specified path.
-        Note: fname must be a Path object.
-        """
-        if not isinstance(fname, Path):
-            raise ValueError
-        self.to_vid(
-            fname=fname.name,
-            frames=frames,
-            dpi=dpi,
-            framerate=framerate,
-            samples=samples,
-            delete_if_exists=delete_if_exists,
-            dest_path=fname.parent,
-        )
-
-
-def convert(folder, dest, framerate, delete_if_exists):
-    _convert(folder, dest, framerate, delete_if_exists, type="mp4")
-    # _convert(folder, dest, framerate, delete_if_exists, type="webm")
-
-
-def _convert(folder, dest, framerate, delete_if_exists, type="mp4"):
+def convert(dir, dest, framerate, delete_if_exists, type="mp4"):
+    """Converts png files in dir to mp4 or webm."""
     video = dest.with_suffix(f".{type}")
 
     if type == "mp4":
@@ -232,7 +214,7 @@ def _convert(folder, dest, framerate, delete_if_exists, type="mp4"):
 
     try:
         (
-            ffmpeg.input(f"{folder}/*_*.png", pattern_type="glob", framerate=framerate)
+            ffmpeg.input(f"{dir}/*_*.png", pattern_type="glob", framerate=framerate)
             .output(str(video), **kwargs)
             .run(
                 overwrite_output=True,
@@ -253,42 +235,11 @@ def _convert(folder, dest, framerate, delete_if_exists, type="mp4"):
     logging.info(f"Created {video}")
 
 
-class AnimatePlotFn(Animation):
-    def __init__(self, plot_fn, path, fname, delete_if_exists, dpi, framerate):
-        super().__init__(path, None, "")
-        self.plot_fn = plot_fn
-        self.frame_count = 0
-        self.dpi = dpi
-        self.fname = fname
-        self.delete_if_exists = delete_if_exists
-        self.framerate = framerate
-        self._mk_dest()
-        self._finalize.append(
-            weakref.finalize(
-                self,
-                self.convert,
-                self.fname,
-                self.delete_if_exists,
-                self.framerate,
-            )
-        )
-        self.title = ""
-
-    def __call__(self, *args, **kwargs):
-        self.fig = self.plot_fn(*args, **kwargs)[0]
-        self.fig.suptitle(self.title, fontsize=10)
-        self.animate_save(self.frame_count, self.dpi)
-        self.frame_count += 1
-
-    def animate(self, _):
-        pass
-
-    def finalize(self):
-        self.convert(self.fname, self.delete_if_exists, self.framerate)
-
-
 class AnimationCollector(Animation):
-    """Collects axes of animations into a single animation.
+    """Collects Animations and updates all axes at once.
+
+    Subclasses must populate the `animations` attribute with Animation objects
+    and adhere to the Animation interface.
 
     Args:
         ...
@@ -301,6 +252,9 @@ class AnimationCollector(Animation):
     def init(self, frame=0):
         for animation in self.animations:
             animation.init(frame)
+            # disable update of figure for individual animations to update
+            # all axes at once in animate
+            animation.update = False
 
     def animate(self, frame):
         for animation in self.animations:

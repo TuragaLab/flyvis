@@ -15,8 +15,12 @@ class HexScatter(Animation):
     pad_to_regular_hex.
 
     Args:
-        hexarray (array or tensor): shape (n_samples, n_frames, 1, n_input_elements)
+        hexarray (array or tensor): shape (n_samples, n_frames, 1,
+            n_input_elements)
+        u (list): list of u coordinates of elements to plot. Defaults to None.
+        v (list): list of v coordinates of elements to plot. Defaults to None.
         cranges (List[float]): color minimal and maximal abs value (n_samples).
+
         vmin (float): color minimal value.
         vmax (flot): color maximal value.
         fig (Figure): existing Figure instance or None.
@@ -26,19 +30,22 @@ class HexScatter(Animation):
             cm.get_cmap("binary_r") (greyscale).
         edgecolor (str): edgecolor for the hexals. Defaults to "k" displaying
             edges. None for no edge.
+        update_edge_color (bool): whether to update the edgecolor after an
+            animation step. Defaults to True.
         update (bool): whether to update the canvas after an animation step.
-            Must be False if this animation is composed with others.
-            Defaults to False.
+            Must be False if this animation is composed with others using Anim-
+            ationcollector. Defaults to False.
         label (str): label of the animation. Defaults to 'Sample: {}\nFrame:{}',
             which is formatted with the current sample and frame number per frame.
-        labelxy (tuple): normalized x and y location of the label. Defaults to
-            (0, 1), i.e. top-left corner.
-        fontsize (float): fontsize. Defaults to 10.
-        cbar (bool)
+        labelxy (tuple): location of the label. Defaults to
+            (0.1, 0.95), i.e. top-left corner.
+        fontsize (float): fontsize. Defaults to 5.
+        cbar (bool): display colorbar. Defaults to True.
+        background_color (str): background color. Defaults to "none".
+        midpoint (float): midpoint for diverging colormaps. Defaults to None.
 
     Kwargs:
-        passed to ~dvs.plots.plots.hex_scatter
-
+        passed to ~dvs.plots.plots.hex_scatter.
     """
 
     def __init__(
@@ -226,71 +233,3 @@ class HexScatter(Animation):
 
         if self.update:
             self.update_figure()
-
-
-class HexScatterCompare(AnimationCollector):
-    """Animates a color encoded flow field.
-
-    Note: either initialized with a trained network directory instance and
-        a batch_type and optional activity_type or with a ready-made activity
-        array.
-
-    Args:
-        hexarray1 (array): shape (n_samples, n_frames, n_input_elements)
-        hexarray2 (array): shape (n_samples, n_frames, n_input_elements)
-        crange (Tuple[Float]): optional color range vmin, vmax.
-        batch_sample (int): batch sample to start from. Defaults to 0.
-    """
-
-    def __init__(
-        self,
-        hexarray1,
-        hexarray2,
-        crange=(None, None),
-        batch_sample=0,
-        title1="1",
-        title2="2",
-    ):
-        self.hexarray1 = hexarray1
-        self.hexarray2 = hexarray2
-        self.crange = crange
-        self.update = False
-        self.n_samples, self.frames = self.hexarray1.shape[:2]
-        self.fig, self.axes, (gw, gh) = plt_utils.get_axis_grid(
-            range(2), figsize=[9, 3]
-        )
-        animations = []
-        hexarray1 = utils.tensor_utils.to_numpy(self.hexarray1)
-        hexarray2 = utils.tensor_utils.to_numpy(self.hexarray2)
-        if not all([r is None for r in self.crange]):
-            vmin, vmax = self.crange
-        else:
-            vmin, vmax = 0, 3 * (np.std(hexarray1) + np.std(hexarray2)) / 2
-        animations.append(
-            HexScatter(
-                hexarray1,
-                vmin=vmin,
-                vmax=vmax,
-                edgecolor="k",
-                fig=self.fig,
-                ax=self.axes[0],
-                title="input 1",
-                labelxy=(-0.1, 1),
-            )
-        )
-        animations.append(
-            HexScatter(
-                hexarray2,
-                vmin=vmin,
-                vmax=vmax,
-                fig=self.fig,
-                ax=self.axes[1],
-                edgecolor="k",
-                title="input 2",
-                label="",
-            )
-        )
-
-        self.animations = animations
-        self.batch_sample = batch_sample
-        super().__init__(None, self.fig)

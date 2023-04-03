@@ -1,19 +1,19 @@
 """Color coded flow-field animation.
 """
-import matplotlib.pyplot as plt
 import numpy as np
 
 from flyvision import utils
 from flyvision.plots import plots
 from flyvision.plots import plt_utils
-from flyvision.animations.animations import Animation, AnimationCollector
+from flyvision.animations.animations import Animation
 
 
 class HexFlow(Animation):
     """Hexscatter of a color encoded flow field.
 
     Args:
-        flow (array or tensor): optic flow of shape (n_samples, n_frames, 2, n_input_elements).
+        flow (array or tensor): optic flow of shape (n_samples, n_frames, 2,
+            n_input_elements).
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         batch_sample (int): batch sample to start from. Defaults to 0.
@@ -25,10 +25,13 @@ class HexFlow(Animation):
             which is formatted with the current sample and frame number per frame.
         labelxy (tuple): normalized x and y location of the label. Defaults to
             (0, 1), i.e. top-left corner.
-        type (str): 'groundtruth' or 'prediction'.
         update (bool): whether to update the canvas after an animation step.
-            Must be False if this animation is composed with others.
-            Defaults to False.
+            Must be False if this animation is composed with others using Anim-
+            ationcollector. Defaults to False.
+        path (str): path to save the animation to. Defaults to None.
+        figsize (list): figure size. Defaults to [2, 2].
+        fontsize (float): fontsize. Defaults to 5.
+
 
     Kwargs:
         passed to ~flyvision.plots.plots.hex_flow.
@@ -45,7 +48,6 @@ class HexFlow(Animation):
         cwheelxy=(),
         label="Sample: {}\nFrame: {}",
         labelxy=(0, 1),
-        type="groundtruth",
         update=False,
         path=None,
         figsize=[2, 2],
@@ -76,7 +78,6 @@ class HexFlow(Animation):
 
     def init(self, frame=0):
         u, v = utils.hex_utils.get_hex_coords(self.extent)
-        # breakpoint()
         self.fig, self.ax, (self.label_text, self.sm, _, _) = plots.hex_flow(
             u,
             v,
@@ -111,26 +112,3 @@ class HexFlow(Animation):
 
         if self.update:
             self.update_figure()
-
-
-class TwoFlows(AnimationCollector):
-    def __init__(self, flow1, flow2):
-        """
-        (n_frames, 2, n_input_elements)
-        """
-
-        self.fig, self.axes, _ = plt_utils.get_axis_grid(gridwidth=2, gridheight=1)
-        self.animations = [
-            HexFlow(
-                flow1[None,],
-                fig=self.fig,
-                ax=self.axes[0],
-            ),
-            HexFlow(
-                flow2[None,],
-                fig=self.fig,
-                ax=self.axes[1],
-            ),
-        ]
-        self.frames = self.animations[0].frames
-        self.n_samples = self.animations[0].n_samples

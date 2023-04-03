@@ -5,14 +5,15 @@ from matplotlib import colormaps as cm
 from flyvision import utils
 from flyvision.plots import plots
 from flyvision.plots import plt_utils
-from flyvision.animations.animations import Animation, AnimationCollector
+from flyvision.animations.animations import Animation
 
 
 class Trace(Animation):
     """Animates a trace.
 
     Args:
-        trace: trace of shape (n_samples, n_frames)
+        trace: trace of shape (n_samples, n_frames).
+        dt (float): time step in seconds for accurate time axis. Defaults to 1.
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
         update (bool): whether to update the canvas after an animation step.
@@ -29,8 +30,9 @@ class Trace(Animation):
         label (str): label of the animation. Defaults to 'Sample: {}\nFrame:{}',
             which is formatted with the current sample and frame number per frame.
         labelxy (tuple): normalized x and y location of the label. Defaults to
-            (0, 1), i.e. top-left corner.
-        fontsize (float): fontsize. Defaults to 10.
+            (0.1, 0.95), i.e. top-left corner.
+        fontsize (float): fontsize. Defaults to 5.
+        figsize (list): figure size. Defaults to [2, 2].
     """
 
     def __init__(
@@ -153,9 +155,7 @@ class Trace(Animation):
         x = np.arange(len(contour)) * self.dt
         _y = np.linspace(-2000, 2000, 100)
         Z = np.tile(contour, (len(_y), 1))
-        # import pdb
 
-        # pdb.set_trace()
         self.ax.contourf(
             x,
             _y,
@@ -170,14 +170,14 @@ class Trace(Animation):
 
 
 class MultiTrace(Animation):
-    """Animates multiple traces.
+    """Animates multiple traces in single plot.
 
     Args:
         trace: trace of shape (n_samples, n_frames, #traces)
+        dt (float): time step in seconds. Defaults to 1.
         fig (Figure): existing Figure instance or None.
         ax (Axis): existing Axis instance or None.
-        update (bool): whether to update the canvas after an animation step.
-            Must be False if this animation is composed with others.
+        update (bool): whether to update the figure after each frame.
             Defaults to False.
         legend (List[str]): legends of the traces.
         colors (List[str or array]): optional colors of the traces.
@@ -191,8 +191,8 @@ class MultiTrace(Animation):
         label (str): label of the animation. Defaults to 'Sample: {}\nFrame:{}',
             which is formatted with the current sample and frame number per frame.
         labelxy (tuple): normalized x and y location of the label. Defaults to
-            (0, 1), i.e. top-left corner.
-        fontsize (float): fontsize. Defaults to 10.
+            (0.1, 0.95), i.e. top-left corner.
+        fontsize (float): fontsize. Defaults to 5.
         path (Path): path object to save animation to.
     """
 
@@ -213,7 +213,7 @@ class MultiTrace(Animation):
         contour=None,
         label="Sample: {}\nFrame: {}",
         labelxy=(0.1, 0.95),
-        fontsize=10,
+        fontsize=5,
         path=None,
     ):
         self.trace = utils.tensor_utils.to_numpy(trace)
