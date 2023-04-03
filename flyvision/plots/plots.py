@@ -977,7 +977,7 @@ def hex_scatter(
     cbar_label="",
     cbar_height=None,
     cbar_width=None,
-    cbar_x_offset=None,
+    cbar_x_offset=0.05,
     annotate=False,
     annotate_coords=False,
     annotate_indices=False,

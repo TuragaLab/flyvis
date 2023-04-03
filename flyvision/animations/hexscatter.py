@@ -161,7 +161,7 @@ class HexScatter(Animation):
                 n_ticks=5,
                 n_decimals=0,
             )
-        self.fig.tight_layout()
+        # self.fig.tight_layout()
 
     def animate(self, frame):
         # to allow negative indices

@@ -795,7 +795,7 @@ class LayerActivityGrid(Animation):
         self.edges = self.connectome.edges.to_df()
         self.layout = utils.nodes_edges_utils.layout
 
-        self.neuron_types = utils.nodes_edges_utils.order_nodes_list(
+        self.neuron_types = utils.nodes_edges_utils.oder_node_type_list(
             connectome.unique_cell_types[:].astype(str)
         )[0]
         self.fig, self.axes = plots._network_graph_ax_scatter(

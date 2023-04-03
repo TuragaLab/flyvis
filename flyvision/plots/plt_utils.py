@@ -193,7 +193,7 @@ def init_plot(
 
     # initialize figure and ax
     if fig is None:
-        fig = plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=figsize, layout="constrained")
         # fig = figure(figsize)
     if ax is not None:
         ax.set_title(title, fontsize=fontsize, loc=title_pos, y=title_y)

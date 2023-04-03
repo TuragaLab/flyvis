@@ -2,7 +2,6 @@ import numpy as np
 import networkx as nx
 from typing import Dict
 from matplotlib.axes import Axes
-from matplotlib.patches import Circle
 from toolz import valfilter
 
 from flyvision.plots import plt_utils
@@ -92,14 +91,10 @@ class WholeNetworkFigure:
             _edge_color = np.array(list(edge_color.values()))
             edge_vmin = -np.max(_edge_color) if np.any(_edge_color < 0) else 0
             edge_vmax = np.max(_edge_color)
-            edge_sm, _ = plt_utils.get_scalarmapper(
-                cmap=edge_cmap, vmin=edge_vmin, vmax=edge_vmax, midpoint=0.0
-            )
         else:
             edge_color = {tuple(edge): constant_edge_color for edge in edge_list}
             edge_vmin = None
             edge_vmax = None
-            edge_sm = None
 
         grouped = self.edges.groupby(
             by=["source_type", "target_type"], sort=False, as_index=False
@@ -140,11 +135,9 @@ class WholeNetworkFigure:
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
             for cell_type in output_cell_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
-        ) = plt_utils.get_ax_positions(list(axes.values()))
+        (lefts, bottoms, rights, tops), _ = plt_utils.get_ax_positions(
+            list(axes.values())
+        )
         bottom, top = plt_utils.get_lims((bottoms, tops), 0.02)
         left, right = plt_utils.get_lims((lefts, rights), 0.01)
         decoded_box_ax = self.fig.add_axes(
@@ -182,11 +175,9 @@ class WholeNetworkFigure:
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
             for cell_type in retina_cell_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
-        ) = plt_utils.get_ax_positions(list(axes.values()))
+        (lefts, bottoms, rights, tops), _ = plt_utils.get_ax_positions(
+            list(axes.values())
+        )
         self.fig.text(
             lefts.min() + (rights.max() - lefts.min()) / 2,
             0,
