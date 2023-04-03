@@ -6,6 +6,7 @@ from os import PathLike
 from typing import Any, Dict, Iterable, List, Optional, Union, Callable
 from contextlib import contextmanager
 
+import warnings
 import numpy as np
 from toolz import valmap
 import torch
@@ -452,7 +453,7 @@ class Network(nn.Module):
 
         Args:
             movie_input: tensor requiring shape (batch_size, n_frames, 1, hexals)
-            dt: integration time constant. Must be 1/50 or less.
+            dt: integration time constant. Warns if dt > 1/50.
             initial_state: network activity at the beginning of the simulation.
                 Either use fade_in_state or steady_state, to compute the
                 initial state from grey input or from ramping up the contrast of
@@ -474,7 +475,14 @@ class Network(nn.Module):
             raise ValueError("requires shape (sample, frame, 1, hexals)")
 
         if dt > 1 / 50:
-            raise ValueError
+            with warnings.catch_warnings():
+                warnings.simplefilter("always")
+                warnings.warn(
+                    (f"dt={dt} is very large for integration."
+                     " better choose a smaller dt (<= 1/50 to avoid this warning)") ,
+                    IntegrationWarning,
+                    stacklevel=2,
+                )
 
         batch_size, n_frames = movie_input.shape[:2]
         if initial_state == "auto":
@@ -876,7 +884,16 @@ class NetworkDir(Directory):
 
 
 class NetworkView(ConnectomeView):
-    """Views and convenience methods for trained networks."""
+    """Views and convenience methods for trained networks.
+
+    Args:
+        network_dir: directory of the network.
+
+    Attributes:
+        dir: directory of the network.
+        connectome: connectome directory.
+        network: network instance. Requires to call init_network first.
+    """
 
     def __init__(self, network_dir: Union[PathLike, NetworkDir]):
         if isinstance(network_dir, PathLike):
@@ -890,7 +907,9 @@ class NetworkView(ConnectomeView):
         """Reset initialization of a component."""
         self._initialized[key] = False
 
-    def init_network(self, chkpt="best_chkpt", network: Optional[Network] = None):
+    def init_network(
+        self, chkpt="best_chkpt", network: Optional[Network] = None
+    ) -> Network:
         """Initialize the network.
 
         Args:
@@ -918,6 +937,7 @@ class NetworkView(ConnectomeView):
         Returns:
             decoder instance.
         """
+        raise NotImplementedError("Decoder initialization not implemented yet.")
         if self._initialized["decoder"] and decoder is None:
             return self.decoder
         self.decoder = decoder or init_decoder(
@@ -995,3 +1015,7 @@ def clamp_hook(state, cls, cell_type, mode="layer", substitute=0):
         raise ValueError
 
     return state
+
+
+class IntegrationWarning(Warning):
+    pass

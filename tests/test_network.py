@@ -4,6 +4,7 @@ from datamate import Namespace
 
 import flyvision
 from flyvision import Network
+from flyvision.network import IntegrationWarning
 from flyvision.utils.tensor_utils import AutoDeref
 
 
@@ -170,7 +171,7 @@ def test_simulate(network):
     with pytest.raises(ValueError):
         network.simulate(torch.Tensor(20, 1, 721).random_(2), 1 / 50)
 
-    with pytest.raises(ValueError):
+    with pytest.warns(IntegrationWarning):
         network.simulate(x, 1 / 49)
 
 
