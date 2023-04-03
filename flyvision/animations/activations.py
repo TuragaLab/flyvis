@@ -1,5 +1,4 @@
-"""Animations of neural activations.
-"""
+"""Animations of neural activations."""
 from typing import List
 
 from matplotlib import colormaps as cm

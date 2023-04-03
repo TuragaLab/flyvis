@@ -80,7 +80,7 @@ class Animation:
             raise ValueError(key, input)
         return indices
 
-    def nb_anim(self, frames="all", samples="all", repeat=1):
+    def animate_in_notebook(self, frames="all", samples="all", repeat=1):
         """Play animation within a jupyter notebook.
 
         Requires to set the backend to `notebook`, i.e. `%matplotlib notebook`.

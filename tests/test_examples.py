@@ -136,7 +136,7 @@ def test_imshow(sequence_path):
     sequences = np.load(sequence_path)
     example_sequence_ids = np.random.randint(0, high=sequences.shape[0], size=10)
     animation = flyvision.animations.Imshow(sequences, cmap=plt.cm.binary_r)
-    animation.notebook_animation(samples=example_sequence_ids, frames=[0])
+    animation.animate_in_notebook(samples=example_sequence_ids, frames=[0])
 
 
 def test_boxeye(sequence_path):
@@ -161,7 +161,7 @@ def test_rendering(rendered_dir):
 
     # just checking the visualzation runs
     animation = flyvision.animations.HexScatter(rendered_sequences, vmin=0, vmax=1)
-    animation.notebook_animation(samples="all", frames=[0])
+    animation.animate_in_notebook(samples="all", frames=[0])
 
 
 def test_sequence_dataset(custom_dataset):

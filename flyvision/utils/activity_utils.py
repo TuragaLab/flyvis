@@ -13,6 +13,8 @@ import weakref
 from typing import Union
 
 import numpy as np
+from numpy.typing import NDArray
+
 import torch
 
 from flyvision.utils import nodes_edges_utils
@@ -148,7 +150,7 @@ class CentralActivity(CellTypeActivity):
 
     def __init__(
         self,
-        activity: Union[np.ndarray, torch.Tensor],
+        activity: Union[NDArray, torch.Tensor],
         connectome: ConnectomeDir,
         keepref=False,
     ):

@@ -9,10 +9,9 @@ from toolz import groupby, valmap
 import matplotlib.path as mp
 from matplotlib import colormaps as cm
 from matplotlib.figure import Figure
-from matplotlib.axis import Axis
 from matplotlib.colors import Colormap
-from matplotlib.colorbar import Colorbar
 import numpy as np
+from numpy.typing import NDArray
 from pandas import DataFrame
 
 from datamate import Directory, Namespace, ArrayFile, root
@@ -546,7 +545,7 @@ class ConnectomeView:
         fig, axes, cbar, matrix = plots.heatmap(matrix, cell_types, **kwargs)
         return fig
 
-    def _weights(self) -> np.ndarray:
+    def _weights(self) -> NDArray:
         return self.edges.sign[:] * self.edges.n_syn[:]
 
     # -- network graphs ------------------------------------------------------------
@@ -651,7 +650,7 @@ class ConnectomeView:
             )
         return fig
 
-    def get_uv(self, cell_type) -> Tuple[np.ndarray]:
+    def get_uv(self, cell_type) -> Tuple[NDArray]:
         """Hex-coordinates of a particular cell type to pass to hex_scatter plot."""
         nodes = self.nodes.to_df()
         nodes = nodes[nodes.type == cell_type]
@@ -660,12 +659,12 @@ class ConnectomeView:
 
     # -- receptive fields ----------------------------------------------------------
 
-    def sources_list(self, cell_type: str) -> np.ndarray:
+    def sources_list(self, cell_type: str) -> NDArray:
         """Presynaptic cell types."""
         edges = self.edges.to_df()
         return np.unique(edges[edges.target_type == cell_type].source_type.values)
 
-    def targets_list(self, cell_type: str) -> np.ndarray:
+    def targets_list(self, cell_type: str) -> NDArray:
         """Postsynaptic cell types."""
         edges = self.edges.to_df()
         return np.unique(edges[edges.source_type == cell_type].target_type.values)

@@ -8,6 +8,7 @@ from matplotlib.colors import Colormap, Normalize
 from matplotlib import colormaps as cm
 import torch
 import numpy as np
+from numpy.typing import NDArray
 from contextlib import contextmanager
 from datamate import Directory
 
@@ -72,7 +73,7 @@ class Ensemble(dict):
         return self.__getitem__(key)
 
     def __getitem__(
-        self, key: Union[str, int, slice, np.ndarray, list]
+        self, key: Union[str, int, slice, NDArray, list]
     ) -> Union[NetworkView, "Ensemble"]:
         if isinstance(key, (int, np.integer)):
             return dict.__getitem__(self, self.names[key])
@@ -251,7 +252,7 @@ class Ensemble(dict):
 
         return TaskError(error, colors, cmap, norm, sm)
 
-    def cluster_indices(self, cell_type: str) -> Dict[int, np.ndarray[int]]:
+    def cluster_indices(self, cell_type: str) -> Dict[int, NDArray[int]]:
         """Clusters from responses to naturalistic stimuli of the given cell type.
 
         Args:
@@ -371,8 +372,8 @@ class TaskError:
     """A dataclass that contains the validation losses, the colors,
     the colormap, the norm, and the scalar mapper."""
 
-    values: np.ndarray
-    colors: np.ndarray
+    values: NDArray
+    colors: NDArray
     cmap: Colormap
     norm: Normalize
     scalarmappable: ScalarMappable

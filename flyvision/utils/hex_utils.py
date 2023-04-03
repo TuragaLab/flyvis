@@ -3,6 +3,8 @@ from typing import Iterable, Tuple
 from numbers import Number
 
 import numpy as np
+from numpy.typing import NDArray
+
 import torch
 from matplotlib import colormaps as cm
 
@@ -10,13 +12,13 @@ import flyvision
 
 
 def pad_to_regular_hex(
-    u: np.ndarray,
-    v: np.ndarray,
-    values: np.ndarray,
+    u: NDArray,
+    v: NDArray,
+    values: NDArray,
     extent: int,
     axis: int = -1,
     value: float = np.nan,
-) -> Tuple[np.ndarray]:
+) -> Tuple[NDArray]:
     """To pad hexals with coordinates to a regular hex lattice.
 
     Args:

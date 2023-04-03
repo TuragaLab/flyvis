@@ -2,6 +2,8 @@ from typing import Dict, Union
 from contextlib import contextmanager
 
 import numpy as np
+from numpy.typing import NDArray
+
 import torch
 from torch import Tensor
 
@@ -43,9 +45,9 @@ class Stimulus:
         response = network(stim(), dt)
     """
 
-    layer_index: Dict[str, np.ndarray]
+    layer_index: Dict[str, NDArray]
     central_cells_index: Dict[str, int]
-    input_index: np.ndarray
+    input_index: NDArray
     n_frames: int
     n_samples: int
     n_nodes: int

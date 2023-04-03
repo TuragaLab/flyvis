@@ -1,5 +1,7 @@
 from typing import Iterable, Tuple
 import numpy as np
+from numpy.typing import NDArray
+
 import matplotlib.pyplot as plt
 from numbers import Number
 import logging
@@ -49,7 +51,7 @@ def heatmap(
     grid_linewidth=0.5,
     size_transform=None,
     **kwargs,
-) -> Tuple[Figure, Axis, Colorbar, np.ndarray]:
+) -> Tuple[Figure, Axis, Colorbar, NDArray]:
     """
     Heatmap scatter of the matrix.
 

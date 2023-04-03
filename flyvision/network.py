@@ -8,6 +8,7 @@ from contextlib import contextmanager
 
 import warnings
 import numpy as np
+from numpy.typing import NDArray
 from toolz import valmap
 import torch
 from torch import Tensor
@@ -478,8 +479,10 @@ class Network(nn.Module):
             with warnings.catch_warnings():
                 warnings.simplefilter("always")
                 warnings.warn(
-                    (f"dt={dt} is very large for integration."
-                     " better choose a smaller dt (<= 1/50 to avoid this warning)") ,
+                    (
+                        f"dt={dt} is very large for integration."
+                        " better choose a smaller dt (<= 1/50 to avoid this warning)"
+                    ),
                     IntegrationWarning,
                     stacklevel=2,
                 )

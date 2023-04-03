@@ -1,6 +1,8 @@
 import re
 from typing import Iterable, Union, List, Tuple
 import numpy as np
+from numpy.typing import NDArray
+
 import torch
 
 from flyvision.connectome import ConnectomeDir
@@ -97,7 +99,7 @@ class NodeIndexer(dict):
     """
 
     def __init__(
-        self, connectome: ConnectomeDir = None, unique_cell_types: np.ndarray = None
+        self, connectome: ConnectomeDir = None, unique_cell_types: NDArray = None
     ):
         # if connectome is specified, the indices are taken from the connectome
         # and reference to positions in the entire list of nodes/cells
@@ -146,14 +148,14 @@ class CellTypeArray:
     """
 
     node_indexer: NodeIndexer = None
-    array: np.ndarray = None
+    array: NDArray = None
     dim: float = None
 
     def __init__(
         self,
-        array: Union[np.ndarray, torch.Tensor],
+        array: Union[NDArray, torch.Tensor],
         connectome: ConnectomeDir = None,
-        cell_types: np.ndarray = None,
+        cell_types: NDArray = None,
         dim: int = -1,
     ):
         self.array = array

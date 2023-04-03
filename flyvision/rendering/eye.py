@@ -3,6 +3,8 @@
 from typing import Iterator, Tuple
 
 import numpy as np
+from numpy.typing import NDArray
+
 import torch
 from torch import nn
 import torch.nn.functional as F
