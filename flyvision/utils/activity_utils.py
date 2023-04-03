@@ -1,22 +1,41 @@
-"""Attribute-style access to activity of particular cell types.
+"""Convenience and efficient access to activity of particular cells.
 
 Example:
     layer_activity = LayerActivity(activity, network.connectome)
-    T4a = layer_activity.T4a
-    T5a = layer_activity.T5a
-    T4b_central = layer_activity.central.T4a
+    T4a_response = layer_activity.T4a
+    T5a_response = layer_activity.T5a
+    T4b_central_response = layer_activity.central.T4a
 """
 from textwrap import wrap
 from functools import reduce
 import operator
 import weakref
+from typing import Union
 
 import numpy as np
+import torch
 
 from flyvision.utils import nodes_edges_utils
+from flyvision.connectome import ConnectomeDir
+
+__all__ = ["CentralActivity", "LayerActivity"]
 
 
-class _Activity(dict):
+class CellTypeActivity(dict):
+    """Base class for attribute-style access to network activity.
+
+    Note, activity is stored as a weakref by default. This is for memory efficienty
+    during training. If you want to keep a reference to the activity for analysis,
+    set keepref=True.
+
+    Args:
+        keepref (bool, optional): Whether to keep a reference to the activity. Defaults to False.
+
+    Attributes:
+        activity (weakref.ref): Weak reference to the activity.
+        keepref (bool): Whether to keep a reference to the activity.
+    """
+
     def __init__(self, keepref=False):
         self.keepref = keepref
 
@@ -100,27 +119,39 @@ class _Activity(dict):
         return self
 
 
-class CentralActivity(_Activity):
+class CentralActivity(CellTypeActivity):
     """Attribute-style access to central activity.
 
     Args:
         activity (array-like): activity of shape (..., n_cells)
-        connectome (Folder): connectome dir with reference to
+        connectome: connectome dir with reference to
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
                         - connectome.central_cells_index
+        keepref (bool, optional): Whether to keep a reference to the activity. Defaults to False.
 
+    Note, activity is stored as a weakref by default. This is for memory efficienty
+    during training. If you want to keep a reference to the activity for analysis,
+    set keepref=True.
 
     Attributes:
         activity (array-like): activity of shape (..., n_cells)
         unique_cell_types (array)
+        index (NodeIndexer)
+        input_indices (array)
+        output_indices (array)
 
     Note: also allows 'virtual types' that are basic operations of individuals
-    >>> a = LayerActivity(activity, network.connectome)
-    >>> summed_a = a['L2+L4*L3/L5']
+        >>> a = LayerActivity(activity, network.connectome)
+        >>> summed_a = a['L2+L4*L3/L5']
     """
 
-    def __init__(self, activity, connectome, keepref=False):
+    def __init__(
+        self,
+        activity: Union[np.ndarray, torch.Tensor],
+        connectome: ConnectomeDir,
+        keepref=False,
+    ):
         super().__init__(keepref)
         self.index = nodes_edges_utils.NodeIndexer(connectome)
 
@@ -133,7 +164,6 @@ class CentralActivity(_Activity):
         self.output_indices = np.array(
             [np.nonzero(unique_cell_types == t)[0] for t in output_cell_types]
         )
-        # breakpoint()
         self.activity = activity
         self.unique_cell_types = unique_cell_types.astype(str)
 
@@ -178,7 +208,6 @@ class CentralActivity(_Activity):
             raise ValueError(f"{key}")
 
     def __setattr__(self, key, value):
-        # TODO: case when value is ReferenceType and whole layers.
         if key == "activity" and value is not None:
             if len(self.index.unique_cell_types) != value.shape[-1]:
                 slices = self._slices(len(value.shape) - 1)
@@ -199,7 +228,7 @@ class CentralActivity(_Activity):
             yield cell_type
 
 
-class LayerActivity(_Activity):
+class LayerActivity(CellTypeActivity):
     """Attribute-style access to layer activity.
 
     Args:
@@ -210,6 +239,11 @@ class LayerActivity(_Activity):
                         - connectome.central_cells_index
                         - connectome.input_cell_types
                         - connectome.output_cell_types
+        keepref (bool, optional): Whether to keep a reference to the activity. Defaults to False.
+
+    Note, activity is stored as a weakref by default. This is for memory efficienty
+    during training. If you want to keep a reference to the activity for analysis,
+    set keepref=True.
 
     Attributes:
         central (CentralActivity): central activity mapping,
@@ -224,10 +258,6 @@ class LayerActivity(_Activity):
         unique_cell_types (array)
         input_indices (array)
         output_indices (array)
-        input (array)
-        output (array)
-        <cell_types> (array)
-
 
     Note: central activity can be accessed by
     >>> a = LayerActivity(activity, network.connectome)

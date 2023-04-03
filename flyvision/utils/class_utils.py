@@ -1,8 +1,9 @@
+"""Utilities for working with classes."""
 from copy import deepcopy
 from warnings import warn
 
 
-def _forward_subclass(cls: type, config: object = {}, subclass_key="type") -> object:
+def forward_subclass(cls: type, config: object = {}, subclass_key="type") -> object:
     """Forward to a subclass based on the `<subclass_key>` key in `config`.
 
     Forwards to the parent class if `<subclass_key>` is not in `config`.

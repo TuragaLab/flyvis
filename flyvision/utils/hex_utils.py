@@ -129,27 +129,8 @@ def hex_rows(n_rows, n_columns, eps=0.1, mode="pointy"):
     return x, y
 
 
-# @nb.jit(nopython=True)
-# def get_hex_coords(extent):
-#     """Construct axial hexagonal coordinates with 'radius' specified by extent."""
-#     u = np.empty(get_num_hexals(extent), dtype=np.int32)
-#     v = np.empty(get_num_hexals(extent), dtype=np.int32)
-#     i = 0
-#     for q in range(-extent, extent+1):
-#         for r in range(max(-extent, -extent-q), min(extent, extent-q)+1):
-#             u[i] = q
-#             v[i] = r
-#             i += 1
-#     return u, v
-
-# @nb.jit(nopython=True)
 def get_num_hexals(extent):
     return 1 + 3 * extent * (extent + 1)
-
-
-# @nb.jit(nopython=True)
-# def get_hextent(num_hexals):
-#     return int(-1/2 + np.sqrt((1/2)**2 + ((num_hexals - 1)/3)))
 
 
 def get_hex_coords(extent, astensor=False):
@@ -174,22 +155,6 @@ def sort_u_then_v(u, v, values):
 
 def sort_u_then_v_index(u, v):
     return np.lexsort((v, u))
-
-
-# def get_hex_coords(extent, astensor=False):
-#     """Construct axial hexagonal coordinates with 'radius' specified by extent
-#     as in the coordinate system used by Breitenberg.
-#     """
-#     u = []
-#     v = []
-#     n = extent
-#     for q in np.arange(-n, n + 1)[::-1]:
-#         for r in np.arange(max(-n, -n - q), min(n +1, n + 1 - q)):
-#             u.append(q)
-#             v.append(r)
-#     if astensor:
-#         return torch.Tensor(u).long(), torch.Tensor(v).long()
-#     return np.array(u), np.array(v)
 
 
 def get_hextent(n):
@@ -397,7 +362,7 @@ def line_mask(u, v, angle):
         line_v[i] = _next[1]
     line_mask = np.zeros_like(u, dtype=bool)
     uv = np.stack((u, v))
-    for (_u, _v) in zip(line_u, line_v):
+    for _u, _v in zip(line_u, line_v):
         index = np.nonzero((uv[0, :] == _u) & (uv[1, :] == _v))[0]
         line_mask[index] = True
     return line_mask
@@ -471,13 +436,13 @@ def hexline(u_0, v_0, u, v, extent=None, eps=-1e-6):
     u, v = get_hex_coords(extent)
     line_mask = np.zeros_like(u, dtype=bool)
     uv = np.stack((u, v))
-    for (_u, _v) in zip(line_u, line_v):
+    for _u, _v in zip(line_u, line_v):
         index = np.nonzero((uv[0, :] == _u) & (uv[1, :] == _v))[0]
         line_mask[index] = True
     return line_mask
 
 
-# -- Experimental hex-datastructures -------------------------------------------
+# -- Experimental explicit hex-datastructures ----------------------------------
 
 
 class Hexal:
@@ -754,7 +719,7 @@ class HexArray(np.ndarray):
     def with_stride(self, u_stride=None, v_stride=None):
         """Returns a sliced instance obeying strides in u- and v-direction."""
         new = []
-        for (u, v, val) in zip(self.u, self.v, self.values):
+        for u, v, val in zip(self.u, self.v, self.values):
             if u % u_stride == 0 and v % v_stride == 0:
                 new.append(True)
             else:

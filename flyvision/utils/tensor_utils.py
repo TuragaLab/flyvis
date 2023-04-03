@@ -6,17 +6,15 @@ import torch
 import numpy as np
 import pandas as pd
 
-# -- Parameter dereferencing ---------------------------------------------------
-
 
 class RefTensor:
-    """Stores tensors of values and indices as references for the last dimension.
+    """A tensor with reference indices along the last dimension.
 
     Args:
-        values (tensor)
-        indices (tensor)
+        values
+        indices
 
-    Attributes: see Args.
+    Attributes: same as args.
     """
 
     def __init__(self, values: torch.Tensor, indices: torch.Tensor) -> None:
@@ -33,41 +31,12 @@ class RefTensor:
     def __repr__(self):
         return "RefTensor(values={}, indices={})".format(self.values.data, self.indices)
 
-    @staticmethod
-    def get_ref_indices(dataframe, groupby, group=pd.core.groupby.GroupBy.first):
-        """Returns the grouped dataframe and the reference indices for shared
-        parameters.
-
-        Args:
-            dataframe (pd.DataFrame): dataframe of nodes or edges, can also
-                    contain synapse counts and signs.
-            groupby (list): list of columns to group the dataframe by.
-            group (method): groupby method, e.g. first, mean, sum.
-
-        Returns:
-            pd.DataFrame: first entries per group.
-            tensor: indices for parameter sharing
-        """
-        group = group(dataframe.groupby(groupby, as_index=False, sort=False))
-        ungrouped_elements = zip(*[dataframe[k][:] for k in groupby])
-        grouped_elements = zip(*[group[k][:] for k in groupby])
-        to_index = {k: i for i, k in enumerate(grouped_elements)}
-        return group, torch.tensor([to_index[k] for k in ungrouped_elements])
-
-    @staticmethod
-    def scatter_mean(tensor, indices):
-        """Scatter mean."""
-        return scatter_mean(tensor, indices)
-
-    @staticmethod
-    def scatter_add(tensor, indices):
-        """Scatter mean."""
-        return scatter_add(tensor, indices)
-
-    def clone(self):
+    def clone(self) -> "RefTensor":
+        """Returns a copy of the RefTensor cloning values."""
         return RefTensor(self.values.clone(), self.indices)
 
-    def detach(self):
+    def detach(self) -> "RefTensor":
+        """Returns a copy of the RefTensor detaching values."""
         return RefTensor(self.values.detach(), self.indices)
 
 
@@ -78,10 +47,9 @@ class AutoDeref(dict):
     __getitem__ will call RefTebsir.deref() to obtain the values at the
     given indices.
 
-    The cache speeds up processing if the same
-    parameter is referenced multiple times in the dynamics.
-    Is constructed in Network._param_api(), i.e. cache is destroyed
-    at each forward call.
+    Note, constructed at each forward call in Network. A cache speeds up
+    processing, e.g. when a parameter is referenced multiple times in the
+    dynamics.
     """
 
     _cache: Dict[str, object]
@@ -206,6 +174,7 @@ def clone(obj: AutoDeref) -> AutoDeref:
 
 
 def to_numpy(array):
+    """Convert array-like to numpy array."""
     if isinstance(array, np.ndarray):
         return array
     elif isinstance(array, torch.Tensor):
@@ -288,6 +257,10 @@ def where_equal_rows(matrix1, matrix2, as_mask=False) -> NDArray[int]:
 
 
 def broadcast(src: torch.Tensor, other: torch.Tensor, dim: int):
+    """Broadcast `src` to the shape of `other` along dimension `dim`.
+
+    From https://github.com/rusty1s/pytorch_scatter/.
+    """
     if dim < 0:
         dim = other.dim() + dim
     if src.dim() == 1:
@@ -300,13 +273,21 @@ def broadcast(src: torch.Tensor, other: torch.Tensor, dim: int):
 
 
 def scatter_reduce(src, index, dim=-1, mode="mean"):
+    """Reduce along dimension `dim` using values in the `index` tensor.
+
+    Convenience function for `torch.scatter_reduce` that broadcasts `index` to
+    the shape of `src` along dimension `dim` to cohere to pytorch_scatter
+    API.
+    """
     index = broadcast(index.long(), src, dim)
     return torch.scatter_reduce(src, dim, index, reduce=mode)
 
 
 def scatter_mean(src, index, dim=-1):
+    """Average along dimension `dim` using values in the `index` tensor."""
     return scatter_reduce(src, index, dim, "mean")
 
 
 def scatter_add(src, index, dim=-1):
+    """Sum along dimension `dim` using values in the `index` tensor."""
     return scatter_reduce(src, index, dim, "sum")

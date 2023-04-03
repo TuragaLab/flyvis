@@ -1,11 +1,14 @@
 import re
-from typing import Iterable
+from typing import Iterable, Union, List, Tuple
 import numpy as np
+import torch
+
+from flyvision.connectome import ConnectomeDir
 
 
-def order_nodes_list(
-    nodes_list,
-    groups=[
+def oder_node_type_list(
+    node_types: List,
+    groups: List = [
         r"R\d",
         r"L\d",
         r"Lawf\d",
@@ -16,21 +19,20 @@ def order_nodes_list(
         r"T\d{1,2}.*",
         r"Tm.*\d{1,2}.*",
     ],
-):
-    """Orders a list of cell types by the regular expressions defined in groups.
+) -> Tuple[List, List]:
+    """Orders a list of node types by the regular expressions defined in groups.
 
     Args:
-        nodes_list (list): messy list of nodes.
-        groups (list): ordered list of regular expressions that match the nodes.layout
+        node_types (list): messy list of nodes.
+        groups (list): ordered list of regular expressions to sort node_types.
 
     Returns:
-        array: ordered list of nodes.
-        array: original indices.
+        ordered node type list and the corresponding sorting indices.
     """
-    if nodes_list is None:
+    if node_types is None:
         return None, None
 
-    _len = len(nodes_list)
+    _len = len(node_types)
 
     def sort_numeric(string):
         """Used in sorted(list, key=sort_fn) for sorting
@@ -46,8 +48,8 @@ def order_nodes_list(
     #     breakpoint()
     type_groups = {index: [] for index in range(len(groups))}
     type_groups.update({len(groups) + 1: []})  # for unmatched types.
-    matched = {cell_type: False for cell_type in nodes_list}
-    for node_index, cell_type in enumerate(nodes_list):
+    matched = {cell_type: False for cell_type in node_types}
+    for node_index, cell_type in enumerate(node_types):
         for group_index, regular_expression in enumerate(groups):
             if re.match(regular_expression, cell_type):
                 type_groups[group_index].append((node_index, cell_type))
@@ -65,8 +67,8 @@ def order_nodes_list(
     index = [y[0] for y in ordered]
     nodes = [y[1] for y in ordered]
 
-    if set(nodes_list) - set(nodes):
-        print(set(nodes_list) - set(nodes))
+    if set(node_types) - set(nodes):
+        print(set(node_types) - set(nodes))
         raise AssertionError(
             "Defined sorting through regular expressions does not include all cell types."
         )
@@ -80,14 +82,35 @@ def order_nodes_list(
 
 
 class NodeIndexer(dict):
-    def __init__(self, connectome=None, unique_cell_types=None):
+    """Attribute-style accessible map from cell types to indices.
+
+    Args:
+        connectome: Connectome object. The cell types are taken from the
+            connectome and references are created in order. Additionally stores
+            the central_cells_index in the whole list of nodes/cells.
+        unique_cell_types: array of unique cell types. Optional.
+            To specifiy the mapping from cell types to indices in provided order.
+
+    Attributes:
+        unique_cell_types: array of unique cell types.
+        central_cells_index: array of indices of central cells.
+    """
+
+    def __init__(
+        self, connectome: ConnectomeDir = None, unique_cell_types: np.ndarray = None
+    ):
+        # if connectome is specified, the indices are taken from the connectome
+        # and reference to positions in the entire list of nodes/cells
         if connectome is not None and unique_cell_types is None:
             self.unique_cell_types = connectome.unique_cell_types[:].astype("str")
             self.central_cells_index = connectome.central_cells_index[:]
+        # alternatively the mapping can be specified from a list of cell types
+        # and reference to positions in order of the list
         elif connectome is None and unique_cell_types is not None:
             self.unique_cell_types = unique_cell_types
+            self.central_cells_index = None
         else:
-            raise ValueError("either cell_types or connectome must be specified")
+            raise ValueError("either cell types or connectome must be specified")
         for index, cell_type in enumerate(self.unique_cell_types):
             super().__setitem__(cell_type, index)
 
@@ -117,7 +140,7 @@ class CellTypeArray:
 
     Args:
         array: has the dim-th axis corresponding to unique cell types
-            in the connectome.
+            in the connectome or provided cell types.
         connectome: Connectome object.
         dim: axis correpsonding to unique cell types.
     """
@@ -126,7 +149,13 @@ class CellTypeArray:
     array: np.ndarray = None
     dim: float = None
 
-    def __init__(self, array, connectome=None, cell_types=None, dim=-1):
+    def __init__(
+        self,
+        array: Union[np.ndarray, torch.Tensor],
+        connectome: ConnectomeDir = None,
+        cell_types: np.ndarray = None,
+        dim: int = -1,
+    ):
         self.array = array
         self.dim = dim
         self.node_indexer = NodeIndexer(connectome, cell_types)
@@ -169,7 +198,6 @@ class CellTypeArray:
         return len(self.node_indexer.unique_cell_types)
 
     def __getattr__(self, key):
-
         if self.node_indexer is not None:
             if isinstance(key, str) and key in self.node_indexer.unique_cell_types:
                 indices = np.int_([dict.__getitem__(self.node_indexer, key)])
@@ -215,6 +243,7 @@ class CellTypeArray:
         return self.__setitem__(key, value)
 
 
+# cell type layout for visualization
 layout = {
     "R1": "retina",
     "R2": "retina",

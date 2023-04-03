@@ -1,17 +1,21 @@
-"""Utility functions for operations on pd.DataFrames."""
+"""Utility functions for operations on pandas DataFrames."""
+from typing import Iterable
+from pandas import DataFrame
 
 
-def filter_df_by_list(alist, adf, column="type"):
-    """Get all rows in the df with keys specified in list.
+def filter_by_column_values(
+    dataframe: DataFrame, column: str, values: Iterable
+) -> DataFrame:
+    """Return subset of dataframe based on list of values to appear in a column.
 
     Args:
-        alist (list): e.g. types of neurons e.g. R1, T4a, etc.
-        adf (DataFrame): dataframe with key as column.
-        column (str): column of the dataframe, e.g. type.
+        dataframe (DataFrame): dataframe with key as column.
+        column (str): column of the dataframe, e.g. `type`.
+        values (list): e.g. types of neurons e.g. R1, T4a, etc.
     """
     cond = ""
-    for t in alist:
-        cond += f"(adf.{column}=='{t}')"
-        if t != alist[-1]:
+    for t in values:
+        cond += f"(dataframe.{column}=='{t}')"
+        if t != values[-1]:
             cond += "|"
-    return adf[eval(cond)]
+    return dataframe[eval(cond)]

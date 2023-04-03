@@ -1,3 +1,4 @@
+"""Utility functions."""
 from flyvision.utils import (
     activity_utils,
     dataset_utils,
