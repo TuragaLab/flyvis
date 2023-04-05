@@ -15,7 +15,6 @@ root_dir = Path(__file__).parent.parent.absolute() / "data"
 results_dir = root_dir / "results"
 sintel_dir = root_dir / "SintelDataSet"
 connectome_file = root_dir / "connectome/fib25-fib19_v2.2.json"
-animation_dir = root_dir / "animations"
 
 datamate.set_root_dir(root_dir)
 del datamate
