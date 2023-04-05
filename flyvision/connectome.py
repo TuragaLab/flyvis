@@ -46,10 +46,11 @@ class ConnectomeDir(Directory):
 
         SubDirs:
 
-            nodes (NodeDir): A table with a row for each node.
+            nodes (NodeDir): table with a row for each individual node/cell and
+                columns/files describing their attributed.
 
                 Files:
-                    type (str): cell type names
+                    type (str): cell type name
                     u (int): hex-coordinates #1 (oblique coordinates)
                     v (int): hex-coordinates #2 (oblique coordinates)
                     role (str): input, hidden, or output
