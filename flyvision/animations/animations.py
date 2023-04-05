@@ -2,6 +2,11 @@
 import itertools
 import shutil
 from time import sleep
+from contextlib import contextmanager
+import matplotlib
+import matplotlib.pyplot as plt
+from IPython import display
+
 from pathlib import Path
 from typing import Iterable
 import weakref
@@ -10,7 +15,13 @@ import logging
 
 import ffmpeg
 
-from flyvision import animation_dir
+from datamate import get_root_dir
+
+import os
+
+colab = False
+if os.getenv("COLAB_RELEASE_TAG"):
+    colab = True
 
 
 class Animation:
@@ -37,7 +48,7 @@ class Animation:
     _finalize = []
 
     def __init__(self, path=None, fig=None, suffix="animations/{}"):
-        path = animation_dir if path is None else path
+        path = get_root_dir() if path is None else path
         self.path = path / suffix.format(self.__class__.__name__)
         self.fig = fig
 
@@ -57,6 +68,9 @@ class Animation:
         """Updates the figure canvas."""
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
+        if matplotlib.get_backend().lower() != "nbagg" or colab:
+            display.display(self.fig)
+            display.clear_output(wait=True)
 
     def animate_save(self, frame, dpi=100):
         """Updates the figure to the given frame and saves it."""
