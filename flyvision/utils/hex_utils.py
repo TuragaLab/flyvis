@@ -11,12 +11,95 @@ from matplotlib import colormaps as cm
 import flyvision
 
 
+def get_hex_coords(extent, astensor=False):
+    """Construct hexagonal coordinates for a regular hex-lattice with extent.
+
+    Args:
+        extent (int): integer radius of hexagonal lattice. 0 returns the single
+            center coordinate.
+        astensor (bool): if True, returns torch.Tensor, else np.array.
+
+    Returns:
+        u (array): hex-coordinates in u-direction.
+        v (array): hex-corrdinates in v-direction.
+
+    See also: https://www.redblobgames.com/grids/hexagons/#range-coordinate
+
+    Note: will return `get_num_hexals(extent)` coordinates.
+    """
+    u = []
+    v = []
+    for q in range(-extent, extent + 1):
+        for r in range(max(-extent, -extent - q), min(extent, extent - q) + 1):
+            u.append(q)
+            v.append(r)
+    if astensor:
+        return torch.Tensor(u).long(), torch.Tensor(v).long()
+    return np.array(u), np.array(v)
+
+
+def hex_to_pixel(u, v, size=1, mode="default"):
+    """Returns a pixel coordinate from the hex coordinate.
+
+    Args:
+        u (array): hex-coordinates in u-direction.
+        v (array): hex-corrdinates in v-direction.
+        size (float): size of hexagon.
+        mode (str): coordinate system convention. Default is "default".
+            Other options are "flat", "pointy".
+
+    Returns:
+        x (array): pixel-coordinates in x-direction.
+        y (array): pixel-corrdinates in y-direction.
+
+    Geometric explanations here:
+        https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
+    """
+    if isinstance(u, list) and isinstance(v, list):
+        u = np.array(u)
+        v = np.array(v)
+    if mode == "default":
+        return 3 / 2 * v, -np.sqrt(3) * (u + v / 2)
+    elif mode == "flat":
+        return (3 / 2 * u) * size, (np.sqrt(3) / 2 * u + np.sqrt(3) * v) * size
+    elif mode == "pointy":
+        return (np.sqrt(3) * u + np.sqrt(3) / 2 * v) * size, (3 / 2 * v) * size
+    else:
+        raise ValueError(f"{mode} not recognized.")
+
+
+def pixel_to_hex(x, y, size=1, mode="default"):
+    """Returns a hex coordinate from the pixel coordinate.
+
+    Args:
+        x (array): pixel-coordinates in x-direction.
+        y (array): pixel-corrdinates in y-direction.
+        size (float): size of hexagon.
+        mode (str): coordinate system convention. Default is "default".
+            Other options are "flat", "pointy".
+
+    Returns:
+        u (array): hex-coordinates in u-direction.
+        v (array): hex-corrdinates in v-direction.
+
+    Geometric explanations here:
+        https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
+    """
+    if mode == "default":
+        return -x / 3 - y / np.sqrt(3), 2 / 3 * x
+    elif mode == "flat":
+        return (2 / 3 * x) / size, (-1 / 3 * x + np.sqrt(3) / 3 * y) / size
+    elif mode == "pointy":
+        return (np.sqrt(3) / 3 * x - 1 / 3 * y) / size, (2 / 3 * y) / size
+    else:
+        raise ValueError(f"{mode} not recognized.")
+
+
 def pad_to_regular_hex(
     u: NDArray,
     v: NDArray,
     values: NDArray,
     extent: int,
-    axis: int = -1,
     value: float = np.nan,
 ) -> Tuple[NDArray]:
     """To pad hexals with coordinates to a regular hex lattice.
@@ -24,11 +107,16 @@ def pad_to_regular_hex(
     Args:
         u: u-coordinate of hexal.
         v: v-coordinate of hexal.
-        values: value of hexal with arbitray shape but axis
+        values: value of hexal with arbitray shape but last axis
             must match the hexal dimension.
         extent: extent of regular hex grid to pad to.
         axis: the hexal dimension of values.
         value: the pad value.
+
+    Returns:
+        u_padded: padded u-coordinate.
+        v_padded: padded v-coordinate.
+        values_padded: padded value.
 
     Note, the canonical use case here is to pad a filter, receptieve field, or
     postsynaptic current field for visualization.
@@ -63,6 +151,9 @@ def max_extent_index(u, v, max_extent):
         u (array): hex-coordinates in u-direction.
         v (array): hex-corrdinates in v-direction.
         max_extent (int): maximal extent.
+
+    Returns:
+        mask (array): boolean mask.
     """
     return (
         (-max_extent <= u)
@@ -74,101 +165,79 @@ def max_extent_index(u, v, max_extent):
     )
 
 
-def hex_to_pixel(u, v, size=1, mode="tschopp"):
-    """Returns a pixel coordinate from the hex coordinate
-    as described here: https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
-    """
-    if isinstance(u, list) and isinstance(v, list):
-        u = np.array(u)
-        v = np.array(v)
-    if mode == "flat":
-        return (3 / 2 * u) * size, (np.sqrt(3) / 2 * u + np.sqrt(3) * v) * size
-    elif mode == "pointy":
-        return (np.sqrt(3) * u + np.sqrt(3) / 2 * v) * size, (3 / 2 * v) * size
-    elif mode == "other":
-        return 2 / np.sqrt(3) * size * (u + v / 2), -size * v
-    elif mode == "tschopp":
-        return 3 / 2 * v, -np.sqrt(3) * (u + v / 2)
-    elif mode == "tschopp_inv_y":
-        return 3 / 2 * v, np.sqrt(3) * (u + v / 2)
-    elif mode == "image":
-        return size * (u + v / 2), size * v
-    else:
-        print("Transforming from pointy hex coords.")
-        return hex_to_pixel(u, v, size, "pointy")
-
-
-def pixel_to_hex(x, y, size=1, mode="tschopp"):
-    """Returns a hex coordinate from the pixel coordinate
-    as described here: https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
-    """
-    if mode == "flat":
-        return (2 / 3 * x) / size, (-1 / 3 * x + np.sqrt(3) / 3 * y) / size
-    elif mode == "pointy":
-        return (np.sqrt(3) / 3 * x - 1 / 3 * y) / size, (2 / 3 * y) / size
-    elif mode == "tschopp":
-        return -x / 3 - y / np.sqrt(3), 2 / 3 * x
-    elif mode == "other":
-        return (np.sqrt(3) / 2 * x + y / 2) / size, -y / size
-    else:
-        print("Transforming to pointy hex coords.")
-        return pixel_to_hex(x, y, size, "pointy")
-
-
-def hex_rows(n_rows, n_columns, eps=0.1, mode="pointy"):
-    """To return a hex grid in pixel coordinates."""
-    u = []
-    v = []
-    for r in range(n_rows):
-        for c in range(n_columns):
-            u.append(c)
-            v.append(r)
-    u = np.array(u)
-    v = np.array(v)
-    x, y = flyvision.utils.hex_utils.hex_to_pixel(u, v, mode=mode)
-    x += eps
-    y += eps
-    return x, y
-
-
 def get_num_hexals(extent):
+    """Returns the absolute number of hexals in a hexagonal grid with extent.
+
+    Args:
+        extent (int): extent of hex-lattice.
+
+    Returns:
+        num_hexals (int): number of hexals.
+
+    Note: inverse of get_hextent.
+    """
     return 1 + 3 * extent * (extent + 1)
 
 
-def get_hex_coords(extent, astensor=False):
-    """Construct axial hexagonal coordinates with 'radius' specified by extent.
-    https://www.redblobgames.com/grids/hexagons/#range-coordinate
+def get_hextent(num_hexals):
+    """Computes the hex-lattice extent from the number of hexals.
+
+    Args:
+        num_hexals (int): number of hexals.
+
+    Returns:
+        extent (int): extent of hex-lattice.
+
+    Note: inverse of get_num_hexals.
     """
-    u = []
-    v = []
-    for q in range(-extent, extent + 1):
-        for r in range(max(-extent, -extent - q), min(extent, extent - q) + 1):
-            u.append(q)
-            v.append(r)
-    if astensor:
-        return torch.Tensor(u).long(), torch.Tensor(v).long()
-    return np.array(u), np.array(v)
+
+    return np.floor(np.sqrt(num_hexals / 3)).astype("int")
 
 
 def sort_u_then_v(u, v, values):
+    """Sorts u, v, and values by u and then v.
+
+    Args:
+        u (array): u-coordinate of hexal.
+        v (array): v-coordinate of hexal.
+        values (array): value of hexal.
+
+    Returns:
+        u (array): sorted u-coordinate of hexal.
+        v (array): sorted v-coordinate of hexal.
+        values (array): sorted value of hexal.
+    """
     index = np.lexsort((v, u))
     return u[index], v[index], values[index]
 
 
 def sort_u_then_v_index(u, v):
+    """Index to sort u, v by u and then v.
+
+    Args:
+        u (array): u-coordinate of hexal.
+        v (array): v-coordinate of hexal.
+
+    Returns:
+        index (array): index to sort u and v.
+    """
     return np.lexsort((v, u))
 
 
-def get_hextent(n):
-    """Computes the extent of the regular hexgrid only from the number of hexals."""
-    return np.floor(np.sqrt(n / 3)).astype("int")
-
-
 def get_extent(u, v, astype=int):
-    """Computes the extent of the minimal hexgrid hull of arbitrary coordinates in u,v.
+    """Returns extent (integer distance to origin) of arbitrary u, v coordinates.
 
-    Note: Based on the distance function for hex grids in axial coordinates from here:
-    https://www.redblobgames.com/grids/hexagons/#distances
+    Args:
+        u (array): u-coordinate of hexal.
+        v (array): v-coordinate of hexal.
+        astype (type): type to cast to.
+
+    Returns:
+        extent (int): extent of hex-lattice.
+
+    Note, if u and v are arrays, returns the maximum extent.
+
+    See also https://www.redblobgames.com/grids/hexagons/#distances
     """
     if isinstance(u, Number) and isinstance(v, Number):
         u, v = np.array((u,)), np.array((v,))
@@ -177,271 +246,6 @@ def get_extent(u, v, astype=int):
         abs(0 - uv[:, 0]) + abs(0 + 0 - uv[:, 0] - uv[:, 1]) + abs(0 - uv[:, 1])
     ) / 2
     return np.max(extent).astype(astype)
-
-
-def get_flip_index(extent, axis):
-    """Get indices used to flip the sequence."""
-    u, v = get_hex_coords(extent)
-    if axis == 0:
-        # flip across v = 0, that is the x axis.
-        u_new = u + v
-        v_new = -v
-    elif axis == 1:
-        # flip across u = 0, that is the y axis.
-        u_new = -u
-        v_new = u + v
-    elif axis == 2:
-        # flip across u + v = 0, that is the 'z' axis of the hex lattice.
-        u_new = -v
-        v_new = -u
-    index = np.lexsort((v_new, u_new))
-    return index
-
-
-def get_rot_index(extent, n_rot):
-    u, v = get_hex_coords(extent)
-    u_new, v_new = rotate_Nx60(u, v, n_rot)
-    index = np.lexsort((v_new, u_new))
-    return index
-
-
-def rotate_Nx60(u, v, n):
-    """Rotation in hex coordinates.
-
-    Ressource: http://devmag.org.za/2013/08/31/geometry-with-hex-coordinates/
-    """
-
-    def rotate(u, v):
-        """R = [[0, -1], [1, 1]]"""
-        return -v, u + v
-
-    for i in range(n % 6):
-        u, v = rotate(u, v)
-
-    return u, v
-
-
-def to_hex_array(hex_map):
-    """
-    Convert a hexagonal square map of shape (*, size, size) to array.
-    """
-    shape = hex_map.shape
-    assert shape[-2] == shape[-1]
-    u, v = get_hex_coords(shape[-1] // 2)
-    u -= u.min()
-    v -= v.min()
-    return hex_map[..., u, v]
-
-
-def to_hex_map(hex_array):
-    """
-    Convert a hexagonal array to map storage.
-    """
-    shape = hex_array.shape
-    extent = get_hextent(shape[-1])
-    u, v = get_hex_coords(extent)
-    u -= u.min()
-    v -= v.min()
-    H, W = u.max() + 1, v.max() + 1
-    hex_map = np.zeros([*shape[0:-1], H, W])
-    hex_map[..., u, v] = hex_array
-    return hex_map
-
-
-def ring_mask(u, v, radius):
-    """Compute a mask for a ring on a regular hex grid.
-
-    Args:
-        u (array): u-coordinates
-        v (array): v-coordinates
-        extent (int): integer ring extent
-
-    Returns:
-        array: mask
-
-    Example:
-        u, v = flyvision.utils.hex_utils.get_hex_coords(15)
-        color = np.zeros(len(u))
-        ring = ring_mask(u, v, 12)
-        color[ring] = np.random.rand(ring.sum())
-        flyvision.plots.hex_scatter(u, v, color)
-    """
-    mask = np.zeros_like(u, dtype=bool)
-    for i, (_u, _v) in enumerate(zip(u, v)):
-        distance_to_center = get_extent(_u, _v)
-        if distance_to_center == radius:
-            mask[i] = True
-    return mask
-
-
-def line_mask(u, v, angle):
-    """Compute a mask for a single pixel line of certain angle.
-
-    Example:
-        u, v = flyvision.utils.hex_utils.get_hex_coords(15)
-        color = np.zeros(len(u))
-        line =flyvision.utils.hex_utils.line_mask(u, v, 0.67)
-        color[line] = np.ones(line.sum())
-        flyvision.plots.hex_scatter(u, v, color)
-    """
-
-    def get_angle(u, v):
-        x, y = hex_to_pixel(u, v)
-        angles = np.arctan2(y, x)
-        angles[angles < 0] += 2 * np.pi
-        return angles
-
-    def hex_round(u, v):
-        z = -(u + v)
-
-        ru = round(u)
-        rv = round(v)
-        rz = round(z)
-
-        u_diff = abs(ru - u)
-        v_diff = abs(rv - v)
-        z_diff = abs(rz - z)
-
-        if u_diff > v_diff and u_diff > z_diff:
-            ru = -rv - rz
-        elif v_diff > z_diff:
-            rv = -ru - rz
-        return ru, rv
-
-    def interp(u, v, t):
-        """Interpolates between two hex points.
-
-        Args:
-            u (array): u coordinates of first and second point.
-            v (array): v coordinates of first and second point.
-            t (float): interpolation step, 0<t<1.
-
-        Returns:
-            tuple: next hex coordinate.
-        """
-
-        uprime, vprime = u[0] + (u[1] - u[0]) * t, v[0] + (v[1] - v[0]) * t
-        return hex_round(uprime, vprime)
-
-    def hex_distance(us, vs):
-        assert len(us) == len(vs) == 2
-        return int(
-            (
-                abs(us[0] - us[1])
-                + abs(us[0] + vs[0] - us[1] - vs[1])
-                + abs(vs[0] - vs[1])
-            )
-            / 2
-        )
-
-    def endpoints_mask(angle, extent=15):
-        """
-        orientation angle between [0, np.pi]
-        """
-        u, v = get_hex_coords(extent)
-        ring = ring_mask(u, v, extent)
-        mask = np.zeros_like(u, dtype=bool)
-        angles = get_angle(u, v)
-        angles[~ring] = 1e5
-        dist = np.abs(angles - angle)
-        mask[np.argmin(dist)] = True
-        opposite = np.abs(angles - (angle + np.pi))
-        mask[np.argmin(opposite)] = True
-        return mask
-
-    _endpoint_mask = endpoints_mask(angle)
-    u_ab, v_ab = u[_endpoint_mask], v[_endpoint_mask]
-    N = hex_distance(u_ab, v_ab)
-    line_u, line_v = np.zeros(N + 1), np.zeros(N + 1)
-    line_u[0] = u_ab[0]
-    line_v[0] = v_ab[0]
-    line_u[-1] = u_ab[1]
-    line_v[-1] = v_ab[1]
-    for i in range(1, N):
-        _next = interp(u_ab, v_ab + 1e-6, 1 / N * i)
-        _next = hex_round(*_next)
-        line_u[i] = _next[0]
-        line_v[i] = _next[1]
-    line_mask = np.zeros_like(u, dtype=bool)
-    uv = np.stack((u, v))
-    for _u, _v in zip(line_u, line_v):
-        index = np.nonzero((uv[0, :] == _u) & (uv[1, :] == _v))[0]
-        line_mask[index] = True
-    return line_mask
-
-
-def hexline(u_0, v_0, u, v, extent=None, eps=-1e-6):
-    """ """
-
-    def hex_distance(us, vs):
-        assert len(us) == len(vs) == 2
-        return int(
-            (
-                abs(us[0] - us[1])
-                + abs(us[0] + vs[0] - us[1] - vs[1])
-                + abs(vs[0] - vs[1])
-            )
-            / 2
-        )
-
-    def hex_round(u, v):
-        z = -(u + v)
-
-        ru = round(u)
-        rv = round(v)
-        rz = round(z)
-
-        u_diff = abs(ru - u)
-        v_diff = abs(rv - v)
-        z_diff = abs(rz - z)
-
-        if u_diff > v_diff and u_diff > z_diff:
-            ru = -rv - rz
-        elif v_diff > z_diff:
-            rv = -ru - rz
-        return ru, rv
-
-    def interp(u, v, t):
-        """Interpolates between two hex points.
-
-        Args:
-            u (array): u coordinates of first and second point.
-            v (array): v coordinates of first and second point.
-            t (float): interpolation step, 0<t<1.
-
-        Returns:
-            tuple: next hex coordinate.
-        """
-
-        uprime, vprime = u[0] + (u[1] - u[0]) * t, v[0] + (v[1] - v[0]) * t
-        return hex_round(uprime, vprime)
-
-    us = np.array([u_0, u])
-    vs = np.array([v_0, v])
-
-    if extent is None:
-        extent = get_extent(us, vs)
-
-    N = hex_distance(us, vs)
-
-    line_u, line_v = np.zeros(N + 1), np.zeros(N + 1)
-    line_u[0] = u_0
-    line_v[0] = v_0
-    line_u[-1] = u
-    line_v[-1] = v
-    for i in range(1, N):
-        _next = interp(us, vs + eps, 1 / N * i)
-        _next = hex_round(*_next)
-        line_u[i] = _next[0]
-        line_v[i] = _next[1]
-
-    u, v = get_hex_coords(extent)
-    line_mask = np.zeros_like(u, dtype=bool)
-    uv = np.stack((u, v))
-    for _u, _v in zip(line_u, line_v):
-        index = np.nonzero((uv[0, :] == _u) & (uv[1, :] == _v))[0]
-        line_mask[index] = True
-    return line_mask
 
 
 # -- Experimental explicit hex-datastructures ----------------------------------
@@ -602,13 +406,17 @@ class Hexal:
         uprime, vprime = hex_round(uprime, vprime)
         return Hexal(uprime, vprime, 0)
 
-    def angle(self, other=None, signed=True):
+    def angle(self, other=None, non_negative=False):
         """
         Returns the angle to other or the origin.
 
         Args:
             other (Hexal)
-            signed (bool): signed return angles.
+            non_negative (bool): add 2pi if angle is negative.
+                Default: False.
+
+        Returns:
+            float: angle in radians.
         """
 
         def _angle(p1, p2):
@@ -627,7 +435,7 @@ class Hexal:
         if other is not None:
             xother, yother = self._to_pixel(other.u, other.v)
             theta = _angle([x, y], [xother, yother])
-        if not signed:
+        if non_negative:
             theta += 2 * np.pi if theta < 0 else 0
         return theta
 
@@ -647,7 +455,7 @@ class Hexal:
     @staticmethod
     def _to_pixel(u, v, scale=1):
         """Converts to pixel coordinates."""
-        return (np.sqrt(3) * u + np.sqrt(3) / 2 * v) * scale, (3 / 2 * v) * scale
+        return hex_to_pixel(u, v, scale)
 
 
 class HexArray(np.ndarray):
@@ -811,55 +619,53 @@ class HexLattice(HexArray):
 
     # ----- Geometry
 
-    def ring(self, radius=None, center=Hexal(0, 0, 0), as_lattice=False):
-        """Draws a ring in hex coordinates.
+    def circle(self, radius=None, center=Hexal(0, 0, 0), as_lattice=False):
+        """Draws a circle in hex coordinates.
 
         Args:
-            radius (int): radius in columns of the ring.
-            center (Hexal): center of the ring.
-            as_lattice (bool): returns the ring on a constrained regular lattice.
+            radius (int): radius in columns of the circle.
+            center (Hexal): center of the circle.
+            as_lattice (bool): returns the circle on a constrained regular lattice.
         """
         lattice = HexLattice(extent=max(radius or 0, self.extent), center=center)
         radius = radius or self.extent
-        ring = []
+        circle = []
         for i, h in enumerate(lattice):
             distance = center.distance(h)
             if distance == radius:
                 h.value = 1
-                ring.append(h)
+                circle.append(h)
         if as_lattice:
-            return HexLattice(hexals=ring)
-        return HexArray(hexals=ring)
+            return HexLattice(hexals=circle)
+        return HexArray(hexals=circle)
 
     @staticmethod
-    def filled_ring(radius=None, center=Hexal(0, 0, 0), as_lattice=False):
-        """Draws a ring in hex coordinates.
+    def filled_circle(radius=None, center=Hexal(0, 0, 0), as_lattice=False):
+        """Draws a circle in hex coordinates.
 
         Args:
-            radius (int): radius in columns of the ring.
-            center (Hexal): center of the ring.
-            as_lattice (bool): returns the ring on a constrained regular lattice.
+            radius (int): radius in columns of the circle.
+            center (Hexal): center of the circle.
+            as_lattice (bool): returns the circle on a constrained regular lattice.
         """
         lattice = HexLattice(extent=radius or 0, center=center)
         radius = radius
-        ring = []
+        circle = []
         for i, h in enumerate(lattice):
             distance = center.distance(h)
             if distance <= radius:
                 h.value = 1
-                ring.append(h)
+                circle.append(h)
         if as_lattice:
-            return HexLattice(hexals=ring)
-        return HexArray(hexals=ring)
-
-    # def filled_ring_mask(self, radius=None, center=Hexal(0, 0, 0, a))
+            return HexLattice(hexals=circle)
+        return HexArray(hexals=circle)
 
     def hull(self):
         """Returns the hull of the regular lattice."""
-        return self.ring(radius=self.extent, center=self.center)
+        return self.circle(radius=self.extent, center=self.center)
 
     def _line_span(self, angle):
-        """Returns two points spanning a line with given angle wrt the Hexal(0, 0, 0).
+        """Returns two points spanning a line with given angle wrt. origin.
 
         Args:
             angle (float): in [0, np.pi]
@@ -868,7 +674,8 @@ class HexLattice(HexArray):
             HexArray
         """
         # To offset the line by simple addition of the offset,
-        # radius=2 * self.extent spans the line in ways that each valid offset can be added.
+        # radius=2 * self.extent spans the line in ways that each valid offset
+        # can be added.
         distant_hull = self.ring(radius=2 * self.extent)
         angles = np.array([h.angle(signed=True) for h in distant_hull])
         distance = (angles - angle) % np.pi

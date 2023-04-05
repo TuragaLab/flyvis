@@ -178,7 +178,7 @@ def hex_scatter(
     vmin=None,
     vmax=None,
     midpoint=None,
-    mode="tschopp",
+    mode="default",
     orientation=np.radians(30),
     cmap=cm.get_cmap("seismic"),
     cbar=True,
@@ -221,7 +221,7 @@ def hex_scatter(
         annotate (bool, optional): annotates a rounded value. Defaults to False.
         annotate_coords (bool, optional): annotates (u_i, v_i).
             Defaults to False.
-        mode (str, optional): hex coordinate system. Defaults to "tschopp".
+        mode (str, optional): hex coordinate system. Defaults to "default".
         orientation (float, optional): orientation of the hexagons in rad.
             Defaults to np.radians(30).
 
@@ -550,7 +550,7 @@ def kernel(
     return hex_scatter(**_kwargs)
 
 
-def hex_cs(extent=5, mode="tschopp", annotate_coords=True, edgecolor="black", **kwargs):
+def hex_cs(extent=5, mode="default", annotate_coords=True, edgecolor="black", **kwargs):
     """Convenience function for plotting a hexagonal coordinate system."""
     u, v = utils.get_hex_coords(extent)
     return hex_scatter(
@@ -591,7 +591,7 @@ def hex_flow(
     marker="H",
     alpha=0.7,
     cwheelradius=0.25,
-    mode="tschopp",
+    mode="default",
     orientation=np.radians(30),
     origin="lower",
     markerscale=1,
