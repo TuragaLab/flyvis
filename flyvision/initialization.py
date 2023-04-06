@@ -212,6 +212,13 @@ class Lognormal(InitialDistribution):
 
 
 def deepcopy_config(f):
+    """Decorator to deepcopy the parameter configuration.
+
+    Note, this is necessary because the parameter configuration is updated
+    in the __init__ method of the parameter classes and prevents mutation of the
+    param_config in the outer scope.
+    """
+
     @functools.wraps(f)
     def wrapper(cls, param_config, connectome):
         return f(cls, deepcopy(param_config), connectome)
@@ -237,15 +244,14 @@ class Parameter:
     Extension point:
         subclasses must implement __init__(self, param_config, connectome_dir).
         __init__ must configure the above attributes.
-        __init__ must be decorated with @deepcopy_config to ensure param_config
-        is not altered in the outer scope, because __init__ is expected to update
-        param_config to match the desired InitialDistribution.
+        __init__ should be decorated with @deepcopy_config when __init__ updates
+        param_config to ensure param_config is not mutated in the outer scope, .
         __init__ udpates param_config to contain key value pairs informed by
         connectome and matching the desired InitialDistribution.
         __init__ stores `parameter` from InitialDistribution(param_config), which
         constructs and holds the nn.Parameter.
         __init__ stores `indices` for parameter sharing through
-        `get_scatter_indices(param_config, connectome, groupby)`.
+        `get_scatter_indices(dataframe, grouped_dataframe, groupby)`.
         __init__ stores `keys` to access individual
         parameter values associated with certain identifiers.
         __init__ stores `symmetry_masks` that can be configured optionally
@@ -254,9 +260,34 @@ class Parameter:
         Example:
             class MyParameter(Parameter):
                 def __init__(self, param_config, connectome_dir):
+                    nodes_dir = connectome.nodes
 
+                    nodes = pd.DataFrame(
+                        {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}
+                    )
+                    grouped_nodes = nodes.groupby(
+                        param_config.groupby, as_index=False, sort=False
+                    ).first()
 
+                    param_config["type"] = grouped_nodes["type"].values
+                    param_config["mean"] = np.repeat(param_config["mean"], len(grouped_nodes))
+                    param_config["std"] = np.repeat(param_config["std"], len(grouped_nodes))
 
+                    self.parameter = InitialDistribution(param_config)
+                    self.indices = get_scatter_indices(nodes, grouped_nodes, param_config.groupby)
+                    self.keys = param_config["type"].tolist()
+                    self.symmetry_masks = symmetry_masks(
+                        param_config.get("symmetric", []), self.keys
+                    )
+            param_config = Namespace(
+                    type="MyParameter",
+                    mean=0,
+                    std=1,
+                    groupby=["type"],
+                    requires_grad=True
+                )
+            param = Parameter(param_config, connectome)
+            type(param) == MyParameter
     """
 
     parameter: InitialDistribution
@@ -525,7 +556,7 @@ def get_scatter_indices(
 def symmetry_masks(
     symmetric: List[Any], keys: List[Any], as_mask: bool = False
 ) -> List[torch.Tensor]:
-    """Masks subsets of parameters for jointly constraining them e.g. to their mean.
+    """Masks subsets of parameters for joint constraints e.g. to their mean.
 
     Args:
         symmetric: contains subsets of keys that point to the subsets
