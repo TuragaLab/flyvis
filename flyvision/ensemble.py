@@ -110,7 +110,8 @@ class Ensemble(dict):
     def yield_networks(self, checkpoint="best_chkpt") -> Iterator[Network]:
         """Yield initialized networks from the ensemble."""
         network = self[0].init_network(chkpt=checkpoint)
-        for network_view in self.values():
+        yield network
+        for network_view in self.values()[1:]:
             yield network_view.init_network(chkpt=checkpoint, network=network)
 
     def yield_decoders(self, checkpoint="best_chkpt"):
