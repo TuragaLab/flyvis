@@ -3,11 +3,17 @@ import numpy as np
 from datamate import Namespace
 import pytest
 
-from flyvision import connectome_file
 from flyvision.initialization import InitialDistribution, Parameter
-from flyvision.connectome import ConnectomeDir
 
 # -- Fixtures ------------------------------------------------------------------
+
+groupby = {
+    "RestingPotential": ["type"],
+    "TimeConstant": ["type"],
+    "SynapseSign": ["source_type", "target_type"],
+    "SynapseCount": ["source_type", "target_type", "du", "dv"],
+    "SynapseCountScaling": ["source_type", "target_type", "edge_type"],
+}
 
 
 @pytest.fixture(
@@ -70,7 +76,7 @@ def initial_dist_config(initial_dist_type, grad, mode, value_mean_param):
 @pytest.fixture(scope="module")
 def param_config(parameter_type, initial_dist_config):
     config = initial_dist_config
-    config.update(type=parameter_type)
+    config.update(type=parameter_type, groupby=groupby[parameter_type])
     return config
 
 

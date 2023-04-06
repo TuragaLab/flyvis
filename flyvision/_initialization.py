@@ -11,7 +11,7 @@ Note: to maintain compatibility with old configurations, e.g. to reinitialize
 
 from copy import deepcopy
 import functools
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Union
 import logging
 import numpy as np
 import pandas as pd
@@ -22,11 +22,8 @@ import torch.nn as nn
 
 from datamate import Namespace
 
-from flyvision.connectome import ConnectomeDir
-from flyvision.utils.tensor_utils import atleast_column_vector, where_equal_rows
-from flyvision.utils.type_utils import byte_to_str
 from flyvision.utils.class_utils import forward_subclass
-
+from flyvision.connectome import ConnectomeDir, NodeDir, EdgeDir
 
 logging = logging.getLogger()
 
@@ -255,7 +252,24 @@ class Parameter:
             class MyParameter(Parameter):
                 def __init__(self, param_config, connectome_dir):
 
+                    types = connectome_dir.nodes.type[:]  # e.g. ["A", "A", "B"]
 
+                    nodes = pd.DataFrame({"type": types}).drop_duplicates()
+
+                    # update param_config
+                    param_config.value = np.array([1, 2, 3])
+                    param_config.type = ["A", "A", "B"]
+                    param_config.requires_grad = True
+                    param_config.initial_dist = "Value"
+
+                    # create parameter
+                    self.parameter = InitialDistribution(param_config)
+                    # create scatter indices
+                    self.indices = get_scatter_indices(param_config, connectome_dir)
+                    # store keys
+                    self.keys = ["key1", "key2", "key3"]
+                    # store symmetry masks
+                    self.symmetry_masks = [mask1, mask2, mask3]
 
     """
 
@@ -287,9 +301,6 @@ class Parameter:
         else:
             raise ValueError(key)
 
-    def __len__(self):
-        return len(self.raw_values)
-
     # -- InitialDistribution API
 
     @property
@@ -308,11 +319,6 @@ class Parameter:
     def readers(self, value) -> None:
         self.parameter.readers = value
 
-    def _symmetry(self):
-        """Return symmetry constraints from symmetry masks for debugging."""
-        keys = np.array(self.keys)
-        return [keys[mask.cpu()] for mask in self.symmetry_masks]
-
 
 # --- node / Cell type parameter ------------------------------------------------
 
@@ -324,23 +330,20 @@ class RestingPotential(Parameter):
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
         nodes_dir = connectome.nodes
 
-        nodes = pd.DataFrame(
-            {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}
+        # equals order in connectome.unique_cell_types
+        nodes = pd.DataFrame(dict(type=nodes_dir.type[:].astype(str))).drop_duplicates()
+
+        param_config["type"] = nodes["type"].values
+        param_config["mean"] = np.repeat(param_config["mean"], len(nodes))
+        param_config["std"] = np.repeat(param_config["std"], len(nodes))
+
+        self.symmetry_masks = symmetry_mask_for_nodes(
+            param_config.get("symmetric", []), nodes
         )
-        grouped_nodes = nodes.groupby(
-            param_config.groupby, as_index=False, sort=False
-        ).first()
 
-        param_config["type"] = grouped_nodes["type"].values
-        param_config["mean"] = np.repeat(param_config["mean"], len(grouped_nodes))
-        param_config["std"] = np.repeat(param_config["std"], len(grouped_nodes))
-
+        self.indices = get_scatter_indices(param_config, nodes_dir)
         self.parameter = InitialDistribution(param_config)
-        self.indices = get_scatter_indices(nodes, grouped_nodes, param_config.groupby)
         self.keys = param_config["type"].tolist()
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
 
 
 class TimeConstant(Parameter):
@@ -350,22 +353,18 @@ class TimeConstant(Parameter):
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
         nodes_dir = connectome.nodes
 
-        nodes = pd.DataFrame(
-            {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}
+        nodes = pd.DataFrame(dict(type=nodes_dir.type[:].astype(str))).drop_duplicates()
+
+        param_config["type"] = nodes["type"].values
+        param_config["value"] = np.repeat(param_config["value"], len(nodes))
+
+        self.symmetry_masks = symmetry_mask_for_nodes(
+            param_config.get("symmetric", []), nodes
         )
-        grouped_nodes = nodes.groupby(
-            param_config.groupby, as_index=False, sort=False
-        ).first()
 
-        param_config["type"] = grouped_nodes["type"].values
-        param_config["value"] = np.repeat(param_config["value"], len(grouped_nodes))
-
-        self.indices = get_scatter_indices(nodes, grouped_nodes, param_config.groupby)
+        self.indices = get_scatter_indices(param_config, nodes_dir)
         self.parameter = InitialDistribution(param_config)
         self.keys = param_config["type"].tolist()
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
 
 
 # -- edge / synapse type parameter ----------------------------------------------
@@ -379,17 +378,23 @@ class SynapseSign(Parameter):
         edges_dir = connectome.edges
 
         edges = pd.DataFrame(
-            {k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "sign"]}
+            dict(
+                source_type=edges_dir.source_type,
+                target_type=edges_dir.target_type,
+                sign=edges_dir.sign,
+            )
         )
-        grouped_edges = edges.groupby(
-            param_config.groupby, as_index=False, sort=False
-        ).first()
+        edges = edges.groupby(
+            ["source_type", "target_type"], sort=False, as_index=False
+        ).mean()
+        assert all(
+            np.abs(edges.sign.values) == np.ones(len(edges))
+        ), "Inconsistent edge signs."
 
-        param_config.source_type = grouped_edges.source_type.values
-        param_config.target_type = grouped_edges.target_type.values
-        param_config.value = grouped_edges.sign.values
-
-        self.indices = get_scatter_indices(edges, grouped_edges, param_config.groupby)
+        param_config.source_type = edges.source_type.values
+        param_config.target_type = edges.target_type.values
+        param_config.value = edges.sign.values
+        self.indices = get_scatter_indices(param_config, edges_dir)
         self.parameter = InitialDistribution(param_config)
         self.keys = list(
             zip(
@@ -397,9 +402,7 @@ class SynapseSign(Parameter):
                 param_config.target_type.tolist(),
             )
         )
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
+        self.symmetry_masks = []
 
 
 class SynapseCount(Parameter):
@@ -407,6 +410,8 @@ class SynapseCount(Parameter):
 
     @deepcopy_config
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
+        edges_dir = connectome.edges
+
         mode = param_config.get("mode", "")
         if mode != "mean":
             raise NotImplementedError(
@@ -414,24 +419,30 @@ class SynapseCount(Parameter):
                 "a custom Parameter subclass."
             )
 
-        edges_dir = connectome.edges
-
         edges = pd.DataFrame(
-            {k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "n_syn"]}
+            dict(
+                source_type=edges_dir.source_type,
+                target_type=edges_dir.target_type,
+                du=edges_dir.du,
+                dv=edges_dir.dv,
+                n_syn=edges_dir.n_syn,
+            )
         )
-        grouped_edges = edges.groupby(
-            param_config.groupby, as_index=False, sort=False
-        ).mean()
+        offset_keys = ["source_type", "target_type", "du", "dv"]
+        edges = edges.groupby(offset_keys, sort=False, as_index=False).mean()
 
-        param_config.source_type = grouped_edges.source_type.values
-        param_config.target_type = grouped_edges.target_type.values
-        param_config.du = grouped_edges.du.values
-        param_config.dv = grouped_edges.dv.values
+        param_config.source_type = edges.source_type.values
+        param_config.target_type = edges.target_type.values
+        param_config.du = edges.du.values
+        param_config.dv = edges.dv.values
 
         param_config.mode = "mean"
-        param_config.mean = np.log(grouped_edges.n_syn.values)
+        param_config.mean = np.log(edges.n_syn.values)
 
-        self.indices = get_scatter_indices(edges, grouped_edges, param_config.groupby)
+        self.symmetry_masks = symmetry_mask_for_edges(
+            param_config.get("symmetric", []), edges
+        )
+        self.indices = get_scatter_indices(param_config, edges_dir)
         self.parameter = InitialDistribution(param_config)
         self.keys = list(
             zip(
@@ -440,9 +451,6 @@ class SynapseCount(Parameter):
                 param_config.du.tolist(),
                 param_config.dv.tolist(),
             )
-        )
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
         )
 
 
@@ -454,29 +462,40 @@ class SynapseCountScaling(Parameter):
         edges_dir = connectome.edges
 
         edges = pd.DataFrame(
-            {k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "n_syn"]}
+            dict(
+                source_type=edges_dir.source_type,
+                target_type=edges_dir.target_type,
+                edge_type=edges_dir.edge_type,
+                n_syn=edges_dir.n_syn,
+            )
         )
-        grouped_edges = edges.groupby(
-            param_config.groupby, as_index=False, sort=False
+        edges = edges.groupby(
+            ["source_type", "target_type", "edge_type"],
+            sort=False,
+            as_index=False,
         ).mean()
 
         # to initialize synapse strengths with 1/<N>_rf
-        syn_strength = 1 / grouped_edges.n_syn.values  # 1/<N>_rf
+        syn_strength = 1 / edges.n_syn.values  # 1/<N>_rf
 
         # scale synapse strengths of chemical and electrical synapses
         # individually
-        syn_strength[grouped_edges[grouped_edges.edge_type == "chem"].index] *= getattr(
+        syn_strength[edges[edges.edge_type == b"chem"].index] *= getattr(
             param_config, "scale_chem", 0.01
         )
-        syn_strength[grouped_edges[grouped_edges.edge_type == "elec"].index] *= getattr(
+        syn_strength[edges[edges.edge_type == b"elec"].index] *= getattr(
             param_config, "scale_elec", 0.01
         )
 
-        param_config.target_type = grouped_edges.target_type.values
-        param_config.source_type = grouped_edges.source_type.values
+        param_config.target_type = edges.target_type.values
+        param_config.source_type = edges.source_type.values
         param_config.value = syn_strength
 
-        self.indices = get_scatter_indices(edges, grouped_edges, param_config.groupby)
+        self.symmetry_masks = symmetry_mask_for_edges(
+            param_config.get("symmetric", []), edges
+        )
+
+        self.indices = get_scatter_indices(param_config, edges_dir)
         self.parameter = InitialDistribution(param_config)
         self.keys = list(
             zip(
@@ -484,97 +503,122 @@ class SynapseCountScaling(Parameter):
                 param_config.target_type.tolist(),
             )
         )
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
 
 
 def get_scatter_indices(
-    dataframe: pd.DataFrame, grouped_dataframe: pd.DataFrame, groupby: List[str]
+    param_config: Namespace, nodes_or_edges_dir: Union[NodeDir, EdgeDir]
 ) -> Tensor:
     """Indices for scattering operations to share parameters.
 
     Maps each node/edge from the complete computational graph to a parameter
     index.
 
-    Args:
-        dataframe (pd.DataFrame): dataframe of nodes or edges of the graph.
-        grouped_dataframe (list): aggregated version of the same dataframe.
-        groupby (list): the same columns from which the grouped_dataframe was
-            constructed.
-
-    For N elements that are grouped into M groups, this function
-    returns N indices from 0 to M-1 that can be used to scatter the
-    parameters of the M groups to the N elements.
-
-    To illustrate, consider the following simplified example:
-        elements = ["A", "A", "A", "B", "B", "C", "D", "D", "E"]
-        groups = ["A", "B", "C", "D", "E"]
-        parameter = [1, 2, 3, 4, 5]
-        # get_scatter_indices would return
-        scatter_indices = [0, 0, 0, 1, 1, 2, 3, 3, 4]
-        scattered_parameters = [parameter[idx] for idx in scatter_indices]
-        scattered_parameters == [1, 1, 1, 2, 2, 3, 4, 4, 5]
+    Note: 'param_config' must have all the attributes that exist as h5 files in
+        'node_or_edges_dir' in order to group by them.
     """
-    ungrouped_elements = zip(*[dataframe[k][:] for k in groupby])
-    grouped_elements = zip(*[grouped_dataframe[k][:] for k in groupby])
-    to_index = {k: i for i, k in enumerate(grouped_elements)}
-    return torch.tensor([to_index[k] for k in ungrouped_elements])
+    groupby = set(nodes_or_edges_dir).intersection(set(param_config))
+
+    # to automatically cast the arrays in param_config to the same
+    # type that comes from the h5 data. mainly 'U'-strings to 'S'-strings
+    dtypes = {k: nodes_or_edges_dir[k][:].dtype for k in groupby}
+
+    def cast(array, key):
+        return array.astype(dtypes[key])
+
+    # to get all groupby shared in the connectome part and the param config
+    # e.g. ["type"] for nodes and ["source_type", "target_type"] for edges
+    # (e.g. to group by all edges to shared edge parameters)
+    groupby = set(nodes_or_edges_dir).intersection(set(param_config))
+    # creates a table for all groupby from the connectome part
+    ctome_elements = zip(
+        *[nodes_or_edges_dir[k][:] for k in groupby]
+    )  # type: zip[List[Any]]
+    # creates a table for all groupby from the param_config
+    param_elements = zip(
+        *[cast(param_config[k][:], k) for k in groupby]
+    )  # type: zip[List[Any]]
+    # create dictionary with rows from param_config as keys and indices as values
+    mapping = {k: i for i, k in enumerate(param_elements)}
+    # to eventually map each row from the expanded connectome graph onto one
+    # entry in the parameter config
+    return torch.tensor([mapping[k] for k in ctome_elements])
 
 
-def symmetry_masks(
-    symmetric: List[Any], keys: List[Any], as_mask: bool = False
+def symmetry_mask_for_nodes(
+    symmetric: List[List[str]], nodes: pd.DataFrame
 ) -> List[torch.Tensor]:
-    """Masks subsets of parameters for jointly constraining them e.g. to their mean.
+    """One additional way to constrain network elements to have the same
+    parameter values.
+
+    Note, this method stores one mask per shared tuple of the size of the
+    parameter and should thus be used sparsely because its not very memory
+    friendly. The bulk part of parameter sharing is achieved through scatter
+    and gather operations.
 
     Args:
-        symmetric: contains subsets of keys that point to the subsets
-            of parameters to be indexed.
-        keys: list of keys that point to individual parameter values.
-        as_mask: if True, returns a boolean mask, otherwise integer indices.
+        symmetric: list of tuples of cell types that share parameters.
+        nodes: DataFrame containing 'cell_type' column.
 
     Returns:
         list of masks List[torch.BoolTensor]
 
-    Note: this is experimental for configuration-based fine-grained shared
-    parameter optimization, e.g. for models includig multi-compartment cells
-    or gap junctions.
-    Example 1:
-    for node type parameters with individual node types as keys
-        symmetric = [["T4a", "T4b", "T4c", "T4d"],
-                     ["T5a", "T5b", "T5c", "T5d"]]
-    would be used to constrain the parameter values of all T4 subtypes to
-    their joint mean and the parameter values of all T5 subtypes to their
-    joint mean.
-    Exaple 2:
-    for edge type parameters with individual edge types as keys
-        symmetric = [[("CT1(M10)", "CT1(Lo1)"), ("CT1(Lo1)", "CT1(M10)")]]
-    would be used to constrain the edge parameter of the directed edge from
-    CT1(M10) to CT1(Lo1) and the directed edge from CT1(Lo1) to CT1(M10) to
-    their joint mean.
+    Example:
+        symmetric = [["T4a", "T4b", "T4c, "T4d"], ["T5a", "T5b", "T5c", "T5d"]]
+        would return two masks, one to constrain all T4 subtypes to the same
+        parameter and another to constrain all T5 subtypes to the same parameter.
     """
     if not symmetric:
         return []
-    symmetry_masks = []  # type: List[torch.Tensor]
-    keys = atleast_column_vector(keys)
-    for i, identifiers in enumerate(symmetric):
-        identifiers = atleast_column_vector(identifiers)
-        # to allow identifiers like [None, "A", None, 0]
-        # for parameters that have tuples as keys
-        columns = np.arange(identifiers.shape[1] + 1)[
-            np.where((identifiers != None).all(axis=0))
-        ]
-        try:
-            symmetry_masks.append(
-                torch.tensor(
-                    where_equal_rows(
-                        identifiers[:, columns], keys[:, columns], as_mask=as_mask
-                    )
-                )
-            )
-        except Exception as e:
-            raise ValueError(
-                f"{identifiers} cannot be a symmetry constraint"
-                f" for parameter with keys {keys}: {e}"
-            ) from e
+    nodes.reset_index(drop=True, inplace=True)
+    symmetric = np.array(symmetric)
+    symmetry_masks = [
+        torch.zeros(len(nodes)).bool() for _ in symmetric
+    ]  # type: List[torch.Tensor]
+    for i, cell_types in enumerate(symmetric):
+        for index, row in nodes.iterrows():
+            if row.type in cell_types:
+                symmetry_masks[i][index] = torch.tensor(1).bool()
+    return symmetry_masks
+
+
+def symmetry_mask_for_edges(symmetric: List[List[List[str]]], edges: pd.DataFrame):
+    """One additional way to constrain network elements to have the same
+    parameter values. Particularly for electric synapses.
+
+    Note, this method stores one mask per shared tuple of the size of the
+    parameter and should thus be used sparsely because its not very memory
+    friendly. The bulk part of parameter sharing is achieved through scatter
+    and gather operations.
+
+    Args:
+        symmetric: list of tuples of edges that share parameters. Only requires
+            the edge in one direction if it is bidirectional.
+        edges: DataFrame containing 'source_type' and 'target_type' column.
+
+    Returns:
+        list of masks List[torch.BoolTensor]
+
+    Example:
+        symmetric = [[("CT1(M10)", "T4a"), ("CT1(M10)", "T4b")],
+                     [("CT1(Lo1)", "T5a"), ("CT1(Lo1)", "T5b")]]
+        would return two masks, one to constrain all CT1(M10) to T4a and T4b
+        connections to the same parameters and another one to constrain
+        CT1(Lo1) to T5a and T5b to the same parameter.
+    """
+    if not symmetric:
+        return []
+    edges.reset_index(drop=True, inplace=True)
+    symmetric = np.array(symmetric).astype("S")
+    symmetry_masks = [
+        torch.zeros(len(edges)).bool() for _ in symmetric
+    ]  # type: List[torch.Tensor]
+
+    for i, edge_types in enumerate(symmetric):
+        for index, row in edges.iterrows():
+            if (row.source_type, row.target_type) in edge_types or (
+                row.target_type,
+                row.source_type,
+            ) in edge_types:
+                symmetry_masks[i][index] = torch.tensor(1).bool()
+
     return symmetry_masks

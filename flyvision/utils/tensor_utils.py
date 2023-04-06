@@ -184,6 +184,14 @@ def to_numpy(array):
         raise ValueError
 
 
+def atleast_column_vector(array):
+    """Convert 1d-array-like to column vector n x 1 or return the original."""
+    array = np.array(array)
+    if array.ndim == 1:
+        return array.reshape(-1, 1)
+    return array
+
+
 def matrix_mask_by_sub(sub_matrix, matrix) -> NDArray[bool]:
     """Mask of rows in matrix that are contained in sub_matrix.
 
@@ -223,7 +231,7 @@ def matrix_mask_by_sub(sub_matrix, matrix) -> NDArray[bool]:
     return reduce(np.logical_or, row_mask)
 
 
-def where_equal_rows(matrix1, matrix2, as_mask=False) -> NDArray[int]:
+def where_equal_rows(matrix1, matrix2, as_mask=False, astype="|S64") -> NDArray[int]:
     """Indices where matrix1 rows are in matrix2.
 
     Example:
@@ -241,10 +249,21 @@ def where_equal_rows(matrix1, matrix2, as_mask=False) -> NDArray[int]:
 
     See also: matrix_mask_by_sub.
     """
-    n_rows1 = matrix1.shape[0]
-    n_rows2 = matrix2.shape[0]
+    matrix1 = atleast_column_vector(matrix1)
+    matrix2 = atleast_column_vector(matrix2)
+    matrix1 = matrix1.astype(astype)
+    matrix2 = matrix2.astype(astype)
+
+    if as_mask:
+        return matrix_mask_by_sub(matrix1, matrix2)
+
+    n_rows1, n_cols1 = matrix1.shape
+    n_rows2, n_cols2 = matrix2.shape
+
     if not n_rows1 <= n_rows2:
-        raise ValueError
+        raise ValueError("matrix1 must have less or" " equal as many rows as matrix2")
+    if not n_cols1 == n_cols2:
+        raise ValueError("cannot compare matrices with different number of columns")
 
     where = []
     rows = np.arange(matrix2.shape[0])

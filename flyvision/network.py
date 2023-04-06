@@ -73,7 +73,7 @@ class Network(nn.Module):
         node_config: Namespace = Namespace(
             bias=Namespace(
                 type="RestingPotential",
-                keys=["type"],
+                groupby=["type"],
                 initial_dist="Normal",
                 mode="sample",
                 requires_grad=True,
@@ -84,7 +84,7 @@ class Network(nn.Module):
             ),
             time_const=Namespace(
                 type="TimeConstant",
-                keys=["type"],
+                groupby=["type"],
                 initial_dist="Value",
                 value=0.05,
                 requires_grad=True,
@@ -92,7 +92,10 @@ class Network(nn.Module):
         ),
         edge_config: Namespace = Namespace(
             sign=Namespace(
-                type="SynapseSign", initial_dist="Value", requires_grad=False
+                type="SynapseSign",
+                initial_dist="Value",
+                requires_grad=False,
+                groupby=["source_type", "target_type"],
             ),
             syn_count=Namespace(
                 type="SynapseCount",
@@ -100,6 +103,7 @@ class Network(nn.Module):
                 mode="mean",
                 requires_grad=False,
                 std=1.0,
+                groupby=["source_type", "target_type", "dv", "du"],
             ),
             syn_strength=Namespace(
                 type="SynapseCountScaling",
@@ -108,6 +112,7 @@ class Network(nn.Module):
                 scale_elec=0.01,
                 scale_chem=0.01,
                 clamp="non_negative",
+                groupby=["source_type", "target_type"],
             ),
         ),
     ):

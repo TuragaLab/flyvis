@@ -20,7 +20,7 @@ def network() -> Network:
         node_config=Namespace(
             bias=Namespace(
                 type="RestingPotential",
-                keys=["type"],
+                groupby=["type"],
                 initial_dist="Normal",
                 mode="sample",
                 requires_grad=True,
@@ -31,7 +31,7 @@ def network() -> Network:
             ),
             time_const=Namespace(
                 type="TimeConstant",
-                keys=["type"],
+                groupby=["type"],
                 initial_dist="Value",
                 value=0.05,
                 requires_grad=True,
@@ -39,7 +39,10 @@ def network() -> Network:
         ),
         edge_config=Namespace(
             sign=Namespace(
-                type="SynapseSign", initial_dist="Value", requires_grad=False
+                type="SynapseSign",
+                initial_dist="Value",
+                requires_grad=False,
+                groupby=["source_type", "target_type"],
             ),
             syn_count=Namespace(
                 type="SynapseCount",
@@ -47,6 +50,7 @@ def network() -> Network:
                 mode="mean",
                 requires_grad=False,
                 std=1.0,
+                groupby=["source_type", "target_type", "du", "dv"],
             ),
             syn_strength=Namespace(
                 type="SynapseCountScaling",
@@ -55,6 +59,7 @@ def network() -> Network:
                 scale_elec=0.01,
                 scale_chem=0.01,
                 clamp="non_negative",
+                groupby=["source_type", "target_type", "edge_type"],
             ),
         ),
     )
