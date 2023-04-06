@@ -1,0 +1,1 @@
+{"spec": {"method": "steady_state", "t_pre": 0.25, "dt": 0.02, "batch_size": 1, "value": 0.5, "state": null, "grad": false, "return_last": false}, "status": "done"}
