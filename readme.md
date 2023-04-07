@@ -1,33 +1,39 @@
 # Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution
 
-This repository is the official implementation of [Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
+Official implementation of [Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
 
-We provide our deep mechanistic networks as discovery tool for generating and testing hypotheses about neural
-computations with connectomes.
+We provide our deep mechanistic networks (DMN) as discovery tool for generating
+and testing hypotheses about neural computations with connectomes.
 
-## Generating hypotheses about neural computations with connectomes
+The library includes abstractions and extension points for building DMNs
+and dynamic stimulus datasets in Pytorch.
+
+## Generating hypotheses about neural computations with DMNs
 
 ### Getting started
 
-Try our models inside our Google Colab notebooks. We first release our tools to explore the connectome and how to provide custom
-stimuli to the models and explore their responses:
+Try our models inside our Google Colab notebooks. We first release examples to
+explore the connectome and how to provide custom stimuli to the models and
+explore their responses:
 
-- Documentation 🔜
-- Explore the connectome 🔜
-- Provide custom stimuli 🔜
+- [Explore the connectome](Todo)
+- [Provide custom stimuli](Todo)
 
 All in between, touching
-results already described on the paper, will be coming soon.
+results already described in the paper, will come soon.
 
-### More coming soon 🔜
+### More to come
 
 - Optic flow task 🔜
 - Flash responses 🔜
 - Moving edge responses 🔜
 - Naturalistic stimuli responses 🔜
+- Maximally excitatory stimuli 🔜
 - Predictions for unknown cell types 🔜
 
 ### Local installation
+
+For installing the package locally, follow the steps below:
 
 1. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
 2. make sure conda is installed
