@@ -291,7 +291,11 @@ class Ensemble(dict):
 
         return dict(
             sorted(
-                {int(k): v for k, v in cluster_indices.items() if k != "masked"}.items()
+                {
+                    int(k): np.sort(v)
+                    for k, v in cluster_indices.items()
+                    if k != "masked"
+                }.items()
             )
         )
 
