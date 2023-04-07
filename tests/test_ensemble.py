@@ -1,9 +1,11 @@
 from copy import deepcopy
 import pytest
+from pathlib import Path
 
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from datamate import Directory, Namespace
 
 from flyvision.ensemble import Ensemble, EnsembleView, TaskError
 from flyvision.network import Network, IntegrationWarning
@@ -117,3 +119,39 @@ def test_loss_histogram(ensemble: Ensemble):
     fig, ax = ensemble_view.loss_histogram()
     fig.show()
     plt.close(fig)
+
+
+def test_responses():
+    ensemble = Ensemble(results_dir / "opticflow/000")
+
+    test_data_dir = Directory(Path(__file__).parent / "data")
+    assert "responses" in test_data_dir
+    test_responses = test_data_dir.responses[:]
+    assert test_responses.shape == (50, 12, 1, 65)
+    config = test_data_dir.config
+    assert config == Namespace(
+        method="steady_state",
+        t_pre=0.25,
+        dt=1 / 50,
+        batch_size=1,
+        value=0.5,
+        state=None,
+        grad=False,
+        return_last=False,
+    )
+    method = config.pop("method")
+    ensemble_responses = []
+    central_cells_index = None
+    for network in ensemble.yield_networks(checkpoint="best_chkpt"):
+        if central_cells_index is None:
+            central_cells_index = network.connectome.central_cells_index[:]
+        if isinstance(method, str):
+            method = getattr(network, method)
+        states = method(**config)
+        activity = np.array([s.nodes.activity.cpu().numpy() for s in states])[
+            :, :, central_cells_index
+        ]
+        ensemble_responses.append(activity)
+    ensemble_responses = np.array(ensemble_responses)
+    assert ensemble_responses.shape == test_responses.shape
+    assert np.allclose(ensemble_responses, test_responses, atol=1e-4)
