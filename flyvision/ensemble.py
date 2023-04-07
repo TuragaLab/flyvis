@@ -1,3 +1,4 @@
+"""Ensemble of trained networks."""
 from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator, List, Tuple, Union
 import logging
@@ -177,10 +178,6 @@ class Ensemble(dict):
             return
 
         _names = tuple(self.names)
-        # because even if new stimuli are initialized, these are only for a
-        # subset of the models. but then these are not necessarily true anymore.
-        # needs to track which field changes and null it.
-        # _initialized = deepcopy(self._initialized)
 
         with self.rank_by_validation_error():
             if best is not None and worst is not None and best + worst > 1:
@@ -210,15 +207,6 @@ class Ensemble(dict):
                 yield
             finally:
                 self.names = list(_names)
-                # a subset of models can initialize stimuli
-                # responses of one type from different configs. this will
-                # change self._initialized. if different models have differently
-                # configured responses of the same type loaded, this would lead
-                # to inconsistent analyses. this is to reset the initialization.
-                # for key in _initialized:
-                #     if _initialized[key] != self._initialized[key]:
-                #         _initialized[key] = ""
-                # self._initialized = _initialized
                 self._model_mask = np.ones(len(self)).astype(bool)
                 self._model_index = np.arange(len(self))
                 self._best_ratio = 0.5
@@ -274,7 +262,6 @@ class Ensemble(dict):
         if cell_type not in list(self.dir.clustering.keys()):
             raise ValueError(f"cell type {cell_type} not available")
         cluster_indices = self.dir.clustering[cell_type].to_dict()
-        import pdb
 
         _models = sorted(
             np.concatenate(list(self.dir.clustering[cell_type].to_dict().values()))

@@ -8,7 +8,6 @@ from contextlib import contextmanager
 
 import warnings
 import numpy as np
-from numpy.typing import NDArray
 from toolz import valmap
 import torch
 from torch import Tensor
@@ -118,7 +117,7 @@ class Network(nn.Module):
     ):
         super().__init__()
 
-        # To be able to alter the passed configs without upstream effect.
+        # Call deecopy to alter passed configs without upstream effects
         connectome = connectome.deepcopy()
         dynamics = dynamics.deepcopy()
         node_config = node_config.deepcopy()
@@ -604,6 +603,7 @@ class Network(nn.Module):
         value: float = 0.5,
         state: Optional[AutoDeref] = None,
         grad: bool = False,
+        return_last=True,
     ) -> AutoDeref:
         """State after grey-scale stimulus.
 
@@ -631,7 +631,9 @@ class Network(nn.Module):
         self.stimulus.add_pre_stim(value)
 
         with self.enable_grad(grad):
-            return self(self.stimulus(), dt, as_states=True, state=state)[-1]
+            if return_last:
+                return self(self.stimulus(), dt, as_states=True, state=state)[-1]
+            return self(self.stimulus(), dt, as_states=True, state=state)
 
     def fade_in_state(
         self,

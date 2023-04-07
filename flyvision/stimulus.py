@@ -1,3 +1,4 @@
+"""Interface to control the cell-specific stimulus for the network."""
 from typing import Dict, Union
 from contextlib import contextmanager
 
