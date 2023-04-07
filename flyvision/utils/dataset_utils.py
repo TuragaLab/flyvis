@@ -131,7 +131,8 @@ def load_moving_mnist(delete_if_exists=False):
     if not moving_mnist_path.exists() or delete_if_exists:
         download_url_to_file(moving_mnist_url, moving_mnist_path)
     try:
-        return np.load(moving_mnist_path)
+        sequences = np.load(moving_mnist_path)
+        return np.transpose(sequences, (1, 0, 2, 3)) / 255.0
     except ValueError as e:
         # delete broken download and load again
         print(f"broken file: {e}, restarting download...")
