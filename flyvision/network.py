@@ -462,7 +462,8 @@ class Network(nn.Module):
             initial_state: network activity at the beginning of the simulation.
                 Either use fade_in_state or steady_state, to compute the
                 initial state from grey input or from ramping up the contrast of
-                the first movie frame.
+                the first movie frame. Defaults to "auto", which uses the
+                steady_state after 1s of grey input.
             as_states: can return the states as AutoDeref dictionary instead of
                 a tensor. Defaults to False.
 
