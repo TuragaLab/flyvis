@@ -5,7 +5,7 @@ from matplotlib import colormaps as cm
 import numpy as np
 
 from flyvision import utils
-from flyvision.plots import plt_utils
+from flyvision.plots import plt_utils, figsize_utils
 from flyvision.animations.animations import AnimationCollector
 from flyvision.animations.hexscatter import HexScatter
 
@@ -36,6 +36,10 @@ class StimulusResponse(AnimationCollector):
         fontsize=5,
         u=None,
         v=None,
+        max_figure_height_cm=22,
+        panel_height_cm=3,
+        max_figure_width_cm=18,
+        panel_width_cm=3.6,
     ):
         self.stimulus = utils.tensor_utils.to_numpy(stimulus)
 
@@ -47,12 +51,16 @@ class StimulusResponse(AnimationCollector):
 
         self.update = False
         self.n_samples, self.frames = self.responses[0].shape[:2]
-        self.fig, self.axes, (gw, gh) = plt_utils.get_axis_grid(
-            gridheight=1,
-            gridwidth=1 + len(self.responses),
-            scale=figsize_scale,
-            figsize=None,
-            fontsize=fontsize,
+
+        figsize = figsize_utils.figsize_from_n_items(
+            1 + len(self.responses),
+            max_figure_height_cm=max_figure_height_cm,
+            panel_height_cm=panel_height_cm,
+            max_figure_width_cm=max_figure_width_cm,
+            panel_width_cm=panel_width_cm,
+        )
+        self.fig, self.axes = figsize.axis_grid(
+            unmask_n=1 + len(self.responses), hspace=0.0, wspace=0, fontsize=fontsize
         )
 
         stimulus_samples = self.stimulus.shape[0]
@@ -69,13 +77,11 @@ class StimulusResponse(AnimationCollector):
                 title="stimulus",
                 labelxy=(-0.1, 1),
                 update=False,
+                title_y=0.9,
             )
         )
 
-        cranges = [
-            np.max(np.abs(plt_utils.get_lims([r[i] for r in self.responses], 0.1)))
-            for i in range(1)
-        ]
+        cranges = np.max(np.abs(self.responses), axis=(0, 2, 3, 4))
 
         for i, responses in enumerate(self.responses, 1):
             animations.append(
@@ -92,6 +98,7 @@ class StimulusResponse(AnimationCollector):
                     v=v,
                     cranges=cranges,
                     cbar=i == len(self.responses),
+                    title_y=0.9,
                 )
             )
 
