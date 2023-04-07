@@ -110,6 +110,9 @@ class Ensemble(dict):
 
     def yield_networks(self, checkpoint="best_chkpt") -> Iterator[Network]:
         """Yield initialized networks from the ensemble."""
+        # TODO: since the nn.Module is simply updated with inidividual weights
+        # for efficiency, this requires a config check somwhere to make sure the
+        # networks are compatible.
         network = self[0].init_network(chkpt=checkpoint)
         yield network
         for network_view in self.values()[1:]:
@@ -122,10 +125,27 @@ class Ensemble(dict):
         for network_view in self.values():
             yield network_view.init_decoder(chkpt=checkpoint, decoder=decoder)
 
-    def simulate(self, movie_input: torch.Tensor, dt: float):
-        """"""
+    def simulate(self, movie_input: torch.Tensor, dt: float, fade_in: bool = True):
+        """Simulate the ensemble activity from movie input.
+
+        Args:
+            movie_input: tensor requiring shape (batch_size, n_frames, 1, hexals)
+            dt: integration time constant. Warns if dt > 1/50.
+            fade_in: whether to use `network.fade_in_state` to compute the initial
+                state. Defaults to True. If False, uses the
+                `network.steady_state` after 1s of grey input.
+
+        Yields:
+            array: response of each individual network
+        """
         for network in self.yield_networks():
-            yield network.simulate(movie_input, dt).cpu().numpy()
+            yield network.simulate(
+                movie_input,
+                dt,
+                initial_state=network.fade_in_state(1.0, dt, movie_input[:, 0])
+                if fade_in
+                else "auto",
+            ).cpu().numpy()
 
     def decode(self, movie_input, dt):
         """Decode the ensemble responses with the ensemble decoders."""
