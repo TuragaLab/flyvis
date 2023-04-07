@@ -502,62 +502,6 @@ class Network(nn.Module):
             self.stimulus.add_input(movie_input)
             return self.forward(self.stimulus(), dt, initial_state, as_states)
 
-    def simulate_clamp(
-        self,
-        movie_input: torch.Tensor,
-        dt: float,
-        initial_state: Union[AutoDeref, None],
-        cell_type: Union[str, Iterable[str]],
-        mode="layer",
-        substitute=0,
-        clear_state_hooks: bool = True,
-    ):
-        """Simulate with clamping cell type voltage in the network.
-
-        Note, this method registers a state hook that clamps the activity
-        of a single cell type. The hooks are cleared before and after the
-        simulation by default.
-
-        Args:
-            movie_input: tensor requiring shape (batch_size, n_frames, 1, n_input_elements)
-            dt: integration time constant. Must be 1/50 or less.
-            initial_state: network activity at the beginning of the simulation.
-                Either use fade_in_state or steady_state, to compute the
-                initial state from grey input or from ramping up the contrast of
-                the first movie frame.
-            cell_type: cell type(s) to clamp.
-            mode: "layer" or "central" to clamp whole cell type
-                layer or central cell.
-            substitute: number or "resting" to substitute the activity.
-            clear_state_hooks: clear all state hooks before and after simulation.
-                Note, this can interfere with other state hooks.
-
-
-        Returns:
-            clamped activity tensor of shape (batch_size, n_frames, #neurons).
-
-        Raises: see simulate.
-        """
-        self.clear_state_hooks(clear_state_hooks)
-
-        if isinstance(cell_type, str):
-            cell_type = (cell_type,)
-
-        self.clear_state_hooks(clear_state_hooks)
-        for ct in cell_type:
-            if ct not in self.cell_types:
-                raise ValueError(f"unknown cell type {ct}")
-            self.register_state_hook(
-                clamp_hook,
-                cls=self,
-                cell_type=ct,
-                mode=mode,
-                substitute=substitute,
-            )
-        activity = self.simulate(movie_input, dt, initial_state, as_states=False)
-        self.clear_state_hooks(clear_state_hooks)
-        return activity
-
     def forward(
         self, x: Tensor, dt: float, state: AutoDeref = None, as_states: bool = False
     ) -> Union[torch.Tensor, AutoDeref]:
@@ -989,42 +933,6 @@ class NetworkView(ConnectomeView):
             self.network.connectome,
             keepref=True,
         )
-
-
-# - state hooks ----------------------------------------------------------------
-
-
-def clamp_hook(state, cls, cell_type, mode="layer", substitute=0):
-    """State hook to perturb the activity of a given cell type.
-
-    Must be passed to Network.register_state_hook.
-
-    Args:
-        cls: Network instance.
-        cell_type: cell type to perturb.
-        mode: "layer" or "central" to perturb the layer or central cells.
-        substitute: value to substitute the activity with. Can be a number or
-            "resting" to substitute with the resting potential.
-    """
-    if mode == "layer":
-        ablation_index = cls.stimulus.layer_index[cell_type]
-    elif mode == "central":
-        ablation_index = cls.stimulus.central_cells_index[cell_type]
-    else:
-        raise ValueError
-
-    if isinstance(substitute, Number):
-        activity = state.nodes.activity.clone()
-        activity[:, ablation_index] = substitute
-        state.nodes.update(activity=activity)
-    elif substitute == "resting":
-        activity = state.nodes.activity.clone()
-        activity[:, ablation_index] = cls.node_params.bias[cell_type].data.item()
-        state.nodes.update(activity=activity)
-    else:
-        raise ValueError
-
-    return state
 
 
 class IntegrationWarning(Warning):
