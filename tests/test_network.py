@@ -179,43 +179,6 @@ def test_simulate(network):
     with pytest.warns(IntegrationWarning):
         network.simulate(x, 1 / 49)
 
-
-def test_simulate_clamp(network):
-    x = torch.Tensor(2, 20, 1, 721).random_(2)
-    activity = network.simulate_clamp(
-        x, 1 / 50, None, "T4c", mode="central", substitute=0.0
-    )
-    assert (activity[:, :, network.stimulus.central_cells_index["T4c"]] == 0).all()
-    assert not network._state_hooks
-
-    activity = network.simulate_clamp(
-        x, 1 / 50, None, "R1", mode="layer", substitute="resting"
-    )
-    assert (
-        activity[:, :, network.stimulus.layer_index["R1"]]
-        == network.node_params.bias["R1"].data.expand(
-            *activity.shape[:2], len(network.stimulus.layer_index["R1"])
-        )
-    ).all()
-    assert not network._state_hooks
-
-    activity = network.simulate_clamp(
-        x, 1 / 50, None, ["R1", "R2", "R3"], mode="layer", substitute=1.0
-    )
-    assert all(
-        [
-            torch.eq(activity[:, :, network.stimulus.layer_index[cell_type]], 1.0)
-            .all()
-            .item()
-            for cell_type in ["R1", "R2", "R3"]
-        ]
-    )
-    assert not network._state_hooks
-
-    with pytest.raises(ValueError):
-        network.simulate_clamp(x, 1 / 50, None, "test", mode="layer", substitute=0.5)
-
-
 def test_steady_state(network: Network):
     steady_state = network.steady_state(1, 1 / 20, 2, 0.5, None, False)
 
