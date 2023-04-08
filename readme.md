@@ -14,7 +14,7 @@ and dynamic stimulus datasets in Pytorch.
 
 We first release examples to
 explore the connectome and how to provide custom stimuli to the models and
-explore their responses. Try our models inside our Google Colab notebooks. :
+explore their responses. Try our models inside our Google Colab notebooks:
 
 - [Explore the connectome](Todo)
 - [Provide custom stimuli](Todo)
@@ -39,9 +39,8 @@ For installing the package locally, follow the steps below (assuming conda is in
 2. activate the new conda environment `conda activate flyvision`
 3. install python `conda install "python>=3.7.11,<3.10.0"`
 4. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
-6. navigate to the repo `cd flyvis` and install in developer mode `pip install -e .`
-7. install pytorch, torchvision, cuda `conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3.1 -c pytorch`
-8. (run `pytest` to check if all tests run through)
+5. navigate to the repo `cd flyvis` and install in developer mode `pip install -e .`
+6. (run `pytest` to check if all tests run through)
 
 ## Background
 
