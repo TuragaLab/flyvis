@@ -15,8 +15,8 @@ we include two examples. The examples
 explore the connectome and how to provide custom stimuli to the models and
 explore their responses. Try our models inside our Google Colab notebooks:
 
-- [Explore the connectome](Todo)
-- [Provide custom stimuli](Todo)
+- [Explore the connectome](https://colab.research.google.com/drive/16xi96XS3whNhwMNeFihBNNgADVh60XHH?usp=sharing)
+- [Provide custom stimuli](https://colab.research.google.com/drive/1xBJ-xLgmLGhXgkf8XLw2PRRlDrYQ1Hhv?usp=sharing)
 
 All in between, touching
 results already described in the paper, will come soon.
