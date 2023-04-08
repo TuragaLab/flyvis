@@ -12,9 +12,9 @@ and dynamic stimulus datasets in Pytorch.
 
 ### Getting started
 
-Try our models inside our Google Colab notebooks. We first release examples to
+We first release examples to
 explore the connectome and how to provide custom stimuli to the models and
-explore their responses:
+explore their responses. Try our models inside our Google Colab notebooks. :
 
 - [Explore the connectome](Todo)
 - [Provide custom stimuli](Todo)
@@ -22,28 +22,26 @@ explore their responses:
 All in between, touching
 results already described in the paper, will come soon.
 
-### More to come
+### More to come 🔜
 
-- Optic flow task 🔜
-- Flash responses 🔜
-- Moving edge responses 🔜
-- Naturalistic stimuli responses 🔜
-- Maximally excitatory stimuli 🔜
-- Predictions for unknown cell types 🔜
+- Optic flow task
+- Flash responses
+- Moving edge responses
+- Naturalistic stimuli responses
+- Maximally excitatory stimuli
+- Predictions for unknown cell types
 
 ### Local installation
 
-For installing the package locally, follow the steps below:
+For installing the package locally, follow the steps below (assuming conda is installed):
 
-1. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
-2. make sure conda is installed
-3. create a new conda environment `conda create --name flyvision -y`
-4. activate the new conda environment `conda activate flyvision`
-5. install python `conda install "python>=3.7.11,<3.10.0"`
-6. install requirements `pip install -r requirements.txt`
-7. navigate to the repository and install in developer mode `pip install -e .`
-8. install pytorch, torchvision, cuda `conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3.1 -c pytorch`
-9. (run `pytest` to check if all tests run through)
+1. create a new conda environment `conda create --name flyvision -y`
+2. activate the new conda environment `conda activate flyvision`
+3. install python `conda install "python>=3.7.11,<3.10.0"`
+4. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
+6. navigate to the repo `cd flyvis` and install in developer mode `pip install -e .`
+7. install pytorch, torchvision, cuda `conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3.1 -c pytorch`
+8. (run `pytest` to check if all tests run through)
 
 ## Background
 

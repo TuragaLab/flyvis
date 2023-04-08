@@ -921,7 +921,6 @@ class ConnectomeView:
                     vmax=vmax,
                     annotate_coords=False,
                     annotate=False,
-                    title_y=0.9,
                     **kwargs,
                 )
             except plots.SignError as e:
