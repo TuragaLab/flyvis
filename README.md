@@ -1,6 +1,6 @@
 # Flyvis 🪰
 
-Flyvis implements deep mechanistic networks (DMN) in Pytorch as discovery tool for generating
+A connectome constrained deep mechanistic network (DMN) model of the fruit fly visual system in Pytorch as discovery tool for generating
 and testing hypotheses about neural computations with connectomes.
 
 It's our official implementation of [📄Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
