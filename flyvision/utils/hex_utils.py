@@ -9,6 +9,7 @@ import torch
 from matplotlib import colormaps as cm
 
 import flyvision
+from flyvision.utils.tensor_utils import matrix_mask_by_sub
 
 
 def get_hex_coords(extent, astensor=False):
@@ -490,6 +491,28 @@ class HexArray(np.ndarray):
         else:
             return super().__eq__(other)
 
+    def __getitem__(self, key):
+        if isinstance(key, HexArray):
+            mask = self.where_hexarray(key)
+            return self[mask]
+        else:
+            return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice) and key == slice(None):
+            self.values = value
+        elif isinstance(key, HexArray):
+            mask = self.where_hexarray(key)
+            super().__setitem__(mask, value)
+        else:
+            super().__setitem__(key, value)
+
+    def where_hexarray(self, hexarray):
+        return matrix_mask_by_sub(
+            np.stack((hexarray.u, hexarray.v), axis=0).T,
+            np.stack((self.u, self.v), axis=0).T,
+        )
+
     @staticmethod
     def sort(u, v):
         sort_index = np.lexsort((v, u))
@@ -522,6 +545,11 @@ class HexArray(np.ndarray):
     def values(self):
         return np.array([h.value for h in self])
 
+    @values.setter
+    def values(self, values):
+        for h, val in zip(self, values):
+            h.value = val
+
     @property
     def extent(self):
         return super().get_extent(self)
@@ -547,6 +575,10 @@ class HexArray(np.ndarray):
         """Fills the values with the given one."""
         for h in self:
             h.value = value
+
+    def to_pixel(self, scale=1, mode="default"):
+        """Converts to pixel coordinates."""
+        return hex_to_pixel(self.u, self.v, scale, mode=mode)
 
     def plot(self, figsize=[3, 3], fill=True):
         """Plots values in regular hexagonal lattice.
@@ -601,7 +633,7 @@ class HexLattice(HexArray):
             u, v = flyvision.utils.hex_utils.get_hex_coords(extent)
             u += center.u
             v += center.v
-            values = np.ones_like(u) * np.nan
+            values = [None for _ in range(len(u))]  # np.ones_like(u) * np.nan
             lattice = []
             for _u, _v, _val in zip(u, v, values):
                 if _u % u_stride == 0 and _v % v_stride == 0:

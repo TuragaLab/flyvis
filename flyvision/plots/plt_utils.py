@@ -922,7 +922,7 @@ def divide_axis_to_grid(
     return axes
 
 
-def regular_ax_scatter(
+def ax_scatter(
     x,
     y,
     fig=None,
@@ -959,6 +959,8 @@ def regular_ax_scatter(
     """
     x, y = np.array(x), np.array(y)
     assert len(x) == len(y)
+    x += np.abs(np.min(x))
+    y += np.abs(np.min(y))
 
     # Min-Max Scale x-Positions.
     width = (1 - 2 * wpad) / (2 * np.ceil(np.median(np.unique(x))))

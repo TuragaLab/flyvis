@@ -251,7 +251,7 @@ def network_layout_axes(
     # wpad = 0.05
     hpad = 0.0
     wpad = 0.0
-    fig, axes, xy_scaled = plt_utils.regular_ax_scatter(
+    fig, axes, xy_scaled = plt_utils.ax_scatter(
         xy[:, 0],
         xy[:, 1],
         fig=fig,
