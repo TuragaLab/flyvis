@@ -318,7 +318,7 @@ def hex_scatter(
             # smallest hexagonal coordinate system around that
             u_cs, v_cs = utils.hex_utils.get_hex_coords(extent)
             x_cs, y_cs = utils.hex_utils.hex_to_pixel(u_cs, v_cs, mode=mode)
-            # if utils.get_hextent(len(color)) != extent:
+            # if utils.hex_utils.get_hextent(len(color)) != extent:
             if origin == "upper":
                 y_cs = y_cs[::-1]
             for i, (_x, _y) in enumerate(zip(x_cs, y_cs)):
@@ -345,7 +345,7 @@ def hex_scatter(
             # smallest hexagonal coordinate system around that
             u_cs, v_cs = utils.hex_utils.get_hex_coords(fill)
             x_cs, y_cs = utils.hex_utils.hex_to_pixel(u_cs, v_cs, mode=mode)
-            # if utils.get_hextent(len(color)) != fill:
+            # if utils.hex_utils.get_hextent(len(color)) != fill:
             if origin == "upper":
                 y_cs = y_cs[::-1]
             for i, (_x, _y) in enumerate(zip(x_cs, y_cs)):
@@ -552,7 +552,7 @@ def kernel(
 
 def hex_cs(extent=5, mode="default", annotate_coords=True, edgecolor="black", **kwargs):
     """Convenience function for plotting a hexagonal coordinate system."""
-    u, v = utils.get_hex_coords(extent)
+    u, v = utils.hex_utils.get_hex_coords(extent)
     return hex_scatter(
         u,
         v,
@@ -584,7 +584,7 @@ def hex_flow(
     flow,
     fig=None,
     ax=None,
-    figsize=(7, 7),
+    figsize=(1, 1),
     title="",
     cmap=plt_utils.cm_uniform_2d,
     max_extent=None,
@@ -595,7 +595,7 @@ def hex_flow(
     orientation=np.radians(30),
     origin="lower",
     markerscale=1,
-    fontsize=10,
+    fontsize=5,
     cwheel=True,
     cwheelxy=(),
     cwheelpos="southeast",
@@ -603,7 +603,7 @@ def hex_flow(
     annotate_r=False,
     annotate_theta=False,
     annotate_coords=False,
-    coord_fs=8,
+    coord_fs=3,
     label="",
     labelxy=(0, 1),
     vmin=-np.pi,
@@ -744,8 +744,8 @@ def hex_flow(
 def quick_hex_flow(flow, **kwargs):
     """Convenience function for plotting a flow field on a hexagonal lattice with
     implicit coordinates."""
-    flow = utils.to_numpy(flow.squeeze())
-    u, v = utils.get_hex_coords(utils.get_hextent(flow.shape[-1]))
+    flow = utils.tensor_utils.to_numpy(flow.squeeze())
+    u, v = utils.hex_utils.get_hex_coords(utils.hex_utils.get_hextent(flow.shape[-1]))
     return hex_flow(u, v, flow, **kwargs)
 
 

@@ -922,6 +922,25 @@ def divide_axis_to_grid(
     return axes
 
 
+def scale(x, y, wpad=0.1, hpad=0.1, wspace=0, hspace=0):
+    x, y = np.array(x), np.array(y)
+    assert len(x) == len(y)
+
+    # Min-Max Scale x-Positions.
+    # breakpoint()
+    width = (1 - 2 * wpad) / (2 * np.ceil(np.median(np.unique(x))))
+    width = width - wspace * width  # len(np.unique(np.round(x, 2)))#))
+    x = (x - np.min(x)) / (np.max(x) + np.min(x)) * (1 - width) * (1 - wpad * 2) + wpad
+
+    # Min-Max Scale y-Positions.
+    height = (1 - 2 * hpad) / (2 * np.ceil(np.median(np.unique(y))))
+    height = (
+        height - hspace * height
+    )  # len(np.unique(np.round(y, 2))) #np.max(np.unique(np.round(y, 2), return_counts=True))
+    y = (y - np.min(y)) / (np.max(y) + np.min(y)) * (1 - height) * (1 - hpad * 2) + hpad
+    return x, y, width, height
+
+
 def ax_scatter(
     x,
     y,
@@ -957,22 +976,7 @@ def ax_scatter(
         list of axes for each point in (x, y)
         scaled version of x and y in figure coordinates
     """
-    x, y = np.array(x), np.array(y)
-    assert len(x) == len(y)
-    x += np.abs(np.min(x))
-    y += np.abs(np.min(y))
-
-    # Min-Max Scale x-Positions.
-    width = (1 - 2 * wpad) / (2 * np.ceil(np.median(np.unique(x))))
-    width = width - wspace * width  # len(np.unique(np.round(x, 2)))#))
-    x = (x - np.min(x)) / (np.max(x) + np.min(x)) * (1 - width) * (1 - wpad * 2) + wpad
-
-    # Min-Max Scale y-Positions.
-    height = (1 - 2 * hpad) / (2 * np.ceil(np.median(np.unique(y))))
-    height = (
-        height - hspace * height
-    )  # len(np.unique(np.round(y, 2))) #np.max(np.unique(np.round(y, 2), return_counts=True))
-    y = (y - np.min(y)) / (np.max(y) + np.min(y)) * (1 - height) * (1 - hpad * 2) + hpad
+    x, y, width, height = scale(x, y, wpad, hpad, wspace, hspace)
 
     # Create axes in figure.
     fig = fig or plt.figure(figsize=figsize)

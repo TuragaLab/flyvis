@@ -150,6 +150,7 @@ class Animation:
         delete_if_exists=False,
         source_path=None,
         dest_path=None,
+        type="webm",
     ):
         """Animates, saves individual frames, and converts to mp4 using ffmpeg."""
         self._mk_dest(path=source_path)
@@ -165,7 +166,7 @@ class Animation:
                     self.animate_save(frame, dpi=dpi)
         except Exception as e:
             try:
-                self.convert(fname + "_bak", delete_if_exists, framerate)
+                self.convert(fname + "_bak", delete_if_exists, framerate, type=type)
             except Exception as ee:
                 raise (Exception([e, ee]))
         self.convert(
@@ -174,6 +175,7 @@ class Animation:
             framerate,
             source_path=source_path,
             dest_path=dest_path,
+            type=type,
         )
 
     def convert(
@@ -186,11 +188,15 @@ class Animation:
         type="mp4",
     ):
         """Converts png files in the animations dir to mp4."""
+        dest_path = dest_path or self.path
+        if not dest_path.exists():
+            dest_path.mkdir(parents=True, exist_ok=True)
         convert(
             source_path or self._path,
-            ((dest_path or self.path) / f"{fname}").with_suffix(f".{type}"),
+            (dest_path / f"{fname}").with_suffix(f".{type}"),
             framerate,
             delete_if_exists,
+            type=type,
         )
 
 

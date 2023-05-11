@@ -4,17 +4,45 @@ import networkx as nx
 from typing import Dict
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
+import matplotlib
 from toolz import valfilter
 
 from flyvision.plots import plt_utils
 
 
 class WholeNetworkFigure:
-    def __init__(self, connectome):
+    def __init__(
+        self,
+        connectome,
+        video=False,
+        rendering=False,
+        motion_decoder=False,
+        decoded_motion=False,
+        pixel_accurate_motion=False,
+    ):
         self.nodes = connectome.nodes.to_df()
         self.edges = connectome.edges.to_df()
         self.layout = dict(connectome.layout[:].astype(str))
         self.cell_types = connectome.unique_cell_types[:].astype(str)
+
+        layout = {}
+        if video:
+            layout.update({"video": "cartesian"})
+        if rendering:
+            layout.update({"rendering": "hexagonal"})
+        layout.update(dict(connectome.layout[:].astype(str)))
+        if motion_decoder:
+            layout.update({"motion decoder": "decoder"})
+        if decoded_motion:
+            layout.update({"decoded motion": "motion"})
+        if pixel_accurate_motion:
+            layout.update({"pixel-accurate motion": "motion"})
+        self.layout = layout
+        self.video = video
+        self.rendering = rendering
+        self.motion_decoder = motion_decoder
+        self.decoded_motion = decoded_motion
+        self.pixel_accurate_motion = pixel_accurate_motion
 
     def init_figure(self, figsize=[15, 6], fontsize=6):
         self.fig, self.axes, self.axes_centers = network_layout_axes(
@@ -22,8 +50,13 @@ class WholeNetworkFigure:
         )
         self.ax_dict = {ax.get_label(): ax for ax in self.axes}  # type: Dict[str, Axes]
         self.add_graph()
+        # invisible box for arrow positioning
+        self.add_retina_box()
         self.add_decoded_box()
         self.add_ax_labels(fontsize=fontsize)
+        if self.motion_decoder:
+            self.add_decoder_sketch()
+        self.add_arrows()
 
     def add_graph(
         self,
@@ -34,9 +67,6 @@ class WholeNetworkFigure:
         constant_edge_width=0.25,
         constant_edge_color="#c5c5c5",
         edge_cmap=None,
-        self_loop_radius=0.02,
-        self_loop_width=None,
-        self_loop_edge_alpha=None,
     ):
         def _network_graph(nodes, edges):
             """Transform graph representation from df to list to create a networkx.Graph object."""
@@ -130,7 +160,31 @@ class WholeNetworkFigure:
             width=np.array([edge_width[tuple(edge)] for edge in edge_list]),
         )
 
-    def add_decoded_box(self, pad=0.2):
+    def add_retina_box(self):
+        retina_node_types = valfilter(lambda v: v == "retina", self.layout)
+        axes = {
+            node_type: [ax for ax in self.axes if ax.get_label() == node_type][0]
+            for node_type in retina_node_types
+        }
+        (lefts, bottoms, rights, tops), (
+            centers,
+            widths,
+            height,
+        ) = plt_utils.get_ax_positions(list(axes.values()))
+        retina_box_ax = self.fig.add_axes(
+            [
+                lefts.min(),
+                bottoms.min(),
+                rights.max() - lefts.min(),
+                tops.max() - bottoms.min(),
+            ],
+            label="retina_box",
+        )
+        retina_box_ax.patch.set_alpha(0)
+        plt_utils.rm_spines(retina_box_ax)
+        self.ax_dict["retina box"] = retina_box_ax
+
+    def add_decoded_box(self):
         output_cell_types = valfilter(lambda v: v == "output", self.layout)
         axes = {
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
@@ -158,6 +212,107 @@ class WholeNetworkFigure:
         decoded_box_ax.set_xticks([])
         decoded_box_ax.set_yticks([])
         self.ax_dict["decoded box"] = decoded_box_ax
+
+    def add_decoder_sketch(self):
+        ax = self.ax_dict["motion decoder"]
+        nodes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        edges = [
+            (1, 11),
+            (2, 10),
+            (2, 12),
+            (3, 10),
+            (3, 11),
+            (3, 12),
+            (4, 11),
+            (4, 12),
+            (4, 14),
+            (5, 10),
+            (5, 12),
+            (5, 13),
+            (6, 11),
+            (6, 13),
+            (6, 14),
+            (7, 12),
+            (7, 14),
+            (8, 13),
+            (9, 14),
+            (10, 15),
+            (11, 16),
+            (12, 15),
+            (13, 15),
+            (13, 16),
+            (14, 16),
+        ]
+        graph = nx.Graph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from(edges)
+        x = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
+        y = [9, 8, 7, 6, 5, 4, 3, 2, 1, 7.3, 6.3, 5.3, 4.3, 3.3, 5.7, 4.7]
+        x, y, width, height = plt_utils.scale(x, y)
+        nx.draw_networkx(
+            graph,
+            pos=dict(zip(nodes, zip(x, y))),
+            node_shape="H",
+            node_size=50,
+            node_color="#5a5b5b",
+            edge_color="#C5C4C4",
+            width=0.25,
+            with_labels=False,
+            ax=ax,
+            arrows=False,
+        )
+        plt_utils.rm_spines(ax)
+
+    def add_arrows(self):
+        def arrow_between_axes(axA, axB):
+            # Create the arrow
+            # 1. Get transformation operators for axis and figure
+            ax0tr = axA.transAxes  # Axis 0 -> Display
+            ax1tr = axB.transAxes  # Axis 1 -> Display
+            figtr = self.fig.transFigure.inverted()  # Display -> Figure
+            # 2. Transform arrow start point from axis 0 to figure coordinates
+            ptA = figtr.transform(ax0tr.transform((1, 0.5)))
+            # 3. Transform arrow end point from axis 1 to figure coordinates
+            ptB = figtr.transform(ax1tr.transform((0, 0.5)))
+            # 4. Create the patch
+            arrow = matplotlib.patches.FancyArrowPatch(
+                ptA,
+                ptB,
+                transform=self.fig.transFigure,  # Place arrow in figure coord system
+                # fc=self.fontcolor,
+                # ec=self.fontcolor,
+                #     connectionstyle="arc3",
+                arrowstyle="simple, head_width=3, head_length=6, tail_width=0.15",
+                alpha=1,
+                mutation_scale=1.0,
+            )
+            arrow.set_lw(0.25)
+            # 5. Add patch to list of objects to draw onto the figure
+            self.fig.patches.append(arrow)
+
+        if self.video and self.rendering:
+            arrow_between_axes(self.ax_dict["video"], self.ax_dict["rendering"])
+            arrow_between_axes(self.ax_dict["rendering"], self.ax_dict["retina box"])
+        elif self.video:
+            arrow_between_axes(self.ax_dict["video"], self.ax_dict["retina box"])
+        elif self.rendering:
+            arrow_between_axes(self.ax_dict["rendering"], self.ax_dict["retina box"])
+
+        if self.motion_decoder and self.decoded_motion:
+            arrow_between_axes(
+                self.ax_dict["decoded box"], self.ax_dict["motion decoder"]
+            )
+            arrow_between_axes(
+                self.ax_dict["motion decoder"], self.ax_dict["decoded motion"]
+            )
+        elif self.motion_decoder:
+            arrow_between_axes(
+                self.ax_dict["decoded box"], self.ax_dict["motion decoder"]
+            )
+        elif self.decoded_motion:
+            arrow_between_axes(
+                self.ax_dict["decoded box"], self.ax_dict["decoded motion"]
+            )
 
     def add_ax_labels(self, fontsize=5):
         for label, ax in self.ax_dict.items():
@@ -280,6 +435,14 @@ def _network_graph_node_pos(layout, region_spacing=2):
     pos = {}
     j = 0
     for typ in layout:
+        if typ in [
+            "video",
+            "rendering",
+            "motion decoder",
+            "decoded motion",
+            "pixel-accurate motion",
+        ]:
+            region_spacing = 1.25
         if layout[typ] != region_0:
             x_coordinate += region_spacing
             j = 0
@@ -289,4 +452,18 @@ def _network_graph_node_pos(layout, region_spacing=2):
         pos[typ] = [x_coordinate, y_coordinate]
         region_0 = layout[typ]
         j += 1
+
+    y_mid = (types_per_column - 1) / 2
+
+    if "video" in layout:
+        pos["video"][1] = y_mid
+    if "rendering" in layout:
+        pos["rendering"][1] = y_mid
+    if "motion decoder" in layout:
+        pos["motion decoder"][1] = y_mid
+    if "decoded motion" in layout:
+        pos["decoded motion"][1] = y_mid
+    if "pixel-accurate motion" in layout:
+        pos["pixel-accurate motion"][1] = y_mid - 1.5
+
     return pos
