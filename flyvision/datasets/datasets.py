@@ -7,7 +7,10 @@ import torch
 import numpy as np
 import pandas as pd
 
-__all__ = ["SequenceDataset", "StimulusDataset" , "MultiTaskDataset"]
+from flyvision.augmentation import temporal
+
+__all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
+
 
 class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
     """Base class for all sequence datasets.
@@ -114,7 +117,7 @@ class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         sampled.
         """
         augment = augment if augment is not None else self.augment
-        return get_temporal_sample_indices(
+        return temporal.get_temporal_sample_indices(
             n_frames, total_seq_length, self.framerate, self.dt, augment
         )
 

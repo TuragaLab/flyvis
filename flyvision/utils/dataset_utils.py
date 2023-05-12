@@ -1,8 +1,10 @@
 """Dataset utilities."""
 
+from pathlib import Path
 import numpy as np
 from torch.hub import download_url_to_file
 from torch.utils.data.sampler import Sampler
+import zipfile
 
 import flyvision
 
@@ -137,3 +139,51 @@ def load_moving_mnist(delete_if_exists=False):
         # delete broken download and load again
         print(f"broken file: {e}, restarting download...")
         return load_moving_mnist(delete_if_exists=True)
+
+
+def download_sintel(delete_if_exists=False, depth=False):
+    """Downloads the sintel dataset.
+
+    Args:
+        delete_if_exists (bool): If True, delete the dataset if it exists and download again.
+        depth (bool): If True, download the depth dataset as well.
+
+    Returns:
+        Path to the sintel dataset.
+    """
+    sintel_dir = flyvision.sintel_dir
+    sintel_dir.mkdir(parents=True, exist_ok=True)
+
+    def exists(depth=False):
+        try:
+            assert sintel_dir.exists()
+            assert (sintel_dir / "training").exists()
+            assert (sintel_dir / "test").exists()
+            assert (sintel_dir / "training/flow").exists()
+            if depth:
+                assert (sintel_dir / "training/depth").exists()
+            return True
+        except AssertionError:
+            return False
+
+    def download_and_extract(url, depth=False):
+        sintel_zip = sintel_dir / Path(url).name
+
+        if not exists(depth=depth) or delete_if_exists:
+            assert not sintel_zip.exists()
+            download_url_to_file(url, sintel_zip)
+            with zipfile.ZipFile(sintel_zip, "r") as zip_ref:
+                zip_ref.extractall(sintel_dir)
+
+    download_and_extract(
+        "http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip", depth=False
+    )
+    if depth:
+        download_and_extract(
+            "http://files.is.tue.mpg.de/jwulff/sintel/MPI-Sintel-depth-training-20150305.zip",
+            depth=True,
+        )
+
+    assert exists(depth)
+
+    return sintel_dir
