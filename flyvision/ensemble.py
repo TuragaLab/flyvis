@@ -44,7 +44,10 @@ class Ensemble(dict):
         ensemble[0:2]
     """
 
-    def __init__(self, path: Union[PathLike, Iterable, "EnsembleDir"]):
+    def __init__(
+        self,
+        path: Union[PathLike, Iterable, "EnsembleDir"] = results_dir / "opticflow/000",
+    ):
         # self.model_paths, self.path = model_paths_from_parent(path)
 
         if isinstance(path, EnsembleDir):

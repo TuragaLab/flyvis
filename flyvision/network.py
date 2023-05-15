@@ -27,7 +27,7 @@ from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.tensor_utils import RefTensor, AutoDeref
-from flyvision.datasets.base import SequenceDataset
+from flyvision.datasets.datasets import SequenceDataset
 import logging
 
 logging = logging.getLogger()
@@ -850,7 +850,10 @@ class NetworkView(ConnectomeView):
         network: network instance. Requires to call init_network first.
     """
 
-    def __init__(self, network_dir: Union[PathLike, NetworkDir]):
+    def __init__(
+        self,
+        network_dir: Union[PathLike, NetworkDir],
+    ):
         if isinstance(network_dir, PathLike):
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
