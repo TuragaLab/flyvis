@@ -133,9 +133,9 @@ class ConnectomeDir(Directory):
     "A table with a row for each edge"
     # ------------------------------------------------------
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, file=flyvision.connectome_file, extent=15, n_syn_fill=1) -> None:
         # Load the connectome spec.
-        spec = json.loads(Path(self.path.parent / config.file).read_text())
+        spec = json.loads(Path(self.path.parent / file).read_text())
 
         # Store unique cell types and layout variables.
         self.unique_cell_types = np.string_([n["name"] for n in spec["nodes"]])
@@ -182,8 +182,8 @@ class ConnectomeDir(Directory):
         # Construct nodes and edges.
         nodes: List[Node] = []
         edges: List[Edge] = []
-        add_nodes(nodes, spec["nodes"], config.extent)
-        add_edges(edges, nodes, spec["edges"], config.n_syn_fill)
+        add_nodes(nodes, spec["nodes"], extent)
+        add_edges(edges, nodes, spec["edges"], n_syn_fill)
 
         # Define node roles (input, intermediate, output).
         _role = {node: "intermediate" for node in set([n.type for n in nodes])}
