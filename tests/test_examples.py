@@ -13,7 +13,7 @@ from datamate import Directory
 import flyvision
 from flyvision import connectome_file
 from flyvision import ConnectomeDir, ConnectomeView
-from flyvision.datasets.base import SequenceDataset
+from flyvision.datasets.datasets import SequenceDataset
 from flyvision.ensemble import EnsembleView
 from flyvision.utils.activity_utils import LayerActivity
 

@@ -8,35 +8,6 @@ from datamate import set_root_context
 from flyvision.datasets.sintel import RenderedSintel, MultiTaskSintel, sintel_meta
 
 
-# @pytest.fixture(scope="module")
-# def rendered_sintel(tmp_path_factory):
-#     with set_root_context(tmp_path_factory.mktemp("tmp")):
-#         rendered = RenderedSintel(
-#             tasks=["flow"],
-#             boxfilter=dict(extent=1, kernel_size=13),
-#             vertical_splits=3,
-#             n_frames=2,
-#             gamma=1,
-#             center_crop_fraction=0.7,
-#             unittest=True,
-#         )
-#     assert len(rendered) == 3
-#     split_1 = rendered(0)
-#     assert split_1["flow"].shape == (3, 2, 7)
-#     assert split_1["lum"].shape == (3, 1, 7)
-#     assert rendered.config == dict(
-#         type="RenderedSintel",
-#         tasks=["flow"],
-#         boxfilter=dict(extent=1, kernel_size=13),
-#         vertical_splits=3,
-#         n_frames=2,
-#         gamma=1,
-#         center_crop_fraction=0.7,
-#         unittest=True,
-#     )
-#     return rendered
-
-
 def test_rendering(tmp_path_factory):
     with set_root_context(tmp_path_factory.mktemp("tmp")):
         rendered = RenderedSintel(
