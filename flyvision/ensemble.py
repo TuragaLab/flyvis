@@ -123,7 +123,6 @@ class Ensemble(dict):
 
     def yield_decoders(self, checkpoint="best_chkpt"):
         """Yield initialized decoders from the ensemble."""
-        raise NotImplementedError("not implemented yet")
         decoder = self[0].init_decoder(chkpt=checkpoint)
         for network_view in self.values():
             yield network_view.init_decoder(chkpt=checkpoint, decoder=decoder)
@@ -152,7 +151,6 @@ class Ensemble(dict):
 
     def decode(self, movie_input, dt):
         """Decode the ensemble responses with the ensemble decoders."""
-        raise NotImplementedError("not implemented yet")
         responses = torch.tensor(list(self.simulate(movie_input, dt)))
         for i, decoder in enumerate(self.yield_decoders()):
             with simulation(decoder):

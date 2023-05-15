@@ -19,7 +19,7 @@ from datamate import Namespace, Directory
 from flyvision.connectome import ConnectomeDir, ConnectomeView
 import flyvision
 
-# from flyvision.decoder import init_decoder
+from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
 from flyvision.initialization import Parameter
 from flyvision.dynamics import NetworkDynamics
@@ -895,7 +895,6 @@ class NetworkView(ConnectomeView):
         Returns:
             decoder instance.
         """
-        raise NotImplementedError("Decoder initialization not implemented yet.")
         if self._initialized["decoder"] and decoder is None:
             return self.decoder
         self.decoder = decoder or init_decoder(
