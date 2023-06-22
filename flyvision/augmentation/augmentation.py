@@ -1,7 +1,4 @@
-import abc
-
-
-class Augmentation(metaclass=abc.ABCMeta):
+class Augmentation:
     augment = True
 
     def __call__(self, seq, *args, **kwargs):
@@ -9,10 +6,8 @@ class Augmentation(metaclass=abc.ABCMeta):
             return self.transform(seq, *args, **kwargs)
         return seq
 
-    @abc.abstractproperty
     def transform(self, seq, *args, **kwargs):
-        pass
+        return seq
 
-    @abc.abstractproperty
     def set_or_sample(self, *args):
         pass
