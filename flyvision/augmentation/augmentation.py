@@ -1,33 +1,18 @@
-import torch
+import abc
 
 
-class Augmentation:
-    _augment = True
-    _call = None
+class Augmentation(metaclass=abc.ABCMeta):
+    augment = True
 
-    def __call__(self, *args, **kwargs):
-        assert isinstance(args[0], torch.Tensor)
-        return args[0]
+    def __call__(self, seq, *args, **kwargs):
+        if self.augment:
+            return self.transform(seq, *args, **kwargs)
+        return seq
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls._call = cls.__call__
+    @abc.abstractproperty
+    def transform(self, seq, *args, **kwargs):
+        pass
 
-    @property
-    def augment(self):
-        return self._augment
-
-    @augment.setter
-    def augment(self, value):
-        self._augment = value
-
-        cls = type(self)
-        if cls != Augmentation and Augmentation in cls.__mro__:
-            if self.augment:
-                cls.__call__ = cls._call
-            else:
-                # turn off augmentation by overiding subclass call to identity function
-                cls.__call__ = Augmentation.__call__
-
+    @abc.abstractproperty
     def set_or_sample(self, *args):
         pass

@@ -16,6 +16,11 @@ __all__ = [
 ]
 
 
+class Test(Augmentation):
+    def __call__(self):
+        pass
+
+
 class HexRotate(Augmentation):
     """Rotate a sequence of regular hex-lattices by multiple of 60 degree.
 
@@ -74,7 +79,7 @@ class HexRotate(Augmentation):
 
         return seq
 
-    def __call__(self, seq: torch.Tensor, n_rot: Optional[int] = None):
+    def transform(self, seq: torch.Tensor, n_rot: Optional[int] = None):
         """Rotates a sequence on a regular hexagonal lattice.
 
         Args:
@@ -106,6 +111,10 @@ class HexFlip(Augmentation):
         axis (0, 1, 2, 3): flipping axis. 0 corresponds to no flipping.
         p_flip (float): probability of flipping. If None, no flipping is
             performed.
+        flip_axes (list): list of valid flipping axes. Can contain 0, 1, 2, 3.
+            Note: this is to avoid redundant transformations from rotation and
+            flipping. For example flipping across the 1st axis is equivalent to
+            rotating by 240 degrees and flipping across the 2nd axis.
 
     Attributes:
         same as args and
@@ -113,7 +122,7 @@ class HexFlip(Augmentation):
         rotation_matrices (dict): cached rotation matrices for flipping.
     """
 
-    def __init__(self, extent: int, axis: int = 0, p_flip=0.5):
+    def __init__(self, extent: int, axis: int = 0, p_flip=0.5, flip_axes=[0, 1, 2, 3]):
         self.extent = extent
         # cache indices and matrices cause this must be fast at runtime
         # for augmenting sequences
@@ -128,6 +137,7 @@ class HexFlip(Augmentation):
             R3 = flip_matrix(np.radians(angle), three_d=True)
             self.rotation_matrices[n] = [R2, R3]
             self.permutation_indices[n] = flip_permutation_index(extent, n)
+        self.flip_axes = flip_axes
         self.axis = axis
         self.p_flip = p_flip
         self.set_or_sample(axis)
@@ -138,12 +148,9 @@ class HexFlip(Augmentation):
 
     @axis.setter
     def axis(self, axis):
-        assert axis in [
-            0,
-            1,
-            2,
-            3,
-        ], f"{axis} is not a valid axis. Must be in [0, 1, 2, 3]."
+        assert (
+            axis in self.flip_axes
+        ), f"{axis} is not a valid axis. Must be in {self.flip_axes}."
         self._axis = axis
 
     def flip(self, seq: torch.Tensor):
@@ -165,7 +172,7 @@ class HexFlip(Augmentation):
 
         return seq
 
-    def __call__(self, seq: torch.Tensor, axis: Optional[int] = None):
+    def transform(self, seq: torch.Tensor, axis: Optional[int] = None):
         """Flips a sequence on a regular hexagonal lattice.
 
         Args:
@@ -182,7 +189,7 @@ class HexFlip(Augmentation):
     def set_or_sample(self, axis=None):
         if axis is None:
             axis = (
-                np.random.randint(low=1, high=4)
+                np.random.randint(low=1, high=max(self.flip_axes) + 1)
                 if self.p_flip and self.p_flip > np.random.rand()
                 else 0
             )
@@ -217,7 +224,7 @@ class ContrastBrightness(Augmentation):
         self.brightness_std = brightness_std
         self.set_or_sample(contrast_factor, brightness_factor)
 
-    def __call__(self, seq: torch.Tensor):
+    def transform(self, seq: torch.Tensor):
         """Applies the transformation to a sequence.
 
         Args:
@@ -267,7 +274,7 @@ class PixelNoise(Augmentation):
     def __init__(self, std=0.08):
         self.std = std
 
-    def __call__(self, seq: torch.Tensor):
+    def transform(self, seq: torch.Tensor):
         """Applies the transformation to a sequence.
 
         Args:
@@ -303,7 +310,7 @@ class GammaCorrection(Augmentation):
         self.gamma = gamma
         self.std = std
 
-    def __call__(self, seq: torch.Tensor):
+    def transform(self, seq: torch.Tensor):
         """Applies the transformation to a sequence.
 
         Args:

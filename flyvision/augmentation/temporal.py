@@ -16,7 +16,7 @@ class Interpolate(Augmentation):
             True if mode in ["linear", "bilinear", "bicubic", "trilinear"] else None
         )
 
-    def __call__(self, sequence: torch.Tensor, dim: int = 0):
+    def transform(self, sequence: torch.Tensor, dim: int = 0):
         """Resamples the sequence along the specified dim.
 
         sequence: sequence to resample of shape (..., n_frames, ...)
@@ -63,7 +63,7 @@ class CropFrames(Augmentation):
         self.start = start
         self.random = random
 
-    def __call__(self, sequence: torch.Tensor, dim: int = 0):
+    def transform(self, sequence: torch.Tensor, dim: int = 0):
         """Randomly crops the sequence along the specified dim.
 
         sequence: sequence to crop of shape (..., n_frames, ...)
@@ -77,10 +77,9 @@ class CropFrames(Augmentation):
                 f"cannot crop {self.n_frames} frames from a total"
                 f" of {total_seq_length} frames"
             )
-        if self.random:
-            self.set_or_sample(total_sequence_length=total_seq_length)
+        start = self.start if self.random else 0
         indx = [slice(None)] * sequence.ndim
-        indx[dim] = slice(self.start, self.start + self.n_frames)
+        indx[dim] = slice(start, start + self.n_frames)
         return sequence[indx]
 
     def set_or_sample(self, start=None, total_sequence_length=None):
@@ -97,7 +96,7 @@ class CropFrames(Augmentation):
 
 
 # class InterpolateFrames(Augmentation):
-#     def __call__(self, sequence: torch.Tensor, size: int, dim: int = 0):
+#     def transform(self, sequence: torch.Tensor, size: int, dim: int = 0):
 #         return nnf.interpolate(
 #             sequence.transpose(dim, -1),
 #             size=size,

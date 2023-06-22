@@ -128,7 +128,7 @@ def test_set_augmentation_parameters(dataset):
     assert all(v == 1 for v in gammas)
     assert all(v is None for v in start_frames)
 
-    dataset = MultiTaskSintel(unittest=True, p_rot=5 / 6, p_flip=3 / 4, gamma_std=0.1)
+    dataset.gamma_std = 0.1
     (
         _,
         _,
@@ -194,13 +194,6 @@ def test_cartesian(dataset):
         dataset.vertical_splits,
         True,
     )
-    # dataset.tasks.append("depth")
-    # dataset.data_keys.append("depth")
-    # dataset.init_cache()
-    # dataset.augment = False
-    # dataset.dt = 1 / 24
-    # dataset.all_frames = True
-    # hex = dataset[0]
     cartesian = {
         "lum": dataset.cartesian_sequence(0),
         "flow": dataset.cartesian_flow(0),

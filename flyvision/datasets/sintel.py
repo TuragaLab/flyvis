@@ -36,7 +36,21 @@ logging = logging.getLogger()
 
 @root(flyvision.sintel_dir)
 class RenderedSintel(Directory):
-    """Rendering and referencing rendered sintel data."""
+    """Rendering and referencing rendered sintel data.
+
+    Args:
+        tasks: list of tasks to include in the rendering. May include
+        `flow` or `depth`. Default: ["flow"].
+        boxfilter: key word arguments for the BoxEye filter.
+            Default: dict(extent=15, kernel_size=13).
+        n_frames: number of frames to render for each sequence.
+            Default: 19.
+        center_crop_fraction: fraction of the image to keep after
+            cropping. Default: 0.7.
+        vertical_splits: number of vertical splits of each frame.
+            Default: 3.
+        unittest: if True, only renders a single sequence.
+    """
 
     def __init__(
         self,
@@ -47,21 +61,6 @@ class RenderedSintel(Directory):
         center_crop_fraction: float = 0.7,
         unittest=False,
     ):
-        """Render and reference sintel data.
-
-        Args:
-            tasks: list of tasks to include in the rendering. One of
-                ["flow"] or ["flow", "depth"]. Default: ["flow"].
-            boxfilter: key word arguments for the BoxEye filter.
-                Default: dict(extent=15, kernel_size=13).
-            vertical_splits: number of vertical splits of each frame.
-                Default: 3.
-            n_frames: number of frames to render for each sequence.
-                Default: 19.
-            center_crop_fraction: fraction of the image to keep after
-                cropping. Default: 0.7.
-            unittest: if True, only renders a single sequence.
-        """
         # always downloads and renders flow data, but optionally also depth
         render_depth = "depth" in tasks
         sintel_path = download_sintel(depth=render_depth)
@@ -149,9 +148,9 @@ class RenderedSintel(Directory):
                 break
 
     def __call__(self, seq_id):
-        # Retrieve sequence Directory.
+        """Returns all rendered data for a given sequence index of sorted files."""
+        # load all stored h5 files into memory.
         data = self[sorted(self)[seq_id]]
-        # Load all stored h5 files into memory.
         return {key: data[key][:] for key in sorted(data)}
 
 
@@ -173,11 +172,8 @@ def sample_lum(path):
 
 
 def sample_flow(path):
-    """Flow in units of pixel / image_height and with inverted y coordinate.
-
-    Note: I don't know why dividing by image_height but this should decrease the
-        gradient magnitude. I inverted y for convenience because I did not know
-        that the image plane convention is y downwards.
+    """Note: flow in units of pixel / image_height and with inverted negative y
+    coordinate (i.e. y-axis pointing upwards in image plane).
     """
     with open(path, "rb") as f:
         _, w, h = np.fromfile(f, np.int32, count=3)
@@ -196,6 +192,8 @@ def sample_depth(filename):
 
 
 def sintel_meta(rendered, sintel_path, n_frames, vertical_splits, render_depth):
+    """Returns a dataclass with meta information about the (rendered) sintel dataset."""
+
     @dataclass
     class Meta:
         lum_paths: List[Path]
@@ -240,27 +238,36 @@ class MultiTaskSintel(MultiTaskDataset):
     """Sintel dataset.
 
     Args:
-        tasks: tasks to be used. Implemented are 'lum', 'flow', and 'depth'.
-        interpolate: to interpolate targets. Defaults to False.
-        n_frames: number of sequence frames to sample from.
-        sample_all: to sample from all sequence frames.
-        resampling: to supersample in time in case dt < 1/framerate.
-        boxfilter: boxfilter configuration that is used to fly eye render the
-            raw data as a preprocessing.
-        vertical_splits: number of vertical splits to augment the raw data.
-        p_flip: probability to flip under augmentation.
-        p_rot: probability to rotate under augmentation.
-        contrast: a contrast for augmentation is sampled
-            from exp(N(0, contrast)).
-        brightness: a brightness for augmentation is sampled
-            from N(0, brightness).
-        gamma_std: gamma correction augmentation in N(1, gamma_std).
-        gaussian_white_noise: standard deviation for hexal-wise gaussian noise
-            ~ N(0, gaussian_white_noise).
-        cache: 'gpu' or 'cpu' to cache all preprocessed sequences for fast
-            dataloading. Has currently no effect.
-        init_cache: to turn on or off the loading of all preprocessed sequences
-            to the device specifid by 'cache'.
+        tasks: list of tasks to include. May include
+        `flow` or `depth`. Default: ["flow"].
+        boxfilter: key word arguments for the BoxEye filter.
+            Default: dict(extent=15, kernel_size=13).
+        n_frames: number of frames to render for each sequence.
+            Default: 19.
+        center_crop_fraction: fraction of the image to keep after
+            cropping. Default: 0.7.
+        vertical_splits: number of vertical splits of each frame.
+            Default: 3.
+        dt: sampling and integration time constant. Default: 0.02s.
+        augment: turns augmentation on and off. Default: True.
+        random_temporal_crop: randomly crops a temporal window of length
+            `n_frames` from each sequence. Default: True.
+        all_frames: if True, all frames are returned. If False, only `n_frames`.
+            Default: False. Takes precedence over `random_temporal_crop`.
+        resampling: if True, piecewise-constant resamples the input sequence to
+            the target framerate (1/dt). Default: True.
+        interpolate: if True, linearly interpolates the target sequence to the
+            the target framerate (1/dt). Default: True.
+        p_flip: probability of flipping the sequence across hexagonal axes.
+        p_rot: probability of rotating the sequence by n*60 degrees.
+        contrast_std: standard deviation of the contrast augmentation.
+        brightness_std: standard deviation of the brightness augmentation.
+        gaussian_white_noise: standard deviation of the pixel-wise gaussian white noise.
+        gamma_std: standard deviation of the gamma augmentation.
+        _init_cache: if True, caches the dataset in memory. Default: True.
+        unittest: if True, only renders a single sequence.
+
+        unittest: if True, only renders a single sequence.
 
     Attributes (overriding MultiTaskDataset):
         framerate: framerate of the original sequences.
@@ -348,31 +355,32 @@ class MultiTaskSintel(MultiTaskDataset):
     # other non-trivial structures
     arg_df: pd.DataFrame
     rendered: RenderedSintel
-    cached_samples: List[Dict[str, torch.Tensor]]
+    cached_sequences: List[Dict[str, torch.Tensor]]
 
     valid_tasks = ["lum", "flow", "depth"]
 
     def __init__(
         self,
-        tasks=["lum", "flow"],
-        interpolate=True,
-        n_frames=19,
-        dt=1 / 50,
-        augment=True,
-        all_frames=False,
-        resampling=True,
+        tasks=["flow"],
         boxfilter=dict(extent=15, kernel_size=13),
         vertical_splits=3,
+        n_frames=19,
+        center_crop_fraction=0.7,
+        dt=1 / 50,
+        augment=True,
+        random_temporal_crop=True,
+        all_frames=False,
+        resampling=True,
+        interpolate=True,
         p_flip=0.5,
-        p_rot=0.5,
+        p_rot=5 / 6,
         contrast_std=0.2,
         brightness_std=0.1,
         gaussian_white_noise=0.08,
         gamma_std=None,
-        center_crop_fraction=0.7,
         _init_cache=True,
         unittest=False,
-        **kwargs,
+        flip_axes=[0, 1],
     ):
         def check_tasks(tasks):
             invalid_tasks = [x for x in tasks if x not in self.valid_tasks]
@@ -405,7 +413,11 @@ class MultiTaskSintel(MultiTaskDataset):
         self.brightness_std = brightness_std
         self.gaussian_white_noise = gaussian_white_noise
         self.gamma_std = gamma_std
+        self.random_temporal_crop = random_temporal_crop
+        self.flip_axes = flip_axes
+        self._initialized_augmentation = False
         self.init_augmentation()
+        self.fix_augmentation_params = False
 
         self.unittest = unittest
 
@@ -426,6 +438,8 @@ class MultiTaskSintel(MultiTaskDataset):
             tasks=tasks,
             interpolate=interpolate,
             n_frames=n_frames,
+            dt=dt,
+            augment=augment,
             all_frames=all_frames,
             resampling=resampling,
             boxfilter=boxfilter,
@@ -454,7 +468,7 @@ class MultiTaskSintel(MultiTaskDataset):
             self.init_cache()
 
     def init_cache(self):
-        self.cached_samples = [
+        self.cached_sequences = [
             {
                 key: torch.Tensor(val)
                 for key, val in self.rendered(seq_id).items()
@@ -464,41 +478,46 @@ class MultiTaskSintel(MultiTaskDataset):
         ]
 
     def __setattr__(self, name, value):
-        if hasattr(self, "renderer") and name in self.renderer.config.keys():
-            raise AttributeError(
-                "cannot change attribute of renderer past initialization"
-            )
+        if name == "framerate":
+            raise AttributeError("cannot change framerate")
+        if hasattr(self, "rendered") and name in self.rendered.config.keys():
+            raise AttributeError("cannot change attribute of rendered initialization")
         super().__setattr__(name, value)
-        augmentation_attributes = [
-            "contrast_std",
-            "brightness_std",
-            "p_rot",
-            "p_flip",
-            "gaussian_white_noise",
-            "dt",
-            "all_frames",
-            "gamma_std",
-        ]
-        if (
-            all(hasattr(self, attr) for attr in augmentation_attributes)
-            and name in augmentation_attributes
-        ):
-            self.init_augmentation()
+
+        if getattr(self, "_initialized_augmentation", False):
+            self.update_augmentation(name, value)
+
+    def update_augmentation(self, name, value):
+        if name == "dt":
+            self.piecewise_resample.target_framerate = 1 / value
+            self.linear_interpolate.target_framerate = 1 / value
+        if name in ["all_frames", "random_temporal_crop"]:
+            self.temporal_crop.all_frames = value
+            self.temporal_crop.random = value
+        if name in ["contrast_std", "brightness_std"]:
+            self.jitter.contrast_std = value
+            self.jitter.brightness_std = value
+        if name == "p_rot":
+            self.rotate.p_rot = value
+        if name == "p_flip":
+            self.flip.p_flip = value
+        if name == "gaussian_white_noise":
+            self.noise.std = value
+        if name == "gamma_std":
+            self.gamma_correct.std = value
 
     def init_augmentation(
         self,
     ) -> None:
         """Initialize augmentation callables."""
-
-        self.random_crop = CropFrames(
-            self.n_frames, all_frames=self.all_frames, random=True
+        self.temporal_crop = CropFrames(
+            self.n_frames, all_frames=self.all_frames, random=self.random_temporal_crop
         )
-
         self.jitter = ContrastBrightness(
             contrast_std=self.contrast_std, brightness_std=self.brightness_std
         )
         self.rotate = HexRotate(self.extent, p_rot=self.p_rot)
-        self.flip = HexFlip(self.extent, p_flip=self.p_flip)
+        self.flip = HexFlip(self.extent, p_flip=self.p_flip, flip_axes=self.flip_axes)
         self.noise = PixelNoise(self.gaussian_white_noise)
 
         self.piecewise_resample = Interpolate(
@@ -510,6 +529,7 @@ class MultiTaskSintel(MultiTaskDataset):
             mode="linear",
         )
         self.gamma_correct = GammaCorrection(1, self.gamma_std)
+        self._initialized_augmentation = True
 
     def set_augmentation_params(
         self,
@@ -523,14 +543,15 @@ class MultiTaskSintel(MultiTaskDataset):
         total_sequence_length: Optional[int] = None,
     ) -> None:
         """To set augmentation callable parameters at each call of get item."""
-        self.rotate.set_or_sample(n_rot)
-        self.flip.set_or_sample(flip_axis)
-        self.jitter.set_or_sample(contrast_factor, brightness_factor)
-        self.noise.set_or_sample(gaussian_white_noise)
-        self.gamma_correct.set_or_sample(gamma)
-        self.random_crop.set_or_sample(
-            start=start_frame, total_sequence_length=total_sequence_length
-        )
+        if not self.fix_augmentation_params:
+            self.rotate.set_or_sample(n_rot)
+            self.flip.set_or_sample(flip_axis)
+            self.jitter.set_or_sample(contrast_factor, brightness_factor)
+            self.noise.set_or_sample(gaussian_white_noise)
+            self.gamma_correct.set_or_sample(gamma)
+            self.temporal_crop.set_or_sample(
+                start=start_frame, total_sequence_length=total_sequence_length
+            )
 
     def get_item(self, key: int) -> Dict[str, torch.Tensor]:
         """Returns a dataset sample.
@@ -538,8 +559,8 @@ class MultiTaskSintel(MultiTaskDataset):
         Note: usually invoked with indexing of self, e.g. self[0:10].
         """
         if self.augment:
-            return self.apply_augmentation(self.cached_samples[key])
-        return self.cached_samples[key]
+            return self.apply_augmentation(self.cached_sequences[key])
+        return self.cached_sequences[key]
 
     def apply_augmentation(
         self,
@@ -573,7 +594,7 @@ class MultiTaskSintel(MultiTaskDataset):
                 self.rotate(
                     self.flip(
                         self.jitter(
-                            self.noise(self.random_crop(lum)),
+                            self.noise(self.temporal_crop(lum)),
                         ),
                     )
                 )
@@ -582,10 +603,10 @@ class MultiTaskSintel(MultiTaskDataset):
         def transform_target(target):
             if self.interpolate:
                 return self.linear_interpolate(
-                    self.random_crop(self.rotate(self.flip(target)))
+                    self.rotate(self.flip(self.temporal_crop(target)))
                 )
             return self.piecewise_resample(
-                self.random_crop(self.rotate(self.flip(target)))
+                self.rotate(self.flip(self.temporal_crop(target)))
             )
 
         return {
@@ -907,327 +928,353 @@ class MultiTaskSintel(MultiTaskDataset):
 #         return responses.squeeze()
 
 
-# class AugmentedSintel(MultiTaskSintel):
-#     """Sintel dataset with controlled, rich augmentation.
+class AugmentedSintel(MultiTaskSintel):
+    """Sintel dataset with controlled, rich augmentation.
 
-#     No nan-padding is applied.
+    No nan-padding is applied.
 
-#     Note: returns all data and can be used to evaluate networks on a richer
-#         dataset.
+    Note: returns all data and can be used to evaluate networks on a richer
+        dataset.
 
-#     Expands MultiTaskSintel with methods to hold a trained network directory
-#     and return responses for specific augmentation parameters.
+    Expands MultiTaskSintel with methods to hold a trained network directory
+    and return responses for specific augmentation parameters.
 
-#     Args:
-#         n_frames: number of sequence frames to sample from.
-#         flip_axes: list of axes to flip over.
-#         n_rotations: list of number of rotations to perform.
-#         temporal_split: to enable temporally controlled augmentation
-#             (experimental).
-#         build_stim_on_init: to build the augmented stimulus in cache.
-#         dt: integration and sampling time constant.
+    Args:
+        n_frames: number of sequence frames to sample from.
+        flip_axes: list of axes to flip over.
+        n_rotations: list of number of rotations to perform.
+        temporal_split: to enable temporally controlled augmentation
+            (experimental).
+        build_stim_on_init: to build the augmented stimulus in cache.
+        dt: integration and sampling time constant.
 
-#     Kwargs:
-#         See list of arguments for MultiTaskSintel.
-#         Overrides resampling, init_cache, and augment.
+    Kwargs:
+        See list of arguments for MultiTaskSintel.
+        Overrides resampling, init_cache, and augment.
 
-#     Attributes:
-#         sequences: augmented, cached sequences.
-#         ~ see MultiTasksintel
-#     """
+    Attributes:
+        sequences: augmented, cached sequences.
+        ~ see MultiTasksintel
+    """
 
-#     sequences: List[Dict[str, torch.Tensor]]
-#     _valid_flip_axes = [None, 0, 1, 2]
-#     _valid_rotations = [0, 1, 2, 3, 4, 5]
+    cached_sequences: List[Dict[str, torch.Tensor]]
+    valid_flip_axes = [0, 1, 2, 3]
+    valid_rotations = [0, 1, 2, 3, 4, 5]
 
-#     def __init__(
-#         self,
-#         n_frames=19,
-#         flip_axes=[None, 0, 1, 2],
-#         n_rotations=[0, 1, 2, 3, 4, 5],
-#         build_stim_on_init=True,
-#         temporal_split=False,
-#         dt=1 / 50,
-#         **kwargs,
-#     ):
-#         _invalid_flip_axes = [p for p in flip_axes if p not in self._valid_flip_axes]
-#         _invalid_rotations = [p for p in n_rotations if p not in self._valid_rotations]
-#         if _invalid_flip_axes or _invalid_rotations:
-#             raise ValueError(
-#                 "invalid augmentation " f"{_invalid_flip_axes}, {_invalid_rotations}"
-#             )
+    def __init__(
+        self,
+        n_frames=19,
+        flip_axes=[0, 1],
+        n_rotations=[0, 1, 2, 3, 4, 5],
+        build_stim_on_init=True,
+        temporal_split=False,
+        augment=True,
+        dt=1 / 50,
+        tasks=["flow"],
+        interpolate=True,
+        all_frames=False,
+        random_temporal_crop=False,
+        boxfilter=dict(extent=15, kernel_size=13),
+        vertical_splits=3,
+        contrast_std=None,
+        brightness_std=None,
+        gaussian_white_noise=None,
+        gamma_std=None,
+        center_crop_fraction=0.7,
+        unittest=False,
+    ):
+        if any([arg not in self.valid_flip_axes for arg in flip_axes]):
+            raise ValueError(f"invalid flip axes {flip_axes}")
 
-#         kwargs.update(resampling=True, init_cache=True)
-#         super().__init__(**kwargs)
+        if any([arg not in self.valid_rotations for arg in n_rotations]):
+            raise ValueError(f"invalid rotations {n_rotations}")
 
-#         self.augment = False
-#         self.rotate = HexRotate(15, 0)
-#         self.flip = HexFlip(15, None)
-#         self.flip_axes = flip_axes
-#         self.n_rotations = n_rotations
+        super().__init__(
+            tasks=tasks,
+            interpolate=interpolate,
+            n_frames=n_frames,
+            dt=dt,
+            augment=augment,
+            all_frames=all_frames,
+            resampling=True,
+            random_temporal_crop=random_temporal_crop,
+            boxfilter=boxfilter,
+            vertical_splits=vertical_splits,
+            p_flip=0,
+            p_rot=0,
+            contrast_std=contrast_std,
+            brightness_std=brightness_std,
+            gaussian_white_noise=gaussian_white_noise,
+            gamma_std=gamma_std,
+            center_crop_fraction=center_crop_fraction,
+            unittest=unittest,
+            _init_cache=True,
+        )
 
-#         self.dt = dt
-#         # self.pad = pad
-#         self.n_frames = n_frames
+        self.flip_axes = flip_axes
+        self.n_rotations = n_rotations
+        self.temporal_split = temporal_split
 
-#         (
-#             self.cached_samples,
-#             self._original_repeats,
-#         ) = _temporal_split_cached_samples(
-#             self.cached_samples, n_frames, split=temporal_split
-#         )
+        self._built = False
+        if build_stim_on_init:
+            self._build()
+            self._built = True
 
-#         # disabling rotation and flips to use augment function for
-#         # contrast / brightness and noise if wanted.
-#         self.p_flip = 0
-#         self.p_rot = 0
+    def _build(self):
+        # to deterministically apply temporal augmentation/binning of sequences
+        # into ceil(sequence_length / n_frames) bins
+        (
+            self.cached_sequences,
+            self.original_repeats,
+        ) = temporal_split_cached_samples(
+            self.cached_sequences, self.n_frames, split=self.temporal_split
+        )
 
-#         self._built = False
-#         if build_stim_on_init:
-#             self._build()
-#             self._built = True
+        vsplit_index, original_index, name = (
+            self.arg_df[["index", "original_index", "name"]]
+            .values.repeat(self.original_repeats, axis=0)
+            .T
+        )
+        tsplit_index = np.arange(len(self.cached_sequences))
 
-#     def _build(self):
-#         vsplit_index, original_index, name = (
-#             self.arg_df[["index", "original_index", "name"]]
-#             .values.repeat(self._original_repeats, axis=0)
-#             .T
-#         )
+        n_frames = [d["lum"].shape[0] for d in self.cached_sequences]
 
-#         tsplit_index = np.arange(len(self.cached_samples))
+        self.params = [
+            (*p[0], p[1], p[2])
+            for p in list(
+                product(
+                    zip(
+                        name,
+                        original_index,
+                        vsplit_index,
+                        tsplit_index,
+                        n_frames,
+                    ),
+                    self.flip_axes,
+                    self.n_rotations,
+                )
+            )
+        ]
 
-#         n_frames = [d["lum"].shape[0] for d in self.cached_samples]
+        self.arg_df = pd.DataFrame(
+            self.params,
+            columns=[
+                "name",
+                "original_index",
+                "vertical_split_index",
+                "temporal_split_index",
+                "frames",
+                "flip_ax",
+                "n_rot",
+            ],
+        )
+        # breakpoint()
+        # apply deterministic geometric augmentation
+        cached_sequences = {}
+        for i, (_, _, _, sample, _, flip_ax, n_rot) in enumerate(self.params):
+            self.flip.axis = flip_ax
+            self.rotate.n_rot = n_rot
+            cached_sequences[i] = {
+                key: self.rotate(self.flip(value))
+                for key, value in self.cached_sequences[sample].items()
+            }
+        self.cached_sequences = cached_sequences
 
-#         self.params = [
-#             (*p[0], p[1], p[2])
-#             for p in list(
-#                 product(
-#                     zip(
-#                         name,
-#                         original_index,
-#                         vsplit_index,
-#                         tsplit_index,
-#                         n_frames,
-#                     ),
-#                     self.flip_axes,
-#                     self.n_rotations,
-#                 )
-#             )
-#         ]
+        # disable deterministically applied augmentation, such that in case
+        # self.augment is True, the other augmentation types can be applied
+        # randomly
+        self.flip.augment = False
+        self.rotate.augment = False
+        # default to cropping 0 to n_frames
+        self.temporal_crop.random = False
+        if self.temporal_split:
+            self.temporal_crop.augment = False
 
-#         self.arg_df = pd.DataFrame(
-#             self.params,
-#             columns=[
-#                 "name",
-#                 "original_index",
-#                 "vertical_split_index",
-#                 "temporal_split_index",
-#                 "frames",
-#                 "flip_ax",
-#                 "n_rot",
-#             ],
-#         )
+    # def init_responses(self, tnn, subdir="augmented_sintel"):
+    #     self.tnn = tnn
+    #     with exp_path_context():
+    #         if isinstance(tnn, (str, Path)):
+    #             self.tnn, _ = init_network_dir(tnn, None, None)
+    #         self.central_activity = utils.CentralActivity(
+    #             self.tnn[subdir].network_states.nodes.activity_central[:],
+    #             self.tnn.ctome,
+    #             keepref=True,
+    #         )
 
-#         self.sequences = {}
-#         for i, (_, _, _, sample, _, flip_ax, n_rot) in enumerate(self.params):
-#             self.flip.axis = flip_ax
-#             self.rotate.n_rot = n_rot
-#             self.sequences[i] = self._augment(
-#                 self.cached_samples[sample],
-#                 n_rot=n_rot,
-#                 flip_axis=flip_ax,
-#                 contrast_factor=0,
-#                 brightness_factor=0,
-#                 noise_std=0,
-#             )
+    def __len__(self):
+        return len(self.cached_sequences)
 
-#     def init_responses(self, tnn, subdir="augmented_sintel"):
-#         self.tnn = tnn
-#         with exp_path_context():
-#             if isinstance(tnn, (str, Path)):
-#                 self.tnn, _ = init_network_dir(tnn, None, None)
-#             self.central_activity = utils.CentralActivity(
-#                 self.tnn[subdir].network_states.nodes.activity_central[:],
-#                 self.tnn.ctome,
-#                 keepref=True,
-#             )
+    def pad_nans(self, data, pad_to_length=None):
+        if pad_to_length is not None:
+            data = {}
+            for key, value in data.items():
+                data[key] = nnf.pad(
+                    value,
+                    pad=(0, 0, 0, 0, 0, pad_to_length),
+                    mode="constant",
+                    value=np.nan,
+                )
+            return data
+        return data
 
-#     def __len__(self):
-#         return len(self.sequences)
+    def get_item(self, key, pad_to_length=None):
+        if self.augment:
+            return self.pad_nans(
+                self.apply_augmentation(
+                    self.cached_sequences[key], n_rot=0, flip_axis=0
+                ),
+                pad_to_length,
+            )
+        return self.pad_nans(self.cached_sequences[key], pad_to_length)
 
-#     def _pad(self, data):
-#         _data = {}
-#         for key, value in data.items():
-#             pad_length = self.n_frames - value.shape[0]
-#             _data[key] = nnf.pad(
-#                 value,
-#                 pad=(0, 0, 0, 0, 0, pad_length),
-#                 mode="constant",
-#                 value=np.nan,
-#             )
-#         return _data
+    def get(self, sequence, flip_ax, n_rot):
+        key = self._key(sequence, flip_ax, n_rot)
+        return self[key]
 
-#     def get_item(self, key):
-#         data = self.sequences[key]
+    def _key(self, sequence, flip_ax, n_rot):
+        try:
+            mask = self.mask(sequence, flip_ax, n_rot)
+            return np.arange(len(self))[mask].item()
+        except ValueError:
+            raise ValueError(
+                f"sequence: {sequence}, flip_ax: {flip_ax}, n_rot: {n_rot} invalid."
+            )
 
-#         if self.augment:
-#             data = self._augment(data)
+    def _params(self, key):
+        return self.arg_df.iloc[key].values
 
-#         # if self.pad:
-#         #     data = self._pad(data)
+    def mask(self, sequence=None, flip_ax=None, n_rot=None):
+        values = self.arg_df.iloc[:, 1:].values
+        _nans = np.isnan(values)
+        values = values.astype(object)
+        values[_nans] = "None"
 
-#         if self.resampling:
-#             return self._dt_sample(data)
-#         return data
+        def iterparam(param, name, axis, and_condition):
+            condition = np.zeros(len(values)).astype(bool)
+            if isinstance(param, Iterable) and not isinstance(param, str):
+                for p in param:
+                    _new = values.take(axis, axis=1) == p
+                    assert any(_new), f"{name} {p} not in dataset."
+                    condition = np.logical_or(condition, _new)
+            else:
+                _new = values.take(axis, axis=1) == param
+                assert any(_new), f"{name} {param} not in dataset."
+                condition = np.logical_or(condition, _new)
+            return condition & and_condition
 
-#     def get(self, sequence, flip_ax, n_rot):
-#         key = self._key(sequence, flip_ax, n_rot)
-#         return self[key]
+        condition = np.ones(len(values)).astype(bool)
+        if sequence is not None:
+            condition = iterparam(sequence, "temporal_split_index", -4, condition)
+        if flip_ax is not None:
+            condition = iterparam(flip_ax, "flip_ax", -2, condition)
+        if n_rot is not None:
+            condition = iterparam(n_rot, "n_rot", -1, condition)
+        return condition
 
-#     def _key(self, sequence, flip_ax, n_rot):
-#         try:
-#             mask = self.mask(sequence, flip_ax, n_rot)
-#             return np.arange(len(self))[mask].item()
-#         except ValueError:
-#             raise ValueError(
-#                 f"sequence: {sequence}, flip_ax: {flip_ax}, n_rot: {n_rot} invalid."
-#             )
+    def response(
+        self,
+        node_type=None,
+        sequence=None,
+        flip_ax=None,
+        n_rot=None,
+        rm_nans=False,
+    ):
+        assert self.tnn
+        mask = self.mask(sequence=sequence, flip_ax=flip_ax, n_rot=n_rot)
 
-#     def _params(self, key):
-#         return self.arg_df.iloc[key].values
+        if node_type is not None:
+            responses = self.central_activity[node_type][mask][:, :, None]
+        else:
+            responses = self.central_activity[:][mask]
 
-#     def mask(self, sequence=None, flip_ax=None, n_rot=None):
-#         values = self.arg_df.iloc[:, 1:].values
-#         _nans = np.isnan(values)
-#         values = values.astype(object)
-#         values[_nans] = "None"
+        if rm_nans:
+            return remove_nans(responses)
 
-#         def iterparam(param, name, axis, and_condition):
-#             condition = np.zeros(len(values)).astype(bool)
-#             if isinstance(param, Iterable) and not isinstance(param, str):
-#                 for p in param:
-#                     _new = values.take(axis, axis=1) == p
-#                     assert any(_new), f"{name} {p} not in dataset."
-#                     condition = np.logical_or(condition, _new)
-#             else:
-#                 _new = values.take(axis, axis=1) == param
-#                 assert any(_new), f"{name} {param} not in dataset."
-#                 condition = np.logical_or(condition, _new)
-#             return condition & and_condition
-
-#         condition = np.ones(len(values)).astype(bool)
-#         if sequence is not None:
-#             condition = iterparam(sequence, "temporal_split_index", -4, condition)
-#         if flip_ax is not None:
-#             condition = iterparam(flip_ax, "flip_ax", -2, condition)
-#         if n_rot is not None:
-#             condition = iterparam(n_rot, "n_rot", -1, condition)
-#         return condition
-
-#     def response(
-#         self,
-#         node_type=None,
-#         sequence=None,
-#         flip_ax=None,
-#         n_rot=None,
-#         rm_nans=False,
-#     ):
-#         assert self.tnn
-#         mask = self.mask(sequence=sequence, flip_ax=flip_ax, n_rot=n_rot)
-
-#         if node_type is not None:
-#             responses = self.central_activity[node_type][mask][:, :, None]
-#         else:
-#             responses = self.central_activity[:][mask]
-
-#         if rm_nans:
-#             return remove_nans(responses)
-
-#         return responses.squeeze()
-
-
-# class AugmentedSintelLum(AugmentedSintel):
-#     """AugmentedSintel but returning only luminosty to be compatible with
-#     network.stimulus_responses"""
-
-#     __doc__ = """Overriding get_item to return only luminosity to be compatible with
-#     network.stimulus_responses.
-#     From parent class:
-#     {}""".format(
-#         AugmentedSintel.__doc__
-#     )
-
-#     def get_item(self, key):
-#         data = super().get_item(key)
-#         return data["lum"].squeeze(1)
-
-
-# def _temporal_split_cached_samples(cached_sequences, max_frames, split=True):
-#     """To split sequences in temporal dimension into regularly binned sequences.
-
-#     Note: overlapping splits of sequences which
-#         lengths are not an integer multiple of max_frames contain repeating frames.
-
-#     Args:
-#         cached_sequences (List[Dict[str, Tensor]]): ordered list of
-#             dicts of sequences of shape (n_frames, n_features, n_hexals).
-#         n_frames (int)
-
-#     Returns:
-#         List[Dict[str, Tensor]]: sames sequences but split along
-#             temporal dimension.
-#         array: original index of each new split.
-#     """
-#     if split:
-#         _seq_lists = {k: [] for k in cached_sequences[0].keys()}
-
-#         splits_per_seq = []
-#         for i, sequence in enumerate(cached_sequences):
-#             for key, value in sequence.items():
-#                 _splits = temporal_split_sequence(value, max_frames)
-#                 _seq_lists[key].extend([*_splits])
-#             splits_per_seq.append([i, len(_splits)])
-
-#         _split_cached_sequences = []
-#         for i in range(len(_seq_lists["lum"])):
-#             _split_cached_sequences.append({k: v[i] for k, v in _seq_lists.items()})
-
-#         index, repeats = np.array(splits_per_seq).T
-#         return _split_cached_sequences, repeats
-#     else:
-#         return cached_sequences, np.ones(len(cached_sequences)).astype(int)
+        return responses.squeeze()
 
 
-# def temporal_split_sequence(sequence, max_frames):
-#     """
-#     Args:
-#         sequence (array, Tensor): of shape (n_frames, n_features, n_hexals)
+class AugmentedSintelLum(AugmentedSintel):
+    """AugmentedSintel but returning only luminosty to be compatible with
+    network.stimulus_responses"""
 
-#     Returns:
-#         array, Tensor: of shape (splits, max_frames, n_features, n_hexals)
+    __doc__ = """Overriding get_item to return only luminosity to be compatible with
+    network.stimulus_responses.
+    From parent class:
+    {}""".format(
+        AugmentedSintel.__doc__
+    )
 
-#     Notes: the number of splits computes as int(np.round(n_frames / max_frames)).
-#     """
-#     n_frames, _, _ = sequence.shape
-#     splits = np.round(n_frames / max_frames).astype(int)
-#     if splits <= 1:
-#         return sequence[:max_frames][None]
-#     else:
-#         return split(
-#             sequence.transpose(0, -1),
-#             max_frames,
-#             splits,
-#             center_crop_fraction=None,
-#         ).transpose(1, -1)
+    def get_item(self, key):
+        data = super().get_item(key)
+        return data["lum"].squeeze(1)
 
 
-# def remove_nans(responses):
-#     """Removes nans in (sample, frames, channels)-like array.
+def temporal_split_cached_samples(cached_sequences, max_frames, split=True):
+    """To deterministically split sequences in temporal dimension into regularly binned sequences.
 
-#     Returns list of differently sized sequences.
-#     """
-#     _resp = []
-#     for r in responses:
-#         _isnan = np.isnan(r).any(axis=1)
-#         _resp.append(r[~_isnan].squeeze())
-#     return _resp
+    Note: overlapping splits of sequences which
+        lengths are not an integer multiple of max_frames contain repeating frames.
+
+    Args:
+        cached_sequences (List[Dict[str, Tensor]]): ordered list of
+            dicts of sequences of shape (n_frames, n_features, n_hexals).
+        n_frames (int)
+
+    Returns:
+        List[Dict[str, Tensor]]: sames sequences but split along
+            temporal dimension.
+        array: original index of each new split.
+    """
+    if split:
+        seq_lists = {k: [] for k in cached_sequences[0].keys()}
+
+        splits_per_seq = []
+        for i, sequence in enumerate(cached_sequences):
+            for key, value in sequence.items():
+                splits = temporal_split_sequence(value, max_frames)
+                seq_lists[key].extend([*splits])
+            splits_per_seq.append([i, len(splits)])
+
+        split_cached_sequences = []
+        for i in range(len(seq_lists["lum"])):
+            split_cached_sequences.append({k: v[i] for k, v in seq_lists.items()})
+
+        index, repeats = np.array(splits_per_seq).T
+        return split_cached_sequences, repeats
+    return cached_sequences, np.ones(len(cached_sequences)).astype(int)
+
+
+def temporal_split_sequence(sequence, max_frames):
+    """
+    Args:
+        sequence (array, Tensor): of shape (n_frames, n_features, n_hexals)
+
+    Returns:
+        array, Tensor: of shape (splits, max_frames, n_features, n_hexals)
+
+    Notes: the number of splits computes as int(np.round(n_frames / max_frames)).
+    """
+    n_frames, _, _ = sequence.shape
+    splits = np.round(n_frames / max_frames).astype(int)
+    if splits <= 1:
+        return sequence[:max_frames][None]
+    return split(
+        sequence.transpose(0, -1),  # splits along last axis
+        max_frames,
+        splits,
+        center_crop_fraction=None,
+    ).transpose(
+        1, -1
+    )  # cause first will be splits, second will be frames
+
+
+def remove_nans(responses):
+    """Removes nans in (sample, frames, channels)-like array.
+
+    Returns list of differently sized sequences.
+    """
+    _resp = []
+    for r in responses:
+        _isnan = np.isnan(r).any(axis=1)
+        _resp.append(r[~_isnan].squeeze())
+    return _resp
