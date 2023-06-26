@@ -4,6 +4,7 @@ from itertools import product
 from typing import Iterable, Dict, List, Any, Optional, Union, Callable, Tuple
 import logging
 from tqdm import tqdm
+from contextlib import contextmanager
 
 import torch
 import torch.nn.functional as nnf
@@ -558,9 +559,51 @@ class MultiTaskSintel(MultiTaskDataset):
 
         Note: usually invoked with indexing of self, e.g. self[0:10].
         """
-        if self.augment:
-            return self.apply_augmentation(self.cached_sequences[key])
-        return self.cached_sequences[key]
+        return self.apply_augmentation(self.cached_sequences[key])
+
+    @contextmanager
+    def augmentation(self, abool: bool) -> None:
+        """Contextmanager to turn augmentation on or off in a code block.
+
+        Example usage:
+            >>> with dataset.augmentation(True):
+            >>>    for i, data in enumerate(dataloader):
+            >>>        ...  # all data is augmented
+        """
+        augmentations = [
+            "temporal_crop",
+            "jitter",
+            "rotate",
+            "flip",
+            "noise",
+            "piecewise_resample",
+            "linear_interpolate",
+            "gamma_correct",
+        ]
+        states = {key: getattr(self, key).augment for key in augmentations}
+        try:
+            if abool:
+                self.temporal_crop.random = self.random_temporal_crop
+                self.jitter.augment = True
+                self.rotate.augment = True
+                self.flip.augment = True
+                self.noise.augment = True
+                self.piecewise_resample.augment = True
+                self.linear_interpolate.augment = True
+                self.gamma_correct.augment = True
+            else:
+                self.temporal_crop.random = False
+                self.jitter.augment = False
+                self.rotate.augment = False
+                self.flip.augment = False
+                self.noise.augment = False
+                self.piecewise_resample.augment = True
+                self.linear_interpolate.augment = True
+                self.gamma_correct.augment = False
+            yield
+        finally:
+            for key in augmentations:
+                setattr(getattr(self, key), "augment", states[key])
 
     def apply_augmentation(
         self,

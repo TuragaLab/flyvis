@@ -58,8 +58,10 @@ class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         """
         _prev = self.augment
         self.augment = abool
-        yield
-        self.augment = _prev
+        try:
+            yield
+        finally:
+            self.augment = _prev
 
     @abc.abstractproperty
     def t_pre(self) -> float:
