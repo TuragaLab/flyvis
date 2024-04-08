@@ -1,6 +1,7 @@
 import pytest
 from flyvision import dynamics
 from flyvision.dynamics import NetworkDynamics, activation_fns
+from flyvision.utils.class_utils import forward_subclass
 
 
 @pytest.fixture(
@@ -21,7 +22,7 @@ def activation(request):
 
 @pytest.fixture(scope="module")
 def dynamics(type, activation):
-    return NetworkDynamics({"type": type, "activation": activation})
+    return forward_subclass(NetworkDynamics, {"type": type, "activation": activation})
 
 
 def test_methods_exist(dynamics):

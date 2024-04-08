@@ -1,9 +1,13 @@
 """Ensemble of trained networks."""
+
 from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator, List, Tuple, Union
 import logging
 from os import PathLike
 from copy import deepcopy
+from tqdm.auto import tqdm
+
+
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
 from matplotlib import colormaps as cm
@@ -61,7 +65,9 @@ class Ensemble(dict):
         self.names, self.name = model_path_names(self.model_paths)
 
         # Initialize pointers to model directories.
-        for i, name in enumerate(self.names):
+        for i, name in tqdm(
+            enumerate(self.names), desc="Loading ensembles", total=len(self.names)
+        ):
             self[name] = NetworkView(NetworkDir(self.model_paths[i]))
 
         self.dir = EnsembleDir(self.path)
@@ -144,9 +150,11 @@ class Ensemble(dict):
             yield network.simulate(
                 movie_input,
                 dt,
-                initial_state=network.fade_in_state(1.0, dt, movie_input[:, 0])
-                if fade_in
-                else "auto",
+                initial_state=(
+                    network.fade_in_state(1.0, dt, movie_input[:, 0])
+                    if fade_in
+                    else "auto"
+                ),
             ).cpu().numpy()
 
     def decode(self, movie_input, dt):

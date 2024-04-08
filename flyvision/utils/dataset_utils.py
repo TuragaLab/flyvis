@@ -2,6 +2,8 @@
 
 from pathlib import Path
 import numpy as np
+from numpy.random import RandomState
+
 from torch.hub import download_url_to_file
 from torch.utils.data.sampler import Sampler
 import zipfile
@@ -187,3 +189,65 @@ def download_sintel(delete_if_exists=False, depth=False):
     assert exists(depth)
 
     return sintel_dir
+
+
+class CrossValIndices:
+    """Returns folds of indices for cross-validation.
+
+    Args:
+        n_samples (int): total number of samples.
+        folds (int): total number of folds.
+        shuffle (bool, optional): shuffles the indices. Defaults to True.
+        seed (int, optional): seed for shuffling. Defaults to 0.
+
+    Call:
+        Returns train and test indices for a fold.
+    """
+
+    def __init__(self, n_samples, folds, shuffle=True, seed=0):
+        self.n_samples = n_samples
+        self.folds = folds
+        self.indices = np.arange(n_samples)
+
+        if shuffle:
+            self.random = RandomState(seed)
+            self.random.shuffle(self.indices)
+
+    def __call__(self, fold):
+        fold_sizes = np.full(self.folds, self.n_samples // self.folds, dtype=int)
+        fold_sizes[: self.n_samples % self.folds] += 1
+        current = sum(fold_sizes[:fold])
+        start, stop = current, current + fold_sizes[fold]
+        test_index = self.indices[start:stop]
+        test_mask = np.zeros_like(self.indices, dtype=bool)
+        test_mask[test_index] = True
+        return self.indices[np.logical_not(test_mask)], self.indices[test_mask]
+
+    def iter(self):
+        for fold in range(self.folds):
+            yield self(fold)
+
+
+def get_random_data_split(fold, n_samples, n_folds, shuffle=True, seed=0):
+    """Return indices to split the data."""
+    cv_split = CrossValIndices(
+        n_samples=n_samples,
+        folds=n_folds,
+        shuffle=shuffle,
+        seed=seed,
+    )
+    train_seq_index, val_seq_index = cv_split(fold)
+    return train_seq_index, val_seq_index
+
+
+class IndexSampler(Sampler):
+    """Yields indices in sequence."""
+
+    def __init__(self, indices):
+        self.indices = indices
+
+    def __iter__(self):
+        return (self.indices[i] for i in range(len(self.indices)))
+
+    def __len__(self):
+        return len(self.indices)

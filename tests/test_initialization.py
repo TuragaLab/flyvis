@@ -4,6 +4,7 @@ from datamate import Namespace
 import pytest
 
 from flyvision.initialization import InitialDistribution, Parameter
+from flyvision.utils.class_utils import forward_subclass
 
 # -- Fixtures ------------------------------------------------------------------
 
@@ -87,7 +88,9 @@ def test_initial_distributions(initial_dist_config):
     def isclose(x, y, atol=1e-8, rtol=1e-5):
         return torch.allclose(x, torch.tensor(y, dtype=x.dtype), atol=atol, rtol=rtol)
 
-    initial_dist = InitialDistribution(initial_dist_config)
+    initial_dist = forward_subclass(
+        InitialDistribution, initial_dist_config, subclass_key="initial_dist"
+    )
 
     assert hasattr(initial_dist, "raw_values")
 
@@ -121,7 +124,14 @@ def test_parameter(param_config, connectome):
     if param_config.type == "SynapseCount" and param_config.mode == "sample":
         pytest.skip("SynapseCount does not support sampling")
 
-    param = Parameter(param_config, connectome)
+    param = forward_subclass(
+        Parameter,
+        config={
+            "type": param_config.type,
+            "param_config": param_config,
+            "connectome": connectome,
+        },
+    )
 
     assert hasattr(param, "parameter") and isinstance(
         param.parameter, InitialDistribution

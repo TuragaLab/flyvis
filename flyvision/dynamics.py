@@ -35,12 +35,8 @@ class NetworkDynamics:
         the activation function.
     """
 
-    class Config:
-        type: str = "NetworkDynamics"
-        activation: str = "relu"
-
-    def __new__(cls, config: Config = {}):
-        return forward_subclass(cls, config)
+    def __init__(self, activation=dict(type="relu")):
+        self.activation = activation_fns[activation.pop("type")](**activation)
 
     def write_derived_params(
         self, params: AutoDeref[str, AutoDeref[str, RefTensor]], **kwargs
@@ -145,15 +141,6 @@ class NetworkDynamics:
 
 class PPNeuronIGRSynapses(NetworkDynamics):
     """Passive point neurons with instantaneous graded release synapses."""
-
-    class Config:
-        type: str = "PPNeuronIGRSynapses"
-        activation: str = "relu"
-
-    def __init__(self, config: Config):
-        self.activation = activation_fns[config["activation"].pop("type")](
-            **config["activation"]
-        )
 
     def write_derived_params(self, params, **kwargs):
         """Weights are the product of the sign, synapse count, and strength."""

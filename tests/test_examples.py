@@ -109,7 +109,7 @@ def test_connectome_view(connectome):
 
     fig = connectome_view.network_layout()
     fig.show()
-    assert len(fig.axes) == len(connectome.unique_cell_types) + 2
+    assert len(fig.axes) == len(connectome.unique_cell_types) + 3
     assert isinstance(fig, Figure)
     plt.close(fig)
 

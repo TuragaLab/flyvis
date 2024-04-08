@@ -18,15 +18,15 @@ from flyvision.augmentation.temporal import (
 
 def test_base_class():
     class Test(Augmentation):
-        def __call__(self, sequence: torch.Tensor):
+        def transform(self, sequence: torch.Tensor):
             return sequence * 2
 
     class Test2(Augmentation):
-        def __call__(self, sequence: torch.Tensor):
+        def transform(self, sequence: torch.Tensor):
             return sequence * 3
 
     class Test3(Test2):
-        def __call__(self, sequence: torch.Tensor):
+        def transform(self, sequence: torch.Tensor):
             return sequence * 4
 
     test0 = Augmentation()
@@ -153,15 +153,27 @@ def test_random_crop():
 
     random_crop = CropFrames(10, start=0, all_frames=False, random=True)
     sequence = torch.arange(1000)
+
+    # fixed start frame at 0
     cropped1 = random_crop(sequence).cpu().numpy().flatten()
     cropped2 = random_crop(sequence).cpu().numpy().flatten()
     assert len(cropped1) == 10 == len(cropped2)
     assert _is_monotonous(cropped1) and _is_monotonous(cropped2)
     assert cropped1.min() in sequence and cropped1.max() in sequence
     assert cropped2.min() in sequence and cropped2.max() in sequence
-    assert not np.allclose(
-        cropped1, cropped2
-    ), "random crop is not random (could stochastically fail)"
+    assert np.allclose(cropped1, cropped2)
+
+    # random start frame
+    random_crop.set_or_sample(start=None, total_sequence_length=len(sequence))
+    cropped3 = random_crop(sequence).cpu().numpy().flatten()
+    assert not np.allclose(cropped1, cropped3)
+
+    # provided start frame
+    random_crop.set_or_sample(start=42, total_sequence_length=len(sequence))
+    cropped4 = random_crop(sequence).cpu().numpy().flatten()
+    assert not np.allclose(cropped1, cropped4)
+
+    # turn augmentation on and off
     random_crop.augment = False
     assert np.allclose(random_crop(sequence).tolist(), sequence.tolist())
     random_crop.augment = True
@@ -170,6 +182,10 @@ def test_random_crop():
     random_crop.random = False
     random_crop.all_frames = False
     assert np.allclose(random_crop(sequence).tolist(), list(range(10)))
+    random_crop.random = True
+    random_crop.set_or_sample(start=None, total_sequence_length=len(sequence))
+    random_crop.all_frames = False
+    assert not np.allclose(random_crop(sequence).tolist(), list(range(10)))
 
 
 def test_resample():

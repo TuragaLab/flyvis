@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 
 from flyvision.augmentation import temporal
+from flyvision.utils.dataset_utils import get_random_data_split
+
 
 __all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
 
@@ -220,6 +222,14 @@ class MultiTaskDataset(SequenceDataset):
         """Sum of all indicated task weights to normalize loss."""
         pass
 
+    def _init_task_weights(self, task_weights: Dict[str, float]) -> None:
+        if task_weights is not None:
+            self.task_weights = {task: task_weights[task] for task in self.tasks}
+            self.task_weights_sum = sum(self.task_weights.values())
+        else:
+            self.task_weights = {task: 1 for task in self.tasks}
+            self.task_weights_sum = len(self.tasks)
+
     @abc.abstractproperty
     def losses(self) -> Dict[str, Callable]:
         """A loss function for each task."""
@@ -230,6 +240,21 @@ class MultiTaskDataset(SequenceDataset):
     ) -> torch.Tensor:
         """Returns the task loss multiplied with the task weight."""
         return self.task_weights[task] * self.losses[task](y, y_est, **kwargs)
+
+    def _original_length(self) -> int:
+        """Override to return the original length of the dataset, e.g. in case
+        its derived from splitting sequences."""
+        return self.__len__()
+
+    def get_random_data_split(self, fold, n_folds, shuffle=True, seed=0):
+        """Returns a random data split."""
+        return get_random_data_split(
+            fold,
+            n_samples=self._original_length(),
+            n_folds=n_folds,
+            shuffle=shuffle,
+            seed=seed,
+        )
 
 
 def get_temporal_sample_indices(

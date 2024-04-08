@@ -1,5 +1,5 @@
 """Animations of the Sintel data."""
-from matplotlib import cm
+from matplotlib import colormaps
 
 from flyvision import utils
 from flyvision.plots import plt_utils, figsize_utils
@@ -37,7 +37,7 @@ class SintelSample(AnimationCollector):
         lum,
         target,
         prediction=None,
-        target_cmap=cm.get_cmap("binary_r"),
+        target_cmap=colormaps["binary_r"],
         fontsize=5,
         labelxy=(-0.1, 1),
         max_figure_height_cm=22,

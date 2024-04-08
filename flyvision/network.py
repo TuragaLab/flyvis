@@ -27,6 +27,7 @@ from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.tensor_utils import RefTensor, AutoDeref
+from flyvision.utils.class_utils import forward_subclass
 from flyvision.datasets.datasets import SequenceDataset
 import logging
 
@@ -111,7 +112,7 @@ class Network(nn.Module):
                 scale_elec=0.01,
                 scale_chem=0.01,
                 clamp="non_negative",
-                groupby=["source_type", "target_type"],
+                groupby=["source_type", "target_type", "edge_type"],
             ),
         ),
     ):
@@ -132,7 +133,7 @@ class Network(nn.Module):
         # Store the connectome, dynamics, and parameters.
         self.connectome = ConnectomeDir(connectome)
         self.cell_types = self.connectome.unique_cell_types[:].astype(str)
-        self.dynamics = NetworkDynamics(dynamics)
+        self.dynamics = forward_subclass(NetworkDynamics, dynamics)
 
         # Load constant indices into memory.
         # Store source/target indices.
@@ -154,7 +155,14 @@ class Network(nn.Module):
         # Construct node parameter sets.
         self.node_params = Namespace()
         for param_name, param_config in node_config.items():
-            param = Parameter(param_config, self.connectome)
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": self.connectome,
+                },
+            )
 
             # register parameter to module
             self.register_parameter(f"nodes_{param_name}", param.raw_values)
@@ -183,7 +191,14 @@ class Network(nn.Module):
         # Construct edge parameter sets.
         self.edge_params = Namespace()
         for param_name, param_config in edge_config.items():
-            param = Parameter(param_config, self.connectome)
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": self.connectome,
+                },
+            )
 
             self.register_parameter(f"edges_{param_name}", param.raw_values)
 
