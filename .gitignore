@@ -1,6 +1,7 @@
 .vscode/
 /examples/*
 !/examples/01_flyvision_connectome.ipynb
+!/examples/03_flyvision_flash_responses.ipynb
 !/examples/07_flyvision_providing_custom_stimuli.ipynb
 
 /data/*
