@@ -17,40 +17,38 @@ logging = logging.getLogger()
 
 
 @root(root_dir)
-class MultiParameterFlashes(Directory):
-    class Conf:
-        boxfilter: dict
-        dynamic_range: list = [0, 1]
-        t_stim = (1.0,)
-        t_pre = (1.0,)
-        dt = (1 / 200,)
-        radius: list = [-1, 6]
-        alternations = ((0, 1, 0),)
-        filter_type: str = "median"
-        hex_sample: bool = True
-
-    def build(self, config):
-        boxfilter = BoxEye(config.boxfilter)
+class RenderedFlashes(Directory):
+    def __init__(
+        self,
+        boxfilter: dict = dict(extent=15, kernel_size=13),
+        dynamic_range: list = [0, 1],
+        t_stim = 1.0,
+        t_pre = 1.0,
+        dt = 1 / 200,
+        radius: list = [-1, 6],
+        alternations = (0, 1, 0),
+    ):
+        boxfilter = BoxEye(**boxfilter)
         n_ommatidia = len(boxfilter.receptor_centers)
-        dynamic_range = np.array(config.dynamic_range)
+        dynamic_range = np.array(dynamic_range)
         baseline = 2 * (dynamic_range.sum() / 2,)
 
-        intensity = config.dynamic_range.copy()
+        intensity = dynamic_range.copy()
         values = np.array(list(zip(baseline, intensity)))
-        samples = dict(v=values, r=config.radius)
-        values = list(product(*(v for v in samples.values())))
+        samples = dict(v=values, r=radius)
+        values = list(itertools.product(*(v for v in samples.values())))
         sequence = []  # samples, #frames, width, height
-        for (baseline, intensity), radius in tqdm(values, desc="Flashes"):
+        for (bsln, intnsty), rad in tqdm(values, desc="Flashes"):
             sequence.append(
                 get_flash(
                     n_ommatidia,
-                    intensity,
-                    baseline,
-                    config.t_stim,
-                    config.t_pre,
-                    config.dt,
-                    config.alternations,
-                    radius,
+                    intnsty,
+                    bsln,
+                    t_stim,
+                    t_pre,
+                    dt,
+                    alternations,
+                    rad,
                 )
             )
 
@@ -102,20 +100,14 @@ class Flashes(SequenceDataset):
         dt=1 / 200,
         radius=[-1, 6],
         alternations=(0, 1, 0),
-        filter_type="median",
-        hex_sample=True,
-        subdir="flashes",
-        tnn=None,
     ):
-        self.flashes_dir = MultiParameterFlashes(
+        self.flashes_dir = RenderedFlashes(
             boxfilter=boxfilter,
             dynamic_range=dynamic_range,
             t_stim=t_stim,
             t_pre=t_pre,
             dt=dt,
             radius=radius,
-            filter_type=filter_type,
-            hex_sample=hex_sample,
             alternations=alternations,
         )
         self.config = self.flashes_dir.config
@@ -128,16 +120,6 @@ class Flashes(SequenceDataset):
         ]
         self.baseline = baseline[0]
         self.arg_df = pd.DataFrame(params, columns=["baseline", "intensity", "radius"])
-
-        self.subdir = subdir
-
-        self.tnn = tnn
-        if self.tnn:
-            self.centralactivity = utils.CentralActivity(
-                self.tnn[subdir].network_states.nodes.activity_central[:],
-                self.tnn.connectome,
-                keepref=True,
-            )
 
         self.dt = dt
 
@@ -184,16 +166,6 @@ class Flashes(SequenceDataset):
         stim = self[key][:, 360].cpu().numpy()
         return stim
 
-    def response(self, intensity=None, radius=None, cell_type=None):
-        """
-        #TODO: docstring
-        """
-        assert self.tnn
-        mask = self.mask(intensity, radius)
-        if cell_type is not None:
-            return self.centralactivity[cell_type][mask].squeeze()
-        return self.centralactivity[:][mask].squeeze()
-
     def mask(self, intensity=None, radius=None):
 
         values = self.arg_df.values
@@ -221,212 +193,76 @@ class Flashes(SequenceDataset):
     def __repr__(self):
         return "Flashes dataset: \n{}".format(repr(self.arg_df))
 
-    def argmax_fri(self):
-        """
-        Returns the argmax fri for each cell type.
-        #TODO: docstring, check deprecated
-        """
-        cell_types = self.tnn.connectome.unique_cell_types[:].astype(str)
-        fri = np.zeros(len(cell_types))
-        argmax = np.zeros([3, len(cell_types)])
-        for (baseline, intensity), radius in self.values:
-            _fri = self.flash_response_index(baseline, intensity, radius)[0]
-            mask = np.abs(_fri) > np.abs(fri)
-            argmax[:, mask] = np.array([baseline, intensity, radius])[:, None]
-            fri[mask] = _fri[mask]
-        return argmax, {
-            cell_type: argmax[:, i] for i, cell_type in enumerate(cell_types)
-        }
 
-    def flash_response_index(
-        self,
-        radius,
-        mode="convention?",
-        subtract_baseline=False,
-        nonlinearity=False,
-        nonnegative=True,
-    ):
-        """
-        Returns the fri for each cell type.
-        """
-        # logging.warning(
-        #     f"{subtract_baseline}, {nonlinearity}, {nonnegative}, {mode}"
-        # )
-        t_stim = self.config.t_stim
-        n_alternations = len(
-            self.config.alternations
-        )  # alternations baseline - flash - baseline
-        dt = self.config.dt
-        time = np.arange(0, t_stim * n_alternations, dt)
+# def get_flash(
+#     receptors,
+#     intensity=1,
+#     baseline=0,
+#     t_stim=1.0,
+#     t_pre=1.0,
+#     dt=1 / 200,
+#     alternations=(0, 1, 0),
+#     padding=(50, 50),
+#     hex_sample=True,
+#     radius=-1,
+#     ftype="median",
+# ):
+#     """Computes probe stimuli in form of oriented bars.
 
-        # in (-inf, inf) starting in (-inf, inf)
-        r_on = self.response(1, radius)
-        r_off = self.response(0, radius)
+#     Args:
+#         receptors (HexBoxFilter.
+#         intensity (float): contrast of the background. 1 is white, 0 is black.
+#         baseline (float): contrast of the baseline. 1 is white, 0 is black.
+#         t_stim (float): stimulus time in ms.
+#         t_pre (float): grey stimuli time in ms.
+#         dt (float): timesteps.
+#         alternations (list): alternating sequence between baseline and stim,
+#             where 0 stands for baseline and 1 stands for intensity.
+#         padding (tuple): (p_w, p_h), increases size of the stimulus image
+#             so that the receptor do not see the padding added by potential
+#             rotation.
 
-        # relevant time window
-        # start one time step before stimulus onset at which both potentials
-        # should be at the same resting state.
-        mask = (time >= t_stim - dt) & (time < 2 * t_stim)
-        r_on = r_on[mask]
-        r_off = r_off[mask]
-        # subtract baseline -- this baseline subtraction cancels out
-        # for on_peak - off_peak
-        # and for
-        # on_peak + off_peak = (V_peak_on - V_peak_on(0)) + (V_peak_off - V_peak_off(0))
-        # = V_peak_on + V_peak_off - 2 * V_peak(0)
-        # in (-inf, inf) starting in 0
-        if subtract_baseline:
-            r_on -= r_on[0]
-            r_off -= r_off[0]
+#     Returns:
+#         (array): sequences come in shape (n_frames, n_hexals).
+#     """
+#     min_frame_size = (
+#         receptors.min_frame_size.cpu().numpy()
+#         if isinstance(receptors.min_frame_size, torch.Tensor)
+#         else receptors.min_frame_size
+#     )
 
-        # in (0, inf)
-        if nonlinearity:
-            r_on = np.maximum(r_on, 0)
-            r_off = np.maximum(r_off, 0)
+#     # Raw stimuli dimensions.
+#     height, width = min_frame_size + padding
 
-        # because conventionally, index computed on nonnegative spike rates
-        # or calcium traces. lifting the traces to nonnegative magnitudes
-        if nonnegative:
-            minimum = np.minimum(r_on, r_off).min(axis=0)
-            r_on += np.abs(minimum)
-            r_off += np.abs(minimum)
+#     def create_circular_mask(h, w, radius=None):
 
-        # normalize over sample and temporal max
-        all_responses = self.response(None, radius)[:, mask]
+#         center = [int(w / 2), int(h / 2)]
 
-        # in (-inf, inf) starting in 0
-        if subtract_baseline:
-            all_responses -= all_responses[:, 0][:, None]
+#         Y, X = np.ogrid[:h, :w]
+#         dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
 
-        # in (0, inf)
-        if nonlinearity:
-            all_responses = np.maximum(all_responses, 0)
+#         mask = dist_from_center <= radius * receptors.kernel_size
+#         return mask
 
-        # max over intensities and time, leaving cell types
-        # in (0, inf)
-        _max_abs_responses = np.abs(all_responses).max(axis=(0, 1))
-        # r_on = r_on / (_max_abs_responses + 1e-16)
-        # r_off = r_off / (_max_abs_responses + 1e-16)
+#     mask = (
+#         create_circular_mask(height, width, radius=radius)
+#         if radius != -1
+#         else slice(None)
+#     )
+#     # Init stimuli.
+#     baseline = np.ones([height, width]) * baseline
+#     stim = np.ones([height, width]) * baseline
+#     stim[mask] = intensity
+#     # breakpoint()
+#     # Sample stimuli.
+#     if hex_sample:
+#         baseline = receptors.sample(baseline, ftype=ftype)
+#         stim = receptors.sample(stim, ftype=ftype)
 
-        if mode == "transient":
-            on_peak = r_on.max(axis=0)
-            off_peak = r_off.max(axis=0)
-            fri = on_peak - off_peak
-            fri /= 2 * _max_abs_responses + 1e-16
-        elif mode == "transient_on_and_off":
-            on_peak = r_on.max(axis=0)
-            off_peak = r_off.max(axis=0)
-            fri = on_peak + off_peak
-            fri /= 2 * _max_abs_responses + 1e-16
-        elif mode == "sustained":
-            on_avg = r_on.mean(axis=0)
-            off_avg = r_off.mean(axis=0)
-            fri = on_avg - off_avg
-            fri /= 2 * _max_abs_responses + 1e-16
-        elif mode == "sustained_on_and_off":
-            on_avg = r_on.mean(axis=0)
-            off_avg = r_off.mean(axis=0)
-            fri = on_avg + off_avg
-            fri /= 2 * _max_abs_responses + 1e-16
-        elif mode == "convention?":
-            # seen in presentation Connectomics 22 (ON - Off) / (ON + OFF)
-            on_peak = r_on.max(axis=0)
-            off_peak = r_off.max(axis=0)
-            fri = on_peak - off_peak
-            fri /= on_peak + off_peak + 1e-16
-        elif mode == "sustained_convention":
-            on_avg = r_on.mean(axis=0)
-            off_avg = r_off.mean(axis=0)
-            fri = on_avg - off_avg
-            fri /= on_avg + off_avg + 1e-16
-        elif mode == "convention2?":
-            # seen in presentation Connectomics 22 (ON - Off) / (ON + OFF)
-            on_peak = r_on.max(axis=0)
-            off_peak = r_off.max(axis=0)
-            fri = on_peak - off_peak
-            fri /= np.abs(on_peak) + np.abs(off_peak) + 1e-16
-        else:
-            raise ValueError(
-                f"{mode} must be 'sustained', 'transient', 'transient_on_and_off', or 'sustained_on_and_off'"
-            )
+#     # Repeat over time.
+#     baseline = baseline[None, ...].repeat(int(t_pre / dt), axis=0)
+#     stim = stim[None, ...].repeat(int(t_stim / dt), axis=0)
 
-        return fri, {
-            cell_type: fri[i]
-            for i, cell_type in enumerate(
-                self.tnn.connectome.unique_cell_types[:].astype(str)
-            )
-        }
-
-
-def get_flash(
-    receptors,
-    intensity=1,
-    baseline=0,
-    t_stim=1.0,
-    t_pre=1.0,
-    dt=1 / 200,
-    alternations=(0, 1, 0),
-    padding=(50, 50),
-    hex_sample=True,
-    radius=-1,
-    ftype="median",
-):
-    """Computes probe stimuli in form of oriented bars.
-
-    Args:
-        receptors (HexBoxFilter.
-        intensity (float): contrast of the background. 1 is white, 0 is black.
-        baseline (float): contrast of the baseline. 1 is white, 0 is black.
-        t_stim (float): stimulus time in ms.
-        t_pre (float): grey stimuli time in ms.
-        dt (float): timesteps.
-        alternations (list): alternating sequence between baseline and stim,
-            where 0 stands for baseline and 1 stands for intensity.
-        padding (tuple): (p_w, p_h), increases size of the stimulus image
-            so that the receptor do not see the padding added by potential
-            rotation.
-
-    Returns:
-        (array): sequences come in shape (n_frames, n_hexals).
-    """
-    min_frame_size = (
-        receptors.min_frame_size.cpu().numpy()
-        if isinstance(receptors.min_frame_size, torch.Tensor)
-        else receptors.min_frame_size
-    )
-
-    # Raw stimuli dimensions.
-    height, width = min_frame_size + padding
-
-    def create_circular_mask(h, w, radius=None):
-
-        center = [int(w / 2), int(h / 2)]
-
-        Y, X = np.ogrid[:h, :w]
-        dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
-
-        mask = dist_from_center <= radius * receptors.kernel_size
-        return mask
-
-    mask = (
-        create_circular_mask(height, width, radius=radius)
-        if radius != -1
-        else slice(None)
-    )
-    # Init stimuli.
-    baseline = np.ones([height, width]) * baseline
-    stim = np.ones([height, width]) * baseline
-    stim[mask] = intensity
-    # breakpoint()
-    # Sample stimuli.
-    if hex_sample:
-        baseline = receptors.sample(baseline, ftype=ftype)
-        stim = receptors.sample(stim, ftype=ftype)
-
-    # Repeat over time.
-    baseline = baseline[None, ...].repeat(int(t_pre / dt), axis=0)
-    stim = stim[None, ...].repeat(int(t_stim / dt), axis=0)
-
-    # Stack.
-    sequence = np.concatenate(np.array((baseline, stim))[np.array(alternations)])
-    return sequence
+#     # Stack.
+#     sequence = np.concatenate(np.array((baseline, stim))[np.array(alternations)])
+#     return sequence

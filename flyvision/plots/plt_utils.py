@@ -998,6 +998,184 @@ def ax_scatter(
     return fig, axes, center
 
 
+# -- originally in dvs.plots.decoration
+
+def color_labels(labels: List[str], color, ax):
+    for label in labels:
+        color_label(label, color, ax)
+
+
+def color_label(label: str, color, ax):
+    for t in ax.texts:
+        if t.get_text() == label:
+            t.set_color(color)
+
+    for tick in ax.xaxis.get_major_ticks():
+        if tick.label1.get_text() == label:
+            tick.label1.set_color(color)
+
+    for tick in ax.yaxis.get_major_ticks():
+        if tick.label1.get_text() == label:
+            tick.label1.set_color(color)
+
+    if ax.xaxis.get_label().get_text() == label:
+        ax.xaxis.get_label().set_color(color)
+
+    if ax.yaxis.get_label().get_text() == label:
+        ax.yaxis.get_label().set_color(color)
+
+
+def boldify_labels(labels, ax):
+    for t in ax.texts:
+        if t.get_text() in labels:
+            t.set_weight("bold")
+
+    for tick in ax.xaxis.get_major_ticks():
+        if tick.label1.get_text() in labels:
+            tick.label1.set_weight("bold")
+
+    for tick in ax.yaxis.get_major_ticks():
+        if tick.label1.get_text() in labels:
+            tick.label1.set_weight("bold")
+
+    if ax.xaxis.get_label().get_text() in labels:
+        ax.xaxis.get_label().set_weight("bold")
+
+    if ax.yaxis.get_label().get_text() in labels:
+        ax.yaxis.get_label().set_weight("bold")
+
+
+def scatter_on_violins_or_bars(
+    data,
+    ax,
+    xticks=None,
+    indices=None,
+    s=5,
+    zorder=100,
+    facecolor="none",
+    edgecolor="k",
+    linewidth=0.5,
+    alpha=0.35,
+    uniform=[-0.35, 0.35],
+    seed=42,
+    marker="o",
+    **kwargs
+):
+    """
+    data (array): shape (n_samples, n_random_variables).
+    indices (array, optional): selection along sample dimension.
+    """
+    random = np.random.RandomState(seed)
+
+    if xticks is None:
+        xticks = ax.get_xticks()
+    data = np.atleast_2d(data)
+    indices = indices if indices is not None else range(data.shape[0])
+
+    if (
+        not isinstance(facecolor, Iterable)
+        or len(facecolor) != len(data)
+        or isinstance(facecolor, str)
+    ):
+        facecolor = (facecolor,) * len(indices)
+
+    if (
+        not isinstance(edgecolor, Iterable)
+        or len(edgecolor) != len(data)
+        or isinstance(edgecolor, str)
+    ):
+        edgecolor = (edgecolor,) * len(indices)
+
+    for i, model_index in enumerate(indices):
+        # try:
+        ax.scatter(
+            xticks + random.uniform(*uniform, size=len(xticks)),
+            data[model_index],
+            s=s,
+            zorder=zorder,
+            facecolor=facecolor[i],
+            edgecolor=edgecolor[i],
+            linewidth=linewidth,
+            alpha=alpha,
+            marker=marker,
+            **kwargs
+        )
+
+
+def scatter_on_violins_with_best(
+    data,
+    ax,
+    scatter_best,
+    scatter_all,
+    xticks=None,
+    facecolor="none",
+    edgecolor="k",
+    best_scatter_alpha=1.0,
+    all_scatter_alpha=0.35,
+    best_index=None,
+    best_color=None,
+    all_marker="o",
+    best_marker="o",
+    linewidth=0.5,
+    best_linewidth=0.75,
+    uniform=[-0.35, 0.35],
+):
+    """
+    Ax patch to scatter data on top of violins.
+    data (Array): n_samples, n_variables.
+
+    Not necessary to be a class method here. Should be optional for
+    violin plot.
+    """
+    if scatter_all and not scatter_best:
+        scatter_on_violins_or_bars(
+            data,
+            ax,
+            xticks=xticks,
+            zorder=100,
+            facecolor=facecolor,
+            edgecolor=edgecolor,
+            alpha=all_scatter_alpha,
+            uniform=uniform,
+            marker=all_marker,
+            linewidth=linewidth,
+        )
+    elif scatter_all:
+        assert best_index is not None, "`best_index` must be provided if `scatter_all=True`"
+        indices = list(range(data.shape[0]))
+        indices.remove(best_index)
+        scatter_on_violins_or_bars(
+            data,
+            ax,
+            xticks=xticks,
+            indices=indices,
+            zorder=10,
+            facecolor=facecolor,
+            edgecolor=edgecolor,
+            alpha=all_scatter_alpha,
+            uniform=uniform,
+            marker=all_marker,
+            linewidth=linewidth,
+        )
+    if scatter_best:
+        assert best_index is not None, "`best_index` must be provided if `scatter_best=True`"
+        assert best_color is not None, "`best_color` must be provided if `scatter_all=True`"
+        scatter_on_violins_or_bars(
+            data,
+            ax,
+            xticks=xticks,
+            indices=[best_index],
+            alpha=best_scatter_alpha,
+            linewidth=best_linewidth,
+            edgecolor=best_color,
+            facecolor=best_color,
+            uniform=[0, 0],
+            s=7.5,
+            zorder=11,
+            marker=best_marker,
+        )
+
+
 # colormap from
 # https://stackoverflow.com/questions/23712207/cyclic-colormap-without-visual-distortions-for-use-in-phase-angle-plots
 cm_uniform_2d = np.array(
