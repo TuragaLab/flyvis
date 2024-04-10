@@ -396,7 +396,7 @@ def rotate_image(img, angle=0):
     ]
 
 
-def resample(stims, t_stim, dt, dim=0, device="cuda"):
+def resample(stims, t_stim, dt, dim=0):
     """Resamples set of stims for given stimulus duration and dt.
 
     Args:
@@ -408,7 +408,7 @@ def resample(stims, t_stim, dt, dim=0, device="cuda"):
         tensor: stims of shape (#frames, #hexals).
     """
     n_offsets = stims.shape[dim]
-    repeats = torch.linspace(0, n_offsets - 1, int(t_stim / dt), device=device).long()
+    repeats = torch.linspace(0, n_offsets - 1, int(t_stim / dt), device=stims.device).long()
     return torch.index_select(stims, dim, repeats)
 
 

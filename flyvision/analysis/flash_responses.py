@@ -1,9 +1,13 @@
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from typing import Union
 
 from datamate import Namespace
 
-from flyvision.utils.activity_utils import StimulusResponseIndexer
 from flyvision.utils import groundtruth_utils, nodes_edges_utils
+from flyvision.utils.activity_utils import StimulusResponseIndexer
+from flyvision.utils.nodes_edges_utils import CellTypeArray
 from flyvision.plots import plt_utils
 from flyvision.plots.plots import violin_groups, traces
 from flyvision.analysis.simple_correlation import correlation
@@ -21,6 +25,7 @@ class FlashResponseView(StimulusResponseIndexer):
         temporal_dim=1,
         time=None,
     ):
+        self.config = config
         super().__init__(
             arg_df=arg_df,  # could also construct from config
             responses=responses,
@@ -30,7 +35,6 @@ class FlashResponseView(StimulusResponseIndexer):
             temporal_dim=temporal_dim,
             time=time,
         )
-        self.config = config
 
     def view(
         self,
@@ -46,8 +50,8 @@ class FlashResponseView(StimulusResponseIndexer):
 
         return self.__class__(
             arg_df if np.any(arg_df) else self.arg_df,
-            config if config is not None else self.config
-            responses if responses else self.responses,
+            config if config is not None else self.config,
+            responses if responses is not None else self.responses,
             stim_sample_dim if np.any(stim_sample_dim) else self.stim_sample_dim,
             temporal_dim or self.temporal_dim,
             time if np.any(time) else self.time,

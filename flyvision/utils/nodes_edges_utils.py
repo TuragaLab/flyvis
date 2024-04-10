@@ -161,7 +161,7 @@ class CellTypeArray:
         self.array = array
         self.dim = dim
         self.node_indexer = NodeIndexer(connectome, cell_types)
-        self.cell_types = self.node_indexer.unique_node_types  # TODO: remove again?
+        self.cell_types = self.node_indexer.unique_cell_types  # TODO: remove again?
 
     def __iter__(self):
         for cell_type in self.node_indexer.unique_cell_types:
@@ -202,7 +202,9 @@ class CellTypeArray:
 
     def __getattr__(self, key):
         if self.node_indexer is not None:
-            if isinstance(key, str) and key in self.node_indexer.unique_cell_types:
+            if isinstance(key, slice) and key == slice(None):
+                return self.array
+            elif isinstance(key, str) and key in self.node_indexer.unique_cell_types:
                 indices = np.int_([dict.__getitem__(self.node_indexer, key)])
             elif isinstance(key, Iterable) and any(
                 [_key in self.node_indexer.unique_cell_types for _key in key]

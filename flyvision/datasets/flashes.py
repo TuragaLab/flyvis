@@ -37,7 +37,7 @@ class RenderedFlashes(Directory):
         intensity = dynamic_range.copy()
         values = np.array(list(zip(baseline, intensity)))
         samples = dict(v=values, r=radius)
-        values = list(itertools.product(*(v for v in samples.values())))
+        values = list(product(*(v for v in samples.values())))
         sequence = []  # samples, #frames, width, height
         for (bsln, intnsty), rad in tqdm(values, desc="Flashes"):
             sequence.append(
@@ -62,7 +62,7 @@ def get_flash(
     stimulus = torch.ones(n_ommatidia)[None] * baseline
 
     if radius != -1:
-        ring = HexLattice.filled_ring(
+        ring = HexLattice.filled_circle(
             radius=radius, center=Hexal(0, 0, 0), as_lattice=True
         )
         coordinate_index = ring.where(1)
