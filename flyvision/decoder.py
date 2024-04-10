@@ -1,4 +1,5 @@
 """Modules for decoding the DMN activity."""
+
 from typing import Dict
 
 import numpy as np
@@ -15,7 +16,7 @@ from flyvision.connectome import ConnectomeDir
 
 import logging
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
 
 
 class ActivityDecoder(nn.Module):

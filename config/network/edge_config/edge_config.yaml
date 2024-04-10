@@ -1,0 +1,5 @@
+defaults:
+  - _self_
+  - sign: sign
+  - syn_count: syn_count
+  - syn_strength: syn_strength

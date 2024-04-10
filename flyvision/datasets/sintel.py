@@ -31,7 +31,7 @@ from flyvision.rendering import BoxEye
 from flyvision.rendering.utils import split
 from flyvision.utils.dataset_utils import download_sintel
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
 
 
 @root(flyvision.sintel_dir)

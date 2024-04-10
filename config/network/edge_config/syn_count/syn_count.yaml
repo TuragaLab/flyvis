@@ -1,0 +1,14 @@
+type: SynapseCount
+initial_dist: Lognormal
+mode: mean
+requires_grad: false
+std: 1.0
+groupby:
+  - source_type
+  - target_type
+  - dv
+  - du
+penalize:
+  function: weight_decay
+  kwargs:
+    lambda: 0

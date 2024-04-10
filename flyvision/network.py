@@ -1,6 +1,7 @@
 """
 Deep mechanistic network module.
 """
+
 from numbers import Number
 from os import PathLike
 from typing import Any, Dict, Iterable, List, Optional, Union, Callable
@@ -31,7 +32,9 @@ from flyvision.utils.class_utils import forward_subclass
 from flyvision.datasets.datasets import SequenceDataset
 import logging
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
+
+__all__ = ["Network", "NetworkDir", "NetworkView"]
 
 
 class Network(nn.Module):

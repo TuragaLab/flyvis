@@ -14,13 +14,13 @@ from flyvision.objectives import Objective
 
 
 class Task:
-    """Defines a task for a multi-task dataset."""
+    """Defines a task for a multi-task dataset from configurations."""
 
     def __init__(
         self,
-        dataset,
-        decoder,
-        loss,
+        dataset: Namespace,
+        decoder: Namespace,
+        loss: Namespace,
         batch_size=4,
         n_iters=250_000,
         n_folds=4,

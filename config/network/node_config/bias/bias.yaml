@@ -1,0 +1,12 @@
+type: RestingPotential
+groupby:
+  - type
+initial_dist: Normal
+mode: sample
+requires_grad: true
+seed: 0
+mean: 0.5
+std: 0.05
+symmetric: []
+penalize:
+  activity: true

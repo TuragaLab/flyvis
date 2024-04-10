@@ -1,0 +1,3 @@
+type: PPNeuronIGRSynapses
+activation: 
+  type: relu

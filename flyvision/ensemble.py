@@ -22,7 +22,7 @@ from flyvision.network import Network, NetworkView, NetworkDir
 from flyvision.plots.plt_utils import init_plot
 from flyvision.utils.nn_utils import simulation
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
 
 
 class Ensemble(dict):

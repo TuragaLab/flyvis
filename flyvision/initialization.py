@@ -28,7 +28,7 @@ from flyvision.utils.type_utils import byte_to_str
 from flyvision.utils.class_utils import forward_subclass
 
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
 
 # --- Supplementary Error types -------------------------------------------------
 
@@ -41,7 +41,6 @@ class ParameterConfigError(ValueError):
 
 
 class InitialDistribution:
-
     """Initial distribution base class.
 
     Attributes:

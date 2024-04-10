@@ -1,0 +1,21 @@
+id: ???
+task: ???
+train: ???
+resume: ???
+delete_if_exists: true
+overfit: false
+
+defaults:
+  - _self_
+  - network: network
+  - task: task
+  - optim: optim
+  - penalizer: penalizer
+  - scheduler: scheduler
+  - override hydra/hydra_logging: disabled
+
+# disable all hydra working dir manipulation, logging, config stores because we do it
+hydra:
+  run:
+    dir: .
+  output_subdir: null
