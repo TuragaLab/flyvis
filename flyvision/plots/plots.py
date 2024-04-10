@@ -1,4 +1,5 @@
 from typing import Iterable, Tuple
+from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
@@ -986,3 +987,436 @@ def traces(
         plt_utils.rm_spines(ax, ("left", "bottom"), rm_yticks=True, rm_xticks=True)
 
     return fig, ax, trace, label_text
+
+
+# -- violins ----
+
+
+def get_violin_x_locations(n_groups, n_random_variables, violin_width):
+    violin_locations = np.zeros([n_groups, n_random_variables])
+    # n_variable ticks are n_groups distance apart so that each violins width
+    # is between 0 and 1 in x-space
+    first_violins_location = np.arange(0, n_groups * n_random_variables, n_groups)
+    for j in range(n_groups):
+        # step by violin_width along x
+        violin_locations[j] = first_violins_location + j * violin_width
+
+    return violin_locations, first_violins_location
+
+@dataclass
+class ViolinData:
+    # fig: Figure
+    # ax: Axis
+    data: np.ndarray
+    locations: np.ndarray
+    colors: np.ndarray
+
+def display_significance_value(
+    ax,
+    pvalue,
+    y,
+    x0=None,
+    x1=None,
+    ticklabel=None,
+    bar_width=0.7,
+    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
+    fontsize=8,
+    annotate_insignificant="",
+    append_tick=False,
+    show_bar=False,
+    other_ax=None,
+    bar_height_ylim_ratio=0.01,
+    linewidth=0.5,
+    annotate_pthresholds=True,
+    loc_pthresh_annotation=(0.1, 0.1),
+    location="above",
+    asterisk_offset=None,
+):
+    """Display a significance value annotation along x at height y.
+
+    Args:
+        ax (Axis)
+        pvalue (float)
+        y (float)
+        x0 (float, optional): left edge of bar if show_bar is True.
+        x1 (float, optional): right edge of bar if show_bar is True.
+        ticklabel (str, optional): ticklabel to
+        bar_width (float, optional)
+        pthresholds (Dict[float, str]): annotations
+        xpvalues Dict[str, float]: x-ticklabel to pvalue mapping
+        y: height to put text
+        pthreshold: different thresholds for different annotations
+
+    """
+
+    if x0 is None and x1 is None and ticklabel is None and bar_width is None:
+        raise ValueError("specify (x0, x1) or (ticklabel, bar_width)")
+
+    if show_bar and ((x0 is None or x1 is None) and bar_width is None):
+        raise ValueError("need to specify width of bar or specify x0 and x1")
+
+    if location == "above":
+        va = "bottom"
+        asterisk_offset = asterisk_offset or -0.1
+    elif location == "below":
+        va = "top"
+        asterisk_offset = asterisk_offset or -0.05
+    else:
+        raise ValueError(f"location {location}")
+
+    if x0 is None and x1 is None and ticklabel is not None:
+        ticklabels = ax.get_xticklabels()
+        if not ticklabels:
+            ticklabels = other_ax.get_xticklabels()
+        if not ticklabels:
+            raise AssertionError("no ticklables found")
+        # get the tick to get the x position for the annotation
+        tick = [tick for tick in ticklabels if tick.get_text() == ticklabel][0]
+        x, _ = tick.get_position()
+        x0 = x - bar_width / 2
+        x1 = x + bar_width / 2
+
+    text = ""
+    any_thresh = False
+    less = []
+    for thresh, symbol in pthresholds.items():
+        if pvalue < thresh:
+            less.append(thresh)
+            any_thresh = True
+
+    if (any_thresh or annotate_insignificant) and show_bar:
+        bar_height = (ax.get_ylim()[1] - ax.get_ylim()[0]) * bar_height_ylim_ratio
+        bar_x = [x0, x0, x1, x1]
+        if location == "above":
+            bar_y = [y, y + bar_height, y + bar_height, y]
+            y = y + bar_height
+            mid = ((x0 + x1) / 2, y)
+        elif location == "below":
+            bar_y = [y, y - bar_height, y - bar_height, y]
+            y = y - bar_height
+            mid = ((x0 + x1) / 2, y)
+        ax.plot(bar_x, bar_y, c="k", lw=linewidth)
+        x = mid[0]
+
+    if any_thresh:
+        text = pthresholds[min(less)]
+        if ticklabel is not None and append_tick:
+            tick.set_text(f"{tick.get_text()}$^{{{text}}}$")
+            ax.xaxis.set_ticklabels(ax.xaxis.get_ticklabels())
+        else:
+            ax.annotate(
+                text,
+                (x, y + asterisk_offset),
+                fontsize=fontsize,
+                ha="center",
+                va=va,
+            )
+
+    elif annotate_insignificant:
+        if ticklabel is not None and append_tick:
+            tick.set_text(f"{tick.get_text()}$^{{{annotate_insignificant}}}$")
+            ax.xaxis.set_ticklabels(ax.xaxis.get_ticklabels())
+        else:
+            ax.annotate(
+                annotate_insignificant,
+                (x, y),
+                fontsize=fontsize,
+                ha="center",
+                va=va,
+            )
+
+    if annotate_pthresholds:
+        pthreshold_annotation = ""
+        for i, (thresh, symbol) in enumerate(pthresholds.items()):
+            pthreshold_annotation += f"{symbol}p<{thresh:.2f}"
+            if i != len(pthresholds) - 1:
+                pthreshold_annotation += "\n"
+
+        ax.annotate(
+            pthreshold_annotation,
+            loc_pthresh_annotation,
+            xycoords="axes fraction",
+            fontsize=fontsize,
+            va="bottom",
+            ha="left",
+        )
+
+def display_pvalues(
+    ax,
+    pvalues: dict[str, float],
+    ticklabels: list[str],
+    data: np.ndarray,
+    location="above",
+    bar_width=0.7,
+    show_bar=True,
+    bar_height_ylim_ratio=0.01,
+    fontsize=6,
+    annotate_insignificant="ns",
+    loc_pthresh_annotation=(0.01, 0.01),
+    append_tick=False,
+    data_relative_offset=0.05,
+    asterisk_offset=0,
+    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
+):
+    """Annotate all pvalues from Dict[xticklabel, pvalue].
+
+    data is Array[random variables, ...]
+    """
+
+    for key in pvalues:
+        if key not in ticklabels:
+            raise ValueError(f"pvalue key {key} is not a ticklabel")
+
+    offset = data_relative_offset * np.abs(data.max() - data.min())
+
+    ylim = ax.get_ylim()
+    bars = []
+    for ticklabel, pvalue in pvalues.items():
+        index = [
+            i for i, _ticklabel in enumerate(ticklabels) if _ticklabel == ticklabel
+        ][0]
+        _values = data[index]
+
+        if location == "above":
+            _max = _values.max()
+            y = min(_max + offset, ylim[1])
+        elif location == "below":
+            _min = _values.min()
+            y = max(_min - offset, ylim[0])
+
+        # print(y)
+
+        display_significance_value(
+            ax,
+            pvalue,
+            y=y,
+            ticklabel=str(ticklabel),
+            bar_width=bar_width,
+            show_bar=show_bar,
+            bar_height_ylim_ratio=bar_height_ylim_ratio,
+            fontsize=fontsize,
+            annotate_insignificant=annotate_insignificant,
+            loc_pthresh_annotation=loc_pthresh_annotation,
+            append_tick=append_tick,
+            location=location,
+            asterisk_offset=asterisk_offset,
+            pthresholds=pthresholds,
+        )
+        bars.append(y)
+
+    ax.set_ylim(*plt_utils.get_lims([bars, ylim], 0.01))
+
+def violin_groups(
+    values,
+    xticklabels=None,
+    pvalues=None,
+    display_pvalues_kwargs={},
+    legend=False,
+    legend_kwargs={},
+    as_bars=False,
+    colors=None,
+    cmap=mpl.colormaps["tab10"],
+    cstart=0,
+    cdist=1,
+    figsize=(10, 1),
+    title="",
+    ylabel=None,
+    ylim=None,
+    rotation=90,
+    width=0.7,
+    fontsize=6,
+    ax=None,
+    fig=None,
+    showmeans=False,
+    showmedians=True,
+    grid=False,
+    scatter=True,
+    scatter_radius=3,
+    scatter_edge_color=None,
+    scatter_edge_width=0.5,
+    violin_alpha=0.5,
+    violin_marker_lw=0.5,
+    violin_marker_color="k",
+    color_by="groups",
+    zorder_mean_median=5,
+    zorder_min_max=5,
+    mean_median_linewidth=0.5,
+    mean_median_color="k",
+    mean_median_bar_length=None,
+    **kwargs,
+):
+    """
+    Args:
+        values: matrix of shape (#random variables, #groups, #samples).
+                random variables are labeled with xticklabels.
+                groups are labeled with legend.
+        xticklabels: #independents labels
+        legend: #groups labels
+        legend_kwargs: cosmetics for the legend, see matplotlib docs.
+        as_bars: switch from violins to bars.
+        scatter: scatter plot of data points on top.
+        cmap: colormap.
+        cdist: color distance between groups, when indexing cmap.
+        ...
+    """
+    fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax, fig)
+    if grid:
+        ax.yaxis.grid(zorder=-100)
+
+    def plot_bar(X, values, color):
+        handle = ax.bar(x=X, width=width, height=np.mean(values), color=color, zorder=1)
+        return handle
+
+    def plot_violin(X, values, color):
+        # breakpoint()
+
+        if isinstance(values, np.ma.core.MaskedArray):
+            values = values[~values.mask]
+
+        parts = ax.violinplot(
+            values,
+            positions=[X],
+            widths=width,
+            showmedians=showmedians,
+            showmeans=showmeans,
+        )
+        # Color the bodies.
+        for pc in parts["bodies"]:
+            pc.set_facecolor(color)
+            # pc.set_edgecolor(color)
+            pc.set_alpha(violin_alpha)
+            pc.set_zorder(0)
+        # Color the lines.
+        parts["cbars"].set_color(violin_marker_color)
+        parts["cbars"].set_linewidth(violin_marker_lw)
+        parts["cbars"].set_zorder(zorder_min_max)
+        parts["cmaxes"].set_color(violin_marker_color)
+        parts["cmaxes"].set_linewidth(violin_marker_lw)
+        parts["cmaxes"].set_zorder(zorder_min_max)
+        parts["cmins"].set_color(violin_marker_color)
+        parts["cmins"].set_linewidth(violin_marker_lw)
+        parts["cmins"].set_zorder(zorder_min_max)
+        if "cmeans" in parts:
+            parts["cmeans"].set_color(mean_median_color)
+            parts["cmeans"].set_linewidth(mean_median_linewidth)
+            parts["cmeans"].set_zorder(zorder_mean_median)
+            if mean_median_bar_length is not None:
+                (_, y0), (_, y1) = parts["cmeans"].get_segments()[0]
+                (x0_vert, _), _ = parts["cbars"].get_segments()[0]
+                parts["cmeans"].set_segments(
+                    [
+                        [
+                            [x0_vert - mean_median_bar_length * width / 2, y0],
+                            [x0_vert + mean_median_bar_length * width / 2, y1],
+                        ]
+                    ]
+                )
+        if "cmedians" in parts:
+            parts["cmedians"].set_color(mean_median_color)
+            parts["cmedians"].set_linewidth(mean_median_linewidth)
+            parts["cmedians"].set_zorder(zorder_mean_median)
+            # parts["cmedians"].set_alpha(0.8)
+            # breakpoint()
+            if mean_median_bar_length is not None:
+                (_, y0), (_, y1) = parts["cmedians"].get_segments()[0]
+                (x0_vert, _), _ = parts["cbars"].get_segments()[0]
+                parts["cmedians"].set_segments(
+                    [
+                        [
+                            [x0_vert - mean_median_bar_length * width / 2, y0],
+                            [x0_vert + mean_median_bar_length * width / 2, y1],
+                        ]
+                    ]
+                )
+        return parts["bodies"][0]
+
+    shape = np.array(values).shape
+    n_random_variables, n_groups = shape[0], shape[1]
+
+    # Create matrix for x position for each bar.
+    violin_locations, first_violins_location = get_violin_x_locations(
+        n_groups, n_random_variables, violin_width=width
+    )
+    X = violin_locations.T
+
+    if colors is None:
+        # Create matrix of colors.
+        if color_by == "groups":
+            C = np.asarray([cmap(cstart + i * cdist) for i in range(n_groups)]).reshape(
+                n_groups, 4
+            )
+        if color_by == "experiments":
+            C = np.asarray(
+                [cmap(cstart + i * cdist) for i in range(n_random_variables)]
+            ).reshape(n_random_variables, 4)
+    elif isinstance(colors, Iterable):
+        if color_by == "groups":
+            if len(colors) == n_groups:
+                C = colors
+            else:
+                raise ValueError
+        if color_by == "experiments":
+            if len(colors) == n_random_variables:
+                C = colors
+            else:
+                raise ValueError
+    else:
+        raise ValueError
+
+    # Plot each violin or bar and optionally scatter.
+    handles = []
+
+    for i in range(n_random_variables):
+        for j in range(n_groups):
+            if color_by == "experiments":
+                _color = C[i]
+            elif color_by == "groups":
+                _color = C[j]
+            else:
+                raise ValueError
+
+            if as_bars:
+                h = plot_bar(X[i, j], values[i, j], _color)
+            else:
+                h = plot_violin(X[i, j], values[i, j], _color)
+            handles.append(h)
+
+            if scatter:
+                lims = plt_utils.get_lims(
+                    (-width / (2 * n_groups), width / (2 * n_groups)), -0.05
+                )
+                xticks = np.ones_like(values[i][j]) * X[i, j]
+                ax.scatter(
+                    xticks + np.random.uniform(*lims, size=len(xticks)),
+                    values[i][j],
+                    facecolor="none",
+                    edgecolor=scatter_edge_color or _color,
+                    s=scatter_radius,
+                    linewidth=scatter_edge_width,
+                    zorder=2,
+                )
+
+    if legend:
+        ax.legend(handles, legend, **legend_kwargs)
+
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+
+    ax.tick_params(axis="both", which="major", labelsize=fontsize)
+
+    if xticklabels is not None:
+        ax.set_xticks(first_violins_location + (n_groups - 1) / 2 * width)
+        ax.set_xticklabels(xticklabels, rotation=rotation)
+
+    try:
+        ax.set_xlim(np.min(X - width), np.max(X + width))
+    except ValueError:
+        pass
+
+    ax.set_ylabel(ylabel or "", fontsize=fontsize)
+    ax.set_title(title, fontsize=fontsize)
+
+    if pvalues is not None:
+        display_pvalues(ax, pvalues, xticklabels, values, **display_pvalues_kwargs)
+
+    return fig, ax, ViolinData(values, X, colors)

@@ -497,7 +497,7 @@ motion_tuning = ["T5a", "T5b", "T5c", "T5d", "T4a", "T4b", "T4c", "T4d"]
 known_dsi_types = [*no_motion_tuning, *motion_tuning]
 
 known_preferred_contrasts = {
-    k: v for k, v in preferred_contrasts.items() if v in [-1, 1]
+    k: v for k, v in polarity.items() if v in [-1, 1]
 }
 
 # from Maisak et al. 2013 Fig. 3 g, h

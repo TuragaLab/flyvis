@@ -1,5 +1,5 @@
 """Plotting utils.""" ""
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 from numbers import Number
 
 import torch

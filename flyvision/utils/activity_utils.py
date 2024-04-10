@@ -389,7 +389,7 @@ class StimulusResponseIndexer:
         time=None,
     ) -> "StimulusResponseIndexer":
         if isinstance(responses, np.ndarray):
-            responses = CellTypeArray(responses, self.responses.cell_types)
+            responses = CellTypeArray(responses, cell_types=self.responses.cell_types)
 
         return self.__class__(
             arg_df if np.any(arg_df) else self.arg_df,
@@ -743,7 +743,7 @@ class StimulusResponseIndexer:
     def reshape(self, *args, inplace=False) -> "StimulusResponseIndexer":
         if inplace:
             self.responses = CellTypeArray(
-                self.responses[:].reshape(*args), self.responses.cell_types
+                self.responses[:].reshape(*args), cell_types=self.responses.cell_types
             )
             return self
         return self.view(responses=self.responses[:].reshape(*args))
@@ -823,7 +823,7 @@ class StimulusResponseIndexer:
         if inplace:
             self.responses = CellTypeArray(
                 self.responses[:].transpose(*args),
-                self.responses.cell_types,
+                cell_types=self.responses.cell_types,
             )
             self.stim_sample_dim = new_stim_sample_dim
             return self

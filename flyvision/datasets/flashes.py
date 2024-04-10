@@ -8,10 +8,11 @@ import pandas as pd
 from tqdm import tqdm
 from datamate import Directory, Namespace, root
 
-from flyvision.rendering import BoxEye, HexEye
+from flyvision.rendering import BoxEye
+from flyvision.rendering.utils import resample
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision import utils, root_dir
-from flyvision.utils.hex_utils import HexLattice, Hexal, resample
+from flyvision.utils.hex_utils import HexLattice, Hexal
 
 logging = logging.getLogger()
 

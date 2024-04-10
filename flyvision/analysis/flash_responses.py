@@ -5,7 +5,7 @@ from datamate import Namespace
 from flyvision.utils.activity_utils import StimulusResponseIndexer
 from flyvision.utils import groundtruth_utils, nodes_edges_utils
 from flyvision.plots import plt_utils
-from flyvision.plots.plots import violin_groups
+from flyvision.plots.plots import violin_groups, traces
 from flyvision.analysis.simple_correlation import correlation
 
 
@@ -31,7 +31,28 @@ class FlashResponseView(StimulusResponseIndexer):
             time=time,
         )
         self.config = config
-        
+
+    def view(
+        self,
+        arg_df: pd.DataFrame = None,
+        config: Namespace = None,
+        responses: Union[np.ndarray, CellTypeArray] = None,
+        stim_sample_dim=None,
+        temporal_dim=None,
+        time=None,
+    ) -> "FlashResponseView":
+        if isinstance(responses, np.ndarray):
+            responses = CellTypeArray(responses, cell_types=self.responses.cell_types)
+
+        return self.__class__(
+            arg_df if np.any(arg_df) else self.arg_df,
+            config if config is not None else self.config
+            responses if responses else self.responses,
+            stim_sample_dim if np.any(stim_sample_dim) else self.stim_sample_dim,
+            temporal_dim or self.temporal_dim,
+            time if np.any(time) else self.time,
+        )
+
     def init_time(self, time=None) -> None:
         if time is not None:
             self.time = time
@@ -73,6 +94,34 @@ class FlashResponseView(StimulusResponseIndexer):
         fri /= on_peak + off_peak + 1e-16
 
         return fri
+    
+    def plot_traces(self, cell_type, time=None, **stim_kwargs):
+        if self.responses.shape[self.temporal_dim] != len(self.time):
+            raise ValueError(
+                "Cannot plot. Previous operations have mis-aligned the FlashResponseView "
+                "response data and timestamps."
+            )
+        cell_trace = self.cell_type(cell_type).where_stim_args(**stim_kwargs).view(time=time)
+        response_arr = cell_trace.responses[:]
+        label_cols = [col for col in cell_trace.arg_df.columns if cell_trace.arg_df[col].nunique() > 1]
+        for dim, size in enumerate(response_arr.shape):
+            if dim not in [cell_trace.stim_sample_dim, cell_trace.temporal_dim]:
+                if size > 1:
+                    raise ValueError("Plotting multiple traces per stimulus sample currently not supported")
+        response_arr = response_arr.squeeze()
+        if cell_trace.stim_sample_dim > cell_trace.temporal_dim:
+            response_arr = response_arr.T
+        return traces(
+            response_arr,
+            cell_trace.time,
+            legend=tuple([", ".join([
+                f"{col}={cell_trace.arg_df[col].iloc[i].item()}" 
+                for col in label_cols
+            ]) for i in range(len(cell_trace.arg_df))]),
+            ylabel="activity (a.u.)",
+            xlabel="time (s)",
+            title=f"{cell_type} flash response",
+        )
 
 
 # -- correlation ------------

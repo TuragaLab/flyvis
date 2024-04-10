@@ -161,6 +161,7 @@ class CellTypeArray:
         self.array = array
         self.dim = dim
         self.node_indexer = NodeIndexer(connectome, cell_types)
+        self.cell_types = self.node_indexer.unique_node_types  # TODO: remove again?
 
     def __iter__(self):
         for cell_type in self.node_indexer.unique_cell_types:
