@@ -1,5 +1,31 @@
 import numpy as np
 
+
+def add_noise_to_constant_rows(x, epsilon=1e-15):
+    """Adds noise to rows that are constant to avoid division by zero.
+
+    Args:
+        x: m x n values
+
+    Returns:
+        m x n values
+    """
+    if epsilon is not None:
+        x = np.array(x)
+        if len(x.shape) == 1:
+            x = np.expand_dims(x, axis=0)
+
+        # check which rows are nearly constant
+        is_constant = np.all(np.isclose(x, x[:, 0][:, None]), axis=1)
+
+        # add noise to constant rows
+        if is_constant.any():
+            x[is_constant] += np.random.uniform(
+                -epsilon, epsilon, size=x[is_constant].shape
+            )
+    return x
+
+
 def correlation(x, x_pred, epsilon=0):
     """Slow correlation computation between one x and many x_pred values including
     significance test.

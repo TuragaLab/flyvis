@@ -9,7 +9,7 @@ from flyvision.utils import groundtruth_utils, nodes_edges_utils
 from flyvision.utils.activity_utils import StimulusResponseIndexer
 from flyvision.utils.nodes_edges_utils import CellTypeArray
 from flyvision.plots import plt_utils
-from flyvision.plots.plots import violin_groups, traces
+from flyvision.plots.plots import violin_groups, traces, grouped_traces
 from flyvision.analysis.simple_correlation import correlation
 
 
@@ -95,42 +95,58 @@ class FlashResponseView(StimulusResponseIndexer):
         on_peak = r_on.peak()
         off_peak = r_off.peak()
         fri = on_peak - off_peak
-        fri /= on_peak + off_peak + 1e-16
+        fri /= on_peak + off_peak + np.array([1e-16])
 
         return fri
     
-    def plot_traces(self, cell_type, time=None, **stim_kwargs):
+    def plot_traces(self, cell_type, time=None, plot_kwargs=dict(), **stim_kwargs):
         if self.responses.shape[self.temporal_dim] != len(self.time):
             raise ValueError(
                 "Cannot plot. Previous operations have mis-aligned the FlashResponseView "
                 "response data and timestamps."
             )
         cell_trace = self.cell_type(cell_type).where_stim_args(**stim_kwargs).view(time=time)
+        time_shape = cell_trace.shape[self.temporal_dim]
+        stim_shape = cell_trace.shape[self.stim_sample_dim]
         response_arr = cell_trace.responses[:]
         label_cols = [col for col in cell_trace.arg_df.columns if cell_trace.arg_df[col].nunique() > 1]
-        for dim, size in enumerate(response_arr.shape):
-            if dim not in [cell_trace.stim_sample_dim, cell_trace.temporal_dim]:
-                if size > 1:
-                    raise ValueError("Plotting multiple traces per stimulus sample currently not supported")
-        response_arr = response_arr.squeeze()
-        if cell_trace.stim_sample_dim > cell_trace.temporal_dim:
-            response_arr = response_arr.T
-        return traces(
-            response_arr,
-            cell_trace.time,
-            legend=tuple([", ".join([
-                f"{col}={cell_trace.arg_df[col].iloc[i].item()}" 
-                for col in label_cols
-            ]) for i in range(len(cell_trace.arg_df))]),
-            ylabel="activity (a.u.)",
-            xlabel="time (s)",
-            title=f"{cell_type} flash response",
-        )
+        response_arr = response_arr.transpose(
+            cell_trace.stim_sample_dim,
+            *tuple(set(range(response_arr.ndim)) - {cell_trace.stim_sample_dim, cell_trace.temporal_dim}),
+            cell_trace.temporal_dim,
+        ).reshape(stim_shape, -1, time_shape)
+        if response_arr.shape[1] > 1:
+            return grouped_traces(
+                response_arr,
+                cell_trace.time,
+                linewidth=0.5,
+                legend=tuple([", ".join([
+                    f"{col}={cell_trace.arg_df[col].iloc[i].item()}" 
+                    for col in label_cols
+                ]) for i in range(len(cell_trace.arg_df))]),
+                ylabel="activity (a.u.)",
+                xlabel="time (s)",
+                title=f"{cell_type} flash response",
+                **plot_kwargs,
+            )
+        else:
+            return traces(
+                response_arr[:, 0, :],
+                cell_trace.time,
+                legend=tuple([", ".join([
+                    f"{col}={cell_trace.arg_df[col].iloc[i].item()}" 
+                    for col in label_cols
+                ]) for i in range(len(cell_trace.arg_df))]),
+                ylabel="activity (a.u.)",
+                xlabel="time (s)",
+                title=f"{cell_type} flash response",
+                **plot_kwargs,
+            )
 
 
 # -- correlation ------------
 
-def correlation_to_known(fris, cell_types):
+def fri_correlation_to_known(fris, cell_types):
     known_preferred_contrasts = {k: v for k, v in groundtruth_utils.polarity.items() if v != 0}
     known_cell_types = list(known_preferred_contrasts.keys())
     groundtruth = list(known_preferred_contrasts.values())

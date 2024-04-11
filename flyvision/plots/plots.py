@@ -9,6 +9,7 @@ import logging
 import torch
 
 from matplotlib import colormaps as cm
+from matplotlib.lines import Line2D
 from matplotlib.patches import RegularPolygon
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
@@ -988,6 +989,88 @@ def traces(
 
     return fig, ax, trace, label_text
 
+
+def grouped_traces(
+    trace,
+    x=None,
+    legend=(),
+    color=None,
+    linewidth=1,
+    ax=None,
+    fig=None,
+    title="",
+    highlight_mean=False,
+    figsize=(7, 4),
+    fontsize=10,
+    ylim=None,
+    ylabel="",
+    xlabel="",
+    legend_frame_alpha=0,
+    **kwargs,
+):
+    """Line plot with 
+    """
+    assert len(trace.shape) == 3, "Traces provided to `grouped_traces` must be 3d"
+
+    fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax=ax, fig=fig)
+
+    shape = trace.shape # (#groups, #traces, #points)
+
+    legends = legend if len(legend) == shape[0] else ("",) * shape[0]
+
+    if color is None:
+        color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        colors = [color_cycle[i % len(color_cycle)] for i in range(shape[0])]
+    elif len(np.shape(color)) <= 1:
+        colors = (color,) * shape[0]
+    elif len(color) == shape[0]:
+        colors = color
+    else:
+        raise ValueError(
+            "`color` should be a single value, an iterable of length "
+            f"`traces.shape[0]`, or None. Got {color}."
+        )
+
+    for i, _trace in enumerate(trace):
+        fig, ax = traces(
+            trace=_trace,
+            x=x,
+            legend=(),
+            color=[colors[i]],
+            linewidth=linewidth,
+            ax=ax,
+            fig=fig,
+            title=title,
+            highlight_mean=highlight_mean,
+            figsize=figsize,
+            fontsize=fontsize,
+            ylim=ylim,
+            ylabel=ylabel,
+            xlabel=xlabel,
+            legend_frame_alpha=legend_frame_alpha,
+            **kwargs,
+        )
+    if legend:
+        custom_lines = [
+            Line2D([0], [0], color=c)
+            for c in colors
+        ]
+        ax.legend(
+            custom_lines,
+            legends,
+            fontsize=fontsize,
+            edgecolor="white",
+            **dict(
+                labelspacing=0.0,
+                framealpha=legend_frame_alpha,
+                borderaxespad=0.1,
+                borderpad=0.1,
+                handlelength=1,
+                handletextpad=0.3,
+            ),
+        )
+    return fig, ax
+    
 
 # -- violins ----
 

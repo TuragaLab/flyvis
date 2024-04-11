@@ -6,9 +6,10 @@ from numpy.typing import NDArray
 import torch
 
 from flyvision.connectome import ConnectomeDir
+from flyvision.utils import groundtruth_utils
 
 
-def oder_node_type_list(
+def order_node_type_list(
     node_types: List,
     groups: List = [
         r"R\d",
@@ -81,6 +82,18 @@ def oder_node_type_list(
         )
 
     return nodes, index
+
+
+def nodes_list_sorting_on_off_unknown(cell_types=None):
+    value = {1: 1, -1: 2, 0: 3}
+    preferred_contrasts = groundtruth_utils.polarity
+    cell_types = list(preferred_contrasts) if cell_types is None else cell_types
+    preferred_contrasts = {
+        k: value[v] for k, v in preferred_contrasts.items() if k in cell_types
+    }
+    preferred_contrasts = dict(sorted(preferred_contrasts.items(), key=lambda k: k[1]))
+    nodes_list = list(preferred_contrasts.keys())
+    return nodes_list
 
 
 class NodeIndexer(dict):
