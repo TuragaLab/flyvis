@@ -1403,7 +1403,7 @@ def display_pvalues(
         )
         bars.append(y)
 
-    ax.set_ylim(*plt_utils.get_lims([bars, ylim], 0.01))
+    ax.set_ylim(*get_lims([bars, ylim], 0.01))
 
 
 # colormap from
