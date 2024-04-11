@@ -1210,6 +1210,202 @@ def trim_axis(ax, xaxis=True, yaxis=True):
             ax.set_yticks(new_minor_ticks, minor=True)
 
 
+def display_significance_value(
+    ax,
+    pvalue,
+    y,
+    x0=None,
+    x1=None,
+    ticklabel=None,
+    bar_width=0.7,
+    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
+    fontsize=8,
+    annotate_insignificant="",
+    append_tick=False,
+    show_bar=False,
+    other_ax=None,
+    bar_height_ylim_ratio=0.01,
+    linewidth=0.5,
+    annotate_pthresholds=True,
+    loc_pthresh_annotation=(0.1, 0.1),
+    location="above",
+    asterisk_offset=None,
+):
+    """Display a significance value annotation along x at height y.
+
+    Args:
+        ax (Axis)
+        pvalue (float)
+        y (float)
+        x0 (float, optional): left edge of bar if show_bar is True.
+        x1 (float, optional): right edge of bar if show_bar is True.
+        ticklabel (str, optional): ticklabel to
+        bar_width (float, optional)
+        pthresholds (Dict[float, str]): annotations
+        xpvalues Dict[str, float]: x-ticklabel to pvalue mapping
+        y: height to put text
+        pthreshold: different thresholds for different annotations
+
+    """
+
+    if x0 is None and x1 is None and ticklabel is None and bar_width is None:
+        raise ValueError("specify (x0, x1) or (ticklabel, bar_width)")
+
+    if show_bar and ((x0 is None or x1 is None) and bar_width is None):
+        raise ValueError("need to specify width of bar or specify x0 and x1")
+
+    if location == "above":
+        va = "bottom"
+        asterisk_offset = asterisk_offset or -0.1
+    elif location == "below":
+        va = "top"
+        asterisk_offset = asterisk_offset or -0.05
+    else:
+        raise ValueError(f"location {location}")
+
+    if x0 is None and x1 is None and ticklabel is not None:
+        ticklabels = ax.get_xticklabels()
+        if not ticklabels:
+            ticklabels = other_ax.get_xticklabels()
+        if not ticklabels:
+            raise AssertionError("no ticklables found")
+        # get the tick to get the x position for the annotation
+        tick = [tick for tick in ticklabels if tick.get_text() == ticklabel][0]
+        x, _ = tick.get_position()
+        x0 = x - bar_width / 2
+        x1 = x + bar_width / 2
+
+    text = ""
+    any_thresh = False
+    less = []
+    for thresh, symbol in pthresholds.items():
+        if pvalue < thresh:
+            less.append(thresh)
+            any_thresh = True
+
+    if (any_thresh or annotate_insignificant) and show_bar:
+        bar_height = (ax.get_ylim()[1] - ax.get_ylim()[0]) * bar_height_ylim_ratio
+        bar_x = [x0, x0, x1, x1]
+        if location == "above":
+            bar_y = [y, y + bar_height, y + bar_height, y]
+            y = y + bar_height
+            mid = ((x0 + x1) / 2, y)
+        elif location == "below":
+            bar_y = [y, y - bar_height, y - bar_height, y]
+            y = y - bar_height
+            mid = ((x0 + x1) / 2, y)
+        ax.plot(bar_x, bar_y, c="k", lw=linewidth)
+        x = mid[0]
+
+    if any_thresh:
+        text = pthresholds[min(less)]
+        if ticklabel is not None and append_tick:
+            tick.set_text(f"{tick.get_text()}$^{{{text}}}$")
+            ax.xaxis.set_ticklabels(ax.xaxis.get_ticklabels())
+        else:
+            ax.annotate(
+                text,
+                (x, y + asterisk_offset),
+                fontsize=fontsize,
+                ha="center",
+                va=va,
+            )
+
+    elif annotate_insignificant:
+        if ticklabel is not None and append_tick:
+            tick.set_text(f"{tick.get_text()}$^{{{annotate_insignificant}}}$")
+            ax.xaxis.set_ticklabels(ax.xaxis.get_ticklabels())
+        else:
+            ax.annotate(
+                annotate_insignificant,
+                (x, y),
+                fontsize=fontsize,
+                ha="center",
+                va=va,
+            )
+
+    if annotate_pthresholds:
+        pthreshold_annotation = ""
+        for i, (thresh, symbol) in enumerate(pthresholds.items()):
+            pthreshold_annotation += f"{symbol}p<{thresh:.2f}"
+            if i != len(pthresholds) - 1:
+                pthreshold_annotation += "\n"
+
+        ax.annotate(
+            pthreshold_annotation,
+            loc_pthresh_annotation,
+            xycoords="axes fraction",
+            fontsize=fontsize,
+            va="bottom",
+            ha="left",
+        )
+
+def display_pvalues(
+    ax,
+    pvalues: dict[str, float],
+    ticklabels: list[str],
+    data: np.ndarray,
+    location="above",
+    bar_width=0.7,
+    show_bar=True,
+    bar_height_ylim_ratio=0.01,
+    fontsize=6,
+    annotate_insignificant="ns",
+    loc_pthresh_annotation=(0.01, 0.01),
+    append_tick=False,
+    data_relative_offset=0.05,
+    asterisk_offset=0,
+    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
+):
+    """Annotate all pvalues from Dict[xticklabel, pvalue].
+
+    data is Array[random variables, ...]
+    """
+
+    for key in pvalues:
+        if key not in ticklabels:
+            raise ValueError(f"pvalue key {key} is not a ticklabel")
+
+    offset = data_relative_offset * np.abs(data.max() - data.min())
+
+    ylim = ax.get_ylim()
+    bars = []
+    for ticklabel, pvalue in pvalues.items():
+        index = [
+            i for i, _ticklabel in enumerate(ticklabels) if _ticklabel == ticklabel
+        ][0]
+        _values = data[index]
+
+        if location == "above":
+            _max = _values.max()
+            y = min(_max + offset, ylim[1])
+        elif location == "below":
+            _min = _values.min()
+            y = max(_min - offset, ylim[0])
+
+        # print(y)
+
+        display_significance_value(
+            ax,
+            pvalue,
+            y=y,
+            ticklabel=str(ticklabel),
+            bar_width=bar_width,
+            show_bar=show_bar,
+            bar_height_ylim_ratio=bar_height_ylim_ratio,
+            fontsize=fontsize,
+            annotate_insignificant=annotate_insignificant,
+            loc_pthresh_annotation=loc_pthresh_annotation,
+            append_tick=append_tick,
+            location=location,
+            asterisk_offset=asterisk_offset,
+            pthresholds=pthresholds,
+        )
+        bars.append(y)
+
+    ax.set_ylim(*plt_utils.get_lims([bars, ylim], 0.01))
+
+
 # colormap from
 # https://stackoverflow.com/questions/23712207/cyclic-colormap-without-visual-distortions-for-use-in-phase-angle-plots
 cm_uniform_2d = np.array(
