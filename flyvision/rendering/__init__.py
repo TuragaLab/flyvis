@@ -1,3 +1,3 @@
 """Rendering module."""
 
-from flyvision.rendering.eye import BoxEye
+from flyvision.rendering.eye import BoxEye, HexEye

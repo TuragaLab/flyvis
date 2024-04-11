@@ -1,4 +1,5 @@
 from typing import Iterable, Tuple
+from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
@@ -8,6 +9,7 @@ import logging
 import torch
 
 from matplotlib import colormaps as cm
+from matplotlib.lines import Line2D
 from matplotlib.patches import RegularPolygon
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
@@ -986,3 +988,323 @@ def traces(
         plt_utils.rm_spines(ax, ("left", "bottom"), rm_yticks=True, rm_xticks=True)
 
     return fig, ax, trace, label_text
+
+
+def grouped_traces(
+    trace,
+    x=None,
+    legend=(),
+    color=None,
+    linewidth=1,
+    ax=None,
+    fig=None,
+    title="",
+    highlight_mean=False,
+    figsize=(7, 4),
+    fontsize=10,
+    ylim=None,
+    ylabel="",
+    xlabel="",
+    legend_frame_alpha=0,
+    **kwargs,
+):
+    """Line plot with 
+    """
+    assert len(trace.shape) == 3, "Traces provided to `grouped_traces` must be 3d"
+
+    fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax=ax, fig=fig)
+
+    shape = trace.shape # (#groups, #traces, #points)
+
+    legends = legend if len(legend) == shape[0] else ("",) * shape[0]
+
+    if color is None:
+        color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        colors = [color_cycle[i % len(color_cycle)] for i in range(shape[0])]
+    elif len(np.shape(color)) <= 1:
+        colors = (color,) * shape[0]
+    elif len(color) == shape[0]:
+        colors = color
+    else:
+        raise ValueError(
+            "`color` should be a single value, an iterable of length "
+            f"`traces.shape[0]`, or None. Got {color}."
+        )
+
+    for i, _trace in enumerate(trace):
+        fig, ax, *_ = traces(
+            trace=_trace,
+            x=x,
+            legend=(),
+            color=colors[i],
+            linewidth=linewidth,
+            ax=ax,
+            fig=fig,
+            title=title,
+            highlight_mean=highlight_mean,
+            figsize=figsize,
+            fontsize=fontsize,
+            ylim=ylim,
+            ylabel=ylabel,
+            xlabel=xlabel,
+            legend_frame_alpha=legend_frame_alpha,
+            **kwargs,
+        )
+    if legend:
+        custom_lines = [
+            Line2D([0], [0], color=c)
+            for c in colors
+        ]
+        ax.legend(
+            custom_lines,
+            legends,
+            fontsize=fontsize,
+            edgecolor="white",
+            **dict(
+                labelspacing=0.0,
+                framealpha=legend_frame_alpha,
+                borderaxespad=0.1,
+                borderpad=0.1,
+                handlelength=1,
+                handletextpad=0.3,
+            ),
+        )
+    return fig, ax
+    
+
+# -- violins ----
+
+
+def get_violin_x_locations(n_groups, n_random_variables, violin_width):
+    violin_locations = np.zeros([n_groups, n_random_variables])
+    # n_variable ticks are n_groups distance apart so that each violins width
+    # is between 0 and 1 in x-space
+    first_violins_location = np.arange(0, n_groups * n_random_variables, n_groups)
+    for j in range(n_groups):
+        # step by violin_width along x
+        violin_locations[j] = first_violins_location + j * violin_width
+
+    return violin_locations, first_violins_location
+
+@dataclass
+class ViolinData:
+    # fig: Figure
+    # ax: Axis
+    data: np.ndarray
+    locations: np.ndarray
+    colors: np.ndarray
+
+def violin_groups(
+    values,
+    xticklabels=None,
+    pvalues=None,
+    display_pvalues_kwargs={},
+    legend=False,
+    legend_kwargs={},
+    as_bars=False,
+    colors=None,
+    cmap=mpl.colormaps["tab10"],
+    cstart=0,
+    cdist=1,
+    figsize=(10, 1),
+    title="",
+    ylabel=None,
+    ylim=None,
+    rotation=90,
+    width=0.7,
+    fontsize=6,
+    ax=None,
+    fig=None,
+    showmeans=False,
+    showmedians=True,
+    grid=False,
+    scatter=True,
+    scatter_radius=3,
+    scatter_edge_color=None,
+    scatter_edge_width=0.5,
+    violin_alpha=0.5,
+    violin_marker_lw=0.5,
+    violin_marker_color="k",
+    color_by="groups",
+    zorder_mean_median=5,
+    zorder_min_max=5,
+    mean_median_linewidth=0.5,
+    mean_median_color="k",
+    mean_median_bar_length=None,
+    **kwargs,
+):
+    """
+    Args:
+        values: matrix of shape (#random variables, #groups, #samples).
+                random variables are labeled with xticklabels.
+                groups are labeled with legend.
+        xticklabels: #independents labels
+        legend: #groups labels
+        legend_kwargs: cosmetics for the legend, see matplotlib docs.
+        as_bars: switch from violins to bars.
+        scatter: scatter plot of data points on top.
+        cmap: colormap.
+        cdist: color distance between groups, when indexing cmap.
+        ...
+    """
+    fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax, fig)
+    if grid:
+        ax.yaxis.grid(zorder=-100)
+
+    def plot_bar(X, values, color):
+        handle = ax.bar(x=X, width=width, height=np.mean(values), color=color, zorder=1)
+        return handle
+
+    def plot_violin(X, values, color):
+        # breakpoint()
+
+        if isinstance(values, np.ma.core.MaskedArray):
+            values = values[~values.mask]
+
+        parts = ax.violinplot(
+            values,
+            positions=[X],
+            widths=width,
+            showmedians=showmedians,
+            showmeans=showmeans,
+        )
+        # Color the bodies.
+        for pc in parts["bodies"]:
+            pc.set_facecolor(color)
+            # pc.set_edgecolor(color)
+            pc.set_alpha(violin_alpha)
+            pc.set_zorder(0)
+        # Color the lines.
+        parts["cbars"].set_color(violin_marker_color)
+        parts["cbars"].set_linewidth(violin_marker_lw)
+        parts["cbars"].set_zorder(zorder_min_max)
+        parts["cmaxes"].set_color(violin_marker_color)
+        parts["cmaxes"].set_linewidth(violin_marker_lw)
+        parts["cmaxes"].set_zorder(zorder_min_max)
+        parts["cmins"].set_color(violin_marker_color)
+        parts["cmins"].set_linewidth(violin_marker_lw)
+        parts["cmins"].set_zorder(zorder_min_max)
+        if "cmeans" in parts:
+            parts["cmeans"].set_color(mean_median_color)
+            parts["cmeans"].set_linewidth(mean_median_linewidth)
+            parts["cmeans"].set_zorder(zorder_mean_median)
+            if mean_median_bar_length is not None:
+                (_, y0), (_, y1) = parts["cmeans"].get_segments()[0]
+                (x0_vert, _), _ = parts["cbars"].get_segments()[0]
+                parts["cmeans"].set_segments(
+                    [
+                        [
+                            [x0_vert - mean_median_bar_length * width / 2, y0],
+                            [x0_vert + mean_median_bar_length * width / 2, y1],
+                        ]
+                    ]
+                )
+        if "cmedians" in parts:
+            parts["cmedians"].set_color(mean_median_color)
+            parts["cmedians"].set_linewidth(mean_median_linewidth)
+            parts["cmedians"].set_zorder(zorder_mean_median)
+            # parts["cmedians"].set_alpha(0.8)
+            # breakpoint()
+            if mean_median_bar_length is not None:
+                (_, y0), (_, y1) = parts["cmedians"].get_segments()[0]
+                (x0_vert, _), _ = parts["cbars"].get_segments()[0]
+                parts["cmedians"].set_segments(
+                    [
+                        [
+                            [x0_vert - mean_median_bar_length * width / 2, y0],
+                            [x0_vert + mean_median_bar_length * width / 2, y1],
+                        ]
+                    ]
+                )
+        return parts["bodies"][0]
+
+    shape = np.array(values).shape
+    n_random_variables, n_groups = shape[0], shape[1]
+
+    # Create matrix for x position for each bar.
+    violin_locations, first_violins_location = get_violin_x_locations(
+        n_groups, n_random_variables, violin_width=width
+    )
+    X = violin_locations.T
+
+    if colors is None:
+        # Create matrix of colors.
+        if color_by == "groups":
+            C = np.asarray([cmap(cstart + i * cdist) for i in range(n_groups)]).reshape(
+                n_groups, 4
+            )
+        if color_by == "experiments":
+            C = np.asarray(
+                [cmap(cstart + i * cdist) for i in range(n_random_variables)]
+            ).reshape(n_random_variables, 4)
+    elif isinstance(colors, Iterable):
+        if color_by == "groups":
+            if len(colors) == n_groups:
+                C = colors
+            else:
+                raise ValueError
+        if color_by == "experiments":
+            if len(colors) == n_random_variables:
+                C = colors
+            else:
+                raise ValueError
+    else:
+        raise ValueError
+
+    # Plot each violin or bar and optionally scatter.
+    handles = []
+
+    for i in range(n_random_variables):
+        for j in range(n_groups):
+            if color_by == "experiments":
+                _color = C[i]
+            elif color_by == "groups":
+                _color = C[j]
+            else:
+                raise ValueError
+
+            if as_bars:
+                h = plot_bar(X[i, j], values[i, j], _color)
+            else:
+                h = plot_violin(X[i, j], values[i, j], _color)
+            handles.append(h)
+
+            if scatter:
+                lims = plt_utils.get_lims(
+                    (-width / (2 * n_groups), width / (2 * n_groups)), -0.05
+                )
+                xticks = np.ones_like(values[i][j]) * X[i, j]
+                ax.scatter(
+                    xticks + np.random.uniform(*lims, size=len(xticks)),
+                    values[i][j],
+                    facecolor="none",
+                    edgecolor=scatter_edge_color or _color,
+                    s=scatter_radius,
+                    linewidth=scatter_edge_width,
+                    zorder=2,
+                )
+
+    if legend:
+        ax.legend(handles, legend, **legend_kwargs)
+
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+
+    ax.tick_params(axis="both", which="major", labelsize=fontsize)
+
+    if xticklabels is not None:
+        ax.set_xticks(first_violins_location + (n_groups - 1) / 2 * width)
+        ax.set_xticklabels(xticklabels, rotation=rotation)
+
+    try:
+        ax.set_xlim(np.min(X - width), np.max(X + width))
+    except ValueError:
+        pass
+
+    ax.set_ylabel(ylabel or "", fontsize=fontsize)
+    ax.set_title(title, fontsize=fontsize)
+
+    if pvalues is not None:
+        plt_utils.display_pvalues(ax, pvalues, xticklabels, values, **display_pvalues_kwargs)
+
+    return fig, ax, ViolinData(values, X, colors)

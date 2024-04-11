@@ -141,7 +141,7 @@ class ConnectomeDir(Directory):
         self.unique_cell_types = np.string_([n["name"] for n in spec["nodes"]])
         self.input_cell_types = np.string_(spec["input_units"])
         self.output_cell_types = np.string_(spec["output_units"])
-        intermediate_cell_types, _ = nodes_edges_utils.oder_node_type_list(
+        intermediate_cell_types, _ = nodes_edges_utils.order_node_type_list(
             np.array(
                 list(
                     set(self.unique_cell_types)
@@ -435,7 +435,7 @@ class ConnectomeView:
         (
             self.cell_types_sorted,
             self.cell_types_sort_index,
-        ) = nodes_edges_utils.oder_node_type_list(
+        ) = nodes_edges_utils.order_node_type_list(
             self.connectome.unique_cell_types[:].astype(str), groups
         )
 
@@ -750,7 +750,7 @@ class ConnectomeView:
         )
         # to sort alphabetically in case sources is specified
         if sort_alphabetically:
-            sources, _ = nodes_edges_utils.oder_node_type_list(sources)
+            sources, _ = nodes_edges_utils.order_node_type_list(sources)
         sources = sources or list(sorted_sum_of_inputs.keys())
 
         # to derive color range values taking all inputs into account
@@ -881,7 +881,7 @@ class ConnectomeView:
 
         # to sort alphabetically in case sources is specified
         if sort_alphabetically:
-            targets, _ = nodes_edges_utils.oder_node_type_list(targets)
+            targets, _ = nodes_edges_utils.order_node_type_list(targets)
 
         targets = targets or list(sorted_sum_of_outputs.keys())
 
