@@ -1176,6 +1176,40 @@ def scatter_on_violins_with_best(
         )
 
 
+def trim_axis(ax, xaxis=True, yaxis=True):
+    if xaxis:
+        xticks = np.array(ax.get_xticks())
+        minor_xticks = np.array(ax.get_xticks(minor=True))
+        all_ticks = np.sort(np.concatenate((minor_xticks, xticks)))
+        if hasattr(xticks, "size"):
+            firsttick = np.compress(all_ticks >= min(ax.get_xlim()), all_ticks)[0]
+            lasttick = np.compress(all_ticks <= max(ax.get_xlim()), all_ticks)[-1]
+            ax.spines["top"].set_bounds(firsttick, lasttick)
+            ax.spines["bottom"].set_bounds(firsttick, lasttick)
+            new_minor_ticks = minor_xticks.compress(minor_xticks <= lasttick)
+            new_minor_ticks = new_minor_ticks.compress(new_minor_ticks >= firsttick)
+            newticks = xticks.compress(xticks <= lasttick)
+            newticks = newticks.compress(newticks >= firsttick)
+            ax.set_xticks(newticks)
+            ax.set_xticks(new_minor_ticks, minor=True)
+
+    if yaxis:
+        yticks = np.array(ax.get_yticks())
+        minor_yticks = np.array(ax.get_yticks(minor=True))
+        all_ticks = np.sort(np.concatenate((minor_yticks, yticks)))
+        if hasattr(yticks, "size"):
+            firsttick = np.compress(all_ticks >= min(ax.get_ylim()), all_ticks)[0]
+            lasttick = np.compress(all_ticks <= max(ax.get_ylim()), all_ticks)[-1]
+            ax.spines["left"].set_bounds(firsttick, lasttick)
+            ax.spines["right"].set_bounds(firsttick, lasttick)
+            new_minor_ticks = minor_yticks.compress(minor_yticks <= lasttick)
+            new_minor_ticks = new_minor_ticks.compress(new_minor_ticks >= firsttick)
+            newticks = yticks.compress(yticks <= lasttick)
+            newticks = newticks.compress(newticks >= firsttick)
+            ax.set_yticks(newticks)
+            ax.set_yticks(new_minor_ticks, minor=True)
+
+
 # colormap from
 # https://stackoverflow.com/questions/23712207/cyclic-colormap-without-visual-distortions-for-use-in-phase-angle-plots
 cm_uniform_2d = np.array(

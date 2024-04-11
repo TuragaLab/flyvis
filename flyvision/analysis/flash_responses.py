@@ -230,7 +230,6 @@ def plot_fris(
     )
     ax.set_yticks(np.arange(-1.0, 1.5, 0.5))
 
-    plt_utils.patch_type_texts(ax)
     return fig, ax
 
 

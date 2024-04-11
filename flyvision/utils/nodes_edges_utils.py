@@ -84,6 +84,41 @@ def order_node_type_list(
     return nodes, index
 
 
+def get_index_mapping_lists(from_list: List, to_list: List) -> List[int]:
+    """Indices to sort and filter from_list by occurence of items in to_list.
+
+    The indices are useful to sort or filter another list or tensor that
+    is an ordered mapping to items in from_list to the order of items in to_list.
+
+    Simple example:
+    >>> from_list = ["a", "b", "c"]
+    >>> mapping_to_from_list = [1, 2, 3]
+    >>> to_list = ["c", "a", "b"]
+    >>> sort_index = sort_index_mapping_lists(from_list, to_list)
+    >>> [mapping_to_from_list[i] for i in sort_index]
+    >>> [3, 1, 2]
+    """
+    if isinstance(from_list, np.ndarray):
+        from_list = from_list.tolist()
+    if isinstance(to_list, np.ndarray):
+        to_list = to_list.tolist()
+    return [from_list.index(item) for item in to_list]
+
+
+def sort_by_mapping_lists(from_list, to_list, tensor, axis=0):
+    """Sort and filter a tensor along axis that is indexed by from_list
+    by occurences of indices in to_list.
+    """
+    tensor = np.array(tensor)
+    if axis != 0:
+        tensor = np.transpose(tensor, axes=(axis, 0))
+    sort_index = get_index_mapping_lists(from_list, to_list)
+    tensor = np.array([tensor[i] for i in sort_index])
+    if axis != 0:
+        tensor = np.transpose(tensor, axes=(axis, 0))
+    return tensor
+
+
 def nodes_list_sorting_on_off_unknown(cell_types=None):
     value = {1: 1, -1: 2, 0: 3}
     preferred_contrasts = groundtruth_utils.polarity

@@ -67,7 +67,7 @@ polarity = {
     "TmY13": 0,
     "TmY14": 0,
     "TmY15": 0,
-    "Tmy18": 0,
+    "TmY18": 0,
 }
 
 on_pathway = [
@@ -164,7 +164,7 @@ layout = {
     "TmY13": "output",
     "TmY14": "output",
     "TmY15": "output",
-    "Tmy18": "output",
+    "TmY18": "output",
 }
 
 preferred_directions = {
@@ -243,7 +243,7 @@ on_direction_selective = {
     "TmY13": 0,
     "TmY14": 0,
     "TmY15": 0,
-    "Tmy18": 0,
+    "TmY18": 0,
 }
 
 off_direction_selective = {
@@ -311,7 +311,7 @@ off_direction_selective = {
     "TmY13": 0,
     "TmY14": 0,
     "TmY15": 0,
-    "Tmy18": 0,
+    "TmY18": 0,
 }
 
 not_direction_selective = {
@@ -379,7 +379,7 @@ not_direction_selective = {
     "TmY13": 0,
     "TmY14": 0,
     "TmY15": 0,
-    "Tmy18": 0,
+    "TmY18": 0,
 }
 
 
@@ -448,7 +448,7 @@ asymmetric_input = {
     "TmY13": 0,
     "TmY14": 1,
     "TmY15": 1,
-    "Tmy18": 1,
+    "TmY18": 1,
 }
 unsufficient_data = [
     "Tm5a",

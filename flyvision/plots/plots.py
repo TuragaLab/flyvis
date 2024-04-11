@@ -1032,11 +1032,11 @@ def grouped_traces(
         )
 
     for i, _trace in enumerate(trace):
-        fig, ax = traces(
+        fig, ax, *_ = traces(
             trace=_trace,
             x=x,
             legend=(),
-            color=[colors[i]],
+            color=colors[i],
             linewidth=linewidth,
             ax=ax,
             fig=fig,
