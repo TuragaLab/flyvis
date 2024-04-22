@@ -14,7 +14,7 @@ import logging
 logging = logger = logging.getLogger(__name__)
 
 
-class TrainerProtocol(Protocol):
+class SolverProtocol(Protocol):
     name: str
     config: Optional[Union[dict, Namespace]]
 
@@ -42,7 +42,7 @@ class TrainerProtocol(Protocol):
     def recover(self) -> None: ...
 
 
-class MultiTaskTrainer:
+class MultiTaskSolver:
     tasks: Dict[str, Task]
 
     def __init__(
@@ -67,7 +67,7 @@ class MultiTaskTrainer:
         self._last_chkpt_ind = -1
         self._curr_chkpt_ind = -1
 
-        self._initialized = self._init_trainer(
+        self._initialized = self._init_solver(
             init_network=init_network,
             init_decoder=init_decoder,
             init_task=init_task,
@@ -76,10 +76,10 @@ class MultiTaskTrainer:
             init_scheduler=init_scheduler,
         )
 
-        logging.info("Initialized trainer.")
+        logging.info("Initialized solver.")
         logging.info(repr(self.config))
 
-    def _init_trainer(
+    def _init_solver(
         self,
         init_network=False,
         init_decoder=False,
@@ -88,7 +88,7 @@ class MultiTaskTrainer:
         init_penalties=False,
         init_scheduler=False,
     ):
-        """Initialize trainer."""
+        """Initialize solver."""
         initialized = []
 
         if init_network:
@@ -125,7 +125,7 @@ class MultiTaskTrainer:
         if init_scheduler:
             self.scheduler = HyperParamScheduler(
                 self.config.scheduler,
-                self.n_iters,
+                self.config.task.n_iters,
                 self.network,
                 self.task,
                 self.optimizer,
@@ -149,7 +149,7 @@ class MultiTaskTrainer:
                 params.append(
                     dict(
                         params=[w for w in nn_module.parameters()],
-                        **config.decoder,
+                        **config.optim_dec,
                     )
                 )
             return params
@@ -160,7 +160,7 @@ class MultiTaskTrainer:
         optim = torch.optim.__dict__[optim_type]
         logging.info(f"Initializing {optim.__name__} for network and decoder.")
 
-        param_groups = [dict(params=network.parameters(), **config.network)]
+        param_groups = [dict(params=network.parameters(), **config.optim_net)]
 
         if decoder:
             param_groups.extend(decoder_parameters(decoder))
@@ -191,7 +191,7 @@ class Penalty:
     """Penalties on specific parameters.
 
     Args:
-        trainer (MultiTaskTrainer): the trainer instance.
+        solver (MultiTaskSolver): the solver instance.
 
     Example configurations passed to the network object:
         # Example 1: Penalize the resting potential of all cell types.
@@ -219,7 +219,7 @@ class Penalty:
             )
     """
 
-    trainer: object
+    solver: object
     central_nodes_index: np.ndarray
     parameter_config: Namespace
     activity_penalty: float
@@ -229,7 +229,7 @@ class Penalty:
     activity_optim: torch.optim.Optimizer = None
     optimizers: Dict[str, torch.optim.Optimizer]
     rectifier: Rectifier
-    default_optim: torch.optim.SGD
+    default_optim: torch.optim.Optimizer = torch.optim.SGD
 
     def __init__(self, penalty: Namespace, network: Network):
         self.config = penalty
@@ -283,20 +283,14 @@ class Penalty:
 
         if self.param_list_func_pen:
             self.parameter_optim = self.default_optim(
-                (
-                    getattr(self.trainer.network, param)
-                    for param in self.param_list_func_pen
-                ),
+                (getattr(self.network, param) for param in self.param_list_func_pen),
                 lr=1e-3,
             )  # LR is overwritten by scheduler.
             self.optimizers.update(dict(parameter_optim=self.parameter_optim))
 
         if self.param_list_act_pen:
             self.activity_optim = self.default_optim(
-                (
-                    getattr(self.trainer.network, param)
-                    for param in self.param_list_act_pen
-                ),
+                (getattr(self.network, param) for param in self.param_list_act_pen),
                 lr=1e-3,
             )  # LR is overwritten by scheduler.
             self.optimizers.update(dict(activity_optim=self.activity_optim))
