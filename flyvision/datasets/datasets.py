@@ -1,4 +1,5 @@
 """Base classes for all dynamic stimuli datasets."""
+
 from typing import Iterable, Any, Union, Dict, List, Callable
 from contextlib import contextmanager
 import abc
@@ -166,9 +167,11 @@ class StimulusDataset(SequenceDataset, metaclass=abc.ABCMeta):
             _query_start = "{}=={}"
             _query_append = "& {}=={}"
             return "".join(
-                _query_start.format(key, value)
-                if i == 0
-                else _query_append.format(key, value)
+                (
+                    _query_start.format(key, value)
+                    if i == 0
+                    else _query_append.format(key, value)
+                )
                 for i, (key, value) in enumerate(args.items())
             )
 
@@ -239,7 +242,11 @@ class MultiTaskDataset(SequenceDataset):
         self, y: torch.Tensor, y_est: torch.Tensor, task: str, **kwargs
     ) -> torch.Tensor:
         """Returns the task loss multiplied with the task weight."""
-        return self.task_weights[task] * self.losses[task](y, y_est, **kwargs)
+        return (
+            self.task_weights[task]
+            * self.losses[task](y, y_est, **kwargs)
+            / self.task_weights_sum
+        )
 
     def _original_length(self) -> int:
         """Override to return the original length of the dataset, e.g. in case

@@ -4,6 +4,7 @@ train: ???
 resume: ???
 delete_if_exists: true
 overfit: false
+mem_friendly: false
 
 defaults:
   - _self_

@@ -27,6 +27,17 @@ class Task:
         fold=1,
         seed=0,
     ):
+
+        logging.info("Initializing task with configurations:")
+        logging.info(f"dataset: {dataset}")
+        logging.info(f"decoder: {decoder}")
+        logging.info(f"loss: {loss}")
+        logging.info(f"batch_size: {batch_size}")
+        logging.info(f"n_iters: {n_iters}")
+        logging.info(f"n_folds: {n_folds}")
+        logging.info(f"fold: {fold}")
+        logging.info(f"seed: {seed}")
+
         self.batch_size = batch_size
         self.n_iters = n_iters
         self.n_folds = n_folds
@@ -66,8 +77,24 @@ class Task:
             f"Initialized dataloader with validation sequence indices \n {self.val_seq_index}"
         )
 
+        # Initialize overfitting loader.
+        self.overfit_data = DataLoader(self.dataset, sampler=IndexSampler([0]))
+
     def init_decoder(self, connectome):
         return _init_decoder(self.decoder, connectome)
+
+
+class IndexSampler(sampler.Sampler):
+    """Samples the provided indices in sequence."""
+
+    def __init__(self, indices):
+        self.indices = indices
+
+    def __iter__(self):
+        return (self.indices[i] for i in range(len(self.indices)))
+
+    def __len__(self):
+        return len(self.indices)
 
 
 def _init_decoder(
