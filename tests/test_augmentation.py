@@ -190,15 +190,17 @@ def test_random_crop():
 
 def test_resample():
     resample = Interpolate(24, 50, mode="nearest-exact")
-    sequence = torch.arange(10)
-    resampled = resample(sequence)
+    sequence = torch.arange(10)[None, None]
+    resampled = resample(sequence, dim=2).flatten().tolist()
     assert np.allclose(
-        resampled.flatten().tolist(),
+        resampled,
         [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9],
     )
     assert np.allclose(
-        resampled.flatten().tolist(),
-        sequence[resample.piecewise_constant_indices(sequence)].tolist(),
+        resampled,
+        sequence.flatten()[
+            resample.piecewise_constant_indices(len(sequence.flatten()))
+        ].tolist(),
     )
     assert len(resampled) == math.ceil(10 * 50 / 24)
     resample.augment = False

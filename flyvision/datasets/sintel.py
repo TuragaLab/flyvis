@@ -335,7 +335,6 @@ class MultiTaskSintel(MultiTaskDataset):
     framerate: int = 24
     dt: float = 1 / 50
     n_sequences: int = 0
-    augment: bool = True
     t_pre: float = 0.0
     t_post: float = 0.0
     tasks: List[str] = []
@@ -406,7 +405,6 @@ class MultiTaskSintel(MultiTaskDataset):
         self.vertical_splits = vertical_splits
         self.center_crop_fraction = center_crop_fraction
 
-        self.augment = augment
         self.p_flip = p_flip
         self.p_rot = p_rot
         self.contrast_std = contrast_std
@@ -415,7 +413,10 @@ class MultiTaskSintel(MultiTaskDataset):
         self.gamma_std = gamma_std
         self.random_temporal_crop = random_temporal_crop
         self.flip_axes = flip_axes
-        self._initialized_augmentation = False
+        # keep the order of the next to lines
+        self._augmentations_are_initialized = False
+        self.augment = augment
+
         self.init_augmentation()
         self.fix_augmentation_params = False
 
@@ -529,7 +530,7 @@ class MultiTaskSintel(MultiTaskDataset):
             mode="linear",
         )
         self.gamma_correct = GammaCorrection(1, self.gamma_std)
-        self._initialized_augmentation = True
+        self._augmentations_are_initialized = True
 
     def set_augmentation_params(
         self,
@@ -558,11 +559,10 @@ class MultiTaskSintel(MultiTaskDataset):
 
         Note: usually invoked with indexing of self, e.g. self[0:10].
         """
-        with self.augmentation(self.augment):
-            return self.apply_augmentation(self.cached_sequences[key])
+        return self.apply_augmentation(self.cached_sequences[key])
 
     @contextmanager
-    def augmentation(self, abool: bool) -> None:
+    def augmentation(self, abool: bool):
         """Contextmanager to turn augmentation on or off in a code block.
 
         Example usage:
@@ -581,29 +581,34 @@ class MultiTaskSintel(MultiTaskDataset):
             "gamma_correct",
         ]
         states = {key: getattr(self, key).augment for key in augmentations}
+        _augment = self.augment
         try:
-            if abool:
-                self.temporal_crop.random = self.random_temporal_crop
-                self.jitter.augment = True
-                self.rotate.augment = True
-                self.flip.augment = True
-                self.noise.augment = True
-                # self.piecewise_resample.augment = True
-                # self.linear_interpolate.augment = True
-                self.gamma_correct.augment = True
-            else:
-                self.temporal_crop.random = False
-                self.jitter.augment = False
-                self.rotate.augment = False
-                self.flip.augment = False
-                self.noise.augment = False
-                # self.piecewise_resample.augment = True
-                # self.linear_interpolate.augment = True
-                self.gamma_correct.augment = False
+            self.augment = abool
             yield
         finally:
+            self.augment = _augment
             for key in augmentations:
                 setattr(getattr(self, key), "augment", states[key])
+
+    @property
+    def augment(self):
+        return self._augment
+
+    @augment.setter
+    def augment(self, value):
+        self._augment = value
+        if not self._augmentations_are_initialized:
+            return
+        # note: random_temporal_crop can override augment=True
+        self.temporal_crop.random = self.random_temporal_crop if value else False
+        self.jitter.augment = value
+        self.rotate.augment = value
+        self.flip.augment = value
+        self.noise.augment = value
+        # note: these two are not affected by augment
+        self.piecewise_resample.augment = self.resampling
+        self.linear_interpolate.augment = self.interpolate
+        self.gamma_correct.augment = value
 
     def apply_augmentation(
         self,
@@ -627,10 +632,6 @@ class MultiTaskSintel(MultiTaskDataset):
             start_frame=None,
             total_sequence_length=data["lum"].shape[0],
         )
-        if not self.resampling:
-            self.piecewise_resample.augment = False
-        if not self.interpolate:
-            self.linear_interpolate.augment = False
 
         def transform_lum(lum):
             return self.piecewise_resample(

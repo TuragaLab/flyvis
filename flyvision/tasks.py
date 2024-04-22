@@ -28,16 +28,6 @@ class Task:
         seed=0,
     ):
 
-        logging.info("Initializing task with configurations:")
-        logging.info(f"dataset: {dataset}")
-        logging.info(f"decoder: {decoder}")
-        logging.info(f"loss: {loss}")
-        logging.info(f"batch_size: {batch_size}")
-        logging.info(f"n_iters: {n_iters}")
-        logging.info(f"n_folds: {n_folds}")
-        logging.info(f"fold: {fold}")
-        logging.info(f"seed: {seed}")
-
         self.batch_size = batch_size
         self.n_iters = n_iters
         self.n_folds = n_folds
@@ -64,6 +54,12 @@ class Task:
             sampler=sampler.SubsetRandomSampler(self.train_seq_index),
             drop_last=True,
         )
+        self.train_batch = DataLoader(
+            self.dataset,
+            batch_size=batch_size,
+            sampler=IndexSampler(self.train_seq_index[:batch_size]),
+            drop_last=False,
+        )
         logging.info(
             f"Initialized dataloader with training sequence indices \n {self.train_seq_index}"
         )
@@ -72,6 +68,11 @@ class Task:
             self.dataset,
             batch_size=1,
             sampler=IndexSampler(self.val_seq_index),
+        )
+        self.val_batch = DataLoader(
+            self.dataset,
+            batch_size=batch_size,
+            sampler=IndexSampler(self.val_seq_index[:batch_size]),
         )
         logging.info(
             f"Initialized dataloader with validation sequence indices \n {self.val_seq_index}"

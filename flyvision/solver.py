@@ -1,5 +1,6 @@
 import time
 from typing import Protocol, Union, Optional, Dict
+from toolz import valmap
 
 import numpy as np
 from torch import nn
@@ -25,8 +26,6 @@ class SolverProtocol(Protocol):
         self, name: str = "", config: Optional[Union[dict, Namespace]] = None
     ) -> None: ...
 
-    # placeholders for the `task` and `conditions` properties for illustration purposes
-    # actual type hints should be replaced with the correct types
     dir: Directory = None
     network: Network = None
     decoder: Dict[str, nn.Module] = None
@@ -41,7 +40,6 @@ class SolverProtocol(Protocol):
 
     def test(self) -> None: ...
 
-    # hint at other methods mentioned like 'recover'
     def recover(self) -> None: ...
 
 
@@ -102,15 +100,6 @@ class MultiTaskSolver:
 
         if init_task:
             self.task = Task(**self.config.task)
-            # self.task_keys = self.task.dataset.tasks
-            # self.task_weights = self.task.dataset.task_weights
-            # self.task.n_iters = self.config.task.n_iters
-            # if not (self.dir.path / "n_train_samples.h5").exists():
-            #     self.dir.n_train_samples = len(self.task.train_data)
-            # if not (self.dir.path / "train_data_index.h5").exists():
-            #     self.dir.train_data_index = self.task.train_seq_index
-            # if not (self.dir.path / "val_data_index.h5").exists():
-            #     self.dir.val_data_index = self.task.val_seq_index
             initialized.append("task")
 
             if init_decoder:
@@ -174,19 +163,21 @@ class MultiTaskSolver:
     def train(self, overfit=False, initial_checkpoint=True) -> None:
         """Trains the network by backprop through time.
         Args:
-            overfit (bool): If true the dataloader is substituted by a
-                single-sequence loader and augmentation is turned off. Defaults to False.
+            overfit (bool): If true, the dataloader is substituted by a
+                single-sequence loader and augmentation is turned off. Defaults to
+                False.
             initial_checkpoint (bool): to disable the initial checkpoint when debugging.
 
         Raises:
-            OverflowError: raised if the activity or loss reports Nan values for more than 100 iterations.
+            OverflowError: raised if the activity or loss reports Nan values for more
+            than 100 iterations.
 
         Stores:
-            dir.loss
-            dir.loss_<task>
-            dir.activity
-            dir.activity_min
-            dir.activity_max
+            dir / loss.h5
+            dir / loss_<task>.h5
+            dir / activity.h5
+            dir / activity_min.h5
+            dir / activity_max.h5
         """
 
         # return if iterations have already been trained.
@@ -274,9 +265,7 @@ class MultiTaskSolver:
                             # can either come from the decoder instance or from
                             # the data batch from the dataset
                             loss_kwargs = {
-                                **getattr(
-                                    self.decoder[task], "loss_kwargs", {}
-                                ),  # learnable loss kwargs such as std are part of the decoding.
+                                **getattr(self.decoder[task], "loss_kwargs", {}),
                                 **data.get("loss_kwargs", {}),
                             }
 
@@ -348,11 +337,212 @@ class MultiTaskSolver:
         self.dir.time_trained = time_elapsed + time_trained
         logging.info("Finished training.")
 
-    def checkpoint(self) -> None: ...
+    def checkpoint(self):
+        """Creates a checkpoint.
 
-    def test(self) -> None: ...
+        Validates on the validation data calling ~self.test.
+        Validates on a training batch calling ~self.track_batch.
+        Stores a checkpoint of the network, decoder and optimizer parameters using
+        pytorch's pickle function.
 
-    def recover(self) -> None: ...
+        Stores:
+            dir / chkpt_index.h5 (List): numerical identifier of the checkpoint.
+            dir / chkpt_iter.h5 (List): iteration at which this checkpoint was recorded.
+            dir / best_chkpt_index.h5 (int): chkpt index at which the val loss is
+            minimal.
+            dir / dt.h5 (float): the current time constant of the dataset.
+            dir / chkpts / chkpt_<chkpt_index> (dict): the state dicts of the network,
+                decoder and optimizer.
+        """
+        self._last_chkpt_ind += 1
+        self._curr_chkpt_ind += 1
+
+        # Tracking of validation loss and training batch loss.
+        logging.info("Test on validation data.")
+        val_loss = self.test(
+            dataloader=self.task.val_data, mode="validation", track_loss=True
+        )
+        logging.info("Test on training data.")
+        _ = self.test(dataloader=self.task.train_data, mode="training", track_loss=True)
+        logging.info("Test on validation batch.")
+        val_loss = self.test(
+            dataloader=self.task.val_batch, mode="validation_batch", track_loss=True
+        )
+        logging.info("Test on training batch.")
+        _ = self.test(
+            dataloader=self.task.train_batch, mode="training_batch", track_loss=True
+        )
+
+        logging.info("Saving state dicts.")
+        # Store state of pytorch modules.
+        nn_state_dict = self.network.state_dict()
+        dec_state_dict = {}
+        if self.decoder:
+            dec_state_dict = valmap(lambda x: x.state_dict(), self.decoder)
+        chkpt = {
+            "network": nn_state_dict,
+            "decoder": dec_state_dict,
+            "optim": self.optimizer.state_dict(),
+            "time": time.ctime(),
+            "val_loss": val_loss,
+            "iteration": self.iteration - 1,
+            "dt": self.task.dataset.dt,
+        }
+        if hasattr(self, "penalty"):
+            chkpt.update(self.penalizer._chkpt())
+        torch.save(chkpt, self.dir.path / f"chkpts/chkpt_{self._last_chkpt_ind:05}")
+
+        # Append chkpt index.
+        self.checkpoints.append(self._last_chkpt_ind)
+        self.dir.extend("chkpt_index", [self._last_chkpt_ind])
+        self.dir.extend("chkpt_iter", [self.iteration - 1])
+        self.dir.dt = self.task.dataset.dt
+
+        # Overwrite best val loss.
+        if val_loss < self._val_loss:
+            self.dir.best_chkpt_index = self._last_chkpt_ind
+            self._val_loss = val_loss
+
+        logging.info("Checkpointed.")
+
+    @torch.no_grad()
+    def test(
+        self,
+        dataloader,
+        subdir="validation",
+        track_loss=False,
+        t_pre=0.25,
+    ):
+        """Tests the network on a given dataloader.
+
+        Args:
+            dataloader (Dataloader): pytorch Dataloader to test on.
+            mode (str): identifier for subdirectory. Defaults to 'validation'.
+            track_loss (bool): whether to store the loss.
+
+        Returns:
+            float: validation loss
+
+        Stores:
+            wrap.<mode>.loss_<task> (List): loss per task averaged over whole dataset.
+            wrap.<mode>.iteration (List): iteration, when this was called.
+            wrap.<mode>.loss (List): average loss over tasks.
+        """
+        self._eval()
+
+        # Update hypterparams.
+        self.scheduler(self.iteration)
+
+        initial_state = self.network.steady_state(
+            t_pre=t_pre,
+            dt=self.task.dataset.dt,
+            batch_size=dataloader.batch_size,
+            value=0.5,
+        )
+        losses = {
+            task: () for task in self.task.dataset.tasks
+        }  # type: Dict[str, Tuple]
+
+        with self.task.dataset.augmentation(False):
+            for i, data in enumerate(dataloader):
+
+                n_samples, n_frames, _, _ = data["lum"].shape
+                self.network.stimulus.zero(n_samples, n_frames)
+
+                self.network.stimulus.add_input(data["lum"])
+
+                with self.network.stimulus.memory_friendly(self.config.mem_friendly):
+                    activity = self.network(
+                        self.network.stimulus(),
+                        self.task.dataset.dt,
+                        state=initial_state,
+                    )
+
+                for task in self.task.dataset.tasks:
+                    y = data[task]
+                    y_est = self.decoder[task](activity)
+
+                    loss_kwargs = {
+                        **getattr(self.decoder[task], "loss_kwargs", {}),
+                        **data.get("loss_kwargs", {}),
+                    }
+                    losses[task] += (
+                        self.task.dataset.loss(y, y_est, task, **loss_kwargs)
+                        .detach()
+                        .cpu()
+                        .item(),
+                    )
+
+        # Store results.
+        if track_loss:
+            summed_loss = 0
+            # Record loss per task.
+            for task in losses:
+                loss = np.mean(losses[task])
+                self.dir[subdir].extend("loss" + "_" + task, [loss])
+                summed_loss += loss
+            # Record average loss.
+            self.dir[subdir].extend("iteration", [self.iteration])
+            val_loss = summed_loss / len(losses)
+            self.dir[subdir].extend("loss", [val_loss])
+
+        self._train()
+
+        return val_loss
+
+    def _train(self):
+        """Calls the train method of all involved modules."""
+        self.network.train()
+        if self.decoder is not None:
+            for decoder in self.decoder.values():
+                decoder.train()
+
+    def _eval(self):
+        """Calls the eval method of all involved modules."""
+        self.network.eval()
+        if self.decoder is not None:
+            for decoder in self.decoder.values():
+                decoder.eval()
+
+    def recover(
+        self,
+        recover_network=True,
+        recover_decoder=True,
+        recover_optimizer=True,
+        recover_penalty=True,
+        strict_recover=True,
+        checkpoint=-1,  # -1 for last, 'best' for best based on validation
+        other=None,
+        force=False,
+        validation_subwrap="validation",  # required if checkpoint == 'best'
+        loss_name="epe",
+    ):
+        """
+        Recovers a solver state.
+        """
+        if checkpoint == "best":
+            loss_name = dvs.analysis.validation_error._check_loss_name(
+                self.wrap[validation_subwrap], loss_name
+            )
+            checkpoint = np.argmin(self.wrap[validation_subwrap][loss_name][:])
+            logging.info(
+                f"Checkpoint {checkpoint} found best performing based on {validation_subwrap}."
+            )
+        # to store them later in the stimulus response configs
+        self._chkpt_validation_subwrap = validation_subwrap
+        self._recovered_chkpt = checkpoint
+        checkpoint = int(checkpoint)
+        _recover_solver(
+            self,
+            checkpoint=checkpoint,
+            recover_network=recover_network,
+            recover_decoder=recover_decoder,
+            recover_optimizer=recover_optimizer,
+            recover_penalty=recover_penalty,
+            strict=strict_recover,
+            other=None,
+            force=force,
+        )
 
 
 class Rectifier:
