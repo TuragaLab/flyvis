@@ -10,4 +10,6 @@ setup(
     install_requires=required,
     author="Janne Lappalainen & Mason McGill",
     description="Library to build and analyze network simulations of the Drosophila visual system.",
+    package_data={"flyvision": ["data/*"]},
+    include_package_data=True,
 )
