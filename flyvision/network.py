@@ -744,20 +744,19 @@ class Network(nn.Module):
                     stimulus.add_input(stim)
 
                     # compute response
-                    with stimulus.memory_friendly():
-                        if grad is False:
-                            return (
-                                stim.cpu().numpy(),
-                                self(stimulus(), dt, state=fade_in_state)
-                                .detach()
-                                .cpu()
-                                .numpy(),
-                            )
-                        elif grad is True:
-                            return (
-                                stim.cpu().numpy(),
-                                self(stimulus(), dt, state=fade_in_state),
-                            )
+                    if grad is False:
+                        return (
+                            stim.cpu().numpy(),
+                            self(stimulus(), dt, state=fade_in_state)
+                            .detach()
+                            .cpu()
+                            .numpy(),
+                        )
+                    elif grad is True:
+                        return (
+                            stim.cpu().numpy(),
+                            self(stimulus(), dt, state=fade_in_state),
+                        )
 
                 yield handle_stim()
 
@@ -824,35 +823,33 @@ class Network(nn.Module):
                     stimulus.add_input(stim.unsqueeze(2))
 
                     # compute response
-                    with stimulus.memory_friendly():
-                        states = self(
-                            stimulus(), dt, state=fade_in_state, as_states=True
+                    states = self(
+                        stimulus(), dt, state=fade_in_state, as_states=True
+                    )
+                    return (
+                        stim.cpu().numpy().squeeze(),
+                        torch.stack(
+                            [s.nodes.activity.cpu() for s in states],
+                            dim=1,
                         )
-                        return (
-                            stim.cpu().numpy().squeeze(),
-                            torch.stack(
-                                [s.nodes.activity.cpu() for s in states],
-                                dim=1,
-                            )
-                            .numpy()
-                            .squeeze(),
-                            torch.stack(
-                                [
-                                    self.dynamics.currents(s, params).cpu()
-                                    for s in states
-                                ],
-                                dim=1,
-                            )
-                            .numpy()
-                            .squeeze(),
+                        .numpy()
+                        .squeeze(),
+                        torch.stack(
+                            [
+                                self.dynamics.currents(s, params).cpu()
+                                for s in states
+                            ],
+                            dim=1,
                         )
+                        .numpy()
+                        .squeeze(),
+                    )
 
                 yield handle_stim()
 
 
 class NetworkDir(Directory):
     """Directory for a network."""
-
     pass
 
 

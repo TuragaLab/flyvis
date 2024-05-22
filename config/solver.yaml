@@ -1,10 +1,13 @@
-id: ???
-task: ???
-train: ???
-resume: ???
-delete_if_exists: true
+network_id: ???
+task_name: ???
+train: true
+resume: false
+checkpoint_only: false
+network_name: ${task_name}/${network_id} 
+description: ???
 overfit: false
-mem_friendly: false
+delete_if_exists: false
+save_environment: false
 
 defaults:
   - _self_

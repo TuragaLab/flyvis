@@ -192,14 +192,5 @@ class Stimulus:
         self._nonzero = True
 
     def __call__(self) -> torch.Tensor:
-        """Returns the buffer tensor."""
+        """Returns the stimulus tensor."""
         return self.buffer
-
-    @contextmanager
-    def memory_friendly(self, enable: bool = True):
-        """To remove the buffer temporarily to save GPU memory."""
-        try:
-            yield
-        finally:
-            if enable:
-                delattr(self, "buffer")

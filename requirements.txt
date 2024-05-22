@@ -6,3 +6,5 @@ black
 pytest
 torch
 torchvision
+python-dotenv
+hydra-core

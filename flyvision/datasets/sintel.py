@@ -162,7 +162,7 @@ def load_sequence(path, sample_function, start=0, end=None, as_tensor=True):
         samples.append(sample_function(p))
     samples = np.array(samples)
     if as_tensor:
-        return torch.Tensor(samples)
+        return torch.tensor(samples, dtype=torch.float32)
     return samples
 
 
@@ -471,7 +471,7 @@ class MultiTaskSintel(MultiTaskDataset):
     def init_cache(self):
         self.cached_sequences = [
             {
-                key: torch.Tensor(val)
+                key: torch.tensor(val, dtype=torch.float32)
                 for key, val in self.rendered(seq_id).items()
                 if key in self.data_keys
             }

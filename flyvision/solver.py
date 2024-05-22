@@ -1,6 +1,7 @@
 import time
-from typing import Protocol, Union, Optional, Dict
+from typing import Protocol, Union, Optional, Dict, Tuple
 from toolz import valmap
+from pathlib import Path
 
 import numpy as np
 from torch import nn
@@ -8,10 +9,10 @@ import torch
 from toolz import valfilter
 from dataclasses import dataclass
 from datamate import Directory, Namespace
-from datamate import directory
 
 from flyvision.network import Network, NetworkDir
 from flyvision.tasks import Task
+from flyvision.utils.activity_utils import Rectifier
 
 import logging
 
@@ -44,7 +45,6 @@ class SolverProtocol(Protocol):
 
 
 class MultiTaskSolver:
-    tasks: Dict[str, Task]
 
     def __init__(
         self,
@@ -58,6 +58,9 @@ class MultiTaskSolver:
         init_scheduler: bool = True,
         delete_if_exists: bool = False,
     ) -> None:
+
+        name = name or config["network_name"]
+        assert isinstance(name, str), "Provided name argument is not a string."
         self.dir = NetworkDir(
             name, {**(config or {}), **dict(delete_if_exists=delete_if_exists)}
         )
@@ -67,6 +70,9 @@ class MultiTaskSolver:
         self.config = self.dir.config
 
         self.iteration = 0
+        self._val_loss = float("inf")
+        self.checkpoint_path = self.dir.path / f"chkpts"
+        self.checkpoints, _ = _init_checkpoints(self.checkpoint_path, glob="chkpt_*")
         self._last_chkpt_ind = -1
         self._curr_chkpt_ind = -1
 
@@ -246,15 +252,12 @@ class MultiTaskSolver:
                         # Reset gradients.
                         self.optimizer.zero_grad()
 
-                        with self.network.stimulus.memory_friendly(
-                            self.config.mem_friendly
-                        ):
-                            # Run stimulus through network.
-                            activity = self.network(
-                                self.network.stimulus(),
-                                self.task.dataset.dt,
-                                state=steady_state,
-                            )
+                        # Run stimulus through network.
+                        activity = self.network(
+                            self.network.stimulus(),
+                            self.task.dataset.dt,
+                            state=steady_state,
+                        )
 
                         losses = {task: 0 for task in self.task.dataset.tasks}
                         for task in self.task.dataset.tasks:
@@ -360,17 +363,19 @@ class MultiTaskSolver:
         # Tracking of validation loss and training batch loss.
         logging.info("Test on validation data.")
         val_loss = self.test(
-            dataloader=self.task.val_data, mode="validation", track_loss=True
+            dataloader=self.task.val_data, subdir="validation", track_loss=True
         )
         logging.info("Test on training data.")
-        _ = self.test(dataloader=self.task.train_data, mode="training", track_loss=True)
+        _ = self.test(
+            dataloader=self.task.train_data, subdir="training", track_loss=True
+        )
         logging.info("Test on validation batch.")
-        val_loss = self.test(
-            dataloader=self.task.val_batch, mode="validation_batch", track_loss=True
+        _ = self.test(
+            dataloader=self.task.val_batch, subdir="validation_batch", track_loss=True
         )
         logging.info("Test on training batch.")
         _ = self.test(
-            dataloader=self.task.train_batch, mode="training_batch", track_loss=True
+            dataloader=self.task.train_batch, subdir="training_batch", track_loss=True
         )
 
         logging.info("Saving state dicts.")
@@ -390,7 +395,7 @@ class MultiTaskSolver:
         }
         if hasattr(self, "penalty"):
             chkpt.update(self.penalizer._chkpt())
-        torch.save(chkpt, self.dir.path / f"chkpts/chkpt_{self._last_chkpt_ind:05}")
+        torch.save(chkpt, self.checkpoint_path / f"chkpt_{self._last_chkpt_ind:05}")
 
         # Append chkpt index.
         self.checkpoints.append(self._last_chkpt_ind)
@@ -408,25 +413,26 @@ class MultiTaskSolver:
     @torch.no_grad()
     def test(
         self,
-        dataloader,
-        subdir="validation",
-        track_loss=False,
-        t_pre=0.25,
-    ):
+        dataloader: torch.utils.data.DataLoader,
+        subdir: str = "validation",
+        track_loss: bool = False,
+        t_pre: float = 0.25,
+    ) -> float:
         """Tests the network on a given dataloader.
 
         Args:
-            dataloader (Dataloader): pytorch Dataloader to test on.
-            mode (str): identifier for subdirectory. Defaults to 'validation'.
-            track_loss (bool): whether to store the loss.
+            dataloader: data to test on.
+            subdir: name of subdirectory. Defaults to 'validation'.
+            track_loss: whether to store the loss in dir.subdir.
+            t_pre: warmup time before the stimulus starts.
 
         Returns:
             float: validation loss
 
         Stores:
-            wrap.<mode>.loss_<task> (List): loss per task averaged over whole dataset.
-            wrap.<mode>.iteration (List): iteration, when this was called.
-            wrap.<mode>.loss (List): average loss over tasks.
+            dir.<subdir>.loss_<task> (List): loss per task, averaged over whole dataset.
+            dir.<subdir>.iteration (List): iteration when this was called.
+            dir.<subdir>.loss (List): average loss over tasks.
         """
         self._eval()
 
@@ -445,14 +451,12 @@ class MultiTaskSolver:
 
         with self.task.dataset.augmentation(False):
             for i, data in enumerate(dataloader):
-
                 n_samples, n_frames, _, _ = data["lum"].shape
                 self.network.stimulus.zero(n_samples, n_frames)
 
                 self.network.stimulus.add_input(data["lum"])
 
-                with self.network.stimulus.memory_friendly(self.config.mem_friendly):
-                    activity = self.network(
+                activity = self.network(
                         self.network.stimulus(),
                         self.task.dataset.dt,
                         state=initial_state,
@@ -473,17 +477,20 @@ class MultiTaskSolver:
                         .item(),
                     )
 
-        # Store results.
+        # track loss per task.
+        avg_loss_per_task = {}
+        for task in self.task.dataset.tasks:
+            # average the loss over the whole dataset
+            avg_loss_per_task[task] = np.mean(losses[task])
+            if track_loss:
+                self.dir[subdir].extend("loss" + "_" + task, [avg_loss_per_task[task]])
+
+        # average the loss over all tasks with equal weight
+        summed_loss = sum(avg_loss_per_task.values())
+        val_loss = summed_loss / len(avg_loss_per_task)
+
         if track_loss:
-            summed_loss = 0
-            # Record loss per task.
-            for task in losses:
-                loss = np.mean(losses[task])
-                self.dir[subdir].extend("loss" + "_" + task, [loss])
-                summed_loss += loss
-            # Record average loss.
             self.dir[subdir].extend("iteration", [self.iteration])
-            val_loss = summed_loss / len(losses)
             self.dir[subdir].extend("loss", [val_loss])
 
         self._train()
@@ -543,17 +550,6 @@ class MultiTaskSolver:
             other=None,
             force=force,
         )
-
-
-class Rectifier:
-    def __init__(self, positive_weight=1, negative_weight=0.1):
-        self.positive_weight = positive_weight
-        self.negative_weight = negative_weight
-
-    def __call__(self, difference):
-        return self.positive_weight * nn.functional.relu(
-            difference
-        ) - self.negative_weight * nn.functional.relu(-difference)
 
 
 class Penalty:
@@ -844,13 +840,10 @@ class HyperParamScheduler:
             try:
                 setattr(self, key, param.array[iteration])
             except IndexError as e:
-                raise IndexError(
-                    (
-                        f"{e} for parameter {key}. Array is of length "
-                        f"{len(param.array)}."
-                        f" Scheduler was called for iteration {iteration}."
-                    )
-                )
+                if iteration >= self.stop_iter:
+                    setattr(self, key, param.array[-1])
+                else:
+                    raise e
         logging.info(self)
 
     def __repr__(self):
@@ -1014,3 +1007,30 @@ def get_n_epochs_per_chkpt(n_iters, len_loader, fraction=0.00025):
     n_chkpts_per_epoch = n_chkpts_per_iter * len_loader
     n_epochs_per_chkpt = 1 / n_chkpts_per_epoch
     return int(np.ceil(n_epochs_per_chkpt))
+
+
+def _init_checkpoints(path: Path, glob: str = "chkpt_*") -> Tuple:
+    """Returns all numerical identifier and paths to checkpoints stored in path.
+
+    Args:
+        path (Path): checkpoint directory.
+
+    Returns:
+        Tuple: List of indices and list of paths to checkpoints.
+    """
+    import re
+
+    path.mkdir(exist_ok=True)
+    paths = np.array(sorted(list((path).glob(glob))))
+    try:
+        # sorting existing checkpoints:
+        # if the index had up to 6 digits, but the string format
+        # of the index expected 5, then the sorting is more save on the
+        # numbers instead of the string.
+        _index = [int(re.findall("\d{1,10}", p.parts[-1])[0]) for p in paths]
+        _sorting_index = np.argsort(_index)
+        paths = paths[_sorting_index].tolist()
+        index = np.array(_index)[_sorting_index].tolist()
+        return index, paths
+    except IndexError:
+        return [], paths

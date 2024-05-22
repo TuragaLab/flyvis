@@ -6,6 +6,7 @@ Example:
     T5a_response = layer_activity.T5a
     T4b_central_response = layer_activity.central.T4a
 """
+
 from textwrap import wrap
 from functools import reduce
 import operator
@@ -16,6 +17,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 import torch
+from torch import nn
 
 from flyvision.utils import nodes_edges_utils
 from flyvision.connectome import ConnectomeDir
@@ -314,3 +316,14 @@ class LayerActivity(CellTypeActivity):
             object.__setattr__(self, key, value)
         else:
             object.__setattr__(self, key, value)
+
+
+class Rectifier:
+    def __init__(self, positive_weight=1, negative_weight=0.1):
+        self.positive_weight = positive_weight
+        self.negative_weight = negative_weight
+
+    def __call__(self, difference):
+        return self.positive_weight * nn.functional.relu(
+            difference
+        ) - self.negative_weight * nn.functional.relu(-difference)
