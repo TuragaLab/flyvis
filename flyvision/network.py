@@ -868,12 +868,11 @@ class NetworkView(ConnectomeView):
     def __init__(
         self,
         network_dir: Union[str, PathLike, NetworkDir],
-        results_dir: PathLike = flyvision.results_dir,
     ):
         if isinstance(network_dir, PathLike) or isinstance(network_dir, str):
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
-        self.name = str(self.dir.path).replace(str(results_dir) + "/", "")
+        self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
         self._initialized = dict(network=False, decoder=False)
