@@ -33,7 +33,7 @@ def test_base_class():
     test1 = Test()
     test2 = Test2()
     test3 = Test3()
-    sequence = torch.Tensor([0, 1])
+    sequence = torch.tensor([0, 1])
 
     assert test0(sequence).tolist() == [0, 1]
     test0.augment = False
@@ -57,7 +57,7 @@ def test_base_class():
 
 def test_hex_rotate():
     hexrotate = HexRotate(extent=1, n_rot=0)
-    sequence = torch.Tensor(np.arange(7)[None, None])
+    sequence = torch.tensor(np.arange(7)[None, None], dtype=torch.float32)
     assert_equals = {
         0: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
         1: [1.0, 4.0, 0.0, 3.0, 6.0, 2.0, 5.0],
@@ -73,9 +73,9 @@ def test_hex_rotate():
     def _angle(flow):
         return (np.degrees(np.arctan2(flow[1], flow[0])).mean() + 360) % 360
 
-    flow = torch.Tensor(
+    flow = torch.tensor(
         np.repeat([[np.cos(np.radians(0))], [np.sin(np.radians(0))]], 7, axis=1)[None]
-    )
+    , dtype=torch.float32)
     assert_equals = {0: 0, 1: 60, 2: 120, 3: 180, 4: 240, 5: 300}
     for n_rot, expected in assert_equals.items():
         hexrotate.n_rot = n_rot
@@ -87,7 +87,7 @@ def test_hex_rotate():
 
 def test_hex_flip():
     hexflip = HexFlip(extent=1, axis=0)
-    sequence = torch.Tensor(np.arange(7)[None, None])
+    sequence = torch.tensor(np.arange(7)[None, None], dtype=torch.float32)
     assert_equals = {
         0: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
         1: [0.0, 2.0, 1.0, 3.0, 5.0, 4.0, 6.0],
@@ -101,9 +101,9 @@ def test_hex_flip():
     def _angle(flow):
         return (np.degrees(np.arctan2(flow[1], flow[0])).mean() + 360) % 360
 
-    flow = torch.Tensor(
+    flow = torch.tensor(
         np.repeat([[np.cos(np.radians(0))], [np.sin(np.radians(0))]], 7, axis=1)[None]
-    )
+    , dtype=torch.float32)
     assert_equals = {0: 0, 1: 180, 2: 300, 3: 60}
     for axis, expected in assert_equals.items():
         assert np.allclose(
@@ -115,12 +115,12 @@ def test_hex_flip():
 
 def test_jitter():
     jitter = ContrastBrightness(0.5, 0.5)
-    sequence = torch.Tensor(np.array([0, 1, 1, 1, 1, 0, 0])[None, None])
+    sequence = torch.tensor(np.array([0, 1, 1, 1, 1, 0, 0])[None, None], dtype=torch.float32)
     assert np.allclose(
         jitter(sequence).cpu().numpy().flatten(),
         [0.5, 1.0, 1.0, 1.0, 1.0, 0.5, 0.5],
     )
-    sequence = torch.Tensor(np.array([-1, 1, 1, 1, 1, 0, 0])[None, None])
+    sequence = torch.tensor(np.array([-1, 1, 1, 1, 1, 0, 0])[None, None], dtype=torch.float32)
     assert np.allclose(
         jitter(sequence).cpu().numpy().flatten(),
         [0.0, 1.0, 1.0, 1.0, 1.0, 0.5, 0.5],
@@ -131,7 +131,7 @@ def test_jitter():
 
 def test_noise():
     noise = PixelNoise(0.5)
-    sequence = torch.Tensor(np.random.random_sample(size=[1, 1, 721]))
+    sequence = torch.tensor(np.random.random_sample(size=[1, 1, 721]), dtype=torch.float32)
     transformed = noise(sequence)
     snr_light = torch.mean(transformed[sequence > 0.5]) ** 2 / torch.var(
         transformed[sequence > 0.5]
@@ -209,13 +209,13 @@ def test_resample():
 
 def test_interpolate():
     interpolate = Interpolate(24, 50, mode="linear")
-    flow = torch.Tensor(
+    flow = torch.tensor(
         [
             [np.cos(np.radians(0)), np.sin(np.radians(0))],
             [np.cos(np.radians(90)), np.sin(np.radians(90))],
             [np.cos(np.radians(180)), np.sin(np.radians(180))],
         ]
-    )[:, :, None]
+    , dtype=torch.float32)[:, :, None]
     interpolated = interpolate(flow)
     target = [
         [1, 0],

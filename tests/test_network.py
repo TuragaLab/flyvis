@@ -98,7 +98,7 @@ def test_param_api(network):
 
 
 def test_target_sum(network):
-    x = torch.Tensor(2, network.n_edges)
+    x = torch.ones(2, network.n_edges)
     y = network.target_sum(x)
     assert y.shape == (2, network.n_nodes)
 
@@ -116,7 +116,7 @@ def test_initial_state(network):
 def test_next_state(network):
     param_api = network._param_api()
     state = network._initial_state(param_api, 2)
-    x_t = torch.Tensor(2, network.n_nodes)
+    x_t = torch.ones(2, network.n_nodes)
     dt = 0.02
     state = network._next_state(param_api, state, x_t, dt)
     assert state.get("nodes", None) is not None
@@ -143,7 +143,7 @@ def test_state_hook(network):
     network.register_state_hook(record_hook)
     state = network._initial_state(param_api, 2)
     assert network.times_hooked == 1
-    x_t = torch.Tensor(2, network.n_nodes)
+    x_t = torch.ones(2, network.n_nodes)
     dt = 0.02
     state = network._next_state(param_api, state, x_t, dt)
     assert network.times_hooked == 2
@@ -162,19 +162,19 @@ def test_state_hook(network):
 
 
 def test_forward(network):
-    x = torch.Tensor(2, 20, network.n_nodes).random_(2)
+    x = torch.ones(2, 20, network.n_nodes).random_(2)
     activity = network.forward(x, 1 / 50)
     assert activity.shape == (2, 20, network.n_nodes)
     assert activity.grad_fn.name() == "StackBackward0"
 
 
 def test_simulate(network):
-    x = torch.Tensor(2, 20, 1, 721).random_(2)
+    x = torch.ones(2, 20, 1, 721).random_(2)
     activity = network.simulate(x, 1 / 50)
     assert activity.shape == (2, 20, network.n_nodes)
 
     with pytest.raises(ValueError):
-        network.simulate(torch.Tensor(20, 1, 721).random_(2), 1 / 50)
+        network.simulate(torch.ones(20, 1, 721).random_(2), 1 / 50)
 
     with pytest.warns(IntegrationWarning):
         network.simulate(x, 1 / 49)
@@ -194,7 +194,7 @@ def test_steady_state(network: Network):
 
 
 def test_fade_in_state(network):
-    initial_frames = torch.Tensor(2, 1, 721).uniform_()
+    initial_frames = torch.ones(2, 1, 721).uniform_()
 
     steady_state = network.fade_in_state(1, 1 / 20, initial_frames, None, False)
 

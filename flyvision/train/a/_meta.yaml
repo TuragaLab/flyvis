@@ -1,5 +1,0 @@
-config:
-  type: Directory
-  x: 3
-  delete_if_exists: true
-status: done

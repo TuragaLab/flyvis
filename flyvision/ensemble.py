@@ -50,7 +50,11 @@ class Ensemble(dict):
 
     def __init__(
         self,
-        path: Union[str, PathLike, Iterable, "EnsembleDir"] = results_dir / "opticflow/000",
+        path: Union[str, PathLike, Iterable, "EnsembleDir"] = results_dir
+        / "opticflow/000",
+        checkpoint="best",
+        validation_subdir="validation",
+        loss_file_name="loss",
         try_sort=False,
     ):
         # self.model_paths, self.path = model_paths_from_parent(path)
@@ -75,7 +79,12 @@ class Ensemble(dict):
         for i, name in tqdm(
             enumerate(self.names), desc="Loading ensembles", total=len(self.names)
         ):
-            self[name] = NetworkView(NetworkDir(self.model_paths[i]))
+            self[name] = NetworkView(
+                NetworkDir(self.model_paths[i]),
+                checkpoint=checkpoint,
+                validation_subdir=validation_subdir,
+                loss_file_name=loss_file_name,
+            )
 
         # try rank by validation error by default
         if try_sort:
@@ -124,16 +133,16 @@ class Ensemble(dict):
         # TODO: since the nn.Module is simply updated with inidividual weights
         # for efficiency, this requires a config check somwhere to make sure the
         # networks are compatible.
-        network = self[0].init_network(chkpt=checkpoint)
+        network = self[0].init_network(checkpoint=checkpoint)
         yield network
         for network_view in self.values()[1:]:
-            yield network_view.init_network(chkpt=checkpoint, network=network)
+            yield network_view.init_network(checkpoint=checkpoint, network=network)
 
     def yield_decoders(self, checkpoint="best_chkpt"):
         """Yield initialized decoders from the ensemble."""
-        decoder = self[0].init_decoder(chkpt=checkpoint)
+        decoder = self[0].init_decoder(checkpoint=checkpoint)
         for network_view in self.values():
-            yield network_view.init_decoder(chkpt=checkpoint, decoder=decoder)
+            yield network_view.init_decoder(checkpoint=checkpoint, decoder=decoder)
 
     def simulate(self, movie_input: torch.Tensor, dt: float, fade_in: bool = True):
         """Simulate the ensemble activity from movie input.
@@ -166,19 +175,39 @@ class Ensemble(dict):
             with simulation(decoder):
                 yield decoder(responses[i]).cpu().numpy()
 
-    def sort(self, validation_subdir="validation", validation_file="loss"):
+    def validation_file(self, validation_subdir=None, loss_file_name=None):
+        """Return the validation file for each network in the ensemble."""
+        network_view0 = self[0]
+        if validation_subdir is None:
+            validation_subdir = network_view0.checkpoints.validation_subdir
+        if loss_file_name is None:
+            loss_file_name = network_view0.checkpoints.loss_file_name
+
+        for nv in self.values():
+            assert nv.checkpoints.validation_subdir == validation_subdir
+            assert nv.checkpoints.loss_file_name == loss_file_name
+            
+        return validation_subdir, loss_file_name
+
+    def sort(self, validation_subdir=None, loss_file_name=None):
         """Sort the ensemble by a key."""
         try:
             self.names = sorted(
                 self.keys(),
-                key=lambda key: dict(zip(self.keys(), self.validation_losses(validation_subdir, validation_file)))[key],
+                key=lambda key: dict(
+                    zip(
+                        self.keys(),
+                        self.validation_losses(validation_subdir, loss_file_name),
+                    )
+                )[key],
                 reverse=False,
             )
         except Exception as e:
             logging.info(f"sorting failed: {e}")
 
-    def validation_losses(self, subdir="validation", file="loss"):
+    def validation_losses(self, subdir=None, file=None):
         """Return a list of validation losses for each network in the ensemble."""
+        subdir, file = self.validation_file(subdir, file)
         losses = [network.dir[subdir][file][()].min() for network in self.values()]
         return losses
 
@@ -321,9 +350,11 @@ class Ensemble(dict):
             )
         )
 
+
 @root(results_dir)
 class EnsembleDir(Directory):
     """A directory that contains a collection of trained networks."""
+
     pass
 
 

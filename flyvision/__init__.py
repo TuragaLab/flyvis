@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 import dotenv
-
+from datetime import datetime
+from pytz import timezone
 import torch
 
 if torch.cuda.is_available():
@@ -10,6 +11,18 @@ else:
     device = torch.device("cpu")
 torch.set_default_device(device)
 del torch
+
+import logging
+def timetz(*args):
+    tz = timezone('Europe/Berlin')
+    return datetime.now(tz).timetuple()
+
+logging.Formatter.converter = timetz
+logging.basicConfig(format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", 
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
+
+del logging, timetz
 
 import datamate
 

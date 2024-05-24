@@ -37,7 +37,7 @@ def test_yield_networks(ensemble):
 
 
 def test_simulate(ensemble: Ensemble):
-    x = torch.Tensor(1, 2, 1, 721).random_(2)
+    x = torch.tensor(1, 2, 1, 721).random_(2)
     network = next(ensemble.yield_networks())
     with pytest.warns(IntegrationWarning):
         activity = np.array(list(ensemble.simulate(x, 1)))
@@ -45,7 +45,7 @@ def test_simulate(ensemble: Ensemble):
 
     with pytest.raises(ValueError):
         activity = np.array(
-            list(ensemble.simulate(torch.Tensor(1, 2, 721).random_(2), 1))
+            list(ensemble.simulate(torch.tensor(1, 2, 721).random_(2), 1))
         )
 
 

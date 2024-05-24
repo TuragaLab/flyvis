@@ -4,9 +4,10 @@ Deep mechanistic network module.
 
 from numbers import Number
 from os import PathLike
-from typing import Any, Dict, Iterable, List, Optional, Union, Callable
+from typing import Any, Dict, Iterable, List, Optional, Union, Callable, Tuple
 from contextlib import contextmanager
-
+from dataclasses import dataclass
+from pathlib import Path
 import warnings
 import numpy as np
 from toolz import valmap
@@ -30,6 +31,12 @@ from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.tensor_utils import RefTensor, AutoDeref
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.datasets.datasets import SequenceDataset
+from flyvision.utils.chkpt_utils import (
+    resolve_checkpoints,
+    recover_network,
+    recover_decoder,
+)
+
 import logging
 
 logging = logger = logging.getLogger(__name__)
@@ -823,9 +830,7 @@ class Network(nn.Module):
                     stimulus.add_input(stim.unsqueeze(2))
 
                     # compute response
-                    states = self(
-                        stimulus(), dt, state=fade_in_state, as_states=True
-                    )
+                    states = self(stimulus(), dt, state=fade_in_state, as_states=True)
                     return (
                         stim.cpu().numpy().squeeze(),
                         torch.stack(
@@ -835,10 +840,7 @@ class Network(nn.Module):
                         .numpy()
                         .squeeze(),
                         torch.stack(
-                            [
-                                self.dynamics.currents(s, params).cpu()
-                                for s in states
-                            ],
+                            [self.dynamics.currents(s, params).cpu() for s in states],
                             dim=1,
                         )
                         .numpy()
@@ -847,9 +849,11 @@ class Network(nn.Module):
 
                 yield handle_stim()
 
+
 @root(flyvision.results_dir)
 class NetworkDir(Directory):
     """Directory for a network."""
+
     pass
 
 
@@ -868,6 +872,9 @@ class NetworkView(ConnectomeView):
     def __init__(
         self,
         network_dir: Union[str, PathLike, NetworkDir],
+        checkpoint="best",
+        validation_subdir="validation",
+        loss_file_name="loss",
     ):
         if isinstance(network_dir, PathLike) or isinstance(network_dir, str):
             network_dir = NetworkDir(network_dir)
@@ -875,19 +882,20 @@ class NetworkView(ConnectomeView):
         self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
+        self.checkpoints = resolve_checkpoints(
+            self.dir, checkpoint, validation_subdir, loss_file_name
+        )
         self._initialized = dict(network=False, decoder=False)
 
     def reset_init(self, key):
         """Reset initialization of a component."""
         self._initialized[key] = False
 
-    def init_network(
-        self, chkpt="best_chkpt", network: Optional[Network] = None
-    ) -> Network:
+    def init_network(self, network: Optional[Network] = None) -> Network:
         """Initialize the network.
 
         Args:
-            chkpt: checkpoint to load.
+            checkpoint: checkpoint to load.
             network: network instance to initialize.
 
         Returns:
@@ -896,16 +904,14 @@ class NetworkView(ConnectomeView):
         if self._initialized["network"] and network is None:
             return self.network
         self.network = network or Network(**self.dir.config.network)
-        state_dict = torch.load(self.dir / chkpt, map_location=flyvision.device)
-        self.network.load_state_dict(state_dict["network"])
+        recover_network(self.network, self.checkpoints.path)
         self._initialized["network"] = True
         return self.network
 
-    def init_decoder(self, chkpt="best_chkpt", decoder=None):
+    def init_decoder(self, decoder=None):
         """Initialize the decoder.
 
         Args:
-            chkpt: checkpoint to load.
             decoder: decoder instance to initialize.
 
         Returns:
@@ -916,8 +922,7 @@ class NetworkView(ConnectomeView):
         self.decoder = decoder or init_decoder(
             self.dir.config.task_decoder, self.connectome
         )
-        state_dict = torch.load(self.dir / chkpt, map_location=flyvision.device)
-        self.decoder.load_state_dict(state_dict["decoder"]["flow"])
+        recover_decoder(self.decoder, self.checkpoints.path)
         self._initialized["decoder"] = True
         return self.decoder
 
@@ -956,3 +961,28 @@ class NetworkView(ConnectomeView):
 
 class IntegrationWarning(Warning):
     pass
+
+
+class FlynetPlusDecoder(nn.Module):
+    def __init__(self, network, decoder):
+        super().__init__()
+        self.network = network
+        self.stimulus = self.network.stimulus
+        self.decoder = decoder
+
+    def forward(self, x, dt, t_pre):
+        n_samples, n_frames = x.shape[:2]
+        initial_state = self.network.steady_state(
+            t_pre=t_pre,
+            dt=dt,
+            batch_size=n_samples,
+            value=0.5,
+        )
+        self.stimulus.zero(n_samples, n_frames)
+        self.stimulus.add_input(x)
+        activity = self.network(
+            self.stimulus(),
+            dt,
+            state=initial_state,
+        )
+        return {task: self.decoder[task](activity) for task in self.decoder}

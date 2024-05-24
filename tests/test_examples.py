@@ -49,7 +49,7 @@ class CustomStimuli(SequenceDataset):
             self.dir = RenderedData(dict(path=raw_data_path))
         else:
             self.dir = RenderedData(rendered_path, dict(path=raw_data_path))
-        self.sequences = torch.Tensor(self.dir.sequences[:])
+        self.sequences = torch.tensor(self.dir.sequences[:])
         self.n_sequences = self.sequences.shape[0]
 
     def get_item(self, key):
@@ -149,7 +149,7 @@ def test_boxeye(sequence_path):
     sequences = np.load(sequence_path)
 
     single_frame = sequences[0, 0]
-    single_frame = torch.Tensor(single_frame)
+    single_frame = torch.tensor(single_frame)
     single_frame = single_frame[None, None]
     rendered = receptors(single_frame)
 

@@ -14,10 +14,17 @@ from flyvision import results_dir
 from flyvision.network import Network, NetworkDir
 from flyvision.tasks import Task
 from flyvision.utils.activity_utils import Rectifier
-from flyvision.utils.logging_utils import warn_once
+from flyvision.utils.chkpt_utils import (
+    resolve_checkpoints,
+    recover_network,
+    recover_decoder,
+    recover_optimizer,
+    recover_penalty_optimizers,
+)
 import logging
 
-logging = logger = logging.getLogger(__name__)
+
+logging = logging.getLogger(__name__)
 
 
 class SolverProtocol(Protocol):
@@ -76,9 +83,8 @@ class MultiTaskSolver:
         self.iteration = 0
         self._val_loss = float("inf")
         self.checkpoint_path = self.dir.path / f"chkpts"
-        self.checkpoints, _ = init_or_get_checkpoints(
-            self.checkpoint_path, glob="chkpt_*"
-        )
+        checkpoints = resolve_checkpoints(self.dir)
+        self.checkpoints = checkpoints.indices
         self._last_chkpt_ind = -1
         self._curr_chkpt_ind = -1
 
@@ -517,35 +523,18 @@ class MultiTaskSolver:
             for decoder in self.decoder.values():
                 decoder.eval()
 
-    def _validate_checkpoint(
+    def checkpoints(
         self,
         checkpoint: Union[int, str] = "best",
         validation_subdir: str = "validation",
-        loss_name: str = "loss",
-    ):
-        """Validates the checkpoint index."""
-        if checkpoint == "best":
-            loss_name = _check_loss_name(self.dir[validation_subdir], loss_name)
-            checkpoint = np.argmin(self.dir[validation_subdir][loss_name][:])
-        if checkpoint not in self.checkpoints:
-            raise ValueError(
-                f"Checkpoint {checkpoint} not found in {self.checkpoints}."
-            )
-        checkpoint = self.checkpoints[checkpoint]
-        return checkpoint
-
-    def chkpt_path(
-        self,
-        checkpoint: Union[int, str] = "best",
-        validation_subdir: str = "validation",
-        loss_name: str = "loss",
+        loss_file_name: str = "loss",
     ):
         """Returns the path to a checkpoint. This can be passed to the recover methods
         along with the nn.Module instances to create instances from checkpoints    independently of the solver.
         """
-        checkpoint = self._validate_checkpoint(checkpoint, validation_subdir, loss_name)
-        _, paths = init_or_get_checkpoints(self.dir.chkpts.path)
-        return paths[checkpoint]
+        return resolve_checkpoints(
+            self.dir, checkpoint, validation_subdir, loss_file_name
+        )
 
     def recover(
         self,
@@ -557,8 +546,8 @@ class MultiTaskSolver:
             int, str
         ] = "best",  # -1 for last, 'best' for best based on validation
         validation_subdir: str = "validation",  # required if checkpoint == 'best'
-        loss_name: str = "loss",
-        strict_recover: bool = True,
+        loss_file_name: str = "loss",
+        strict: bool = True,
         force: bool = False,
     ):
         """Recovers the solver state from a checkpoint.
@@ -572,54 +561,33 @@ class MultiTaskSolver:
                 "best" for best based on tracked validation, -1 for last.
             validation_subdir: name of the subdir to base the best checkpoint on.
                 Required if checkpoint == 'best'. Defaults to "validation".
-            loss_name: name of the loss to base the best checkpoint on. Defaults
+            loss_file_name: name of the loss to base the best checkpoint on. Defaults
                 to "epe". Assumed to be a subdir of validation.
-            strict_recover: whether to load the state dict of the decoders strictly.
+            strict: whether to load the state dict of the decoders strictly.
                 Defaults to True.
             force: force recovery of checkpoint if _curr_chkpt_ind is arelady
                 the same as the checkpoint index. Defaults to False.
         """
-        checkpoint = self._validate_checkpoint(checkpoint, validation_subdir, loss_name)
-        self._recover_solver(
-            checkpoint=checkpoint,
-            network=network,
-            decoder=decoder,
-            optimizer=optimizer,
-            penalty=penalty,
-            strict=strict_recover,
-            force=force,
+        checkpoints = resolve_checkpoints(
+            self.dir, checkpoint, validation_subdir, loss_file_name
         )
 
-    def _recover_solver(
-        self,
-        checkpoint=-1,
-        network=True,
-        decoder=True,
-        optimizer=True,
-        penalty=True,
-        strict=True,
-        force=False,
-    ):
-        checkpoints, paths = init_or_get_checkpoints(self.dir.chkpts.path)
-
-        if not checkpoints or not any(
-            (network, decoder, optimizer, penalty)
-        ):
+        if checkpoint.index is None or not any((network, decoder, optimizer, penalty)):
             logging.info("No checkpoint found. Continuing with initialized parameters.")
             return
 
-        if checkpoints[checkpoint] == self._curr_chkpt_ind and not force:
+        if checkpoints.index == self._curr_chkpt_ind and not force:
             logging.info("Checkpoint already recovered.")
             return
 
         # Set the current and last checkpoint index. New checkpoints incrementally increase
         # the last checkpoint index.
-        self._last_chkpt_ind = checkpoints[-1]
-        self._curr_chkpt_ind = checkpoints[checkpoint]
+        self._last_chkpt_ind = checkpoints.indices[-1]
+        self._curr_chkpt_ind = checkpoints.index
 
         # Load checkpoint data.
-        state_dict = torch.load(paths[checkpoint])
-        logging.info(f"Checkpoint {paths[checkpoint]} loaded.")
+        state_dict = torch.load(checkpoints.path)
+        logging.info(f"Checkpoint {checkpoints.path} loaded.")
 
         self.iteration = state_dict.get("iteration", None)
 
@@ -910,7 +878,7 @@ class HyperParamScheduler:
         for key, param in self.config.items():
             try:
                 schedfn_config = SchedulerFunction(**param)
-                logger.info(f"Init schedule for {key}")
+                logging.info(f"Init schedule for {key}")
             except TypeError:
                 # lazy way to skip the parameter if it's not a SchedulerFunction
                 continue
@@ -1098,118 +1066,3 @@ def get_n_epochs_per_chkpt(n_iters, len_loader, fraction=0.00025):
     n_chkpts_per_epoch = n_chkpts_per_iter * len_loader
     n_epochs_per_chkpt = 1 / n_chkpts_per_epoch
     return int(np.ceil(n_epochs_per_chkpt))
-
-
-def init_or_get_checkpoints(path: Path, glob: str = "chkpt_*") -> Tuple:
-    """Returns all numerical identifier and paths to checkpoints stored in path.
-
-    Args:
-        path (Path): checkpoint directory.
-
-    Returns:
-        Tuple: List of indices and list of paths to checkpoints.
-    """
-    import re
-
-    path.mkdir(exist_ok=True)
-    paths = np.array(sorted(list((path).glob(glob))))
-    try:
-        # sorting existing checkpoints:
-        # if the index had up to 6 digits, but the string format
-        # of the index expected 5, then the sorting is more save on the
-        # numbers instead of the string.
-        _index = [int(re.findall("\d{1,10}", p.parts[-1])[0]) for p in paths]
-        _sorting_index = np.argsort(_index)
-        paths = paths[_sorting_index].tolist()
-        index = np.array(_index)[_sorting_index].tolist()
-        return index, paths
-    except IndexError:
-        return [], paths
-
-
-def recover_network(network: nn.Module, state_dict: Union[Dict, Path]) -> None:
-    """Loads network parameters from state dict.
-
-    Args:
-        network: flyvis network.
-        state_dict: state or path to checkpoint,
-                    which contains the "network" parameters.
-    """
-    state = get_from_state_dict(state_dict, "network")
-    if state is not None:
-        network.load_state_dict(state)
-        logging.info("Recovered network state.")
-    else:
-        logging.warning("Could not recover network state.")
-    return network
-
-
-def recover_decoder(
-    decoder: Dict[str, nn.Module], state_dict: Union[Dict, Path], strict=True
-) -> None:
-    """Same as _recover_network for multiple decoders."""
-    states = get_from_state_dict(state_dict, "decoder")
-    if states is not None:
-        for key, decoder in decoder.items():
-            state = states.pop(key, None)
-            if state is not None:
-                decoder.load_state_dict(state, strict=strict)
-                logging.info(f"Recovered {key} decoder state.")
-            else:
-                logging.warning(f"Could not recover state of {key} decoder.")
-    else:
-        logging.warning("Could not recover decoder states.")
-    return decoder
-
-
-def recover_optimizer(
-    optimizer: torch.optim.Optimizer, state_dict: Union[Dict, Path]
-) -> None:
-    """Same as _recover_network for optimizer."""
-    state = get_from_state_dict(state_dict, "optim")
-    if state is not None:
-        optimizer.load_state_dict(state)
-        logging.info("Recovered optimizer state.")
-    else:
-        logging.warning("Could not recover optimizer state.")
-    return optimizer
-
-
-def recover_penalty_optimizers(
-    optimizers: Dict[str, torch.optim.Optimizer], state_dict: Union[Dict, Path]
-) -> None:
-    """Same as _recover_network for penalty optimizers."""
-    states = get_from_state_dict(state_dict, "penalty_optims")
-    if states is not None:
-        for key, optim in optimizers.items():
-            state = states.pop(key, None)
-            if state is not None:
-                optim.load_state_dict(state)
-                logging.info(f"Recovered {key} optimizer state.")
-            else:
-                logging.warning(f"Could not recover state of {key} optimizer.")
-    else:
-        logging.warning("Could not recover penalty optimizer states.")
-    return optimizers
-
-
-def get_from_state_dict(state_dict: Union[Dict, Path], key: str) -> Dict:
-    if state_dict is None:
-        return
-    if isinstance(state_dict, Path):
-        state = torch.load(state_dict).pop(key, None)
-    elif isinstance(state_dict, dict):
-        state = state_dict.get(key, None)
-    return state
-
-
-def _check_loss_name(loss_folder, loss_name):
-    if loss_name not in loss_folder and "loss" in loss_folder:
-        warn_once(
-            logging,
-            f"{loss_name} not in {loss_folder.path}, but 'loss' is."
-            "Falling back to 'loss'. You can rerun the ensemble validation to make"
-            " appropriate recordings of the losses.",
-        )
-        loss_name = "loss"
-    return loss_name
