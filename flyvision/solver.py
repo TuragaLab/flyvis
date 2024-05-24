@@ -10,10 +10,11 @@ from toolz import valfilter
 from dataclasses import dataclass
 from datamate import Directory, Namespace
 
+from flyvision import results_dir
 from flyvision.network import Network, NetworkDir
 from flyvision.tasks import Task
 from flyvision.utils.activity_utils import Rectifier
-
+from flyvision.utils.logging_utils import warn_once
 import logging
 
 logging = logger = logging.getLogger(__name__)
@@ -25,7 +26,8 @@ class SolverProtocol(Protocol):
 
     def __init__(
         self, name: str = "", config: Optional[Union[dict, Namespace]] = None
-    ) -> None: ...
+    ) -> None:
+        ...
 
     dir: Directory = None
     network: Network = None
@@ -35,17 +37,20 @@ class SolverProtocol(Protocol):
     penalty: object = None
     scheduler: object = None
 
-    def train(self) -> None: ...
+    def train(self) -> None:
+        ...
 
-    def checkpoint(self) -> None: ...
+    def checkpoint(self) -> None:
+        ...
 
-    def test(self) -> None: ...
+    def test(self) -> None:
+        ...
 
-    def recover(self) -> None: ...
+    def recover(self) -> None:
+        ...
 
 
 class MultiTaskSolver:
-
     def __init__(
         self,
         name: str = "",
@@ -58,7 +63,6 @@ class MultiTaskSolver:
         init_scheduler: bool = True,
         delete_if_exists: bool = False,
     ) -> None:
-
         name = name or config["network_name"]
         assert isinstance(name, str), "Provided name argument is not a string."
         self.dir = NetworkDir(
@@ -72,7 +76,9 @@ class MultiTaskSolver:
         self.iteration = 0
         self._val_loss = float("inf")
         self.checkpoint_path = self.dir.path / f"chkpts"
-        self.checkpoints, _ = _init_checkpoints(self.checkpoint_path, glob="chkpt_*")
+        self.checkpoints, _ = init_or_get_checkpoints(
+            self.checkpoint_path, glob="chkpt_*"
+        )
         self._last_chkpt_ind = -1
         self._curr_chkpt_ind = -1
 
@@ -119,7 +125,7 @@ class MultiTaskSolver:
             initialized.append("optim")
 
         if init_penalties:
-            self.penalizer = Penalty(self.config.penalizer, self.network)
+            self.penalty = Penalty(self.config.penalizer, self.network)
             initialized.append("penalties")
 
         if init_scheduler:
@@ -128,7 +134,7 @@ class MultiTaskSolver:
                 self.network,
                 self.task,
                 self.optimizer,
-                self.penalizer,
+                self.penalty,
             )
             self.scheduler(self.iteration)
             initialized.append("scheduler")
@@ -286,7 +292,7 @@ class MultiTaskSolver:
                         self.optimizer.step()
 
                         # Activity and parameter dependent penalties.
-                        self.penalizer(activity=activity, iteration=self.iteration)
+                        self.penalty(activity=activity, iteration=self.iteration)
 
                         # Log results.
                         loss = loss.detach().cpu()
@@ -394,7 +400,7 @@ class MultiTaskSolver:
             "dt": self.task.dataset.dt,
         }
         if hasattr(self, "penalty"):
-            chkpt.update(self.penalizer._chkpt())
+            chkpt.update(self.penalty._chkpt())
         torch.save(chkpt, self.checkpoint_path / f"chkpt_{self._last_chkpt_ind:05}")
 
         # Append chkpt index.
@@ -457,10 +463,10 @@ class MultiTaskSolver:
                 self.network.stimulus.add_input(data["lum"])
 
                 activity = self.network(
-                        self.network.stimulus(),
-                        self.task.dataset.dt,
-                        state=initial_state,
-                    )
+                    self.network.stimulus(),
+                    self.task.dataset.dt,
+                    state=initial_state,
+                )
 
                 for task in self.task.dataset.tasks:
                     y = data[task]
@@ -511,45 +517,130 @@ class MultiTaskSolver:
             for decoder in self.decoder.values():
                 decoder.eval()
 
+    def _validate_checkpoint(
+        self,
+        checkpoint: Union[int, str] = "best",
+        validation_subdir: str = "validation",
+        loss_name: str = "loss",
+    ):
+        """Validates the checkpoint index."""
+        if checkpoint == "best":
+            loss_name = _check_loss_name(self.dir[validation_subdir], loss_name)
+            checkpoint = np.argmin(self.dir[validation_subdir][loss_name][:])
+        if checkpoint not in self.checkpoints:
+            raise ValueError(
+                f"Checkpoint {checkpoint} not found in {self.checkpoints}."
+            )
+        checkpoint = self.checkpoints[checkpoint]
+        return checkpoint
+
+    def chkpt_path(
+        self,
+        checkpoint: Union[int, str] = "best",
+        validation_subdir: str = "validation",
+        loss_name: str = "loss",
+    ):
+        """Returns the path to a checkpoint. This can be passed to the recover methods
+        along with the nn.Module instances to create instances from checkpoints    independently of the solver.
+        """
+        checkpoint = self._validate_checkpoint(checkpoint, validation_subdir, loss_name)
+        _, paths = init_or_get_checkpoints(self.dir.chkpts.path)
+        return paths[checkpoint]
+
     def recover(
         self,
-        recover_network=True,
-        recover_decoder=True,
-        recover_optimizer=True,
-        recover_penalty=True,
-        strict_recover=True,
-        checkpoint=-1,  # -1 for last, 'best' for best based on validation
-        other=None,
-        force=False,
-        validation_subwrap="validation",  # required if checkpoint == 'best'
-        loss_name="epe",
+        network: bool = True,
+        decoder: bool = True,
+        optimizer: bool = True,
+        penalty: bool = True,
+        checkpoint: Union[
+            int, str
+        ] = "best",  # -1 for last, 'best' for best based on validation
+        validation_subdir: str = "validation",  # required if checkpoint == 'best'
+        loss_name: str = "loss",
+        strict_recover: bool = True,
+        force: bool = False,
     ):
+        """Recovers the solver state from a checkpoint.
+
+        Args:
+            network: recover network parameters. Defaults to True.
+            decoder: recover decoder parameters. Defaults to True.
+            optimizer: recover optimizer parameters. Defaults to True.
+            penalty: recover penalty parameters. Defaults to True.
+            checkpoint: index of the checkpoint to recover. Defaults to "best".
+                "best" for best based on tracked validation, -1 for last.
+            validation_subdir: name of the subdir to base the best checkpoint on.
+                Required if checkpoint == 'best'. Defaults to "validation".
+            loss_name: name of the loss to base the best checkpoint on. Defaults
+                to "epe". Assumed to be a subdir of validation.
+            strict_recover: whether to load the state dict of the decoders strictly.
+                Defaults to True.
+            force: force recovery of checkpoint if _curr_chkpt_ind is arelady
+                the same as the checkpoint index. Defaults to False.
         """
-        Recovers a solver state.
-        """
-        if checkpoint == "best":
-            loss_name = dvs.analysis.validation_error._check_loss_name(
-                self.wrap[validation_subwrap], loss_name
-            )
-            checkpoint = np.argmin(self.wrap[validation_subwrap][loss_name][:])
-            logging.info(
-                f"Checkpoint {checkpoint} found best performing based on {validation_subwrap}."
-            )
-        # to store them later in the stimulus response configs
-        self._chkpt_validation_subwrap = validation_subwrap
-        self._recovered_chkpt = checkpoint
-        checkpoint = int(checkpoint)
-        _recover_solver(
-            self,
+        checkpoint = self._validate_checkpoint(checkpoint, validation_subdir, loss_name)
+        self._recover_solver(
             checkpoint=checkpoint,
-            recover_network=recover_network,
-            recover_decoder=recover_decoder,
-            recover_optimizer=recover_optimizer,
-            recover_penalty=recover_penalty,
+            network=network,
+            decoder=decoder,
+            optimizer=optimizer,
+            penalty=penalty,
             strict=strict_recover,
-            other=None,
             force=force,
         )
+
+    def _recover_solver(
+        self,
+        checkpoint=-1,
+        network=True,
+        decoder=True,
+        optimizer=True,
+        penalty=True,
+        strict=True,
+        force=False,
+    ):
+        checkpoints, paths = init_or_get_checkpoints(self.dir.chkpts.path)
+
+        if not checkpoints or not any(
+            (network, decoder, optimizer, penalty)
+        ):
+            logging.info("No checkpoint found. Continuing with initialized parameters.")
+            return
+
+        if checkpoints[checkpoint] == self._curr_chkpt_ind and not force:
+            logging.info("Checkpoint already recovered.")
+            return
+
+        # Set the current and last checkpoint index. New checkpoints incrementally increase
+        # the last checkpoint index.
+        self._last_chkpt_ind = checkpoints[-1]
+        self._curr_chkpt_ind = checkpoints[checkpoint]
+
+        # Load checkpoint data.
+        state_dict = torch.load(paths[checkpoint])
+        logging.info(f"Checkpoint {paths[checkpoint]} loaded.")
+
+        self.iteration = state_dict.get("iteration", None)
+
+        if "scheduler" in self._initialized:
+            # Set the scheduler to the right iteration.
+            self.scheduler(self.iteration)
+
+        # The _val_loss variable is used to keep track of the best checkpoint according
+        # to the evaluation routine during training.
+        self._val_loss = state_dict.pop("val_loss", float("inf"))
+
+        if network and "network" in self._initialized:
+            recover_network(self.network, state_dict)
+        if decoder and "decoder" in self._initialized:
+            recover_decoder(self.decoder, state_dict, strict=strict)
+        if optimizer and "optim" in self._initialized:
+            recover_optimizer(self.optimizer, state_dict)
+        if penalty and "penalties" in self._initialized:
+            recover_penalty_optimizers(self.penalty.optimizers, state_dict)
+
+        logging.info("Recovered modules.")
 
 
 class Penalty:
@@ -1009,7 +1100,7 @@ def get_n_epochs_per_chkpt(n_iters, len_loader, fraction=0.00025):
     return int(np.ceil(n_epochs_per_chkpt))
 
 
-def _init_checkpoints(path: Path, glob: str = "chkpt_*") -> Tuple:
+def init_or_get_checkpoints(path: Path, glob: str = "chkpt_*") -> Tuple:
     """Returns all numerical identifier and paths to checkpoints stored in path.
 
     Args:
@@ -1034,3 +1125,91 @@ def _init_checkpoints(path: Path, glob: str = "chkpt_*") -> Tuple:
         return index, paths
     except IndexError:
         return [], paths
+
+
+def recover_network(network: nn.Module, state_dict: Union[Dict, Path]) -> None:
+    """Loads network parameters from state dict.
+
+    Args:
+        network: flyvis network.
+        state_dict: state or path to checkpoint,
+                    which contains the "network" parameters.
+    """
+    state = get_from_state_dict(state_dict, "network")
+    if state is not None:
+        network.load_state_dict(state)
+        logging.info("Recovered network state.")
+    else:
+        logging.warning("Could not recover network state.")
+    return network
+
+
+def recover_decoder(
+    decoder: Dict[str, nn.Module], state_dict: Union[Dict, Path], strict=True
+) -> None:
+    """Same as _recover_network for multiple decoders."""
+    states = get_from_state_dict(state_dict, "decoder")
+    if states is not None:
+        for key, decoder in decoder.items():
+            state = states.pop(key, None)
+            if state is not None:
+                decoder.load_state_dict(state, strict=strict)
+                logging.info(f"Recovered {key} decoder state.")
+            else:
+                logging.warning(f"Could not recover state of {key} decoder.")
+    else:
+        logging.warning("Could not recover decoder states.")
+    return decoder
+
+
+def recover_optimizer(
+    optimizer: torch.optim.Optimizer, state_dict: Union[Dict, Path]
+) -> None:
+    """Same as _recover_network for optimizer."""
+    state = get_from_state_dict(state_dict, "optim")
+    if state is not None:
+        optimizer.load_state_dict(state)
+        logging.info("Recovered optimizer state.")
+    else:
+        logging.warning("Could not recover optimizer state.")
+    return optimizer
+
+
+def recover_penalty_optimizers(
+    optimizers: Dict[str, torch.optim.Optimizer], state_dict: Union[Dict, Path]
+) -> None:
+    """Same as _recover_network for penalty optimizers."""
+    states = get_from_state_dict(state_dict, "penalty_optims")
+    if states is not None:
+        for key, optim in optimizers.items():
+            state = states.pop(key, None)
+            if state is not None:
+                optim.load_state_dict(state)
+                logging.info(f"Recovered {key} optimizer state.")
+            else:
+                logging.warning(f"Could not recover state of {key} optimizer.")
+    else:
+        logging.warning("Could not recover penalty optimizer states.")
+    return optimizers
+
+
+def get_from_state_dict(state_dict: Union[Dict, Path], key: str) -> Dict:
+    if state_dict is None:
+        return
+    if isinstance(state_dict, Path):
+        state = torch.load(state_dict).pop(key, None)
+    elif isinstance(state_dict, dict):
+        state = state_dict.get(key, None)
+    return state
+
+
+def _check_loss_name(loss_folder, loss_name):
+    if loss_name not in loss_folder and "loss" in loss_folder:
+        warn_once(
+            logging,
+            f"{loss_name} not in {loss_folder.path}, but 'loss' is."
+            "Falling back to 'loss'. You can rerun the ensemble validation to make"
+            " appropriate recordings of the losses.",
+        )
+        loss_name = "loss"
+    return loss_name

@@ -15,7 +15,7 @@ from torch import Tensor
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from datamate import Namespace, Directory
+from datamate import Namespace, Directory, root
 
 from flyvision.connectome import ConnectomeDir, ConnectomeView
 import flyvision
@@ -847,7 +847,7 @@ class Network(nn.Module):
 
                 yield handle_stim()
 
-
+@root(flyvision.results_dir)
 class NetworkDir(Directory):
     """Directory for a network."""
     pass
@@ -867,11 +867,13 @@ class NetworkView(ConnectomeView):
 
     def __init__(
         self,
-        network_dir: Union[PathLike, NetworkDir],
+        network_dir: Union[str, PathLike, NetworkDir],
+        results_dir: PathLike = flyvision.results_dir,
     ):
-        if isinstance(network_dir, PathLike):
+        if isinstance(network_dir, PathLike) or isinstance(network_dir, str):
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
+        self.name = str(self.dir.path).replace(str(results_dir) + "/", "")
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
         self._initialized = dict(network=False, decoder=False)

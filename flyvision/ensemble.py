@@ -15,14 +15,14 @@ import torch
 import numpy as np
 from numpy.typing import NDArray
 from contextlib import contextmanager
-from datamate import Directory
+from datamate import Directory, root
 
 from flyvision import plots, results_dir
 from flyvision.network import Network, NetworkView, NetworkDir
 from flyvision.plots.plt_utils import init_plot
 from flyvision.utils.nn_utils import simulation
 
-logging = logger = logging.getLogger(__name__)
+logging = logging.getLogger(__name__)
 
 
 class Ensemble(dict):
@@ -50,17 +50,24 @@ class Ensemble(dict):
 
     def __init__(
         self,
-        path: Union[PathLike, Iterable, "EnsembleDir"] = results_dir / "opticflow/000",
+        path: Union[str, PathLike, Iterable, "EnsembleDir"] = results_dir / "opticflow/000",
+        try_sort=False,
     ):
         # self.model_paths, self.path = model_paths_from_parent(path)
 
         if isinstance(path, EnsembleDir):
             path = path.path
             self.model_paths, self.path = model_paths_from_parent(path)
+            self.dir = path
         elif isinstance(path, PathLike):
             self.model_paths, self.path = model_paths_from_parent(path)
+            self.dir = EnsembleDir(self.path)
+        elif isinstance(path, str):
+            self.dir = EnsembleDir(path)
+            self.model_paths, self.path = model_paths_from_parent(self.dir.path)
         elif isinstance(path, Iterable):
             self.model_paths, self.path = model_paths_from_names_or_paths(path)
+            self.dir = EnsembleDir(self.path)
 
         self.names, self.name = model_path_names(self.model_paths)
 
@@ -70,14 +77,9 @@ class Ensemble(dict):
         ):
             self[name] = NetworkView(NetworkDir(self.model_paths[i]))
 
-        self.dir = EnsembleDir(self.path)
-
-        # rank by validation error by default
-        self.names = sorted(
-            self.keys(),
-            key=lambda key: dict(zip(self.keys(), self.validation_losses()))[key],
-            reverse=False,
-        )
+        # try rank by validation error by default
+        if try_sort:
+            self.sort()
 
     def __truediv__(self, key):
         return self.__getitem__(key)
@@ -164,9 +166,20 @@ class Ensemble(dict):
             with simulation(decoder):
                 yield decoder(responses[i]).cpu().numpy()
 
-    def validation_losses(self):
+    def sort(self, validation_subdir="validation", validation_file="loss"):
+        """Sort the ensemble by a key."""
+        try:
+            self.names = sorted(
+                self.keys(),
+                key=lambda key: dict(zip(self.keys(), self.validation_losses(validation_subdir, validation_file)))[key],
+                reverse=False,
+            )
+        except Exception as e:
+            logging.info(f"sorting failed: {e}")
+
+    def validation_losses(self, subdir="validation", file="loss"):
         """Return a list of validation losses for each network in the ensemble."""
-        losses = [network.dir.validation_loss[()] for network in self.values()]
+        losses = [network.dir[subdir][file][()].min() for network in self.values()]
         return losses
 
     @contextmanager
@@ -308,10 +321,9 @@ class Ensemble(dict):
             )
         )
 
-
+@root(results_dir)
 class EnsembleDir(Directory):
     """A directory that contains a collection of trained networks."""
-
     pass
 
 
