@@ -108,10 +108,15 @@ def test_init_augmentation(dataset):
 
 
 def test_set_augmentation_parameters(dataset):
+
+    # rotate the sequence in five of six cases (5 rotations and 1 case no rotation)
     dataset.p_rot = 5 / 6
+    # flip the sequence in three of four cases (3 flips and 1 case no flip)
     dataset.p_flip = 3 / 4
 
+    
     def sample(total_sequence_length=None):
+        """Sample 10_000 random augmentations and validate their parameter stats."""
         rotations = []
         flips = []
         contrast_factors = []
@@ -203,6 +208,14 @@ def test_getitem(dataset):
 def test_apply_augmentation(dataset):
     dataset.augment = False
     dataset.dt = 1 / dataset.framerate
+    data = dataset[0]
+    data1 = dataset.apply_augmentation(data)
+    assert set(data1.keys()) == set(data.keys())
+    assert (data["lum"] == data1["lum"]).all()
+    assert (data["flow"] == data1["flow"]).all()
+
+
+    dataset.augment = True
     data = dataset[0]
     data1 = dataset.apply_augmentation(data)
     assert set(data1.keys()) == set(data.keys())

@@ -479,13 +479,14 @@ class MultiTaskSintel(MultiTaskDataset):
         ]
 
     def __setattr__(self, name, value):
+        # some changes have no effect cause they are fixed, or set by the pre-rendering
         if name == "framerate":
             raise AttributeError("cannot change framerate")
         if hasattr(self, "rendered") and name in self.rendered.config.keys():
             raise AttributeError("cannot change attribute of rendered initialization")
         super().__setattr__(name, value)
-
-        if getattr(self, "_initialized_augmentation", False):
+        # also update augmentation if it is already initialized
+        if getattr(self, "_augmentations_are_initialized", False):
             self.update_augmentation(name, value)
 
     def update_augmentation(self, name, value):

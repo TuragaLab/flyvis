@@ -15,7 +15,7 @@ from flyvision import results_dir
 @pytest.fixture(scope="module")
 def ensemble() -> Ensemble:
     models = [results_dir / f"opticflow/000/{i:04}" for i in range(6)]
-    ensemble = Ensemble(models)
+    ensemble = Ensemble(models, checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss", try_sort=True)
     # ensemble = Ensemble(results_dir / "opticflow/000")
     return ensemble
 
@@ -37,7 +37,7 @@ def test_yield_networks(ensemble):
 
 
 def test_simulate(ensemble: Ensemble):
-    x = torch.tensor(1, 2, 1, 721).random_(2)
+    x = torch.ones(1, 2, 1, 721).random_(2)
     network = next(ensemble.yield_networks())
     with pytest.warns(IntegrationWarning):
         activity = np.array(list(ensemble.simulate(x, 1)))
@@ -45,7 +45,7 @@ def test_simulate(ensemble: Ensemble):
 
     with pytest.raises(ValueError):
         activity = np.array(
-            list(ensemble.simulate(torch.tensor(1, 2, 721).random_(2), 1))
+            list(ensemble.simulate(torch.ones(1, 2, 721).random_(2), 1))
         )
 
 
@@ -102,7 +102,7 @@ def test_task_error(ensemble):
 
 
 def test_cluster_indices():
-    ensemble = Ensemble(results_dir / "opticflow/000")
+    ensemble = Ensemble(results_dir / "opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
     network = next(ensemble.yield_networks())
     for cell_type in network.cell_types:
         cluster_indices = ensemble.cluster_indices(cell_type)
@@ -122,7 +122,7 @@ def test_loss_histogram(ensemble: Ensemble):
 
 
 def test_responses():
-    ensemble = Ensemble(results_dir / "opticflow/000")
+    ensemble = Ensemble(results_dir / "opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
 
     test_data_dir = Directory(Path(__file__).parent / "data")
     assert "responses" in test_data_dir
@@ -142,7 +142,7 @@ def test_responses():
     method = config.pop("method")
     ensemble_responses = []
     central_cells_index = None
-    for network in ensemble.yield_networks(checkpoint="best_chkpt"):
+    for network in ensemble.yield_networks():
         if central_cells_index is None:
             central_cells_index = network.connectome.central_cells_index[:]
         if isinstance(method, str):

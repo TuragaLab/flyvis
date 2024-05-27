@@ -144,6 +144,8 @@ def resolve_checkpoints(
 ) -> Checkpoints:
     """Resolves checkpoints from networkdir.
     """
+    if checkpoint in networkdir:
+        return Checkpoints(choice=checkpoint, index=0, path=networkdir[checkpoint], indices=[0], paths=[networkdir[checkpoint]], validation_subdir=validation_subdir, loss_file_name=loss_file_name)
     index = _check_checkpoint(networkdir, checkpoint, validation_subdir, loss_file_name)
     indices, paths = init_or_get_checkpoints(networkdir.chkpts.path)
     return Checkpoints(checkpoint, index, paths[index], indices, paths, validation_subdir, loss_file_name)

@@ -90,6 +90,8 @@ class Ensemble(dict):
         if try_sort:
             self.sort()
 
+        self._init_args = path, checkpoint, validation_subdir, loss_file_name, try_sort
+
     def __truediv__(self, key):
         return self.__getitem__(key)
 
@@ -128,21 +130,21 @@ class Ensemble(dict):
     def values(self) -> List[NetworkView]:
         return [self[k] for k in self]
 
-    def yield_networks(self, checkpoint="best_chkpt") -> Iterator[Network]:
+    def yield_networks(self) -> Iterator[Network]:
         """Yield initialized networks from the ensemble."""
         # TODO: since the nn.Module is simply updated with inidividual weights
         # for efficiency, this requires a config check somwhere to make sure the
         # networks are compatible.
-        network = self[0].init_network(checkpoint=checkpoint)
+        network = self[0].init_network()
         yield network
         for network_view in self.values()[1:]:
-            yield network_view.init_network(checkpoint=checkpoint, network=network)
+            yield network_view.init_network(network=network)
 
-    def yield_decoders(self, checkpoint="best_chkpt"):
+    def yield_decoders(self):
         """Yield initialized decoders from the ensemble."""
-        decoder = self[0].init_decoder(checkpoint=checkpoint)
+        decoder = self[0].init_decoder()
         for network_view in self.values():
-            yield network_view.init_decoder(checkpoint=checkpoint, decoder=decoder)
+            yield network_view.init_decoder(decoder=decoder)
 
     def simulate(self, movie_input: torch.Tensor, dt: float, fade_in: bool = True):
         """Simulate the ensemble activity from movie input.
@@ -361,11 +363,16 @@ class EnsembleDir(Directory):
 class EnsembleView(Ensemble):
     """A view of an ensemble of trained networks."""
 
-    def __init__(self, path: Union[PathLike, Iterable, EnsembleDir, Ensemble]):
+    def __init__(self, path: Union[str, PathLike, Iterable, EnsembleDir, Ensemble],
+            checkpoint="best",
+            validation_subdir="validation",
+            loss_file_name="loss",
+            try_sort=False,
+        
+        ):
         if isinstance(path, Ensemble):
-            super().__init__(path.dir)
-        else:
-            super().__init__(path)
+            path, checkpoint, validation_subdir, loss_file_name, try_sort = path._init_args
+        super().__init__(path, checkpoint, validation_subdir, loss_file_name, try_sort)
 
     def loss_histogram(
         self,

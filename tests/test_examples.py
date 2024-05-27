@@ -169,7 +169,7 @@ def test_sequence_dataset(custom_dataset):
 
 
 def test_model_responses(custom_dataset):
-    ensemble = EnsembleView(flyvision.results_dir / "opticflow/000")
+    ensemble = EnsembleView("opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
 
     movie_input = custom_dataset[0]
 
@@ -191,7 +191,7 @@ def test_cluster():
     from datamate import namespacify
 
     cell_type = "T4c"
-    ensemble = EnsembleView(flyvision.results_dir / "opticflow/000")
+    ensemble = EnsembleView("opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
 
     cluster_indices = ensemble.cluster_indices(cell_type)
 

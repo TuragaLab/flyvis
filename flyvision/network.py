@@ -853,7 +853,6 @@ class Network(nn.Module):
 @root(flyvision.results_dir)
 class NetworkDir(Directory):
     """Directory for a network."""
-
     pass
 
 
