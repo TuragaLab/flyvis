@@ -413,12 +413,12 @@ class MultiTaskSintel(MultiTaskDataset):
         self.gamma_std = gamma_std
         self.random_temporal_crop = random_temporal_crop
         self.flip_axes = flip_axes
-        # keep the order of the next to lines
-        self._augmentations_are_initialized = False
-        self.augment = augment
+        self.fix_augmentation_params = False
 
         self.init_augmentation()
-        self.fix_augmentation_params = False
+        self._augmentations_are_initialized = True
+        # note: self.augment is a property with a setter that relies on _augmentations_are_initialized
+        self.augment = augment
 
         self.unittest = unittest
 
@@ -531,7 +531,6 @@ class MultiTaskSintel(MultiTaskDataset):
             mode="linear",
         )
         self.gamma_correct = GammaCorrection(1, self.gamma_std)
-        self._augmentations_are_initialized = True
 
     def set_augmentation_params(
         self,
@@ -674,7 +673,7 @@ class MultiTaskSintel(MultiTaskDataset):
         self,
         key,
         vertical_splits=None,
-        outwidth=417,
+        outwidth=716,
         center_crop_fraction=None,
         sampling=slice(1, None, None),
     ):

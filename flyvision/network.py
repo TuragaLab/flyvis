@@ -25,6 +25,7 @@ from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
 from flyvision.initialization import Parameter
 from flyvision.dynamics import NetworkDynamics
+from flyvision.tasks import _init_decoder
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.dataset_utils import IndexSampler
@@ -918,8 +919,8 @@ class NetworkView(ConnectomeView):
         """
         if self._initialized["decoder"] and decoder is None:
             return self.decoder
-        self.decoder = decoder or init_decoder(
-            self.dir.config.task_decoder, self.connectome
+        self.decoder = decoder or _init_decoder(
+            self.dir.config.task.decoder, self.connectome
         )
         recover_decoder(self.decoder, self.checkpoints.path)
         self._initialized["decoder"] = True
