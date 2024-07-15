@@ -1,11 +1,10 @@
 """
 Deep mechanistic network module.
 """
-from numbers import Number
+
 from os import PathLike
 from typing import Any, Dict, Iterable, List, Optional, Union, Callable
 from contextlib import contextmanager
-
 import warnings
 import numpy as np
 from toolz import valmap
@@ -14,23 +13,32 @@ from torch import Tensor
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from datamate import Namespace, Directory
+from datamate import Namespace, Directory, root
 
 from flyvision.connectome import ConnectomeDir, ConnectomeView
 import flyvision
 
-from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
 from flyvision.initialization import Parameter
 from flyvision.dynamics import NetworkDynamics
+from flyvision.tasks import _init_decoder
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.tensor_utils import RefTensor, AutoDeref
+from flyvision.utils.class_utils import forward_subclass
 from flyvision.datasets.datasets import SequenceDataset
+from flyvision.utils.chkpt_utils import (
+    resolve_checkpoints,
+    recover_network,
+    recover_decoder,
+)
+
 import logging
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
+
+__all__ = ["Network", "NetworkDir", "NetworkView"]
 
 
 class Network(nn.Module):
@@ -111,7 +119,7 @@ class Network(nn.Module):
                 scale_elec=0.01,
                 scale_chem=0.01,
                 clamp="non_negative",
-                groupby=["source_type", "target_type"],
+                groupby=["source_type", "target_type", "edge_type"],
             ),
         ),
     ):
@@ -132,7 +140,7 @@ class Network(nn.Module):
         # Store the connectome, dynamics, and parameters.
         self.connectome = ConnectomeDir(connectome)
         self.cell_types = self.connectome.unique_cell_types[:].astype(str)
-        self.dynamics = NetworkDynamics(dynamics)
+        self.dynamics = forward_subclass(NetworkDynamics, dynamics)
 
         # Load constant indices into memory.
         # Store source/target indices.
@@ -154,7 +162,14 @@ class Network(nn.Module):
         # Construct node parameter sets.
         self.node_params = Namespace()
         for param_name, param_config in node_config.items():
-            param = Parameter(param_config, self.connectome)
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": self.connectome,
+                },
+            )
 
             # register parameter to module
             self.register_parameter(f"nodes_{param_name}", param.raw_values)
@@ -169,13 +184,13 @@ class Network(nn.Module):
             self.node_params[param_name] = param
 
             # additional map to optional boolean masks to constrain
-            # parameters (called in self._clamp)
+            # parameters (called in self.clamp)
             self.symmetry_config[f"nodes_{param_name}"] = getattr(
                 param, "symmetry_masks", []
             )
 
             # additional map to optional clamp configuration to constrain
-            # parameters (called in self._clamp)
+            # parameters (called in self.clamp)
             self.clamp_config[f"nodes_{param_name}"] = getattr(
                 param_config, "clamp", None
             )
@@ -183,7 +198,14 @@ class Network(nn.Module):
         # Construct edge parameter sets.
         self.edge_params = Namespace()
         for param_name, param_config in edge_config.items():
-            param = Parameter(param_config, self.connectome)
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": self.connectome,
+                },
+            )
 
             self.register_parameter(f"edges_{param_name}", param.raw_values)
 
@@ -519,7 +541,7 @@ class Network(nn.Module):
                 else concatenates the activity of the nodes and returns a tensor.
         """
         # To keep the parameters within their valid domain, they get clamped.
-        self._clamp()
+        self.clamp()
         # Construct the parameter API.
         params = self._param_api()
 
@@ -620,7 +642,7 @@ class Network(nn.Module):
         with self.enable_grad(grad):
             return self(self.stimulus(), dt, as_states=True, state=state)[-1]
 
-    def _clamp(self):
+    def clamp(self):
         """Clamp free parameters to their range specifid in their config.
 
         Valid configs are `non_negative` to clamp at zero and tuple of the form
@@ -726,20 +748,19 @@ class Network(nn.Module):
                     stimulus.add_input(stim)
 
                     # compute response
-                    with stimulus.memory_friendly():
-                        if grad is False:
-                            return (
-                                stim.cpu().numpy(),
-                                self(stimulus(), dt, state=fade_in_state)
-                                .detach()
-                                .cpu()
-                                .numpy(),
-                            )
-                        elif grad is True:
-                            return (
-                                stim.cpu().numpy(),
-                                self(stimulus(), dt, state=fade_in_state),
-                            )
+                    if grad is False:
+                        return (
+                            stim.cpu().numpy(),
+                            self(stimulus(), dt, state=fade_in_state)
+                            .detach()
+                            .cpu()
+                            .numpy(),
+                        )
+                    elif grad is True:
+                        return (
+                            stim.cpu().numpy(),
+                            self(stimulus(), dt, state=fade_in_state),
+                        )
 
                 yield handle_stim()
 
@@ -771,7 +792,7 @@ class Network(nn.Module):
             iterator over stimuli, currents and respective responses as numpy
             arrays.
         """
-        self._clamp()
+        self.clamp()
         # Construct the parameter API.
         params = self._param_api()
 
@@ -806,32 +827,27 @@ class Network(nn.Module):
                     stimulus.add_input(stim.unsqueeze(2))
 
                     # compute response
-                    with stimulus.memory_friendly():
-                        states = self(
-                            stimulus(), dt, state=fade_in_state, as_states=True
+                    states = self(stimulus(), dt, state=fade_in_state, as_states=True)
+                    return (
+                        stim.cpu().numpy().squeeze(),
+                        torch.stack(
+                            [s.nodes.activity.cpu() for s in states],
+                            dim=1,
                         )
-                        return (
-                            stim.cpu().numpy().squeeze(),
-                            torch.stack(
-                                [s.nodes.activity.cpu() for s in states],
-                                dim=1,
-                            )
-                            .numpy()
-                            .squeeze(),
-                            torch.stack(
-                                [
-                                    self.dynamics.currents(s, params).cpu()
-                                    for s in states
-                                ],
-                                dim=1,
-                            )
-                            .numpy()
-                            .squeeze(),
+                        .numpy()
+                        .squeeze(),
+                        torch.stack(
+                            [self.dynamics.currents(s, params).cpu() for s in states],
+                            dim=1,
                         )
+                        .numpy()
+                        .squeeze(),
+                    )
 
                 yield handle_stim()
 
 
+@root(flyvision.results_dir)
 class NetworkDir(Directory):
     """Directory for a network."""
 
@@ -852,26 +868,31 @@ class NetworkView(ConnectomeView):
 
     def __init__(
         self,
-        network_dir: Union[PathLike, NetworkDir],
+        network_dir: Union[str, PathLike, NetworkDir],
+        checkpoint="best",
+        validation_subdir="validation",
+        loss_file_name="loss",
     ):
-        if isinstance(network_dir, PathLike):
+        if isinstance(network_dir, PathLike) or isinstance(network_dir, str):
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
+        self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
+        self.checkpoints = resolve_checkpoints(
+            self.dir, checkpoint, validation_subdir, loss_file_name
+        )
         self._initialized = dict(network=False, decoder=False)
 
     def reset_init(self, key):
         """Reset initialization of a component."""
         self._initialized[key] = False
 
-    def init_network(
-        self, chkpt="best_chkpt", network: Optional[Network] = None
-    ) -> Network:
+    def init_network(self, network: Optional[Network] = None) -> Network:
         """Initialize the network.
 
         Args:
-            chkpt: checkpoint to load.
+            checkpoint: checkpoint to load.
             network: network instance to initialize.
 
         Returns:
@@ -880,16 +901,14 @@ class NetworkView(ConnectomeView):
         if self._initialized["network"] and network is None:
             return self.network
         self.network = network or Network(**self.dir.config.network)
-        state_dict = torch.load(self.dir / chkpt, map_location=flyvision.device)
-        self.network.load_state_dict(state_dict["network"])
+        recover_network(self.network, self.checkpoints.path)
         self._initialized["network"] = True
         return self.network
 
-    def init_decoder(self, chkpt="best_chkpt", decoder=None):
+    def init_decoder(self, decoder=None):
         """Initialize the decoder.
 
         Args:
-            chkpt: checkpoint to load.
             decoder: decoder instance to initialize.
 
         Returns:
@@ -897,11 +916,10 @@ class NetworkView(ConnectomeView):
         """
         if self._initialized["decoder"] and decoder is None:
             return self.decoder
-        self.decoder = decoder or init_decoder(
-            self.dir.config.task_decoder, self.connectome
+        self.decoder = decoder or _init_decoder(
+            self.dir.config.task.decoder, self.connectome
         )
-        state_dict = torch.load(self.dir / chkpt, map_location=flyvision.device)
-        self.decoder.load_state_dict(state_dict["decoder"]["flow"])
+        recover_decoder(self.decoder, self.checkpoints.path)
         self._initialized["decoder"] = True
         return self.decoder
 
@@ -940,3 +958,28 @@ class NetworkView(ConnectomeView):
 
 class IntegrationWarning(Warning):
     pass
+
+
+class FlynetPlusDecoder(nn.Module):
+    def __init__(self, network, decoder):
+        super().__init__()
+        self.network = network
+        self.stimulus = self.network.stimulus
+        self.decoder = decoder
+
+    def forward(self, x, dt, t_pre):
+        n_samples, n_frames = x.shape[:2]
+        initial_state = self.network.steady_state(
+            t_pre=t_pre,
+            dt=dt,
+            batch_size=n_samples,
+            value=0.5,
+        )
+        self.stimulus.zero(n_samples, n_frames)
+        self.stimulus.add_input(x)
+        activity = self.network(
+            self.stimulus(),
+            dt,
+            state=initial_state,
+        )
+        return {task: self.decoder[task](activity) for task in self.decoder}

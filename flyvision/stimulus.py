@@ -1,4 +1,5 @@
 """Interface to control the cell-specific stimulus for the network."""
+
 from typing import Dict, Union
 from contextlib import contextmanager
 
@@ -191,13 +192,5 @@ class Stimulus:
         self._nonzero = True
 
     def __call__(self) -> torch.Tensor:
-        """Returns the buffer tensor."""
+        """Returns the stimulus tensor."""
         return self.buffer
-
-    @contextmanager
-    def memory_friendly(self):
-        """To remove the buffer temporarily to save GPU memory."""
-        try:
-            yield
-        finally:
-            delattr(self, "buffer")

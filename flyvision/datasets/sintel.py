@@ -30,9 +30,8 @@ from flyvision.augmentation.hex import (
 from flyvision.rendering import BoxEye
 from flyvision.rendering.utils import split
 from flyvision.utils.dataset_utils import download_sintel
-from flyvision.datasets.datasets import MultiTaskDataset
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
 
 
 @root(flyvision.sintel_dir)
@@ -163,7 +162,7 @@ def load_sequence(path, sample_function, start=0, end=None, as_tensor=True):
         samples.append(sample_function(p))
     samples = np.array(samples)
     if as_tensor:
-        return torch.Tensor(samples)
+        return torch.tensor(samples, dtype=torch.float32)
     return samples
 
 
@@ -333,12 +332,9 @@ class MultiTaskSintel(MultiTaskDataset):
         ValueError: if any element in tasks is invalid.
     """
 
-    # TODO: check if class attributes must be instance attributes
-    # to implement attributes of abstract base class MultiTaskDataset
     framerate: int = 24
     dt: float = 1 / 50
     n_sequences: int = 0
-    augment: bool = True
     t_pre: float = 0.0
     t_post: float = 0.0
     tasks: List[str] = []
@@ -382,6 +378,7 @@ class MultiTaskSintel(MultiTaskDataset):
         _init_cache=True,
         unittest=False,
         flip_axes=[0, 1],
+        task_weights=None,
     ):
         def check_tasks(tasks):
             invalid_tasks = [x for x in tasks if x not in self.valid_tasks]
@@ -394,6 +391,7 @@ class MultiTaskSintel(MultiTaskDataset):
             return tasks, data_keys
 
         self.tasks, self.data_keys = check_tasks(tasks)
+        self._init_task_weights(task_weights)
         self.interpolate = interpolate
         self.n_frames = n_frames if not unittest else 3
         self.dt = dt
@@ -407,7 +405,6 @@ class MultiTaskSintel(MultiTaskDataset):
         self.vertical_splits = vertical_splits
         self.center_crop_fraction = center_crop_fraction
 
-        self.augment = augment
         self.p_flip = p_flip
         self.p_rot = p_rot
         self.contrast_std = contrast_std
@@ -416,9 +413,12 @@ class MultiTaskSintel(MultiTaskDataset):
         self.gamma_std = gamma_std
         self.random_temporal_crop = random_temporal_crop
         self.flip_axes = flip_axes
-        self._initialized_augmentation = False
-        self.init_augmentation()
         self.fix_augmentation_params = False
+
+        self.init_augmentation()
+        self._augmentations_are_initialized = True
+        # note: self.augment is a property with a setter that relies on _augmentations_are_initialized
+        self.augment = augment
 
         self.unittest = unittest
 
@@ -471,7 +471,7 @@ class MultiTaskSintel(MultiTaskDataset):
     def init_cache(self):
         self.cached_sequences = [
             {
-                key: torch.Tensor(val)
+                key: torch.tensor(val, dtype=torch.float32)
                 for key, val in self.rendered(seq_id).items()
                 if key in self.data_keys
             }
@@ -479,13 +479,14 @@ class MultiTaskSintel(MultiTaskDataset):
         ]
 
     def __setattr__(self, name, value):
+        # some changes have no effect cause they are fixed, or set by the pre-rendering
         if name == "framerate":
             raise AttributeError("cannot change framerate")
         if hasattr(self, "rendered") and name in self.rendered.config.keys():
             raise AttributeError("cannot change attribute of rendered initialization")
         super().__setattr__(name, value)
-
-        if getattr(self, "_initialized_augmentation", False):
+        # also update augmentation if it is already initialized
+        if getattr(self, "_augmentations_are_initialized", False):
             self.update_augmentation(name, value)
 
     def update_augmentation(self, name, value):
@@ -530,7 +531,6 @@ class MultiTaskSintel(MultiTaskDataset):
             mode="linear",
         )
         self.gamma_correct = GammaCorrection(1, self.gamma_std)
-        self._initialized_augmentation = True
 
     def set_augmentation_params(
         self,
@@ -562,7 +562,7 @@ class MultiTaskSintel(MultiTaskDataset):
         return self.apply_augmentation(self.cached_sequences[key])
 
     @contextmanager
-    def augmentation(self, abool: bool) -> None:
+    def augmentation(self, abool: bool):
         """Contextmanager to turn augmentation on or off in a code block.
 
         Example usage:
@@ -581,29 +581,34 @@ class MultiTaskSintel(MultiTaskDataset):
             "gamma_correct",
         ]
         states = {key: getattr(self, key).augment for key in augmentations}
+        _augment = self.augment
         try:
-            if abool:
-                self.temporal_crop.random = self.random_temporal_crop
-                self.jitter.augment = True
-                self.rotate.augment = True
-                self.flip.augment = True
-                self.noise.augment = True
-                self.piecewise_resample.augment = True
-                self.linear_interpolate.augment = True
-                self.gamma_correct.augment = True
-            else:
-                self.temporal_crop.random = False
-                self.jitter.augment = False
-                self.rotate.augment = False
-                self.flip.augment = False
-                self.noise.augment = False
-                self.piecewise_resample.augment = True
-                self.linear_interpolate.augment = True
-                self.gamma_correct.augment = False
+            self.augment = abool
             yield
         finally:
+            self.augment = _augment
             for key in augmentations:
                 setattr(getattr(self, key), "augment", states[key])
+
+    @property
+    def augment(self):
+        return self._augment
+
+    @augment.setter
+    def augment(self, value):
+        self._augment = value
+        if not self._augmentations_are_initialized:
+            return
+        # note: random_temporal_crop can override augment=True
+        self.temporal_crop.random = self.random_temporal_crop if value else False
+        self.jitter.augment = value
+        self.rotate.augment = value
+        self.flip.augment = value
+        self.noise.augment = value
+        # note: these two are not affected by augment
+        self.piecewise_resample.augment = self.resampling
+        self.linear_interpolate.augment = self.interpolate
+        self.gamma_correct.augment = value
 
     def apply_augmentation(
         self,
@@ -627,10 +632,6 @@ class MultiTaskSintel(MultiTaskDataset):
             start_frame=None,
             total_sequence_length=data["lum"].shape[0],
         )
-        if not self.resampling:
-            self.piecewise_resample.augment = False
-        if not self.interpolate:
-            self.linear_interpolate.augment = False
 
         def transform_lum(lum):
             return self.piecewise_resample(
@@ -672,7 +673,7 @@ class MultiTaskSintel(MultiTaskDataset):
         self,
         key,
         vertical_splits=None,
-        outwidth=417,
+        outwidth=716,
         center_crop_fraction=None,
         sampling=slice(1, None, None),
     ):
@@ -780,195 +781,6 @@ class MultiTaskSintel(MultiTaskDataset):
             if any([scene_name in name for scene_name in _validation])
         ]
         return train_indices, val_indices
-
-
-# class AugmentedPaddedSintelLum(MultiTaskSintel):
-#     """Nan-padded sintel luminosity with rich augmentation.
-
-#     To evoke rich network responses, performs controlled augmentation (flips,
-#     rotations). Nan-padding is applied to sequences shorter than the max
-#     length sequence.
-
-#     Expands MultiTaskSintel with methods to hold a trained network directory
-#     and return responses for specific augmentation parameters.
-
-#     Note: This child of the Sintel dataset returns only the luminosity and
-#         samples all raw frames by default. It turns augmentation at sampling
-#         off.
-
-#     Args:
-#         flip_axes: list of axes to flip over.
-#         n_rotations: list of number of rotations to perform.
-#         build_stim_on_init: to build the augmented stimulus in cache.
-#         dt: integration and sampling time constant.
-
-#     Kwargs:
-#         See list of arguments for MultiTaskSintel.
-#         Overrides tasks, sample_all, resampling, init_cache, and augment.
-
-#     Attributes:
-#         sequences: augmented, cached sequences.
-#         ~ see MultiTasksintel
-#     """
-
-#     sequences: List[Dict[str, torch.Tensor]]
-#     _valid_flip_axes = [None, 0, 1, 2]
-#     _valid_rotations = [0, 1, 2, 3, 4, 5]
-
-#     def __init__(
-#         self,
-#         flip_axes=[None, 0, 1, 2],
-#         n_rotations=[0, 1, 2, 3, 4, 5],
-#         build_stim_on_init=True,
-#         dt=1 / 50,
-#         **kwargs,
-#     ):
-#         _invalid_flip_axes = [p for p in flip_axes if p not in self._valid_flip_axes]
-#         _invalid_rotations = [p for p in n_rotations if p not in self._valid_rotations]
-#         if _invalid_flip_axes or _invalid_rotations:
-#             raise ValueError(
-#                 "invalid augmentation " f"{_invalid_flip_axes}, {_invalid_rotations}"
-#             )
-
-#         kwargs.update(
-#             tasks=["lum"], sample_all=True, resampling=True, init_cache=True
-#         )
-#         super().__init__(**kwargs)
-
-#         self.augment = False
-#         self.rotate = HexRotate(15, 0)
-#         self.flip = HexFlip(15, None)
-#         self.flip_axes = flip_axes
-#         self.n_rotations = n_rotations
-
-#         self._built = False
-#         if build_stim_on_init:
-#             self._build()
-#             self._built = True
-
-#         self.dt = dt
-
-#     def _build(self):
-#         seq_to_frames = {
-#             i: d["lum"].shape[0] for i, d in enumerate(self.cached_samples)
-#         }
-#         self.n_frames = max([d["lum"].shape[0] for d in self.cached_samples])
-
-#         self.params = [
-#             (p[0][0], p[1], p[2], p[0][1])
-#             for p in list(
-#                 product(
-#                     zip(list(seq_to_frames.keys()), list(seq_to_frames.values())),
-#                     self.flip_axes,
-#                     self.n_rotations,
-#                 )
-#             )
-#         ]
-#         self.arg_df = pd.DataFrame(
-#             self.params, columns=["sequence", "flip_ax", "n_rot", "frames"]
-#         )
-
-#         self.sequences = {}
-#         for i, (sample, flip_ax, n_rot, _) in enumerate(self.params):
-#             self.flip.axis = flip_ax
-#             self.rotate.n_rot = n_rot
-#             self.sequences[i] = self.rotate(
-#                 self.flip(self.cached_samples[sample]["lum"], "lum"), "lum"
-#             )
-#         self.n_sequences = len(self.sequences)
-
-#     def init_responses(self, tnn, subdir="augmented_sintel"):
-#         self.tnn = tnn
-#         with exp_path_context():
-#             if isinstance(tnn, (str, Path)):
-#                 self.tnn, _ = init_network_dir(tnn, None, None)
-#             self.central_activity = utils.CentralActivity(
-#                 self.tnn[subdir].network_states.nodes.activity_central[:],
-#                 self.tnn.ctome,
-#                 keepref=True,
-#             )
-
-#     def get_item(self, key):
-#         stim = self.sequences[key]
-
-#         stim = nnf.pad(
-#             stim,
-#             pad=(0, 0, 0, 0, 0, self.n_frames - stim.shape[0]),
-#             mode="constant",
-#             value=np.nan,
-#         ).squeeze()  # squeezing out the feat dim
-
-#         if self.resampling:
-#             frame_samples = self.get_temporal_sample_indices(
-#                 self.n_frames, self.n_frames
-#             )
-#             return stim[frame_samples]
-#         return stim
-
-#     def get(self, sequence, flip_ax, n_rot):
-#         key = self._key(sequence, flip_ax, n_rot)
-#         return self[key]
-
-#     def _key(self, sequence, flip_ax, n_rot):
-#         try:
-#             mask = self.mask(sequence, flip_ax, n_rot)
-#             return np.arange(len(self))[mask].item()
-#         except ValueError:
-#             raise ValueError(
-#                 f"sequence: {sequence}, flip_ax: {flip_ax}, n_rot: {n_rot} invalid."
-#             )
-
-#     def _params(self, key):
-#         return self.arg_df.iloc[key].values
-
-#     def mask(self, sequence=None, flip_ax=None, n_rot=None):
-#         values = self.arg_df.values
-#         _nans = np.isnan(values)
-#         values = values.astype(object)
-#         values[_nans] = "None"
-
-#         def iterparam(param, name, axis, and_condition):
-#             condition = np.zeros(len(values)).astype(bool)
-#             if isinstance(param, Iterable) and not isinstance(param, str):
-#                 for p in param:
-#                     _new = values.take(axis, axis=1) == p
-#                     assert any(_new), f"{name} {p} not in dataset."
-#                     condition = np.logical_or(condition, _new)
-#             else:
-#                 _new = values.take(axis, axis=1) == param
-#                 assert any(_new), f"{name} {param} not in dataset."
-#                 condition = np.logical_or(condition, _new)
-#             return condition & and_condition
-
-#         condition = np.ones(len(values)).astype(bool)
-#         if sequence is not None:
-#             condition = iterparam(sequence, "sequence", 0, condition)
-#         if flip_ax is not None:
-#             condition = iterparam(flip_ax, "flip_ax", 1, condition)
-#         if n_rot is not None:
-#             condition = iterparam(n_rot, "n_rot", 2, condition)
-#         return condition
-
-#     def response(
-#         self,
-#         node_type=None,
-#         sequence=None,
-#         flip_ax=None,
-#         n_rot=None,
-#         rm_nans=False,
-#     ):
-#         assert self.tnn
-#         mask = self.mask(sequence=sequence, flip_ax=flip_ax, n_rot=n_rot)
-
-#         if node_type is not None:
-#             responses = self.central_activity[node_type][mask][:, :, None]
-#         else:
-#             responses = self.central_activity[:][mask]
-
-#         if rm_nans:
-#             return remove_nans(responses)
-
-#         return responses.squeeze()
 
 
 class AugmentedSintel(MultiTaskSintel):
@@ -1147,6 +959,31 @@ class AugmentedSintel(MultiTaskSintel):
     def __len__(self):
         return len(self.cached_sequences)
 
+    def _original_length(self):
+        return len(self) // self.vertical_splits
+
+    def get_random_data_split(self, fold, n_folds, shuffle=True, seed=0):
+        train_seq_index, val_seq_index = self.get_random_data_split(
+            fold,
+            n_folds=n_folds,
+            shuffle=True,
+            seed=seed,
+        )
+
+        # adapt to the temporal split to make sure no bleed over from train to
+        # val
+        train_seq_index = [
+            split
+            for seq_id in self.train_seq_index
+            for split in self.dataset.meta.sequence_index_to_splits[seq_id]
+        ]
+        val_seq_index = [
+            split
+            for seq_id in self.val_seq_index
+            for split in self.dataset.meta.sequence_index_to_splits[seq_id]
+        ]
+        return train_seq_index, val_seq_index
+
     def pad_nans(self, data, pad_to_length=None):
         if pad_to_length is not None:
             data = {}
@@ -1161,6 +998,9 @@ class AugmentedSintel(MultiTaskSintel):
         return data
 
     def get_item(self, key, pad_to_length=None):
+        import pdb
+
+        pdb.set_trace()
         if self.augment:
             return self.pad_nans(
                 self.apply_augmentation(

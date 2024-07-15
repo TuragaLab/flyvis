@@ -19,13 +19,10 @@ class Interpolate(Augmentation):
     def transform(self, sequence: torch.Tensor, dim: int = 0):
         """Resamples the sequence along the specified dim.
 
-        sequence: sequence to resample of shape (..., n_frames, ...)
+        sequence: sequence to resample of n_dim == 3. See nnf.interpolate for details.
         dim: dim along which to resample.
         """
-        if sequence.ndim == 1:
-            sequence = sequence[:, None, None]
-        elif sequence.ndim == 2:
-            sequence = sequence[:, :, None]
+        assert sequence.ndim == 3, "only 3D sequences are supported"
         if sequence.dtype == torch.long:
             sequence = sequence.float()
         return nnf.interpolate(
@@ -37,18 +34,19 @@ class Interpolate(Augmentation):
             align_corners=self.align_corners,
         ).transpose(dim, -1)
 
-    def piecewise_constant_indices(self, sequence: torch.Tensor, dim: int = 0):
-        indices = torch.arange(sequence.shape[dim], dtype=torch.float)[:, None, None]
+    def piecewise_constant_indices(self, length: int):
+        """Returns indices to sample from a sequence with piecewise constant
+        interpolation."""
+        indices = torch.arange(length, dtype=torch.float)[None, None]
         return (
             nnf.interpolate(
-                indices.transpose(dim, -1),
+                indices,
                 size=math.ceil(
-                    self.target_framerate / self.original_framerate * indices.shape[dim]
+                    self.target_framerate / self.original_framerate * length
                 ),
                 mode="nearest-exact",
                 align_corners=None,
             )
-            .transpose(dim, -1)
             .flatten()
             .long()
         )

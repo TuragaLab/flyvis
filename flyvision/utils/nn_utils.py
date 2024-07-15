@@ -1,6 +1,9 @@
 """Utility functions for operations on torch.nn.Modules."""
+
 from dataclasses import dataclass
 from contextlib import contextmanager
+
+from torch import nn
 
 
 @contextmanager

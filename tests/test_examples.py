@@ -49,7 +49,7 @@ class CustomStimuli(SequenceDataset):
             self.dir = RenderedData(dict(path=raw_data_path))
         else:
             self.dir = RenderedData(rendered_path, dict(path=raw_data_path))
-        self.sequences = torch.Tensor(self.dir.sequences[:])
+        self.sequences = torch.tensor(self.dir.sequences[:])
         self.n_sequences = self.sequences.shape[0]
 
     def get_item(self, key):
@@ -109,7 +109,7 @@ def test_connectome_view(connectome):
 
     fig = connectome_view.network_layout()
     fig.show()
-    assert len(fig.axes) == len(connectome.unique_cell_types) + 2
+    assert len(fig.axes) == len(connectome.unique_cell_types) + 3
     assert isinstance(fig, Figure)
     plt.close(fig)
 
@@ -149,7 +149,7 @@ def test_boxeye(sequence_path):
     sequences = np.load(sequence_path)
 
     single_frame = sequences[0, 0]
-    single_frame = torch.Tensor(single_frame)
+    single_frame = torch.tensor(single_frame)
     single_frame = single_frame[None, None]
     rendered = receptors(single_frame)
 
@@ -169,7 +169,7 @@ def test_sequence_dataset(custom_dataset):
 
 
 def test_model_responses(custom_dataset):
-    ensemble = EnsembleView(flyvision.results_dir / "opticflow/000")
+    ensemble = EnsembleView("opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
 
     movie_input = custom_dataset[0]
 
@@ -191,7 +191,7 @@ def test_cluster():
     from datamate import namespacify
 
     cell_type = "T4c"
-    ensemble = EnsembleView(flyvision.results_dir / "opticflow/000")
+    ensemble = EnsembleView("opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
 
     cluster_indices = ensemble.cluster_indices(cell_type)
 

@@ -1,0 +1,21 @@
+lr_net:
+  function: stepwise
+  start: 5.0e-05
+  stop: 5.0e-06
+  steps: 10
+lr_dec:
+  function: stepwise
+  start: 5.0e-05
+  stop: 5.0e-06
+  steps: 10
+lr_pen:
+  function: stepwise
+  start: ${scheduler.lr_net.start}
+  stop: ${scheduler.lr_net.stop}
+  steps: 10
+dt:
+  function: stepwise
+  start: 0.02
+  stop: 0.02
+  steps: 10
+chkpt_every_epoch: 300

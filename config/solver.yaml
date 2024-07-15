@@ -1,0 +1,25 @@
+network_id: ???
+task_name: ???
+train: true
+resume: false
+checkpoint_only: false
+network_name: ${task_name}/${network_id} 
+description: ???
+overfit: false
+delete_if_exists: false
+save_environment: false
+
+defaults:
+  - _self_
+  - network: network
+  - task: task
+  - optim: optim
+  - penalizer: penalizer
+  - scheduler: scheduler
+  - override hydra/hydra_logging: disabled
+
+# disable all hydra working dir manipulation, logging, config stores because we do it
+hydra:
+  run:
+    dir: .
+  output_subdir: null

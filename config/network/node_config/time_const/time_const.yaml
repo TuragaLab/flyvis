@@ -1,0 +1,6 @@
+type: TimeConstant
+groupby:
+  - type
+initial_dist: Value
+value: 0.05
+requires_grad: true

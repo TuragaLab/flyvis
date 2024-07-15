@@ -20,7 +20,7 @@ from matplotlib.colorbar import Colorbar
 from flyvision import utils
 from flyvision.plots import plt_utils
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
 
 # ---- connectivity matrix
 

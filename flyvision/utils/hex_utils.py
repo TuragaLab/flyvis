@@ -35,7 +35,7 @@ def get_hex_coords(extent, astensor=False):
             u.append(q)
             v.append(r)
     if astensor:
-        return torch.Tensor(u).long(), torch.Tensor(v).long()
+        return torch.tensor(u, dtype=torch.long), torch.tensor(v, dtype=torch.long)
     return np.array(u), np.array(v)
 
 

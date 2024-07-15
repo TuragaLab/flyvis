@@ -49,9 +49,8 @@ class BoxEye:
     def __init__(self, extent: int = 15, kernel_size: int = 13):
         self.extent = extent
         self.kernel_size = kernel_size
-        self.receptor_centers = (
-            torch.Tensor([*self._receptor_centers()]).long().to(torch.tensor(0).device)
-        )
+        self.receptor_centers = torch.tensor([*self._receptor_centers()],
+                                              dtype=torch.long)
         self.hexals = len(self.receptor_centers)
         # The rest of kernel_size distance from outer centers to the border
         # is taken care of by the padding of the convolution object.
@@ -119,7 +118,7 @@ class BoxEye:
         if not isinstance(sequence, torch.cuda.FloatTensor):
             # auto-moving to GPU in case default tensor is cuda but passed
             # sequence is not for convenience
-            sequence = torch.Tensor(sequence)
+            sequence = torch.tensor(sequence, dtype=torch.float32)
 
         if (self.min_frame_size > torch.tensor([height, width])).any():
             # to rescale to the minimum frame size

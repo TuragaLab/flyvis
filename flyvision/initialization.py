@@ -28,7 +28,7 @@ from flyvision.utils.type_utils import byte_to_str
 from flyvision.utils.class_utils import forward_subclass
 
 
-logging = logging.getLogger()
+logging = logger = logging.getLogger(__name__)
 
 # --- Supplementary Error types -------------------------------------------------
 
@@ -41,7 +41,6 @@ class ParameterConfigError(ValueError):
 
 
 class InitialDistribution:
-
     """Initial distribution base class.
 
     Attributes:
@@ -67,8 +66,8 @@ class InitialDistribution:
     raw_values: Tensor
     readers: Dict[str, Tensor]
 
-    def __new__(cls, param_config: Namespace, *args, **kwargs):
-        return forward_subclass(cls, param_config, subclass_key="initial_dist")
+    # def __new__(cls, param_config: Namespace, *args, **kwargs):
+    #     return forward_subclass(cls, param_config, subclass_key="initial_dist")
 
     @property
     def semantic_values(self):
@@ -81,14 +80,13 @@ class InitialDistribution:
     def __len__(self):
         return len(self.raw_values)
 
-    def clamp(self, values, param_config):
+    def clamp(self, values, mode):
         """To clamp the raw_values of the parameters at initialization.
 
         Note, mild clash with raw_values/semantic_values reparametrization.
         Parameters that use reparametrization in terms of semantic_values
         should not use clamp.
         """
-        mode = param_config.get("clamp", False)
         if mode == "non_negative":
             values.clamp_(min=0)
         elif isinstance(mode, Iterable) and len(mode) == 2:
@@ -111,12 +109,17 @@ class Value(InitialDistribution):
         )
     """
 
-    def __init__(self, param_config: Namespace) -> None:
-        _values = torch.tensor(param_config.value).float()
-        _values = self.clamp(_values, param_config)
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
-        )
+    # def __init__(self, param_config: Namespace) -> None:
+    #     _values = torch.tensor(param_config.value).float()
+    #     _values = self.clamp(_values, param_config)
+    #     self.raw_values = nn.Parameter(
+    #         _values, requires_grad=param_config.requires_grad
+    #     )
+
+    def __init__(self, value, requires_grad, clamp=False, **kwargs) -> None:
+        _values = torch.tensor(value).float()
+        _values = self.clamp(_values, clamp)
+        self.raw_values = nn.Parameter(_values, requires_grad=requires_grad)
 
 
 class Normal(InitialDistribution):
@@ -132,31 +135,53 @@ class Normal(InitialDistribution):
         )
     """
 
-    def __init__(self, param_config: Namespace) -> None:
-        if param_config.mode == "mean":
-            _values = torch.tensor(param_config.mean).float()
-        elif param_config.mode == "sample":
-            seed = param_config.get("seed", None)
+    # def __init__(self, param_config: Namespace) -> None:
+    #     if param_config.mode == "mean":
+    #         _values = torch.tensor(param_config.mean).float()
+    #     elif param_config.mode == "sample":
+    #         seed = param_config.get("seed", None)
+    #         if seed is not None:
+    #             torch.manual_seed(seed)
+    #         try:
+    #             _values = torch.distributions.normal.Normal(
+    #                 torch.tensor(param_config.mean).float(),
+    #                 torch.tensor(param_config.std).float(),
+    #             ).sample()
+    #         except RuntimeError as e:
+    #             raise RuntimeError(
+    #                 f"Failed to sample from normal distribution with mean {param_config.mean} and std {param_config.std}"
+    #             ) from e
+    #     else:
+    #         raise ValueError("Mode must be either mean or sample.")
+    #     _values = self.clamp(_values, param_config)
+    #     self.raw_values = nn.Parameter(
+    #         _values, requires_grad=param_config.requires_grad
+    #     )
+
+    def __init__(
+        self, mean, std, requires_grad, mode="sample", clamp=False, seed=None, **kwargs
+    ) -> None:
+        if mode == "mean":
+            _values = torch.tensor(mean).float()
+        elif mode == "sample":
             if seed is not None:
                 torch.manual_seed(seed)
             try:
                 _values = torch.distributions.normal.Normal(
-                    torch.tensor(param_config.mean).float(),
-                    torch.tensor(param_config.std).float(),
+                    torch.tensor(mean).float(),
+                    torch.tensor(std).float(),
                 ).sample()
             except RuntimeError as e:
                 raise RuntimeError(
-                    f"Failed to sample from normal distribution with mean {param_config.mean} and std {param_config.std}"
+                    f"Failed to sample from normal distribution with mean {mean} and std {std}"
                 ) from e
         else:
             raise ValueError("Mode must be either mean or sample.")
-        _values = self.clamp(_values, param_config)
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
-        )
+        _values = self.clamp(_values, clamp)
+        self.raw_values = nn.Parameter(_values, requires_grad=requires_grad)
 
 
-class Lognormal(InitialDistribution):
+class Lognormal(Normal):
     """Initializes parameters independently from lognormal distributions.
 
     Example param_config:
@@ -172,35 +197,7 @@ class Lognormal(InitialDistribution):
     values.
     """
 
-    def __init__(self, param_config: Namespace) -> None:
-        if param_config.get("clamp", False):
-            logging.warning(
-                f"clamping has no effect for {self.__class__.__name__} parameters"
-                " because clamping acts on raw_values"
-                " but the lognormal parameter semantic values are raw_values.exp()"
-            )
-
-        if param_config.mode == "mean":
-            _values = torch.tensor(param_config.mean).float()
-        elif param_config.mode == "sample":
-            # The log is normally distributed and in the class SynCount we take the log, thus the normal distr. here.
-            seed = param_config.get("seed", None)
-            if seed is not None:
-                torch.manual_seed(seed)
-            try:
-                _values = torch.distributions.normal.Normal(
-                    torch.tensor(param_config.mean).float(),
-                    torch.tensor(param_config.std).float(),
-                ).sample()
-            except RuntimeError as e:
-                raise RuntimeError(
-                    f"Failed to sample from normal distribution with mean {param_config.mean} and std {param_config.std}"
-                ) from e
-        else:
-            raise ValueError("Mode must be either mean or sample.")
-        self.raw_values = nn.Parameter(
-            _values, requires_grad=param_config.requires_grad
-        )
+    # __init__ = Normal.__init__
 
     @property
     def semantic_values(self):
@@ -295,11 +292,11 @@ class Parameter:
     symmetry_masks: List[torch.Tensor]
     keys: List[Any]
 
-    def __new__(cls, param_config: Namespace, connectome: ConnectomeDir):
-        obj = forward_subclass(cls, deepcopy(param_config), subclass_key="type")
-        # object.__setattr__(obj, "_config", param_config)
-        object.__setattr__(obj, "config", deepcopy(param_config))
-        return obj
+    # def __new__(cls, param_config: Namespace, connectome: ConnectomeDir):
+    #     obj = forward_subclass(cls, deepcopy(param_config), subclass_key="type")
+    #     # object.__setattr__(obj, "_config", param_config)
+    #     object.__setattr__(obj, "config", deepcopy(param_config))
+    #     return obj
 
     @deepcopy_config
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
@@ -366,7 +363,9 @@ class RestingPotential(Parameter):
         param_config["mean"] = np.repeat(param_config["mean"], len(grouped_nodes))
         param_config["std"] = np.repeat(param_config["std"], len(grouped_nodes))
 
-        self.parameter = InitialDistribution(param_config)
+        self.parameter = forward_subclass(
+            InitialDistribution, param_config, subclass_key="initial_dist"
+        )
         self.indices = get_scatter_indices(nodes, grouped_nodes, param_config.groupby)
         self.keys = param_config["type"].tolist()
         self.symmetry_masks = symmetry_masks(
@@ -392,7 +391,9 @@ class TimeConstant(Parameter):
         param_config["value"] = np.repeat(param_config["value"], len(grouped_nodes))
 
         self.indices = get_scatter_indices(nodes, grouped_nodes, param_config.groupby)
-        self.parameter = InitialDistribution(param_config)
+        self.parameter = forward_subclass(
+            InitialDistribution, param_config, subclass_key="initial_dist"
+        )
         self.keys = param_config["type"].tolist()
         self.symmetry_masks = symmetry_masks(
             param_config.get("symmetric", []), self.keys
@@ -421,7 +422,9 @@ class SynapseSign(Parameter):
         param_config.value = grouped_edges.sign.values
 
         self.indices = get_scatter_indices(edges, grouped_edges, param_config.groupby)
-        self.parameter = InitialDistribution(param_config)
+        self.parameter = forward_subclass(
+            InitialDistribution, param_config, subclass_key="initial_dist"
+        )
         self.keys = list(
             zip(
                 param_config.source_type.tolist(),
@@ -463,7 +466,9 @@ class SynapseCount(Parameter):
         param_config.mean = np.log(grouped_edges.n_syn.values)
 
         self.indices = get_scatter_indices(edges, grouped_edges, param_config.groupby)
-        self.parameter = InitialDistribution(param_config)
+        self.parameter = forward_subclass(
+            InitialDistribution, param_config, subclass_key="initial_dist"
+        )
         self.keys = list(
             zip(
                 param_config.source_type.tolist(),
@@ -508,7 +513,9 @@ class SynapseCountScaling(Parameter):
         param_config.value = syn_strength
 
         self.indices = get_scatter_indices(edges, grouped_edges, param_config.groupby)
-        self.parameter = InitialDistribution(param_config)
+        self.parameter = forward_subclass(
+            InitialDistribution, param_config, subclass_key="initial_dist"
+        )
         self.keys = list(
             zip(
                 param_config.source_type.tolist(),

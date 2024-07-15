@@ -619,7 +619,7 @@ def avg_pool(trace, N):
     shape = trace.shape
     trace = trace.reshape(np.prod(shape[:-1]), 1, shape[-1])
     with torch.no_grad():
-        trace_smooth = F.avg_pool1d(torch.Tensor(trace), N, N).cpu().numpy()
+        trace_smooth = F.avg_pool1d(torch.tensor(trace, dtype=torch.float32), N, N).cpu().numpy()
     return trace_smooth.reshape(shape[0], -1)
 
 

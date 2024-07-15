@@ -18,13 +18,19 @@ from numpy.typing import NDArray
 import pandas as pd
 
 import torch
+from torch import nn
 
 from flyvision.utils import nodes_edges_utils
 from flyvision.utils.nodes_edges_utils import CellTypeArray
 from flyvision.utils.df_utils import where_dataframe
 from flyvision.connectome import ConnectomeDir
 
-__all__ = ["CentralActivity", "LayerActivity", "StimulusResponseIndexer"]
+__all__ = [
+    "CentralActivity",
+    "LayerActivity",
+    "StimulusResponseIndexer",
+    "ActivityDoubleRectifier",
+]
 
 
 class CellTypeActivity(dict):
@@ -853,3 +859,13 @@ class StimulusResponseIndexer:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.arg_df}, {self.responses}, {self.dt}, {self.stim_sample_dim}, {self.temporal_dim})"
+
+
+def asymmetric_weighting(tensor, gamma=1.0, delta=0.1):
+    """
+    Applies asymmetric weighting to the positive and negative elements of a tensor.
+
+    The function is defined as:
+    f(x) = gamma * x if x > 0 else delta * x
+    """
+    return gamma * nn.functional.relu(tensor) - delta * nn.functional.relu(-tensor)
