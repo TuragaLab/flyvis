@@ -12,15 +12,21 @@ else:
 torch.set_default_device(device)
 del torch
 
+# Set up logging
 import logging
+
+
 def timetz(*args):
-    tz = timezone('Europe/Berlin')
+    tz = timezone("Europe/Berlin")
     return datetime.now(tz).timetuple()
 
+
 logging.Formatter.converter = timetz
-logging.basicConfig(format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", 
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO)
+logging.basicConfig(
+    format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
 
 del logging, timetz
 

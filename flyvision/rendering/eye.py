@@ -1,5 +1,6 @@
 """'Transduction' of cartesian pixels to hexals on a regular hexagonal lattice.
 """
+
 from typing import Iterator, Tuple
 
 import numpy as np
@@ -12,9 +13,15 @@ import torchvision.transforms.functional as ttf
 from itertools import product
 
 from flyvision.plots.plt_utils import init_plot, rm_spines
-from flyvision.rendering.utils import median
+from flyvision.rendering.utils import (
+    cartesian_bars,
+    cartesian_gratings,
+    hex_center_coordinates,
+    is_inside_hex,
+    median,
+)
 
-__all__ = ["BoxEye"]
+__all__ = ["BoxEye", "HexEye"]
 
 # ----- BoxEye -----------------------------------------------------------------
 
@@ -223,3 +230,409 @@ class BoxEye:
         rm_spines(ax)
         # fig.tight_layout()
         return fig
+
+
+# ----- HexEye (slower, more precise) ----------------------------------------
+
+
+class HexEye:
+    def __init__(
+        self,
+        n_ommatidia=721,
+        ppo=25,
+        monitor_height_px=None,
+        monitor_width_px=None,
+        device="cuda",
+        dtype=torch.float16,
+    ):
+
+        n_hex_circfer = 2 * (-1 / 2 + np.sqrt(1 / 4 - ((1 - n_ommatidia) / 3))) + 1
+
+        if n_hex_circfer % 1 != 0:
+            raise ValueError(f"{n_ommatidia} does not fill a regular hex grid.")
+
+        self.monitor_width_px = monitor_width_px or ppo * int(n_hex_circfer)
+        self.monitor_height_px = monitor_height_px or ppo * int(n_hex_circfer)
+
+        x_hc, y_hc, (dist_w, dist_h) = hex_center_coordinates(
+            n_ommatidia, self.monitor_width_px, self.monitor_height_px
+        )
+
+        x_img, y_img = np.array(
+            list(
+                product(
+                    np.arange(self.monitor_width_px),
+                    np.arange(self.monitor_height_px),
+                )
+            )
+        ).T
+
+        dist_to_edge = (dist_w + dist_h) / 4
+
+        _, self.is_inside = is_inside_hex(
+            torch.tensor(y_img, dtype=dtype, device=device),
+            torch.tensor(x_img, dtype=dtype, device=device),
+            torch.tensor(x_hc, dtype=dtype, device=device),
+            torch.tensor(y_hc, dtype=dtype, device=device),
+            torch.tensor(dist_to_edge, dtype=dtype, device=device),
+            torch.tensor(np.radians(0), dtype=dtype, device=device),
+            device=device,
+            dtype=dtype,
+        )
+        # Clean up excessive memory usage.
+        if device != "cpu":
+            torch.cuda.empty_cache()
+        self.n_ommatidia = n_ommatidia
+        self.omm_width_rad = np.radians(5.8)
+        self.omm_height_rad = np.radians(5.8)
+        self.ppo = ppo or int(
+            (self.monitor_width_px + self.monitor_width_px) / (2 * n_hex_circfer)
+        )
+        self.n_hex_circfer = n_hex_circfer
+        self.device = device
+        self.dtype = dtype
+
+    def __call__(self, stim, mode="mean", n_chunks=1):
+        """
+
+        Args:
+            stim ([type]): , (n_frames, pixels (monitor_height_px * monitor_width_px))
+        """
+        shape = stim.shape
+        if mode not in ["mean", "median", "sum"]:
+            raise ValueError
+
+        if len(stim.shape) == 3:
+            h, w = stim.shape[1:]
+            if h < self.monitor_height_px or w < self.monitor_width_px:
+                stim = ttf.resize(
+                    stim, [self.monitor_height_px, self.monitor_height_px]
+                )
+            stim = stim.reshape(shape[0], -1)
+
+        try:
+            if mode == "median":
+                n_pixels = shape[1]
+                stim = median(
+                    stim.view(-1, self.monitor_height_px, self.monitor_width_px)
+                    .float()
+                    .to(self.device),
+                    int(np.sqrt(self.ppo)),
+                ).view(-1, n_pixels)
+            elif mode == "sum":
+                return (stim[:, :, None] * self.is_inside).sum(dim=1)
+            # mode is 'mean'
+            return (stim[:, :, None] * self.is_inside).sum(dim=1) / self.is_inside.sum(
+                dim=0
+            )
+
+        except RuntimeError:
+            if n_chunks > shape[0]:
+                raise ValueError
+
+            if self.device != "cpu":
+                torch.cuda.empty_cache()
+            chunks = torch.chunk(stim, max(n_chunks, 1), dim=0)
+
+            def map_fn(chunk):
+                return self(chunk, mode=mode, n_chunks=n_chunks + 1)
+
+            return torch.cat(tuple(map(map_fn, chunks)), dim=0)
+
+    def bar(
+        self,
+        bar_width_rad,
+        bar_height_rad,
+        bar_loc_theta,
+        bar_loc_phi,
+        n_bars,
+        bar_intensity,
+        bg_intensity,
+        moving_angle,  # rotation angle
+        cartesian=False,
+        mode="mean",
+    ):
+
+        bar_width_px = int(bar_width_rad / self.omm_width_rad * self.ppo)
+        bar_height_px = int(bar_height_rad / self.omm_height_rad * self.ppo)
+        bar_loc_horizontal_px = int(
+            self.monitor_width_px * bar_loc_theta / np.radians(180)
+        )
+        bar_loc_vertical_px = int(
+            self.monitor_height_px * bar_loc_phi / np.radians(180)
+        )
+
+        bar = cartesian_bars(
+            self.monitor_height_px,
+            self.monitor_width_px,
+            bar_width_px,
+            bar_height_px,
+            bar_loc_horizontal_px,
+            bar_loc_vertical_px,
+            n_bars,
+            bar_intensity,
+            bg_intensity,
+            moving_angle,
+        )
+        if cartesian:
+            return bar
+        return self(torch.tensor(bar.flatten(), device=self.device)[None], mode)
+
+    def grating(
+        self,
+        period_rad,
+        phase_rad,
+        intensity,
+        bg_intensity,
+        moving_angle,
+        width_rad=None,
+        height_rad=None,
+        cartesian=False,
+        mode="mean",
+    ):
+        """period = 1/ spatial frequency"""
+        period_px = int(period_rad / self.omm_width_rad * self.ppo)
+        phase_px = int(phase_rad / self.omm_width_rad * self.ppo)
+
+        height_rad_px = None
+        if height_rad:
+            height_rad_px = int(height_rad / self.omm_height_rad * self.ppo)
+
+        width_rad_px = None
+        if width_rad:
+            width_rad_px = int(width_rad / self.omm_width_rad * self.ppo)
+
+        grating = cartesian_gratings(
+            self.monitor_height_px,
+            self.monitor_width_px,
+            period_px,
+            intensity,
+            bg_intensity,
+            grating_phase_px=phase_px,
+            rotate=moving_angle,
+            grating_height_px=height_rad_px,
+            grating_width_px=width_rad_px,
+        )
+        if cartesian:
+            return grating
+        return self(torch.tensor(grating.flatten(), device=self.device)[None], mode)
+
+    def grating_offsets(
+        self,
+        period_rad,
+        intensity,
+        bg_intensity,
+        moving_angle,
+        width_rad=None,
+        height_rad=None,
+        cartesian=False,
+        mode="mean",
+    ):
+
+        dphase_px = np.radians(
+            5.8 / 2
+        )  # half ommatidia width - corresponds to led width of 2.25 degree
+        n_offsets = np.ceil(period_rad / dphase_px).astype(int)
+        gratings = []
+        for offset in range(n_offsets):
+            gratings.append(
+                self.grating(
+                    period_rad,
+                    offset * dphase_px,
+                    intensity,
+                    bg_intensity,
+                    moving_angle,
+                    width_rad=width_rad,
+                    height_rad=height_rad,
+                    cartesian=cartesian,
+                    mode=mode,
+                )
+            )
+        if cartesian:
+            return np.array(gratings)
+        return torch.cat(gratings, dim=0)
+
+    def wn_bars(self, frames=1, moving_angle=0, cartesian=False, mode="mean"):
+
+        bars = []
+        for frame in range(frames):
+            bars.append(
+                cartesian_bars(
+                    self.monitor_height_px,
+                    self.monitor_width_px,
+                    rotate=moving_angle,
+                )
+            )
+        bars = np.concatenate(bars)
+
+        if cartesian:
+            return bars
+        return self(torch.tensor(bars.reshape(frames, -1), device=self.device), mode)
+
+    def offset_bars(
+        self,
+        bar_width_rad,
+        bar_height_rad,
+        n_bars,
+        offsets,
+        bar_intensity,
+        bg_intensity,
+        moving_angle,
+        bar_loc_horizontal=np.radians(90),
+        bar_loc_vertical=np.radians(90),
+        mode="mean",
+    ):
+        """Returns offset bars.
+
+        Args:
+            bar_width_rad (float): width of bars in radians,
+                                   e.g. np.radians(2.25).
+            bar_height_rad (float): height of bars in radians,
+                                    e.g. np.radians(20.25).
+            n_bars (int): number of bars (in regular distance).
+            offsets (List[int]): offsets of bars wrt. the center in radians.
+            bar_intensity (float): intensity of the bar.
+            bg_intensity (float): intensity of the background.
+            moving_angle (float): moving angle in degree [0, 360). Orientation
+                                  is perpendicular to that.
+
+        Returns:
+            tensor: moving bars, (#offsets, hexals)
+        """
+        flashes = []
+        for i, offset in enumerate(offsets):
+            flashes.append(
+                self.bar(
+                    bar_width_rad,
+                    bar_height_rad,
+                    bar_loc_horizontal + offset,
+                    bar_loc_vertical,
+                    n_bars,
+                    bar_intensity,
+                    bg_intensity,
+                    moving_angle,
+                    mode=mode,
+                )
+            )
+        # breakpoint()
+        return torch.cat(flashes, dim=0)
+
+    def bar_movie(
+        self,
+        t_stim,
+        dt,
+        bar_width_rad,
+        bar_height_rad,
+        n_bars,
+        offsets,
+        bar_intensity,
+        bg_intensity,
+        moving_angle,
+        t_pre=0.0,
+        t_between=0.0,
+        t_post=0.0,
+        bar_loc_horizontal=np.radians(90),
+        bar_loc_vertical=np.radians(90),
+    ):
+        """Generates moving bars.
+
+        Args:
+            t_stim (float): stimulus duration.
+            dt (float): temporal resolution.
+            bar_width_rad (float): width of bars in radians,
+                                   e.g. np.radians(2.25).
+            bar_height_rad (float): height of bars in radians,
+                                    e.g. np.radians(20.25).
+            n_bars (int): number of bars (in regular distance).
+            offsets (List[int]): offsets of bars wrt. the center in radians.
+            bar_intensity (float): intensity of the bar.
+            bg_intensity (float): intensity of the background.
+            moving_angle (float): moving angle in degree [0, 360). Orientation
+                                  is perpendicular to that.
+            t_pre (float, optional): grey pre stimulus duration. Defaults to 0.
+            t_between (float, optional): grey between offset stimulus duration.
+                                         Defaults to 0.
+            t_post (float, optional): grey post stimulus duration.
+                                      Defaults to 0.
+
+        Returns:
+            tensor: moving bars, (timesteps, hexals)
+        """
+        pre_frames = round(t_pre / dt)
+        stim_frames = round(t_stim / (len(offsets) * dt))
+        if stim_frames == 0:
+            raise ValueError(
+                f"stimulus time {t_stim}s not sufficient to sample {len(offsets)} offsets at {dt}s"
+            )
+        between_frames = round(t_between / dt)
+        post_frames = round(t_post / dt)
+
+        flashes = []
+        if pre_frames:
+            flashes.append(torch.ones([pre_frames, self.n_ommatidia]) * bg_intensity)
+
+        for i, offset in enumerate(offsets):
+            flash = self.bar(
+                bar_width_rad,
+                bar_height_rad,
+                bar_loc_horizontal + offset,
+                bar_loc_vertical,
+                n_bars,
+                bar_intensity,
+                bg_intensity,
+                moving_angle,
+            )
+            flashes.append(flash.repeat(stim_frames, 1))
+
+            if between_frames and i < len(offsets) - 1:
+                flashes.append(
+                    torch.ones([between_frames, self.n_ommatidia]) * bg_intensity
+                )
+        if post_frames:
+
+            flashes.append(torch.ones([post_frames, self.n_ommatidia]) * bg_intensity)
+        return torch.cat(flashes, dim=0)
+
+    def illustrate(self, figsize=[5, 5], fontsize=5):
+
+        x_hc, y_hc, (dist_w, dist_h) = hex_center_coordinates(
+            self.n_ommatidia, self.monitor_width_px, self.monitor_height_px
+        )
+
+        x_img, y_img = np.array(
+            list(
+                product(
+                    np.arange(self.monitor_width_px),
+                    np.arange(
+                        self.monitor_height_px,
+                    ),
+                )
+            )
+        ).T
+
+        dist_to_edge = (dist_w + dist_h) / 4
+
+        vertices, _ = is_inside_hex(
+            torch.tensor(y_img, dtype=self.dtype),
+            torch.tensor(x_img, dtype=self.dtype),
+            torch.tensor(x_hc, dtype=self.dtype),
+            torch.tensor(y_hc, dtype=self.dtype),
+            torch.tensor(dist_to_edge, dtype=self.dtype),
+            torch.tensor(np.radians(0), dtype=self.dtype),
+        )
+        vertices = vertices.cpu()
+        fig, ax = init_plot(figsize=figsize, fontsize=fontsize)
+        ax.scatter(x_hc, y_hc, color="#eb4034", zorder=1)
+        ax.scatter(x_img, y_img, color="#34ebd6", s=0.5, zorder=0)
+
+        for h in range(self.n_ommatidia):
+            for i in range(6):
+                x1, y1 = vertices[i, :, h]  # x1, y1: (n_hexagons)
+                x2, y2 = vertices[i + 1, :, h]
+                ax.plot([x1, x2], [y1, y2], c="black")
+
+        ax.set_xlim(0, self.monitor_width_px)
+        ax.set_ylim(0, self.monitor_height_px)
+        rm_spines(ax)
+        # fig.tight_layout()
+        return fig, ax

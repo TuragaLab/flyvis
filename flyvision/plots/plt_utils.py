@@ -1,5 +1,5 @@
 """Plotting utils.""" ""
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 from numbers import Number
 
 import torch
@@ -996,6 +996,414 @@ def ax_scatter(
         _, (_center, _, _) = get_ax_positions(ax)
         center.append(_center.flatten().tolist())
     return fig, axes, center
+
+
+# -- originally in dvs.plots.decoration
+
+def color_labels(labels: List[str], color, ax):
+    for label in labels:
+        color_label(label, color, ax)
+
+
+def color_label(label: str, color, ax):
+    for t in ax.texts:
+        if t.get_text() == label:
+            t.set_color(color)
+
+    for tick in ax.xaxis.get_major_ticks():
+        if tick.label1.get_text() == label:
+            tick.label1.set_color(color)
+
+    for tick in ax.yaxis.get_major_ticks():
+        if tick.label1.get_text() == label:
+            tick.label1.set_color(color)
+
+    if ax.xaxis.get_label().get_text() == label:
+        ax.xaxis.get_label().set_color(color)
+
+    if ax.yaxis.get_label().get_text() == label:
+        ax.yaxis.get_label().set_color(color)
+
+
+def boldify_labels(labels, ax):
+    for t in ax.texts:
+        if t.get_text() in labels:
+            t.set_weight("bold")
+
+    for tick in ax.xaxis.get_major_ticks():
+        if tick.label1.get_text() in labels:
+            tick.label1.set_weight("bold")
+
+    for tick in ax.yaxis.get_major_ticks():
+        if tick.label1.get_text() in labels:
+            tick.label1.set_weight("bold")
+
+    if ax.xaxis.get_label().get_text() in labels:
+        ax.xaxis.get_label().set_weight("bold")
+
+    if ax.yaxis.get_label().get_text() in labels:
+        ax.yaxis.get_label().set_weight("bold")
+
+
+def scatter_on_violins_or_bars(
+    data,
+    ax,
+    xticks=None,
+    indices=None,
+    s=5,
+    zorder=100,
+    facecolor="none",
+    edgecolor="k",
+    linewidth=0.5,
+    alpha=0.35,
+    uniform=[-0.35, 0.35],
+    seed=42,
+    marker="o",
+    **kwargs
+):
+    """
+    data (array): shape (n_samples, n_random_variables).
+    indices (array, optional): selection along sample dimension.
+    """
+    random = np.random.RandomState(seed)
+
+    if xticks is None:
+        xticks = ax.get_xticks()
+    data = np.atleast_2d(data)
+    indices = indices if indices is not None else range(data.shape[0])
+
+    if (
+        not isinstance(facecolor, Iterable)
+        or len(facecolor) != len(data)
+        or isinstance(facecolor, str)
+    ):
+        facecolor = (facecolor,) * len(indices)
+
+    if (
+        not isinstance(edgecolor, Iterable)
+        or len(edgecolor) != len(data)
+        or isinstance(edgecolor, str)
+    ):
+        edgecolor = (edgecolor,) * len(indices)
+
+    for i, model_index in enumerate(indices):
+        # try:
+        ax.scatter(
+            xticks + random.uniform(*uniform, size=len(xticks)),
+            data[model_index],
+            s=s,
+            zorder=zorder,
+            facecolor=facecolor[i],
+            edgecolor=edgecolor[i],
+            linewidth=linewidth,
+            alpha=alpha,
+            marker=marker,
+            **kwargs
+        )
+
+
+def scatter_on_violins_with_best(
+    data,
+    ax,
+    scatter_best,
+    scatter_all,
+    xticks=None,
+    facecolor="none",
+    edgecolor="k",
+    best_scatter_alpha=1.0,
+    all_scatter_alpha=0.35,
+    best_index=None,
+    best_color=None,
+    all_marker="o",
+    best_marker="o",
+    linewidth=0.5,
+    best_linewidth=0.75,
+    uniform=[-0.35, 0.35],
+):
+    """
+    Ax patch to scatter data on top of violins.
+    data (Array): n_samples, n_variables.
+
+    Not necessary to be a class method here. Should be optional for
+    violin plot.
+    """
+    if scatter_all and not scatter_best:
+        scatter_on_violins_or_bars(
+            data,
+            ax,
+            xticks=xticks,
+            zorder=100,
+            facecolor=facecolor,
+            edgecolor=edgecolor,
+            alpha=all_scatter_alpha,
+            uniform=uniform,
+            marker=all_marker,
+            linewidth=linewidth,
+        )
+    elif scatter_all:
+        assert best_index is not None, "`best_index` must be provided if `scatter_all=True`"
+        indices = list(range(data.shape[0]))
+        indices.remove(best_index)
+        scatter_on_violins_or_bars(
+            data,
+            ax,
+            xticks=xticks,
+            indices=indices,
+            zorder=10,
+            facecolor=facecolor,
+            edgecolor=edgecolor,
+            alpha=all_scatter_alpha,
+            uniform=uniform,
+            marker=all_marker,
+            linewidth=linewidth,
+        )
+    if scatter_best:
+        assert best_index is not None, "`best_index` must be provided if `scatter_best=True`"
+        assert best_color is not None, "`best_color` must be provided if `scatter_all=True`"
+        scatter_on_violins_or_bars(
+            data,
+            ax,
+            xticks=xticks,
+            indices=[best_index],
+            alpha=best_scatter_alpha,
+            linewidth=best_linewidth,
+            edgecolor=best_color,
+            facecolor=best_color,
+            uniform=[0, 0],
+            s=7.5,
+            zorder=11,
+            marker=best_marker,
+        )
+
+
+def trim_axis(ax, xaxis=True, yaxis=True):
+    if xaxis:
+        xticks = np.array(ax.get_xticks())
+        minor_xticks = np.array(ax.get_xticks(minor=True))
+        all_ticks = np.sort(np.concatenate((minor_xticks, xticks)))
+        if hasattr(xticks, "size"):
+            firsttick = np.compress(all_ticks >= min(ax.get_xlim()), all_ticks)[0]
+            lasttick = np.compress(all_ticks <= max(ax.get_xlim()), all_ticks)[-1]
+            ax.spines["top"].set_bounds(firsttick, lasttick)
+            ax.spines["bottom"].set_bounds(firsttick, lasttick)
+            new_minor_ticks = minor_xticks.compress(minor_xticks <= lasttick)
+            new_minor_ticks = new_minor_ticks.compress(new_minor_ticks >= firsttick)
+            newticks = xticks.compress(xticks <= lasttick)
+            newticks = newticks.compress(newticks >= firsttick)
+            ax.set_xticks(newticks)
+            ax.set_xticks(new_minor_ticks, minor=True)
+
+    if yaxis:
+        yticks = np.array(ax.get_yticks())
+        minor_yticks = np.array(ax.get_yticks(minor=True))
+        all_ticks = np.sort(np.concatenate((minor_yticks, yticks)))
+        if hasattr(yticks, "size"):
+            firsttick = np.compress(all_ticks >= min(ax.get_ylim()), all_ticks)[0]
+            lasttick = np.compress(all_ticks <= max(ax.get_ylim()), all_ticks)[-1]
+            ax.spines["left"].set_bounds(firsttick, lasttick)
+            ax.spines["right"].set_bounds(firsttick, lasttick)
+            new_minor_ticks = minor_yticks.compress(minor_yticks <= lasttick)
+            new_minor_ticks = new_minor_ticks.compress(new_minor_ticks >= firsttick)
+            newticks = yticks.compress(yticks <= lasttick)
+            newticks = newticks.compress(newticks >= firsttick)
+            ax.set_yticks(newticks)
+            ax.set_yticks(new_minor_ticks, minor=True)
+
+
+def display_significance_value(
+    ax,
+    pvalue,
+    y,
+    x0=None,
+    x1=None,
+    ticklabel=None,
+    bar_width=0.7,
+    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
+    fontsize=8,
+    annotate_insignificant="",
+    append_tick=False,
+    show_bar=False,
+    other_ax=None,
+    bar_height_ylim_ratio=0.01,
+    linewidth=0.5,
+    annotate_pthresholds=True,
+    loc_pthresh_annotation=(0.1, 0.1),
+    location="above",
+    asterisk_offset=None,
+):
+    """Display a significance value annotation along x at height y.
+
+    Args:
+        ax (Axis)
+        pvalue (float)
+        y (float)
+        x0 (float, optional): left edge of bar if show_bar is True.
+        x1 (float, optional): right edge of bar if show_bar is True.
+        ticklabel (str, optional): ticklabel to
+        bar_width (float, optional)
+        pthresholds (Dict[float, str]): annotations
+        xpvalues Dict[str, float]: x-ticklabel to pvalue mapping
+        y: height to put text
+        pthreshold: different thresholds for different annotations
+
+    """
+
+    if x0 is None and x1 is None and ticklabel is None and bar_width is None:
+        raise ValueError("specify (x0, x1) or (ticklabel, bar_width)")
+
+    if show_bar and ((x0 is None or x1 is None) and bar_width is None):
+        raise ValueError("need to specify width of bar or specify x0 and x1")
+
+    if location == "above":
+        va = "bottom"
+        asterisk_offset = asterisk_offset or -0.1
+    elif location == "below":
+        va = "top"
+        asterisk_offset = asterisk_offset or -0.05
+    else:
+        raise ValueError(f"location {location}")
+
+    if x0 is None and x1 is None and ticklabel is not None:
+        ticklabels = ax.get_xticklabels()
+        if not ticklabels:
+            ticklabels = other_ax.get_xticklabels()
+        if not ticklabels:
+            raise AssertionError("no ticklables found")
+        # get the tick to get the x position for the annotation
+        tick = [tick for tick in ticklabels if tick.get_text() == ticklabel][0]
+        x, _ = tick.get_position()
+        x0 = x - bar_width / 2
+        x1 = x + bar_width / 2
+
+    text = ""
+    any_thresh = False
+    less = []
+    for thresh, symbol in pthresholds.items():
+        if pvalue < thresh:
+            less.append(thresh)
+            any_thresh = True
+
+    if (any_thresh or annotate_insignificant) and show_bar:
+        bar_height = (ax.get_ylim()[1] - ax.get_ylim()[0]) * bar_height_ylim_ratio
+        bar_x = [x0, x0, x1, x1]
+        if location == "above":
+            bar_y = [y, y + bar_height, y + bar_height, y]
+            y = y + bar_height
+            mid = ((x0 + x1) / 2, y)
+        elif location == "below":
+            bar_y = [y, y - bar_height, y - bar_height, y]
+            y = y - bar_height
+            mid = ((x0 + x1) / 2, y)
+        ax.plot(bar_x, bar_y, c="k", lw=linewidth)
+        x = mid[0]
+
+    if any_thresh:
+        text = pthresholds[min(less)]
+        if ticklabel is not None and append_tick:
+            tick.set_text(f"{tick.get_text()}$^{{{text}}}$")
+            ax.xaxis.set_ticklabels(ax.xaxis.get_ticklabels())
+        else:
+            ax.annotate(
+                text,
+                (x, y + asterisk_offset),
+                fontsize=fontsize,
+                ha="center",
+                va=va,
+            )
+
+    elif annotate_insignificant:
+        if ticklabel is not None and append_tick:
+            tick.set_text(f"{tick.get_text()}$^{{{annotate_insignificant}}}$")
+            ax.xaxis.set_ticklabels(ax.xaxis.get_ticklabels())
+        else:
+            ax.annotate(
+                annotate_insignificant,
+                (x, y),
+                fontsize=fontsize,
+                ha="center",
+                va=va,
+            )
+
+    if annotate_pthresholds:
+        pthreshold_annotation = ""
+        for i, (thresh, symbol) in enumerate(pthresholds.items()):
+            pthreshold_annotation += f"{symbol}p<{thresh:.2f}"
+            if i != len(pthresholds) - 1:
+                pthreshold_annotation += "\n"
+
+        ax.annotate(
+            pthreshold_annotation,
+            loc_pthresh_annotation,
+            xycoords="axes fraction",
+            fontsize=fontsize,
+            va="bottom",
+            ha="left",
+        )
+
+def display_pvalues(
+    ax,
+    pvalues: dict[str, float],
+    ticklabels: list[str],
+    data: np.ndarray,
+    location="above",
+    bar_width=0.7,
+    show_bar=True,
+    bar_height_ylim_ratio=0.01,
+    fontsize=6,
+    annotate_insignificant="ns",
+    loc_pthresh_annotation=(0.01, 0.01),
+    append_tick=False,
+    data_relative_offset=0.05,
+    asterisk_offset=0,
+    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
+):
+    """Annotate all pvalues from Dict[xticklabel, pvalue].
+
+    data is Array[random variables, ...]
+    """
+
+    for key in pvalues:
+        if key not in ticklabels:
+            raise ValueError(f"pvalue key {key} is not a ticklabel")
+
+    offset = data_relative_offset * np.abs(data.max() - data.min())
+
+    ylim = ax.get_ylim()
+    bars = []
+    for ticklabel, pvalue in pvalues.items():
+        index = [
+            i for i, _ticklabel in enumerate(ticklabels) if _ticklabel == ticklabel
+        ][0]
+        _values = data[index]
+
+        if location == "above":
+            _max = _values.max()
+            y = min(_max + offset, ylim[1])
+        elif location == "below":
+            _min = _values.min()
+            y = max(_min - offset, ylim[0])
+
+        # print(y)
+
+        display_significance_value(
+            ax,
+            pvalue,
+            y=y,
+            ticklabel=str(ticklabel),
+            bar_width=bar_width,
+            show_bar=show_bar,
+            bar_height_ylim_ratio=bar_height_ylim_ratio,
+            fontsize=fontsize,
+            annotate_insignificant=annotate_insignificant,
+            loc_pthresh_annotation=loc_pthresh_annotation,
+            append_tick=append_tick,
+            location=location,
+            asterisk_offset=asterisk_offset,
+            pthresholds=pthresholds,
+        )
+        bars.append(y)
+
+    ax.set_ylim(*get_lims([bars, ylim], 0.01))
 
 
 # colormap from

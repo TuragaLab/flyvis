@@ -11,18 +11,26 @@ from textwrap import wrap
 from functools import reduce
 import operator
 import weakref
-from typing import Union
+from typing import Union, Iterable
 
 import numpy as np
 from numpy.typing import NDArray
+import pandas as pd
 
 import torch
 from torch import nn
 
 from flyvision.utils import nodes_edges_utils
+from flyvision.utils.nodes_edges_utils import CellTypeArray
+from flyvision.utils.df_utils import where_dataframe
 from flyvision.connectome import ConnectomeDir
 
-__all__ = ["CentralActivity", "LayerActivity"]
+__all__ = [
+    "CentralActivity",
+    "LayerActivity",
+    "StimulusResponseIndexer",
+    "ActivityDoubleRectifier",
+]
 
 
 class CellTypeActivity(dict):
@@ -318,12 +326,546 @@ class LayerActivity(CellTypeActivity):
             object.__setattr__(self, key, value)
 
 
-class Rectifier:
-    def __init__(self, positive_weight=1, negative_weight=0.1):
-        self.positive_weight = positive_weight
-        self.negative_weight = negative_weight
+class StimulusResponseIndexer:
+    """Indexer for stimulus response data.
 
-    def __call__(self, difference):
-        return self.positive_weight * nn.functional.relu(
-            difference
-        ) - self.negative_weight * nn.functional.relu(-difference)
+    Args:
+        arg_df (pd.DataFrame): DataFrame with stimulus arguments.
+        responses (CellTypeArray): Array with responses. TODO: might be easier to pass
+            arrays/tensors and the connectome instead of explicitly passing the
+            CellTypeArray. Also, will likely need to be adapted to StateInterface later.
+        dt (float): Time step.
+        t_pre (float): Time before stimulus onset.
+        stim_sample_dim (int, optional): Dimension of stimulus samples. Defaults to 0.
+        temporal_dim (int, optional): Dimension of time. Defaults to 1.
+        time (array-like, optional): Time array. Defaults to None.
+
+    NOTE: This class is used to index stimulus response data. It allows for easy
+        manipulation of the data, such as masking, reshaping, and normalizing.
+
+    NOTE: The class is designed to be used in a functional way, i.e. the methods
+        return a new instance of the class with the modified data. This is to avoid
+        modifying the data in place and to allow for easy chaining of operations.
+    """
+
+    def __init__(
+        self,
+        arg_df: pd.DataFrame,
+        responses: CellTypeArray,
+        dt: float,
+        t_pre: float,
+        stim_sample_dim=0,
+        temporal_dim=1,
+        time=None,
+    ):
+        self.arg_df = arg_df
+        self.responses = responses
+        if responses is not None:
+            assert type(self.responses).__name__ == "CellTypeArray"
+        self.stim_sample_dim = stim_sample_dim
+        self.temporal_dim = temporal_dim
+        self.dt = dt
+        self.t_pre = t_pre
+        self.time = None
+        self.init_time(time)
+
+    def init_time(self, time=None) -> None:
+        if time is not None:
+            self.time = time
+            return
+        if self.responses:
+            self.time = (
+                self.time
+                if np.any(self.time)
+                and len(self.time) == self.responses.shape[self.temporal_dim]
+                else (
+                    np.arange(0, self.responses.shape[self.temporal_dim]) * self.dt
+                    - self.t_pre
+                )
+            )
+
+    def view(
+        self,
+        arg_df=None,
+        responses: Union[np.ndarray, CellTypeArray] = None,
+        dt=None,
+        t_pre=None,
+        stim_sample_dim=None,
+        temporal_dim=None,
+        time=None,
+    ) -> "StimulusResponseIndexer":
+        if isinstance(responses, np.ndarray):
+            responses = CellTypeArray(responses, cell_types=self.responses.cell_types)
+
+        return self.__class__(
+            arg_df if np.any(arg_df) else self.arg_df,
+            responses if responses else self.responses,
+            dt or self.dt,
+            t_pre or self.t_pre,
+            stim_sample_dim if np.any(stim_sample_dim) else self.stim_sample_dim,
+            temporal_dim or self.temporal_dim,
+            time if np.any(time) else self.time,
+        )
+
+    def masked(self, mask, mask_dims) -> "StimulusResponseIndexer":
+        responses = self.responses[:]
+        shape = responses.shape
+        dims = np.arange(len(shape))
+        new_responses = np.ma.masked_array(
+            responses,
+            ~np.tile(
+                np.expand_dims(mask, tuple(set(dims) - set(mask_dims))),
+                (shape[d] if d not in mask_dims else 1 for d in dims),
+            ),
+        )
+        if self.temporal_dim in mask_dims:
+            if len(mask_dims) > 1:
+                new_time = np.expand_dims(
+                    self.time, tuple(set(dims) - {self.temporal_dim})
+                )
+                new_time = np.tile(
+                    new_time,
+                    (
+                        (
+                            shape[d]
+                            if d in tuple(set(mask_dims) - {self.temporal_dim})
+                            else 1
+                        )
+                        for d in dims
+                    ),
+                )
+                new_time = np.ma.masked_array(
+                    new_time,
+                    ~np.expand_dims(mask, tuple(set(dims) - set(mask_dims))),
+                )
+            else:
+                new_time = np.ma.masked_array(self.time, ~mask)
+        return self.view(responses=new_responses, time=new_time)
+
+    def _prepare_array(self, array: np.ndarray, dims: tuple):
+        assert len(array.shape) == len(dims)
+        shape = self.shape
+        all_dims = np.arange(len(shape))
+        # resolve any negative indexing logic
+        dims = all_dims[np.array(dims)]
+        # expand the array to the dimensions of self
+        return np.expand_dims(array, tuple(set(all_dims) - set(dims)))
+
+    def divide_by_given_array(self, array: np.ndarray, dims: tuple):
+        """Divide the given dims of self by the given array.
+
+        E.g. to divide by a protocol normalization constant for stimulus
+        responses per cell hypothesis
+        (i.e. model * cell_type independent values).
+
+        Args:
+            array: array with elements to divide with.
+            dims: dims in self to divide.
+        """
+        return self.view(responses=self[:] / self._prepare_array(array, dims))
+
+    def subtract_by_given_array(self, array: np.ndarray, dims: tuple):
+        """Divide the given dims of self by the given array.
+
+        E.g. to divide by a protocol normalization constant for stimulus
+        responses per cell hypothesis
+        (i.e. model * cell_type independent values).
+
+        Args:
+            array: array with elements to divide with.
+            dims: dims in self to divide.
+        """
+        return self.view(responses=self[:] - self._prepare_array(array, dims))
+
+    def cell_type(self, cell_type) -> "StimulusResponseIndexer":
+        if isinstance(cell_type, str):
+            cell_type = [cell_type]
+        new_responses = CellTypeArray(
+            self.responses[cell_type],
+            cell_types=cell_type,
+        )
+        return self.view(responses=new_responses)
+
+    @property
+    def cell_types(self):
+        return self.responses.cell_types
+
+    def __truediv__(self, other):
+        return self.view(responses=self[:] / other[:])
+
+    def __mul__(self, other):
+        return self.view(responses=self[:] * other[:])
+
+    def __add__(self, other):
+        return self.view(responses=self[:] + other[:])
+
+    def __sub__(self, other):
+        return self.view(responses=self[:] - other[:])
+
+    @staticmethod
+    def where_stim_args_index_static(arg_df, **kwargs):
+        return where_dataframe(arg_df, **kwargs)
+
+    def where_stim_args_index(self, **kwargs):
+        return where_dataframe(self.arg_df, **kwargs)
+
+    def where_stim_args(self, **kwargs) -> "StimulusResponseIndexer":
+        arg_index = self.where_stim_args_index(**kwargs)
+
+        # TODO: case when we have already reshaped because we cannot simply index
+        # along the stim_sample_dim --> might require to keep a ref to the original
+        # indexer
+        if isinstance(self.stim_sample_dim, Iterable) and len(self.stim_sample_dim) > 1:
+
+            # from typing import Iterable
+            # stim_sample_dim = x.stim_sample_dim
+
+            # if not isinstance(x.stim_sample_dim, Iterable):
+            #     stim_sample_dim = [x.stim_sample_dim]
+
+            # # assert consecutive dimensions
+            # assert (np.diff(stim_sample_dim) == 1).all()
+
+            # shape = x.shape
+            # stim_sample_dim_shape = 1
+            # new_shape = []
+            # for i, _shape in enumerate(shape):
+            #     if i in stim_sample_dim:
+            #         stim_sample_dim_shape = np.prod((stim_sample_dim_shape, _shape))
+            #         if i == stim_sample_dim[-1]:
+            #             new_shape.append(stim_sample_dim_shape)
+            #     else:
+            #         new_shape.append(_shape)
+            raise NotImplementedError
+
+        new_responses = np.take(self.responses[:], arg_index, self.stim_sample_dim)
+        new_arg_df = self.arg_df.iloc[arg_index.values]
+        new_arg_df.reset_index(drop=True, inplace=True)
+        return self.view(responses=new_responses, arg_df=new_arg_df)
+
+    def where_stim_index(self, stim_index) -> "StimulusResponseIndexer":
+        new_responses = np.take(self.responses[:], stim_index, self.stim_sample_dim)
+        new_arg_df = self.arg_df.iloc[stim_index]
+        new_arg_df.reset_index(drop=True, inplace=True)
+        return self.view(responses=new_responses, arg_df=new_arg_df)
+
+    def between_seconds(
+        self, t_start, t_end, masked=False
+    ) -> "StimulusResponseIndexer":
+        mask = (self.time >= t_start) & (self.time <= t_end)
+        if masked:
+            return self.masked(~mask, (self.temporal_dim,))
+        slice = np.where(mask)[0]
+        new_responses = np.take(self.responses[:], slice, self.temporal_dim)
+        new_time = self.time[slice]
+        return self.view(responses=new_responses, time=new_time)
+
+    def nonnegative(self, dims=None) -> "StimulusResponseIndexer":
+        if dims is None:
+            dims = (self.temporal_dim, self.stim_sample_dim)
+
+        offset = np.abs(
+            np.min(
+                self.responses[:],
+                axis=dims,
+                keepdims=True,
+            )
+        )
+
+        new_responses = self.responses[:] + offset
+        return self.view(responses=new_responses)
+
+    def rectify(self) -> "StimulusResponseIndexer":
+        new_responses = np.maximum(self.responses[:], 0)
+        return self.view(responses=new_responses)
+
+    def peak(self, dim=None) -> "StimulusResponseIndexer":
+        if dim is None:
+            dim = self.temporal_dim
+
+        peak = np.nanmax(self.responses[:], axis=dim, keepdims=True)
+        return self.view(responses=peak)
+
+    def angular(self, dim=None) -> "StimulusResponseIndexer":
+        if dim is None:
+            dim = self.stim_sample_dim
+            view = self.reshape_stim_sample_dim("angle")
+        else:
+            view = self
+        shape = view.shape
+        angles = np.radians(self.arg_df.angle.unique())
+
+        complex_responses = view.responses[:] * np.exp(
+            np.expand_dims(angles, [i for i in range(len(shape)) if i != dim]) * 1j
+        )
+        return self.view(
+            responses=complex_responses, stim_sample_dim=view.stim_sample_dim
+        )
+
+    def baseline(self, dim=None) -> "StimulusResponseIndexer":
+        if dim is None:
+            dim = self.temporal_dim
+        baseline_index = np.argmin(np.abs(self.time) - 0)
+        baseline = np.take(self.responses[:], [baseline_index], dim)
+        return self.view(responses=baseline)
+
+    def subtract_baseline(self, dim=None) -> "StimulusResponseIndexer":
+        if dim is None:
+            dim = self.temporal_dim
+        baseline_index = np.argmin(np.abs(self.time) - 0)
+        baseline = np.take(self.responses[:], [baseline_index], dim)
+        new_responses = self.responses[:] - baseline
+        return self.view(responses=new_responses)
+
+    def subtract_mean(self, dims=None) -> "StimulusResponseIndexer":
+        if dims is None:
+            dims = self.temporal_dim
+        means = np.nanmean(self.responses[:], axis=dims, keepdims=True)
+        new_responses = self.responses[:] - means
+
+        return self.view(responses=new_responses)
+
+    def divide_by_std(self, dims=None) -> "StimulusResponseIndexer":
+        if dims is None:
+            dims = self.temporal_dim
+        stds = np.nanstd(self.responses[:], axis=dims, keepdims=True)
+        # avoid dividing by zero
+        stds[stds == 0] = 1
+        new_responses = self.responses[:] / stds
+
+        return self.view(responses=new_responses)
+
+    def divide_by_norm(self, dims=None) -> "StimulusResponseIndexer":
+        if dims is None:
+            dims = self.temporal_dim
+        stds = np.nanstd(self.responses[:], axis=dims, keepdims=True)
+        # avoid dividing by zero
+        stds[stds == 0] = 1
+        new_responses = self.responses[:] / stds
+
+        return self.view(responses=new_responses)
+
+    def divide_by_mean(self, dims=None) -> "StimulusResponseIndexer":
+        if dims is None:
+            dims = self.temporal_dim
+        means = np.nanmean(self.responses[:], axis=dims, keepdims=True)
+        # avoid dividing by zero
+        means[means == 0] = 1
+        new_responses = self.responses[:] / means
+
+        return self.view(responses=new_responses)
+
+    def divide_by_percentile(self, q, dims) -> "StimulusResponseIndexer":
+        responses = self.responses[:]
+        if isinstance(responses, np.ma.masked_array):
+            # create copy
+            responses = responses[:]
+            # fill with nans to use nanpercentile cause percentile does not
+            # support masked arrays
+            responses.data[responses.mask] = np.nan
+            percentile = np.nanpercentile(responses.data, q, axis=dims, keepdims=True)
+        else:
+            percentile = np.nanpercentile(responses, q, axis=dims, keepdims=True)
+        # avoid dividing by zero
+        percentile[percentile == 0] = 1
+        new_responses = self.responses[:] / percentile
+
+        return self.view(responses=new_responses)
+
+    def standardize(self, dims=None) -> "StimulusResponseIndexer":
+        if dims is None:
+            dims = self.temporal_dim
+        means = np.nanmean(self.responses[:], axis=dims, keepdims=True)
+        stds = np.nanstd(self.responses[:], axis=dims, keepdims=True)
+        # avoid dividing by zero
+        stds[stds == 0] = 1
+        new_responses = (self.responses[:] - means) / stds
+
+        return self.view(responses=new_responses)
+
+    def sum(self, dims) -> "StimulusResponseIndexer":
+        sums = np.nansum(self.responses[:], axis=dims, keepdims=True)
+        return self.view(responses=sums)
+
+    def abs(self) -> "StimulusResponseIndexer":
+        new_responses = np.abs(self.responses[:])
+        return self.view(responses=new_responses)
+
+    def minmax_scale(self, dims) -> "StimulusResponseIndexer":
+        new_responses = self.responses[:]
+        r_min = np.nanmin(new_responses, axis=dims, keepdims=True)
+        r_max = np.nanmax(new_responses, axis=dims, keepdims=True)
+        # treat zero-cases where r_max == r_min
+        diff = r_max - r_min
+        diff[diff == 0] = 1
+        new_responses = (new_responses - r_min) / diff
+        return self.view(responses=new_responses)
+
+    def squeeze(self, dims=None) -> "StimulusResponseIndexer":
+        return self.view(responses=np.squeeze(self.responses[:], axis=dims))
+
+    def mean(self, dims=None, keepdims=False) -> "StimulusResponseIndexer":
+        return self.view(
+            responses=np.nanmean(self.responses[:], axis=dims, keepdims=keepdims)
+        )
+
+    def average(self, dims, weights=None) -> "StimulusResponseIndexer":
+        all_dims = np.arange(len(self.responses[:].shape))
+        if weights is None:
+            return self.mean(dims, keepdims=True)
+        print("comp weighted average")
+        weights = np.expand_dims(weights, list(set(all_dims) - set(dims)))
+        new_responses = np.nansum(
+            np.multiply(self.responses[:], weights), axis=dims, keepdims=True
+        ) / np.nansum(weights, keepdims=True, axis=dims)
+        return self.view(responses=new_responses)
+
+    def min(self, dims=None, keepdims=False) -> "StimulusResponseIndexer":
+        return self.view(
+            responses=np.nanmin(self.responses[:], axis=dims, keepdims=keepdims)
+        )
+
+    def max(self, dims=None, keepdims=False) -> "StimulusResponseIndexer":
+        return self.view(
+            responses=np.nanmax(self.responses[:], axis=dims, keepdims=keepdims)
+        )
+
+    def median(self, dims=None, keepdims=False) -> "StimulusResponseIndexer":
+        return self.view(
+            responses=np.nanmedian(self.responses[:], axis=dims, keepdims=keepdims)
+        )
+
+    def quantile(self, q, dims=None) -> "StimulusResponseIndexer":
+        return self.view(responses=np.nanquantile(self.responses[:], q, axis=dims))
+
+    @property
+    def shape(self):
+        return self.responses[:].shape
+
+    @property
+    def ndim(self):
+        return self.responses[:].ndim
+
+    def reshape(self, *args, inplace=False) -> "StimulusResponseIndexer":
+        if inplace:
+            self.responses = CellTypeArray(
+                self.responses[:].reshape(*args), cell_types=self.responses.cell_types
+            )
+            return self
+        return self.view(responses=self.responses[:].reshape(*args))
+
+    def filled(self, fill_value) -> "StimulusResponseIndexer":
+        if isinstance(self.responses[:], np.ma.masked_array):
+            return self.view(
+                responses=self.responses[:].filled(fill_value),
+                time=self.time.data,
+            )
+        return self
+
+    def reshape_stim_sample_dim(self, *args) -> "StimulusResponseIndexer":
+        """Reshape the originally flat stimulus sample dimension
+        to unflattened based on arg_df column names.
+        """
+        shape = self.shape
+        stim_sample_dim_shape = tuple()
+        for column in args:
+            assert column in self.arg_df.columns
+            stim_sample_dim_shape += (len(self.arg_df[column].unique()),)
+        if np.prod(stim_sample_dim_shape) == shape[self.stim_sample_dim]:
+            new_shape = (
+                shape[: self.stim_sample_dim]
+                + stim_sample_dim_shape
+                + shape[self.stim_sample_dim + 1 :]
+            )
+            new_stim_sample_dim = np.arange(len(stim_sample_dim_shape)) + len(
+                shape[: self.stim_sample_dim]
+            )
+        else:
+            new_shape = (
+                shape[: self.stim_sample_dim]
+                + stim_sample_dim_shape
+                + (-1,)
+                + shape[self.stim_sample_dim + 1 :]
+            )
+            new_stim_sample_dim = len(shape[: self.stim_sample_dim]) + len(
+                stim_sample_dim_shape
+            )
+        new_temporal_dim = (
+            self.temporal_dim + len(stim_sample_dim_shape) - 1
+            if self.temporal_dim > self.stim_sample_dim
+            else self.temporal_dim
+        )
+        return self.view(
+            responses=self.responses[:].reshape(*new_shape),
+            stim_sample_dim=new_stim_sample_dim,
+            temporal_dim=new_temporal_dim,
+        )
+
+    def take_single(self, indices, dims) -> "StimulusResponseIndexer":
+        """Select single indices from multiple dims."""
+        if not isinstance(indices, Iterable):
+            indices = [indices]
+        if not isinstance(dims, Iterable):
+            dims = [dims]
+        new_responses = self.responses[:]
+        for index, dim in zip(indices, dims):
+            assert dim != self.temporal_dim
+            new_responses = np.take(new_responses, [index], axis=dim)
+        return self.view(responses=new_responses)
+
+    def take(self, index, dim) -> "StimulusResponseIndexer":
+        if not isinstance(index, Iterable):
+            index = np.array([index])
+        assert dim not in self.stim_sample_dim
+        new_responses = np.take(self.responses[:], index, axis=dim)
+        return self.view(responses=new_responses)
+
+    def transpose(self, *args, inplace=False) -> "StimulusResponseIndexer":
+        if isinstance(self.stim_sample_dim, Iterable):
+            # to transpose also stimulus sample dimensions tracked
+            new_stim_sample_dim = np.array(
+                [np.array(args).tolist().index(i) for i in self.stim_sample_dim]
+            )
+        if inplace:
+            self.responses = CellTypeArray(
+                self.responses[:].transpose(*args),
+                cell_types=self.responses.cell_types,
+            )
+            self.stim_sample_dim = new_stim_sample_dim
+            return self
+        return self.view(
+            responses=self.responses[:].transpose(*args),
+            stim_sample_dim=new_stim_sample_dim,
+        )
+
+    def __getitem__(self, key) -> Union[np.ndarray, "StimulusResponseIndexer"]:
+        if isinstance(key, str) and key in self.responses.cell_types:
+            return self.cell_type(key)
+        elif (
+            isinstance(key, Iterable)
+            and all([isinstance(k, str) for k in key])
+            and all([k in self.responses.cell_types for k in key])
+        ):
+            return self.cell_type(key)
+        if isinstance(key, slice) and key == slice(None, None, None):
+            return self.responses[:]  # .squeeze()
+        elif isinstance(key, Iterable) and len(key) <= len(self.responses[:].shape):
+            return self.view(responses=self.responses[:][key])
+
+        elif isinstance(key, np.ndarray) and len(key.shape) == 1:
+            return self.view(responses=self.responses[:][key])
+
+        return object.__getattribute__(self, key)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.arg_df}, {self.responses}, {self.dt}, {self.stim_sample_dim}, {self.temporal_dim})"
+
+
+def asymmetric_weighting(tensor, gamma=1.0, delta=0.1):
+    """
+    Applies asymmetric weighting to the positive and negative elements of a tensor.
+
+    The function is defined as:
+    f(x) = gamma * x if x > 0 else delta * x
+    """
+    return gamma * nn.functional.relu(tensor) - delta * nn.functional.relu(-tensor)

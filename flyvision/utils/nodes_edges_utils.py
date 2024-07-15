@@ -6,9 +6,10 @@ from numpy.typing import NDArray
 import torch
 
 from flyvision.connectome import ConnectomeDir
+from flyvision.utils import groundtruth_utils
 
 
-def oder_node_type_list(
+def order_node_type_list(
     node_types: List,
     groups: List = [
         r"R\d",
@@ -81,6 +82,53 @@ def oder_node_type_list(
         )
 
     return nodes, index
+
+
+def get_index_mapping_lists(from_list: List, to_list: List) -> List[int]:
+    """Indices to sort and filter from_list by occurence of items in to_list.
+
+    The indices are useful to sort or filter another list or tensor that
+    is an ordered mapping to items in from_list to the order of items in to_list.
+
+    Simple example:
+    >>> from_list = ["a", "b", "c"]
+    >>> mapping_to_from_list = [1, 2, 3]
+    >>> to_list = ["c", "a", "b"]
+    >>> sort_index = sort_index_mapping_lists(from_list, to_list)
+    >>> [mapping_to_from_list[i] for i in sort_index]
+    >>> [3, 1, 2]
+    """
+    if isinstance(from_list, np.ndarray):
+        from_list = from_list.tolist()
+    if isinstance(to_list, np.ndarray):
+        to_list = to_list.tolist()
+    return [from_list.index(item) for item in to_list]
+
+
+def sort_by_mapping_lists(from_list, to_list, tensor, axis=0):
+    """Sort and filter a tensor along axis that is indexed by from_list
+    by occurences of indices in to_list.
+    """
+    tensor = np.array(tensor)
+    if axis != 0:
+        tensor = np.transpose(tensor, axes=(axis, 0))
+    sort_index = get_index_mapping_lists(from_list, to_list)
+    tensor = np.array([tensor[i] for i in sort_index])
+    if axis != 0:
+        tensor = np.transpose(tensor, axes=(axis, 0))
+    return tensor
+
+
+def nodes_list_sorting_on_off_unknown(cell_types=None):
+    value = {1: 1, -1: 2, 0: 3}
+    preferred_contrasts = groundtruth_utils.polarity
+    cell_types = list(preferred_contrasts) if cell_types is None else cell_types
+    preferred_contrasts = {
+        k: value[v] for k, v in preferred_contrasts.items() if k in cell_types
+    }
+    preferred_contrasts = dict(sorted(preferred_contrasts.items(), key=lambda k: k[1]))
+    nodes_list = list(preferred_contrasts.keys())
+    return nodes_list
 
 
 class NodeIndexer(dict):
@@ -161,6 +209,7 @@ class CellTypeArray:
         self.array = array
         self.dim = dim
         self.node_indexer = NodeIndexer(connectome, cell_types)
+        self.cell_types = self.node_indexer.unique_cell_types  # TODO: remove again?
 
     def __iter__(self):
         for cell_type in self.node_indexer.unique_cell_types:
@@ -201,7 +250,9 @@ class CellTypeArray:
 
     def __getattr__(self, key):
         if self.node_indexer is not None:
-            if isinstance(key, str) and key in self.node_indexer.unique_cell_types:
+            if isinstance(key, slice) and key == slice(None):
+                return self.array
+            elif isinstance(key, str) and key in self.node_indexer.unique_cell_types:
                 indices = np.int_([dict.__getitem__(self.node_indexer, key)])
             elif isinstance(key, Iterable) and any(
                 [_key in self.node_indexer.unique_cell_types for _key in key]

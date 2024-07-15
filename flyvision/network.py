@@ -2,12 +2,9 @@
 Deep mechanistic network module.
 """
 
-from numbers import Number
 from os import PathLike
-from typing import Any, Dict, Iterable, List, Optional, Union, Callable, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Union, Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
-from pathlib import Path
 import warnings
 import numpy as np
 from toolz import valmap
@@ -21,7 +18,6 @@ from datamate import Namespace, Directory, root
 from flyvision.connectome import ConnectomeDir, ConnectomeView
 import flyvision
 
-from flyvision.decoder import init_decoder
 from flyvision.stimulus import Stimulus
 from flyvision.initialization import Parameter
 from flyvision.dynamics import NetworkDynamics
@@ -188,13 +184,13 @@ class Network(nn.Module):
             self.node_params[param_name] = param
 
             # additional map to optional boolean masks to constrain
-            # parameters (called in self._clamp)
+            # parameters (called in self.clamp)
             self.symmetry_config[f"nodes_{param_name}"] = getattr(
                 param, "symmetry_masks", []
             )
 
             # additional map to optional clamp configuration to constrain
-            # parameters (called in self._clamp)
+            # parameters (called in self.clamp)
             self.clamp_config[f"nodes_{param_name}"] = getattr(
                 param_config, "clamp", None
             )
@@ -545,7 +541,7 @@ class Network(nn.Module):
                 else concatenates the activity of the nodes and returns a tensor.
         """
         # To keep the parameters within their valid domain, they get clamped.
-        self._clamp()
+        self.clamp()
         # Construct the parameter API.
         params = self._param_api()
 
@@ -646,7 +642,7 @@ class Network(nn.Module):
         with self.enable_grad(grad):
             return self(self.stimulus(), dt, as_states=True, state=state)[-1]
 
-    def _clamp(self):
+    def clamp(self):
         """Clamp free parameters to their range specifid in their config.
 
         Valid configs are `non_negative` to clamp at zero and tuple of the form
@@ -796,7 +792,7 @@ class Network(nn.Module):
             iterator over stimuli, currents and respective responses as numpy
             arrays.
         """
-        self._clamp()
+        self.clamp()
         # Construct the parameter API.
         params = self._param_api()
 
@@ -854,6 +850,7 @@ class Network(nn.Module):
 @root(flyvision.results_dir)
 class NetworkDir(Directory):
     """Directory for a network."""
+
     pass
 
 

@@ -13,7 +13,7 @@ from datamate import Directory, Namespace
 
 from flyvision.network import Network, NetworkDir
 from flyvision.tasks import Task
-from flyvision.utils.activity_utils import Rectifier
+from flyvision.utils.activity_utils import asymmetric_weighting
 from flyvision.utils.chkpt_utils import (
     resolve_checkpoints,
     recover_network,
@@ -661,7 +661,6 @@ class Penalty:
     parameter_optim: torch.optim.Optimizer = None
     activity_optim: torch.optim.Optimizer = None
     optimizers: Dict[str, torch.optim.Optimizer]
-    rectifier: Rectifier
     default_optim: torch.optim.Optimizer = torch.optim.SGD
 
     def __init__(self, penalty: Namespace, network: Network):
@@ -669,11 +668,9 @@ class Penalty:
         self.network = network
         self.central_cells_index = self.network.connectome.central_cells_index[:]
 
-        # collecting parameter penalty configuration
         self.parameter_config = self.get_configs()
-
         self.init_optim()
-        self.init_rectifier()
+        self.init_hparams()
 
     def __repr__(self):
         return (
@@ -729,7 +726,10 @@ class Penalty:
             )  # LR is overwritten by scheduler.
             self.optimizers.update(dict(activity_optim=self.activity_optim))
 
-    def init_rectifier(self):
+    def init_hparams(self):
+        """Initialize the hyperparameters for the activity penalty."""
+        config = self.config.get("activity_penalty", Namespace())
+
         # collecting activity penalty parameters
         (
             self.activity_penalty,
@@ -737,7 +737,13 @@ class Penalty:
             self.activity_penalty_stop_iter,
             self.below_baseline_penalty_weight,
             self.above_baseline_penalty_weight,
-        ) = self.get_act_pen_hparams()
+        ) = (
+            config.get("activity_penalty", None),
+            config.get("activity_baseline", None),
+            config.get("stop_iter", None),
+            config.get("below_baseline_penalty_weight", None),
+            config.get("above_baseline_penalty_weight", None),
+        )
 
         if (
             not any(
@@ -755,12 +761,8 @@ class Penalty:
                 "set."
             )
 
-        self.rectifier = Rectifier(
-            self.below_baseline_penalty_weight,
-            self.above_baseline_penalty_weight,
-        )
-
     def get_configs(self) -> Namespace:
+        """Returns a dictionary of all parameters that need to be penalized."""
         node_config = Namespace(
             {
                 "nodes_" + k: v.pop("penalize", None)
@@ -777,18 +779,6 @@ class Penalty:
             lambda v: v is not None,
             Namespace(**node_config, **edge_config),
             factory=Namespace,
-        )
-
-    def get_act_pen_hparams(
-        self,
-    ) -> tuple:
-        config = self.config.get("activity_penalty", Namespace())
-        return (
-            config.get("activity_penalty", None),
-            config.get("activity_baseline", None),
-            config.get("stop_iter", None),
-            config.get("below_baseline_penalty_weight", None),
-            config.get("above_baseline_penalty_weight", None),
         )
 
     def _chkpt(self):
@@ -808,7 +798,7 @@ class Penalty:
                 penalty += getattr(self, config.function)(param, config)
         penalty.backward()
         self.parameter_optim.step()
-        self.network._clamp()
+        self.network.clamp()
 
     def activity_penalty_step(self, activity, retain_graph=True):
         """Penalizes parameters tracked in activity_optim for too high or low acticity.
@@ -828,11 +818,18 @@ class Penalty:
         )  # (n_samples, n_node_types)
         penalty = (
             self.activity_penalty
-            * (self.rectifier(self.activity_baseline - activity_mean) ** 2).mean()
+            * (
+                asymmetric_weighting(
+                    self.activity_baseline - activity_mean,
+                    self.below_baseline_penalty_weight,
+                    self.above_baseline_penalty_weight,
+                )
+                ** 2
+            ).mean()
         )
         penalty.backward(retain_graph=retain_graph)
         self.activity_optim.step()
-        self.network._clamp()
+        self.network.clamp()
 
     # -- Penalty functions --
 

@@ -1,7 +1,7 @@
 python launch_ensemble.py \
         --start 0 \
         --end 5 \
-        --train \
+        --launch_training \
         --nP 4 \
         --gpu num=1 \
         --q gpu_rtx \

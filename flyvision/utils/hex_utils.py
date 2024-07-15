@@ -633,7 +633,7 @@ class HexLattice(HexArray):
             u, v = flyvision.utils.hex_utils.get_hex_coords(extent)
             u += center.u
             v += center.v
-            values = [None for _ in range(len(u))]  # np.ones_like(u) * np.nan
+            values = [np.nan for _ in range(len(u))]  # np.ones_like(u) * np.nan
             lattice = []
             for _u, _v, _val in zip(u, v, values):
                 if _u % u_stride == 0 and _v % v_stride == 0:
