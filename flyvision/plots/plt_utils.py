@@ -619,7 +619,9 @@ def avg_pool(trace, N):
     shape = trace.shape
     trace = trace.reshape(np.prod(shape[:-1]), 1, shape[-1])
     with torch.no_grad():
-        trace_smooth = F.avg_pool1d(torch.tensor(trace, dtype=torch.float32), N, N).cpu().numpy()
+        trace_smooth = (
+            F.avg_pool1d(torch.tensor(trace, dtype=torch.float32), N, N).cpu().numpy()
+        )
     return trace_smooth.reshape(shape[0], -1)
 
 
@@ -1000,6 +1002,7 @@ def ax_scatter(
 
 # -- originally in dvs.plots.decoration
 
+
 def color_labels(labels: List[str], color, ax):
     for label in labels:
         color_label(label, color, ax)
@@ -1059,7 +1062,7 @@ def scatter_on_violins_or_bars(
     uniform=[-0.35, 0.35],
     seed=42,
     marker="o",
-    **kwargs
+    **kwargs,
 ):
     """
     data (array): shape (n_samples, n_random_variables).
@@ -1098,8 +1101,22 @@ def scatter_on_violins_or_bars(
             linewidth=linewidth,
             alpha=alpha,
             marker=marker,
-            **kwargs
+            **kwargs,
         )
+
+
+def set_spine_tick_params(
+    ax,
+    spinewidth=0.25,
+    tickwidth=0.25,
+    ticklength=3,
+    ticklabelpad=2,
+    spines=("top", "right", "bottom", "left"),
+):
+    """Set spine and tick widths and lengths."""
+    for s in spines:
+        ax.spines[s].set_linewidth(spinewidth)
+    ax.tick_params(axis="both", width=tickwidth, length=ticklength, pad=ticklabelpad)
 
 
 def scatter_on_violins_with_best(
@@ -1141,7 +1158,9 @@ def scatter_on_violins_with_best(
             linewidth=linewidth,
         )
     elif scatter_all:
-        assert best_index is not None, "`best_index` must be provided if `scatter_all=True`"
+        assert (
+            best_index is not None
+        ), "`best_index` must be provided if `scatter_all=True`"
         indices = list(range(data.shape[0]))
         indices.remove(best_index)
         scatter_on_violins_or_bars(
@@ -1158,8 +1177,12 @@ def scatter_on_violins_with_best(
             linewidth=linewidth,
         )
     if scatter_best:
-        assert best_index is not None, "`best_index` must be provided if `scatter_best=True`"
-        assert best_color is not None, "`best_color` must be provided if `scatter_all=True`"
+        assert (
+            best_index is not None
+        ), "`best_index` must be provided if `scatter_best=True`"
+        assert (
+            best_color is not None
+        ), "`best_color` must be provided if `scatter_all=True`"
         scatter_on_violins_or_bars(
             data,
             ax,
@@ -1339,6 +1362,7 @@ def display_significance_value(
             va="bottom",
             ha="left",
         )
+
 
 def display_pvalues(
     ax,

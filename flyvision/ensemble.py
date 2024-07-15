@@ -90,7 +90,13 @@ class Ensemble(dict):
         if try_sort:
             self.sort()
 
-        self._init_args = path, checkpoint, validation_subdir, loss_file_name, try_sort
+        self._init_args = (
+            path,
+            self[0].checkpoints.choice,
+            self[0].checkpoints.validation_subdir,
+            self[0].checkpoints.loss_file_name,
+            try_sort,
+        )
 
     def __truediv__(self, key):
         return self.__getitem__(key)
@@ -188,7 +194,7 @@ class Ensemble(dict):
         for nv in self.values():
             assert nv.checkpoints.validation_subdir == validation_subdir
             assert nv.checkpoints.loss_file_name == loss_file_name
-            
+
         return validation_subdir, loss_file_name
 
     def sort(self, validation_subdir=None, loss_file_name=None):
@@ -363,15 +369,18 @@ class EnsembleDir(Directory):
 class EnsembleView(Ensemble):
     """A view of an ensemble of trained networks."""
 
-    def __init__(self, path: Union[str, PathLike, Iterable, EnsembleDir, Ensemble],
-            checkpoint="best",
-            validation_subdir="validation",
-            loss_file_name="loss",
-            try_sort=False,
-        
-        ):
+    def __init__(
+        self,
+        path: Union[str, PathLike, Iterable, EnsembleDir, Ensemble],
+        checkpoint="best",
+        validation_subdir="validation",
+        loss_file_name="loss",
+        try_sort=False,
+    ):
         if isinstance(path, Ensemble):
-            path, checkpoint, validation_subdir, loss_file_name, try_sort = path._init_args
+            path, checkpoint, validation_subdir, loss_file_name, try_sort = (
+                path._init_args
+            )
         super().__init__(path, checkpoint, validation_subdir, loss_file_name, try_sort)
 
     def loss_histogram(
