@@ -1,16 +1,16 @@
+"""Solvers for training, testing, checkpointing and recovering of networks."""
+
 import time
 from typing import Protocol, Union, Optional, Dict, Tuple
-from toolz import valmap
-from pathlib import Path
+from dataclasses import dataclass
+import logging
 
+from toolz import valmap, valfilter
 import numpy as np
 from torch import nn
 import torch
-from toolz import valfilter
-from dataclasses import dataclass
 from datamate import Directory, Namespace
 
-from flyvision import results_dir
 from flyvision.network import Network, NetworkDir
 from flyvision.tasks import Task
 from flyvision.utils.activity_utils import Rectifier
@@ -21,20 +21,20 @@ from flyvision.utils.chkpt_utils import (
     recover_optimizer,
     recover_penalty_optimizers,
 )
-import logging
 
 
 logging = logging.getLogger(__name__)
 
 
 class SolverProtocol(Protocol):
+    """The SolverProtocol implements training, testing, checkpointing etc. of networks."""
+
     name: str
     config: Optional[Union[dict, Namespace]]
 
     def __init__(
         self, name: str = "", config: Optional[Union[dict, Namespace]] = None
-    ) -> None:
-        ...
+    ) -> None: ...
 
     dir: Directory = None
     network: Network = None
@@ -44,20 +44,30 @@ class SolverProtocol(Protocol):
     penalty: object = None
     scheduler: object = None
 
-    def train(self) -> None:
-        ...
+    def train(self) -> None: ...
 
-    def checkpoint(self) -> None:
-        ...
+    def checkpoint(self) -> None: ...
 
-    def test(self) -> None:
-        ...
+    def test(self) -> None: ...
 
-    def recover(self) -> None:
-        ...
+    def recover(self) -> None: ...
 
 
 class MultiTaskSolver:
+    """Implements training, testing, checkpoint, recovering of flyvis networks.
+
+    Gives access to the network, decoder, task, optimizer, penalty and scheduler and
+    the directory where the results are stored.
+
+    Note: specify delete_if_exists=True to delete the directory if it already exists.
+
+    Example:
+        from flyvision.utils.config_utils import get_default_config
+        config = get_default_config(overrides=["task_name=flow", "network_id=0"])
+        solver = MultiTaskSolver("test", config)
+        solver.train()
+    """
+
     def __init__(
         self,
         name: str = "",
@@ -82,7 +92,7 @@ class MultiTaskSolver:
 
         self.iteration = 0
         self._val_loss = float("inf")
-        self.checkpoint_path = self.dir.path / f"chkpts"
+        self.checkpoint_path = self.dir.path / "chkpts"
         checkpoints = resolve_checkpoints(self.dir)
         self.checkpoints = checkpoints.indices
         self._last_chkpt_ind = -1
@@ -169,7 +179,7 @@ class MultiTaskSolver:
 
         optim_type = config.pop("type", "Adam")
         optim = torch.optim.__dict__[optim_type]
-        logging.info(f"Initializing {optim.__name__} for network and decoder.")
+        logging.info("Initializing %s for network and decoder.", optim.__name__)
 
         param_groups = [dict(params=network.parameters(), **config.optim_net)]
 
@@ -222,11 +232,10 @@ class MultiTaskSolver:
         ).astype(int)
 
         # This is after how many epochs the training states are checkpointed.
-        n_epochs_per_chkpt = get_n_epochs_per_chkpt(
-            self.task.n_iters - self.iteration,
-            len(dataloader),
-            self.config.scheduler.chkpt_fraction,
-        )
+        chkpt_every_epoch = self.config.scheduler.chkpt_every_epoch
+
+        logging.info("Training for %s epochs.", n_epochs)
+        logging.info("Checkpointing every %s epochs.", chkpt_every_epoch)
 
         # Initialize data structures to store the loss and activity over iterations.
         loss_over_iters = []
@@ -330,11 +339,11 @@ class MultiTaskSolver:
                 if epoch + 1 != n_epochs:
                     self.scheduler(self.iteration)
                     logging.info(
-                        f"Scheduled paremeters for iteration {self.iteration}."
+                        "Scheduled paremeters for iteration %s.", self.iteration
                     )
 
                 # Checkpointing.
-                if (epoch % n_epochs_per_chkpt == 0) or (epoch + 1 == n_epochs):
+                if (epoch % chkpt_every_epoch == 0) or (epoch + 1 == n_epochs):
                     self.dir.loss = loss_over_iters
                     self.dir.activity = activity_over_iters
                     self.dir.activity_min = activity_min_over_iters
@@ -510,20 +519,20 @@ class MultiTaskSolver:
         return val_loss
 
     def _train(self):
-        """Calls the train method of all involved modules."""
+        """Sets nn.Modules to train state."""
         self.network.train()
         if self.decoder is not None:
             for decoder in self.decoder.values():
                 decoder.train()
 
     def _eval(self):
-        """Calls the eval method of all involved modules."""
+        """Sets nn.Modules to eval state."""
         self.network.eval()
         if self.decoder is not None:
             for decoder in self.decoder.values():
                 decoder.eval()
 
-    def checkpoints(
+    def get_checkpoints(
         self,
         checkpoint: Union[int, str] = "best",
         validation_subdir: str = "validation",
@@ -841,7 +850,8 @@ class Penalty:
         prior = torch.tensor(
             getattr(self.network.config, _key)[
                 param.replace("edges_", "").replace("nodes_", "")
-            ].value
+            ].value,
+            dtype=torch.float32,
         )
         return (
             config.kwargs["lambda"]
@@ -1057,12 +1067,3 @@ class SchedulerFunction:
     stop: float
     steps: int
     function: str
-
-
-def get_n_epochs_per_chkpt(n_iters, len_loader, fraction=0.00025):
-    """Calculates the number of epochs between checkpoints."""
-    n_chkpts = n_iters * fraction
-    n_chkpts_per_iter = n_chkpts / n_iters
-    n_chkpts_per_epoch = n_chkpts_per_iter * len_loader
-    n_epochs_per_chkpt = 1 / n_chkpts_per_epoch
-    return int(np.ceil(n_epochs_per_chkpt))

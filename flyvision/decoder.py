@@ -9,6 +9,7 @@ from torch import nn
 
 from datamate import Namespace
 
+from flyvision import device
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.nn_utils import n_params
 from flyvision.utils.hex_utils import get_hex_coords
@@ -129,13 +130,13 @@ class Conv2dHexSpace(Conv2dConstWeight):
             mask = np.zeros(tuple(self.weight.shape))
             mask[:, :, u, v] = 1
             self.mask = torch.tensor(mask, device="cpu")
-            self.weight.data.mul_(self.mask.cuda())
+            self.weight.data.mul_(self.mask.to(device))
             self._filter_to_hex = True
         else:
             self._filter_to_hex = False
 
     def filter_to_hex(self):
-        self.weight.data.mul_(self.mask.cuda())
+        self.weight.data.mul_(self.mask.to(device))
 
     def forward(self, x):
         if self._filter_to_hex:

@@ -12,7 +12,10 @@ import logging
 
 logging = logging.getLogger(__name__)
 
-def init_or_get_checkpoints(path: Path, glob: str = "chkpt_*") -> Tuple:
+
+def init_or_get_checkpoints(
+    path: Path, glob: str = "chkpt_*"
+) -> Tuple[List[int], List[Path]]:
     """Returns all numerical identifier and paths to checkpoints stored in path.
 
     Args:
@@ -37,6 +40,7 @@ def init_or_get_checkpoints(path: Path, glob: str = "chkpt_*") -> Tuple:
         return index, paths
     except IndexError:
         return [], paths
+
 
 def check_loss_name(loss_folder, loss_file_name):
     if loss_file_name not in loss_folder and "loss" in loss_folder:
@@ -123,7 +127,7 @@ def get_from_state_dict(state_dict: Union[Dict, Path], key: str) -> Dict:
         state = torch.load(state_dict, map_location=flyvision.device).pop(key, None)
     elif isinstance(state_dict, dict):
         state = state_dict.get(key, None)
-    return state    
+    return state
 
 
 @dataclass
@@ -136,35 +140,63 @@ class Checkpoints:
     validation_subdir: str = "validation"
     loss_file_name: str = "loss"
 
+
 def resolve_checkpoints(
     networkdir: "flyvision.network.NetworkDir",
     checkpoint: Union[int, str] = "best",
     validation_subdir: str = "validation",
     loss_file_name: str = "loss",
 ) -> Checkpoints:
-    """Resolves checkpoints from networkdir.
-    """
+    """Resolves checkpoints from networkdir."""
     if checkpoint in networkdir:
-        return Checkpoints(choice=checkpoint, index=0, path=networkdir[checkpoint], indices=[0], paths=[networkdir[checkpoint]], validation_subdir=validation_subdir, loss_file_name=loss_file_name)
+        # This is for the shared trained models, which follow a slightly different
+        # naming convention and only store one checkpoint in comparison to new models.
+        return Checkpoints(
+            choice=checkpoint,
+            index=0,
+            path=networkdir[checkpoint],
+            indices=[0],
+            paths=[networkdir[checkpoint]],
+            validation_subdir=validation_subdir,
+            loss_file_name=loss_file_name,
+        )
     index = _check_checkpoint(networkdir, checkpoint, validation_subdir, loss_file_name)
     indices, paths = init_or_get_checkpoints(networkdir.chkpts.path)
-    return Checkpoints(checkpoint, index, paths[index], indices, paths, validation_subdir, loss_file_name)
+
+    return Checkpoints(
+        checkpoint,
+        index,
+        paths[index],
+        indices,
+        paths,
+        validation_subdir,
+        loss_file_name,
+    )
+
 
 def _check_checkpoint(
     networkdir: "flyvision.network.NetworkDir",
     checkpoint: Union[int, str] = "best",
     validation_subdir: str = "validation",
     loss_file_name: str = "loss",
-):
-    """Validates the checkpoint index. Transform 'best' to the index with the minimal validation error.
+) -> int:
+    """Validates the checkpoint index. Transform 'best' to the index with the minimal
+    validation error.
     """
     checkpoint_dir = networkdir.chkpts.path
-    checkpoints, paths = init_or_get_checkpoints(checkpoint_dir, glob="chkpt_*")
+    indices, _ = init_or_get_checkpoints(checkpoint_dir, glob="chkpt_*")
 
-    if checkpoint == "best":
+    if (
+        checkpoint == "best"
+        and validation_subdir in networkdir
+        and loss_file_name in networkdir[validation_subdir]
+    ):
         loss_file_name = check_loss_name(networkdir[validation_subdir], loss_file_name)
-        checkpoint = np.argmin(networkdir[validation_subdir][loss_file_name][:])
-    if checkpoint not in checkpoints:
-        return None
-    checkpoint = checkpoints[checkpoint]
-    return checkpoint    
+        index = np.argmin(networkdir[validation_subdir][loss_file_name][:])
+        checkpoint = indices[index]
+    elif checkpoint in indices:
+        checkpoint = indices[checkpoint]
+    else:
+        checkpoint = slice(None)
+
+    return checkpoint

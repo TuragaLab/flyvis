@@ -1,4 +1,3 @@
-#!/groups/turaga/home/lappalainenj/miniconda3/envs/flyvision/bin/python
 """Script to train the visual system model.
 
 
@@ -24,34 +23,28 @@ import logging
 import hydra
 from omegaconf import OmegaConf
 
-from datamate import set_root_context, namespacify
+from datamate import set_root_context
 
 from flyvision import results_dir, source_dir
 from flyvision.solver import MultiTaskSolver
+from flyvision.utils.logging_utils import save_conda_environment
 
 logging = logger = logging.getLogger(__name__)
 
 
-def save_conda_environment(path):
-    import subprocess
-    import json
-
-    # Use the conda list command to get a list of installed packages and their versions
-    result = subprocess.run(
-        ["conda", "list", "--json"], stdout=subprocess.PIPE, text=True
-    )
-
-    # Parse the JSON output
-    installed_packages = json.loads(result.stdout)
-
-    # Write the parsed JSON data to the specified file path
-    with open(path.with_suffix(".json"), "w") as json_file:
-        json.dump(installed_packages, json_file, indent=4)
+def save_env(target_dir: Path = None):
+    """Save source code and the environment details to a file in the target directory."""
+    try:
+        shutil.copytree(source_dir, target_dir / "source")
+        save_conda_environment(target_dir / "conda_environment.json")
+    except FileExistsError:
+        pass
 
 
 @hydra.main(
     config_path=str(Path(__file__).parent.parent.parent / "config"),
     config_name="solver.yaml",
+    version_base="1.1",
 )
 def main(args):
 
@@ -60,8 +53,20 @@ def main(args):
     # ---- SOLVER INITIALIZATION
 
     config = OmegaConf.to_container(args, resolve=True)
-    config = {key: value for key, value in config.items() if key in ["network_name", "network", "task", "optim", "penalizer", "scheduler", "description"]}
-
+    config = {
+        key: value
+        for key, value in config.items()
+        if key
+        in [
+            "network_name",
+            "network",
+            "task",
+            "optim",
+            "penalizer",
+            "scheduler",
+            "description",
+        ]
+    }
     delete_if_exists = args.get("delete_if_exists", False)
 
     with set_root_context(results_dir):
@@ -71,12 +76,7 @@ def main(args):
         )
 
     if args.get("save_environment", False):
-        try:
-            # save environment details to model directory
-            save_conda_environment(solver.dir.path / "conda_environment.json")
-            shutil.copytree(source_dir, solver.dir.path / "code/dvs")
-        except FileExistsError:
-            pass
+        save_env(solver.dir.path)
 
     # ---- NETWORK TRAINING
 
@@ -92,19 +92,18 @@ def main(args):
 
     if args.resume:
         solver.recover(
-            recover_network=True,
-            recover_decoder=True,
-            recover_optimizer=True,
-            recover_penalty=True,
-            strict_recover=True,
+            network=True,
+            decoder=True,
+            optimizer=True,
+            penalty=True,
             checkpoint=-1,
-            other=None,
+            strict=True,
+            force=False,
         )
         logging.info("Resuming from last checkpoint.")
     if args.train:
         logging.info("Starting training.")
         train()
-
 
     # ---- CHECKPOINT
 

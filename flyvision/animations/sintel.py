@@ -1,4 +1,5 @@
 """Animations of the Sintel data."""
+
 from matplotlib import colormaps
 
 from flyvision import utils
@@ -44,6 +45,9 @@ class SintelSample(AnimationCollector):
         panel_height_cm=3,
         max_figure_width_cm=18,
         panel_width_cm=3.6,
+        title1="input",
+        title2="target",
+        title3="prediction",
     ):
         figsize = figsize_utils.figsize_from_n_items(
             2 if prediction is None else 3,
@@ -74,7 +78,7 @@ class SintelSample(AnimationCollector):
                 self.lum,
                 fig=self.fig,
                 ax=self.axes[0],
-                title="input",
+                title=title1,
                 edgecolor=None,
                 update_edge_color=True,
                 fontsize=fontsize,
@@ -91,7 +95,7 @@ class SintelSample(AnimationCollector):
                     ax=self.axes[1],
                     cwheel=True,
                     cwheelxy=(-0.7, 0.7),
-                    title="target",
+                    title=title2,
                     label="",
                     fontsize=fontsize,
                 )
@@ -104,7 +108,7 @@ class SintelSample(AnimationCollector):
                         ax=self.axes[2],
                         cwheel=True,
                         cwheelxy=(-0.7, 0.7),
-                        title="prediction",
+                        title=title3,
                         label="",
                         fontsize=fontsize,
                     )
@@ -116,7 +120,7 @@ class SintelSample(AnimationCollector):
                     fig=self.fig,
                     ax=self.axes[1],
                     cmap=target_cmap,
-                    title="target",
+                    title=title2,
                     edgecolor=None,
                     fontsize=fontsize,
                     cbar=True,
@@ -130,7 +134,7 @@ class SintelSample(AnimationCollector):
                         fig=self.fig,
                         ax=self.axes[2],
                         cmap=target_cmap,
-                        title="prediction",
+                        title=title3,
                         edgecolor=None,
                         fontsize=fontsize,
                         cbar=True,

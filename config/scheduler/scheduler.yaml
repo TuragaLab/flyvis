@@ -18,4 +18,4 @@ dt:
   start: 0.02
   stop: 0.02
   steps: 10
-chkpt_fraction: 0.00025
+chkpt_every_epoch: 300
