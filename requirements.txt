@@ -1,5 +1,6 @@
 datamate
 scipy
+matplotlib
 networkx
 ffmpeg-python
 black
@@ -9,3 +10,5 @@ torchvision
 python-dotenv
 hydra-core
 toolz
+tqdm
+requests

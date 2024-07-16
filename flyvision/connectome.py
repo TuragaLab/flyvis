@@ -138,9 +138,9 @@ class ConnectomeDir(Directory):
         spec = json.loads(Path(self.path.parent / file).read_text())
 
         # Store unique cell types and layout variables.
-        self.unique_cell_types = np.string_([n["name"] for n in spec["nodes"]])
-        self.input_cell_types = np.string_(spec["input_units"])
-        self.output_cell_types = np.string_(spec["output_units"])
+        self.unique_cell_types = np.bytes_([n["name"] for n in spec["nodes"]])
+        self.input_cell_types = np.bytes_(spec["input_units"])
+        self.output_cell_types = np.bytes_(spec["output_units"])
         intermediate_cell_types, _ = nodes_edges_utils.order_node_type_list(
             np.array(
                 list(
@@ -177,7 +177,7 @@ class ConnectomeDir(Directory):
                 )
             )
         )
-        self.layout = np.string_(layout)
+        self.layout = np.bytes_(layout)
 
         # Construct nodes and edges.
         nodes: List[Node] = []
@@ -192,10 +192,10 @@ class ConnectomeDir(Directory):
 
         # Store the graph.
         self.nodes = dict(  # type: ignore
-            type=np.string_([n.type for n in nodes]),
+            type=np.bytes_([n.type for n in nodes]),
             u=np.int32([n.u for n in nodes]),
             v=np.int32([n.v for n in nodes]),
-            role=np.string_([_role[n.type] for n in nodes]),
+            role=np.bytes_([_role[n.type] for n in nodes]),
         )
 
         self.edges = dict(  # type: ignore
@@ -205,15 +205,15 @@ class ConnectomeDir(Directory):
             sign=np.float32([e.sign for e in edges]),
             n_syn=np.float32([e.n_syn for e in edges]),
             # [Convenience fields]
-            source_type=np.string_([e.source.type for e in edges]),
-            target_type=np.string_([e.target.type for e in edges]),
+            source_type=np.bytes_([e.source.type for e in edges]),
+            target_type=np.bytes_([e.target.type for e in edges]),
             source_u=np.int32([e.source.u for e in edges]),
             target_u=np.int32([e.target.u for e in edges]),
             source_v=np.int32([e.source.v for e in edges]),
             target_v=np.int32([e.target.v for e in edges]),
             du=np.int32([e.target.u - e.source.u for e in edges]),
             dv=np.int32([e.target.v - e.source.v for e in edges]),
-            edge_type=np.string_([e.type for e in edges]),
+            edge_type=np.bytes_([e.type for e in edges]),
             n_syn_certainty=np.float32([e.n_syn_certainty for e in edges]),
         )
 
