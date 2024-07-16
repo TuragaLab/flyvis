@@ -1,3 +1,4 @@
+ipython
 datamate
 scipy
 matplotlib
