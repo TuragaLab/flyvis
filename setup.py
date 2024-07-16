@@ -9,5 +9,5 @@ setup(
     packages=find_packages(),
     install_requires=required,
     author="Janne Lappalainen & Mason McGill",
-    description="Library to build and analyze network simulations of the Drosophila visual system.",
+    description="Connectome and task-constrained vision models of the fruit fly.",
 )

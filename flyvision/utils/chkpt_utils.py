@@ -146,9 +146,10 @@ def resolve_checkpoints(
     checkpoint: Union[int, str] = "best",
     validation_subdir: str = "validation",
     loss_file_name: str = "loss",
+    paper_results: bool = False,
 ) -> Checkpoints:
     """Resolves checkpoints from networkdir."""
-    if checkpoint in networkdir:
+    if paper_results:
         # This is for the shared trained models, which follow a slightly different
         # naming convention and only store one checkpoint in comparison to new models.
         return Checkpoints(
@@ -160,6 +161,7 @@ def resolve_checkpoints(
             validation_subdir=validation_subdir,
             loss_file_name=loss_file_name,
         )
+
     index = _check_checkpoint(networkdir, checkpoint, validation_subdir, loss_file_name)
     indices, paths = init_or_get_checkpoints(networkdir.chkpts.path)
 

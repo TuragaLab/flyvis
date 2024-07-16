@@ -33,6 +33,7 @@ from flyvision.utils.chkpt_utils import (
     recover_network,
     recover_decoder,
 )
+from flyvision.utils.logging_utils import warn_once
 
 import logging
 
@@ -851,7 +852,10 @@ class Network(nn.Module):
 class NetworkDir(Directory):
     """Directory for a network."""
 
-    pass
+
+def _is_paper_result(name):
+    """Check if the results dir is a paper result."""
+    return name.startswith("opticflow/000")
 
 
 class NetworkView(ConnectomeView):
@@ -877,10 +881,23 @@ class NetworkView(ConnectomeView):
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
         self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")
+
+        paper_result = _is_paper_result(self.name)
+        if paper_result:
+            warn_once(
+                logger,
+                "Loading paper result, adapting checkpoint and validation subdir...",
+            )
+            checkpoint, validation_subdir, loss_file_name = (
+                "best_chkpt",
+                "",
+                "validation_loss",
+            )
+
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
         self.checkpoints = resolve_checkpoints(
-            self.dir, checkpoint, validation_subdir, loss_file_name
+            self.dir, checkpoint, validation_subdir, loss_file_name, paper_result
         )
         self._initialized = dict(network=False, decoder=False)
 
