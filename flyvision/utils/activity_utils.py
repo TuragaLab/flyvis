@@ -29,7 +29,7 @@ __all__ = [
     "CentralActivity",
     "LayerActivity",
     "StimulusResponseIndexer",
-    "ActivityDoubleRectifier",
+    "asymmetric_weighting",
 ]
 
 

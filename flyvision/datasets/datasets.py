@@ -2,7 +2,7 @@
 
 from typing import Iterable, Any, Union, Dict, List, Callable
 from contextlib import contextmanager
-import abc
+from abc import abstractmethod, ABCMeta
 
 import torch
 import numpy as np
@@ -15,7 +15,7 @@ from flyvision.utils.dataset_utils import get_random_data_split
 __all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
 
 
-class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
+class SequenceDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
     """Base class for all sequence datasets.
 
     All sequence datasets should subclass this class.
@@ -30,22 +30,26 @@ class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         get_item: return an item of the dataset.
     """
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def framerate(self) -> int:
         """Framerate of the original sequences."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def dt(self) -> float:
         """Sampling and integration time constant."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def n_sequences(self) -> int:
         """Number of sequences in the dataset."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def augment(self) -> bool:
         """Turns augmentation on and off."""
         pass
@@ -66,17 +70,19 @@ class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         finally:
             self.augment = _prev
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def t_pre(self) -> float:
         """Warmup time."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def t_post(self) -> float:
         """Cooldown time."""
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_item(self, key: int) -> Any:
         """Return an item of the dataset."""
         pass
@@ -127,8 +133,10 @@ class SequenceDataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         )
 
 
-class StimulusDataset(SequenceDataset, metaclass=abc.ABCMeta):
-    @abc.abstractproperty
+class StimulusDataset(SequenceDataset, metaclass=ABCMeta):
+
+    @property
+    @abstractmethod
     def arg_df(self) -> pd.DataFrame:
         """Table storing sequence id and associated arguments, or parameters."""
         pass
@@ -178,7 +186,7 @@ class StimulusDataset(SequenceDataset, metaclass=abc.ABCMeta):
         query = _query_from_args(args)
         return self.arg_df.query(query).index.item()
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_sequence_id_from_arguments(self) -> int:
         """Return the index for a stimulus sample by parameter.
 
@@ -210,17 +218,20 @@ class MultiTaskDataset(SequenceDataset):
         losses: a loss function for each task.
     """
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def tasks(self) -> List[str]:
         """A list of all tasks."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def task_weights(self) -> Dict[str, float]:
         """A weighting of each task."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def task_weights_sum(self) -> float:
         """Sum of all indicated task weights to normalize loss."""
         pass
@@ -233,7 +244,8 @@ class MultiTaskDataset(SequenceDataset):
             self.task_weights = {task: 1 for task in self.tasks}
             self.task_weights_sum = len(self.tasks)
 
-    @abc.abstractproperty
+    @property
+    @abstractmethod
     def losses(self) -> Dict[str, Callable]:
         """A loss function for each task."""
         pass

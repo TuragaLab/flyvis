@@ -1,4 +1,5 @@
-from typing import Iterable
+"""Rendering of circular flash sequences on a hexagonal lattice."""
+
 from itertools import product
 import logging
 
@@ -6,12 +7,12 @@ import numpy as np
 import torch
 import pandas as pd
 from tqdm import tqdm
-from datamate import Directory, Namespace, root
+from datamate import Directory, root
 
 from flyvision.rendering import BoxEye
 from flyvision.rendering.utils import resample
 from flyvision.datasets.datasets import SequenceDataset
-from flyvision import utils, root_dir
+from flyvision import root_dir
 from flyvision.utils.hex_utils import HexLattice, Hexal
 
 logging = logging.getLogger()
@@ -53,11 +54,11 @@ class RenderedFlashes(Directory):
         samples = dict(v=values, r=radius)
         values = list(product(*(v for v in samples.values())))
         sequence = []  # samples, #frames, width, height
-        for (baseline, intnsty), rad in tqdm(values, desc="Flashes"):
+        for (baseline, intensity), rad in tqdm(values, desc="Flashes"):
             sequence.append(
                 get_flash(
                     n_ommatidia,
-                    intnsty,
+                    intensity,
                     baseline,
                     t_stim,
                     t_pre,
@@ -174,61 +175,9 @@ class Flashes(SequenceDataset):
     def __len__(self):
         return len(self.arg_df)
 
-    def _key(self, intensity, radius):
-        try:
-            return self.arg_df.query(
-                f"radius=={radius}" f" & intensity == {intensity}"
-            ).index.values.item()
-        except ValueError:
-            raise ValueError(f"radius: {radius}, intensity: {intensity} invalid.")
-
-    def _params(self, key):
-        return self.arg_df.iloc[key].values
-
-    def get(self, intensity, radius):
-        """
-        #TODO: docstring
-        """
-        key = self._key(intensity, radius)
-        return self[key]
-
     def get_item(self, key):
-        """
-        #TODO: docstring
-        """
+        """Indexing the dataset."""
         return torch.Tensor(self.flashes_dir.flashes[key])
 
-    def stimulus(self, intensity, radius):
-        """
-        #TODO: docstring
-        """
-        key = self._key(intensity, radius)
-        stim = self[key][:, 360].cpu().numpy()
-        return stim
-
-    def mask(self, intensity=None, radius=None):
-
-        values = self.arg_df.values
-
-        def iterparam(param, name, axis, and_condition):
-            condition = np.zeros(len(values)).astype(bool)
-            if isinstance(param, Iterable):
-                for p in param:
-                    _new = values.take(axis, axis=1) == p
-                    assert any(_new), f"{name} {p} not in dataset."
-                    condition = np.logical_or(condition, _new)
-            else:
-                _new = values.take(axis, axis=1) == param
-                assert any(_new), f"{name} {param} not in dataset."
-                condition = np.logical_or(condition, _new)
-            return condition & and_condition
-
-        condition = np.ones(len(values)).astype(bool)
-        if intensity is not None:
-            condition = iterparam(intensity, "intensity", 1, condition)
-        if radius is not None:
-            condition = iterparam(radius, "radius", 2, condition)
-        return condition
-
     def __repr__(self):
-        return "Flashes dataset: \n{}".format(repr(self.arg_df))
+        return f"Flashes dataset. Parametrization: \n{self.arg_df}"
