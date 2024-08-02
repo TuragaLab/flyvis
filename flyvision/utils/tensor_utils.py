@@ -1,9 +1,10 @@
 """Utility on tensors and arrays."""
-from typing import Any, Dict, Mapping
-from numpy.typing import NDArray
 
-import torch
+from typing import Any, Dict, Mapping
+
 import numpy as np
+import torch
+from numpy.typing import NDArray
 
 
 class RefTensor:
@@ -64,8 +65,8 @@ class AutoDeref(dict):
     def __getitem__(self, key: str) -> Any:
         try:
             val = super().__getitem__(key)
-        except:
-            raise AttributeError
+        except AttributeError as e:
+            raise e
         if isinstance(val, RefTensor):
             if key not in self._cache:
                 self._cache[key] = val.deref()
@@ -150,7 +151,7 @@ def detach(obj: AutoDeref) -> AutoDeref:
         try:
             return detach(vars(obj))
         except TypeError as e:
-            raise TypeError(f"{obj} of type {type(obj)} as {e}.")
+            raise TypeError(f"{obj} of type {type(obj)} as {e}.") from None
 
 
 def clone(obj: AutoDeref) -> AutoDeref:
@@ -167,9 +168,10 @@ def clone(obj: AutoDeref) -> AutoDeref:
         return AutoDeref({k: clone(dict.__getitem__(obj, k)) for k in obj})
     else:
         try:
+            print("reached")
             return clone(vars(obj))
         except TypeError as e:
-            raise TypeError(f"{obj} of type {type(obj)} as {e}.")
+            raise TypeError(f"{obj} of type {type(obj)} as {e}.") from None
 
 
 def to_numpy(array):

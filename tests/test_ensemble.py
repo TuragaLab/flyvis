@@ -1,21 +1,27 @@
 from copy import deepcopy
-import pytest
 from pathlib import Path
 
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+import torch
 from datamate import Directory, Namespace
 
-from flyvision.ensemble import Ensemble, EnsembleView, TaskError
-from flyvision.network import Network, IntegrationWarning
 from flyvision import results_dir
+from flyvision.ensemble import Ensemble, EnsembleView, TaskError
+from flyvision.network import IntegrationWarning, Network
 
 
 @pytest.fixture(scope="module")
 def ensemble() -> Ensemble:
     models = [results_dir / f"opticflow/000/{i:04}" for i in range(6)]
-    ensemble = Ensemble(models, checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss", try_sort=True)
+    ensemble = Ensemble(
+        models,
+        checkpoint="best_chkpt",
+        validation_subdir="",
+        loss_file_name="validation_loss",
+        try_sort=True,
+    )
     # ensemble = Ensemble(results_dir / "opticflow/000")
     return ensemble
 
@@ -102,13 +108,18 @@ def test_task_error(ensemble):
 
 
 def test_cluster_indices():
-    ensemble = Ensemble(results_dir / "opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
+    ensemble = Ensemble(
+        results_dir / "opticflow/000",
+        checkpoint="best_chkpt",
+        validation_subdir="",
+        loss_file_name="validation_loss",
+    )
     network = next(ensemble.yield_networks())
     for cell_type in network.cell_types:
         cluster_indices = ensemble.cluster_indices(cell_type)
         assert isinstance(cluster_indices, dict)
-        assert type(cluster_indices[0]) == np.ndarray
-        assert cluster_indices[0].dtype == np.int64
+        assert type(cluster_indices[0]) is np.ndarray
+        assert cluster_indices[0].dtype is np.dtype("int64")
         assert set(
             sorted(np.concatenate(list(cluster_indices.values()), axis=0))
         ).issubset(set(np.arange(len(ensemble)).tolist()))
@@ -122,7 +133,12 @@ def test_loss_histogram(ensemble: Ensemble):
 
 
 def test_responses():
-    ensemble = Ensemble(results_dir / "opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
+    ensemble = Ensemble(
+        results_dir / "opticflow/000",
+        checkpoint="best_chkpt",
+        validation_subdir="",
+        loss_file_name="validation_loss",
+    )
 
     test_data_dir = Directory(Path(__file__).parent / "data")
     assert "responses" in test_data_dir

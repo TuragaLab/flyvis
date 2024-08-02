@@ -1,33 +1,32 @@
 """Solvers for training, testing, checkpointing and recovering of networks."""
 
-import time
-from typing import Protocol, Union, Optional, Dict, Tuple
-from dataclasses import dataclass
 import logging
+import time
+from dataclasses import dataclass
+from typing import Dict, Optional, Protocol, Union
 
-from toolz import valmap, valfilter
 import numpy as np
-from torch import nn
 import torch
 from datamate import Directory, Namespace
+from toolz import valfilter, valmap
+from torch import nn
 
 from flyvision.network import Network, NetworkDir
 from flyvision.tasks import Task
 from flyvision.utils.activity_utils import asymmetric_weighting
 from flyvision.utils.chkpt_utils import (
-    resolve_checkpoints,
-    recover_network,
     recover_decoder,
+    recover_network,
     recover_optimizer,
     recover_penalty_optimizers,
+    resolve_checkpoints,
 )
-
 
 logging = logging.getLogger(__name__)
 
 
 class SolverProtocol(Protocol):
-    """The SolverProtocol implements training, testing, checkpointing etc. of networks."""
+    """SolverProtocol implements training, testing, checkpointing etc. of networks."""
 
     name: str
     config: Optional[Union[dict, Namespace]]
@@ -166,7 +165,7 @@ class MultiTaskSolver:
         def decoder_parameters(decoder: Dict[str, nn.Module]):
             """Returns decoder parameters."""
             params = []
-            for task, nn_module in enumerate(decoder.values()):
+            for nn_module in decoder.values():
                 params.append(
                     dict(
                         params=[w for w in nn_module.parameters()],
@@ -222,7 +221,7 @@ class MultiTaskSolver:
         # this is to debug the model architecture, configs etc.
         dataloader = self.task.overfit_data if overfit else self.task.train_data
         # For overfitting we also turn the augmentation off.
-        augment = False if overfit else True
+        augment = not overfit
 
         # The number of full presentations of the training data is derived from the
         # preset number of training iterations, the length of the dataloader and the
@@ -257,9 +256,9 @@ class MultiTaskSolver:
                     value=0.5,
                 )
 
-                for i, data in enumerate(dataloader):
+                for _, data in enumerate(dataloader):
 
-                    def handle_batch():
+                    def handle_batch(data, steady_state):
                         """Closure to free memory by garbage collector effectively."""
 
                         # Resets the stimulus buffer (samples, frames, neurons).
@@ -324,7 +323,7 @@ class MultiTaskSolver:
                         return loss, mean_activity
 
                     # Call closure.
-                    loss, mean_activity = handle_batch()
+                    loss, mean_activity = handle_batch(data, steady_state)
 
                     # Increment iteration count.
                     self.iteration += 1
@@ -466,12 +465,10 @@ class MultiTaskSolver:
             batch_size=dataloader.batch_size,
             value=0.5,
         )
-        losses = {
-            task: () for task in self.task.dataset.tasks
-        }  # type: Dict[str, Tuple]
+        losses = {task: () for task in self.task.dataset.tasks}  # type: Dict[str, Tuple]
 
         with self.task.dataset.augmentation(False):
-            for i, data in enumerate(dataloader):
+            for _, data in enumerate(dataloader):
                 n_samples, n_frames, _, _ = data["lum"].shape
                 self.network.stimulus.zero(n_samples, n_frames)
 
@@ -539,7 +536,8 @@ class MultiTaskSolver:
         loss_file_name: str = "loss",
     ):
         """Returns the path to a checkpoint. This can be passed to the recover methods
-        along with the nn.Module instances to create instances from checkpoints    independently of the solver.
+        along with the nn.Module instances to create instances from checkpoints
+        independently of the solver.
         """
         return resolve_checkpoints(
             self.dir, checkpoint, validation_subdir, loss_file_name
@@ -589,8 +587,8 @@ class MultiTaskSolver:
             logging.info("Checkpoint already recovered.")
             return
 
-        # Set the current and last checkpoint index. New checkpoints incrementally increase
-        # the last checkpoint index.
+        # Set the current and last checkpoint index. New checkpoints incrementally
+        # increase the last checkpoint index.
         self._last_chkpt_ind = checkpoints.indices[-1]
         self._curr_chkpt_ind = checkpoints.index
 
@@ -746,14 +744,12 @@ class Penalty:
         )
 
         if (
-            not any(
-                (
-                    self.activity_penalty,
-                    self.activity_baseline,
-                    self.below_baseline_penalty_weight,
-                    self.above_baseline_penalty_weight,
-                )
-            )
+            not any((
+                self.activity_penalty,
+                self.activity_baseline,
+                self.below_baseline_penalty_weight,
+                self.above_baseline_penalty_weight,
+            ))
             and self.param_list_act_pen
         ):
             raise ValueError(
@@ -763,18 +759,14 @@ class Penalty:
 
     def get_configs(self) -> Namespace:
         """Returns a dictionary of all parameters that need to be penalized."""
-        node_config = Namespace(
-            {
-                "nodes_" + k: v.pop("penalize", None)
-                for k, v in self.network.config.node_config.deepcopy().items()
-            }
-        )
-        edge_config = Namespace(
-            {
-                "edges_" + k: v.pop("penalize", None)
-                for k, v in self.network.config.edge_config.deepcopy().items()
-            }
-        )
+        node_config = Namespace({
+            "nodes_" + k: v.pop("penalize", None)
+            for k, v in self.network.config.node_config.deepcopy().items()
+        })
+        edge_config = Namespace({
+            "edges_" + k: v.pop("penalize", None)
+            for k, v in self.network.config.edge_config.deepcopy().items()
+        })
         return valfilter(
             lambda v: v is not None,
             Namespace(**node_config, **edge_config),
@@ -921,7 +913,7 @@ class HyperParamScheduler:
 
     def _params(self):
         params = {}
-        for key, param in self.scheduled_params.items():
+        for key, _param in self.scheduled_params.items():
             value = getattr(self, key)
             params[key] = value
         return params

@@ -1,18 +1,18 @@
 """Rendering of circular flash sequences on a hexagonal lattice."""
 
-from itertools import product
 import logging
+from itertools import product
 
 import numpy as np
-import torch
 import pandas as pd
-from tqdm import tqdm
+import torch
 from datamate import Directory, root
+from tqdm import tqdm
 
+from flyvision import root_dir
+from flyvision.datasets.datasets import SequenceDataset
 from flyvision.rendering import BoxEye
 from flyvision.rendering.utils import resample
-from flyvision.datasets.datasets import SequenceDataset
-from flyvision import root_dir
 from flyvision.utils.hex_utils import HexLattice, Hexal
 
 logging = logging.getLogger()
@@ -83,8 +83,8 @@ def get_flash(
         t_stim (float): duration of the stimulus.
         t_pre (float): duration of the grey stimulus.
         dt (float): timesteps.
-        alternations (list): sequence of alternations between lower or upper intensity and
-            baseline of the dynamic range.
+        alternations (list): sequence of alternations between lower or upper intensity
+            and baseline of the dynamic range.
         radius (int): radius of the stimulus.
     """
     stimulus = torch.ones(n_ommatidia)[None] * baseline

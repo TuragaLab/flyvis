@@ -2,40 +2,38 @@
 Deep mechanistic network module.
 """
 
-from os import PathLike
-from typing import Any, Dict, Iterable, List, Optional, Union, Callable
-from contextlib import contextmanager
+import logging
 import warnings
+from contextlib import contextmanager
+from os import PathLike
+from typing import Any, Callable, Dict, Iterable, Optional, Union
+
 import numpy as np
-from toolz import valmap
 import torch
-from torch import Tensor
 import torch.nn as nn
+from datamate import Directory, Namespace, root
+from toolz import valmap
+from torch import Tensor
 from torch.utils.data import DataLoader
 
-from datamate import Namespace, Directory, root
-
-from flyvision.connectome import ConnectomeDir, ConnectomeView
 import flyvision
-
-from flyvision.stimulus import Stimulus
-from flyvision.initialization import Parameter
+from flyvision.connectome import ConnectomeDir, ConnectomeView
+from flyvision.datasets.datasets import SequenceDataset
 from flyvision.dynamics import NetworkDynamics
+from flyvision.initialization import Parameter
+from flyvision.stimulus import Stimulus
 from flyvision.tasks import _init_decoder
 from flyvision.utils.activity_utils import LayerActivity
-from flyvision.utils.nn_utils import n_params, simulation
-from flyvision.utils.dataset_utils import IndexSampler
-from flyvision.utils.tensor_utils import RefTensor, AutoDeref
-from flyvision.utils.class_utils import forward_subclass
-from flyvision.datasets.datasets import SequenceDataset
 from flyvision.utils.chkpt_utils import (
-    resolve_checkpoints,
-    recover_network,
     recover_decoder,
+    recover_network,
+    resolve_checkpoints,
 )
+from flyvision.utils.class_utils import forward_subclass
+from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.logging_utils import warn_once
-
-import logging
+from flyvision.utils.nn_utils import n_params, simulation
+from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
 logging = logger = logging.getLogger(__name__)
 
@@ -407,12 +405,12 @@ class Network(nn.Module):
         )
 
         next_state = AutoDeref(
-            nodes=AutoDeref(
-                **{k: state.nodes[k] + vel.nodes[k] * dt for k in state.nodes}
-            ),
-            edges=AutoDeref(
-                **{k: state.edges[k] + vel.edges[k] * dt for k in state.edges}
-            ),
+            nodes=AutoDeref(**{
+                k: state.nodes[k] + vel.nodes[k] * dt for k in state.nodes
+            }),
+            edges=AutoDeref(**{
+                k: state.edges[k] + vel.edges[k] * dt for k in state.edges
+            }),
         )
 
         return self._state_api(next_state)
@@ -519,7 +517,7 @@ class Network(nn.Module):
         if initial_state == "auto":
             initial_state = self.steady_state(1.0, dt, batch_size)
         with simulation(self):
-            assert self.training == False and all(
+            assert self.training is False and all(
                 not p.requires_grad for p in self.parameters()
             )
             self.stimulus.zero(batch_size, n_frames)
@@ -726,7 +724,7 @@ class Network(nn.Module):
 
         with self.enable_grad(grad):
             logging.info(f"Computing {len(indices)} stimulus responses.")
-            for i, stim in enumerate(stim_loader):
+            for stim in stim_loader:
                 # when datasets return dictionaries, we assume that the stimulus
                 # is stored under the key `default_stim_key`
                 if isinstance(stim, dict):
@@ -740,7 +738,7 @@ class Network(nn.Module):
                     state=initial_state,
                 )
 
-                def handle_stim():
+                def handle_stim(stim, fade_in_state):
                     # reset stimulus
                     batch_size, n_frames = stim.shape[:2]
                     stimulus.zero(batch_size, n_frames)
@@ -763,7 +761,7 @@ class Network(nn.Module):
                             self(stimulus(), dt, state=fade_in_state),
                         )
 
-                yield handle_stim()
+                yield handle_stim(stim, fade_in_state)
 
     def current_response(
         self,
@@ -808,7 +806,7 @@ class Network(nn.Module):
         initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
         with torch.no_grad():
             logging.info(f"Computing {len(indices)} stimulus responses.")
-            for i, stim in enumerate(stim_loader):
+            for stim in stim_loader:
                 if isinstance(stim, dict):
                     stim = stim[default_stim_key].squeeze(-2)
 
@@ -819,7 +817,7 @@ class Network(nn.Module):
                     state=initial_state,
                 )
 
-                def handle_stim():
+                def handle_stim(stim, fade_in_state):
                     # reset stimulus
                     batch_size, n_frames, _ = stim.shape
                     stimulus.zero(batch_size, n_frames)
@@ -845,7 +843,7 @@ class Network(nn.Module):
                         .squeeze(),
                     )
 
-                yield handle_stim()
+                yield handle_stim(stim, fade_in_state)
 
 
 @root(flyvision.results_dir)
@@ -877,7 +875,7 @@ class NetworkView(ConnectomeView):
         validation_subdir="validation",
         loss_file_name="loss",
     ):
-        if isinstance(network_dir, PathLike) or isinstance(network_dir, str):
+        if isinstance(network_dir, (PathLike, str)):
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
         self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")

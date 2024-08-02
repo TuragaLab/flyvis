@@ -16,14 +16,14 @@ Example:
         task.n_iters=1000
 """
 
-from pathlib import Path
+import logging
 import shutil
 import traceback
-import logging
-import hydra
-from omegaconf import OmegaConf
+from pathlib import Path
 
+import hydra
 from datamate import set_root_context
+from omegaconf import OmegaConf
 
 from flyvision import results_dir, source_dir
 from flyvision.solver import MultiTaskSolver
@@ -33,7 +33,9 @@ logging = logger = logging.getLogger(__name__)
 
 
 def save_env(target_dir: Path = None):
-    """Save source code and the environment details to a file in the target directory."""
+    """
+    Save source code and the environment details to a file in the target directory.
+    """
     try:
         shutil.copytree(source_dir, target_dir / "source")
         save_conda_environment(target_dir / "conda_environment.json")
@@ -47,7 +49,6 @@ def save_env(target_dir: Path = None):
     version_base="1.1",
 )
 def main(args):
-
     logging.info("Initializing solver.")
 
     # ---- SOLVER INITIALIZATION

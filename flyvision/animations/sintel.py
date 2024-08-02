@@ -3,10 +3,10 @@
 from matplotlib import colormaps
 
 from flyvision import utils
-from flyvision.plots import plt_utils, figsize_utils
 from flyvision.animations.animations import AnimationCollector
-from flyvision.animations.hexscatter import HexScatter
 from flyvision.animations.hexflow import HexFlow
+from flyvision.animations.hexscatter import HexScatter
+from flyvision.plots import figsize_utils
 
 
 class SintelSample(AnimationCollector):
@@ -15,7 +15,8 @@ class SintelSample(AnimationCollector):
     Args:
         lum (array): input of shape (#samples, #frames, #hexals).
         target (array): target of shape (#samples, #frames, #dims, #features).
-        prediction (array): optional prediction of shape (#samples, #frames, #dims, #features).
+        prediction (array): optional prediction of shape (#samples, #frames, #dims,
+            #features).
         fig (Figure): existing Figure instance or None.
         batch_sample (int): batch sample to start from. Defaults to 0.
         target_cmap (colormap): colormap for the target (depth). Defaults to

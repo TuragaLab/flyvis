@@ -1,6 +1,5 @@
 from datamate import Namespace
 
-from flyvision.utils.class_utils import forward_subclass
 from flyvision.tasks import Task
 
 

@@ -13,17 +13,16 @@ Example:
         --script train.py \
         description='test' \
         train=true \
-        +delete_if_exists=true 
+        +delete_if_exists=true
 """
 
-import sys
-import socket
-
-import subprocess
-import re
-from time import sleep
 import argparse
 import logging
+import re
+import socket
+import subprocess
+import sys
+from time import sleep
 
 from flyvision import results_dir
 
@@ -41,7 +40,7 @@ def run_job(command, dry):
         return job_id
     answer = subprocess.getoutput(command)
     print(answer)
-    job_id = re.findall("(?<=<)\d+(?=>)", answer)
+    job_id = re.findall(r"(?<=<)\d+(?=>)", answer)
     print(job_id)
     assert len(job_id) == 1
     return job_id[0]
@@ -52,9 +51,7 @@ def is_running(job_id, dry):
     if dry:
         return False
     job_info = subprocess.getoutput("bjobs -w")
-    if job_id in job_info:
-        return True
-    return False
+    return job_id in job_info
 
 
 def kill_job(job_id, dry):
@@ -165,7 +162,10 @@ if __name__ == "__main__":
         "--ensemble_id",
         type=int,
         default="",
-        help="Id of the ensemble, e.g. 0045. The ultimate name of a model will be of the form task/ensemble_id/<start-end>",
+        help=(
+            "Id of the ensemble, e.g. 0045. The ultimate name of a model will be of "
+            "the form task/ensemble_id/<start-end>"
+        ),
     )
     parser.add_argument(
         "--task_name",
@@ -209,7 +209,8 @@ if __name__ == "__main__":
                     args.q,
                     args.script,
                     args.dry,
-                    kwargs,  # note: kwargs is an ordered list(str) of kwargs: ["-kw", "val", ...]
+                    kwargs,  # note: kwargs is an ordered list(str) of kwargs: ["-kw",
+                    # "val", ...]
                 )
         else:
             launch_range(
@@ -222,5 +223,6 @@ if __name__ == "__main__":
                 args.q,
                 args.script,
                 args.dry,
-                kwargs,  # note: kwargs is an ordered list(str) of kwargs: ["-kw", "val", ...]
+                kwargs,  # note: kwargs is an ordered list(str) of kwargs: ["-kw",
+                #   "val", ...]
             )

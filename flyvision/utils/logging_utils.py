@@ -1,5 +1,5 @@
-import subprocess
 import json
+import subprocess
 from functools import lru_cache
 
 
@@ -9,7 +9,6 @@ def warn_once(logger, msg: str):
 
 
 def save_conda_environment(path):
-
     # Use the conda list command to get a list of installed packages and their versions
     result = subprocess.run(
         ["conda", "list", "--json"], stdout=subprocess.PIPE, text=True, check=False

@@ -1,9 +1,8 @@
 import pytest
-
 from datamate import set_root_context
 
-from flyvision.utils.config_utils import get_default_config
 from flyvision.solver import MultiTaskSolver
+from flyvision.utils.config_utils import get_default_config
 
 
 @pytest.fixture(scope="module")

@@ -7,23 +7,22 @@ Example:
     T4b_central_response = layer_activity.central.T4a
 """
 
-from textwrap import wrap
-from functools import reduce
 import operator
 import weakref
-from typing import Union, Iterable
+from functools import reduce
+from textwrap import wrap
+from typing import Iterable, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
-
 import torch
+from numpy.typing import NDArray
 from torch import nn
 
-from flyvision.utils import nodes_edges_utils
-from flyvision.utils.nodes_edges_utils import CellTypeArray
-from flyvision.utils.df_utils import where_dataframe
 from flyvision.connectome import ConnectomeDir
+from flyvision.utils import nodes_edges_utils
+from flyvision.utils.df_utils import where_dataframe
+from flyvision.utils.nodes_edges_utils import CellTypeArray
 
 __all__ = [
     "CentralActivity",
@@ -41,7 +40,8 @@ class CellTypeActivity(dict):
     set keepref=True.
 
     Args:
-        keepref (bool, optional): Whether to keep a reference to the activity. Defaults to False.
+        keepref (bool, optional): Whether to keep a reference to the activity. Defaults
+        to False.
 
     Attributes:
         activity (weakref.ref): Weak reference to the activity.
@@ -69,7 +69,7 @@ class CellTypeActivity(dict):
 
     def _slices(self, n):
         slices = tuple()
-        for i in range(n):
+        for _ in range(n):
             slices += (slice(None, None, None),)
         return slices
 
@@ -108,7 +108,7 @@ class CellTypeActivity(dict):
         elif "/" in key:
             _cell_types = key.split("/")
             return reduce(operator.truediv, map(self.__getattr__, _cell_types))
-        elif key in self.__dict__.keys():
+        elif key in self.__dict__:
             return self.__dict__[key]
         else:
             raise ValueError(f"{key}")
@@ -140,7 +140,8 @@ class CentralActivity(CellTypeActivity):
                         - connectome.nodes.layer_index
                         - connectome.unique_cell_types
                         - connectome.central_cells_index
-        keepref (bool, optional): Whether to keep a reference to the activity. Defaults to False.
+        keepref (bool, optional): Whether to keep a reference to the activity.
+            Defaults to False.
 
     Note, activity is stored as a weakref by default. This is for memory efficienty
     during training. If you want to keep a reference to the activity for analysis,
@@ -170,12 +171,12 @@ class CentralActivity(CellTypeActivity):
         unique_cell_types = connectome.unique_cell_types[:]
         input_cell_types = connectome.input_cell_types[:]
         output_cell_types = connectome.output_cell_types[:]
-        self.input_indices = np.array(
-            [np.nonzero(unique_cell_types == t)[0] for t in input_cell_types]
-        )
-        self.output_indices = np.array(
-            [np.nonzero(unique_cell_types == t)[0] for t in output_cell_types]
-        )
+        self.input_indices = np.array([
+            np.nonzero(unique_cell_types == t)[0] for t in input_cell_types
+        ])
+        self.output_indices = np.array([
+            np.nonzero(unique_cell_types == t)[0] for t in output_cell_types
+        ])
         self.activity = activity
         self.unique_cell_types = unique_cell_types.astype(str)
 
@@ -214,7 +215,7 @@ class CentralActivity(CellTypeActivity):
         elif "/" in key:
             _cell_types = key.split("/")
             return reduce(operator.truediv, map(self.__getattr__, _cell_types))
-        elif key in self.__dict__.keys():
+        elif key in self.__dict__:
             return self.__dict__[key]
         else:
             raise ValueError(f"{key}")
@@ -251,7 +252,8 @@ class LayerActivity(CellTypeActivity):
                         - connectome.central_cells_index
                         - connectome.input_cell_types
                         - connectome.output_cell_types
-        keepref (bool, optional): Whether to keep a reference to the activity. Defaults to False.
+        keepref (bool, optional): Whether to keep a reference to the activity.
+            Defaults to False.
 
     Note, activity is stored as a weakref by default. This is for memory efficienty
     during training. If you want to keep a reference to the activity for analysis,
@@ -303,12 +305,12 @@ class LayerActivity(CellTypeActivity):
             self[cell_type] = index
 
         _cell_types = self.connectome.nodes.type[:]
-        self.input_indices = np.array(
-            [np.nonzero(_cell_types == t)[0] for t in self.connectome.input_cell_types]
-        )
-        self.output_indices = np.array(
-            [np.nonzero(_cell_types == t)[0] for t in self.connectome.output_cell_types]
-        )
+        self.input_indices = np.array([
+            np.nonzero(_cell_types == t)[0] for t in self.connectome.input_cell_types
+        ])
+        self.output_indices = np.array([
+            np.nonzero(_cell_types == t)[0] for t in self.connectome.output_cell_types
+        ])
         self.input_cell_types = self.connectome.input_cell_types[:].astype(str)
         self.output_cell_types = self.connectome.output_cell_types[:].astype(str)
         self.n_nodes = len(self.connectome.nodes.type)
@@ -516,7 +518,6 @@ class StimulusResponseIndexer:
         # along the stim_sample_dim --> might require to keep a ref to the original
         # indexer
         if isinstance(self.stim_sample_dim, Iterable) and len(self.stim_sample_dim) > 1:
-
             # from typing import Iterable
             # stim_sample_dim = x.stim_sample_dim
 
@@ -823,9 +824,9 @@ class StimulusResponseIndexer:
     def transpose(self, *args, inplace=False) -> "StimulusResponseIndexer":
         if isinstance(self.stim_sample_dim, Iterable):
             # to transpose also stimulus sample dimensions tracked
-            new_stim_sample_dim = np.array(
-                [np.array(args).tolist().index(i) for i in self.stim_sample_dim]
-            )
+            new_stim_sample_dim = np.array([
+                np.array(args).tolist().index(i) for i in self.stim_sample_dim
+            ])
         if inplace:
             self.responses = CellTypeArray(
                 self.responses[:].transpose(*args),
@@ -839,26 +840,33 @@ class StimulusResponseIndexer:
         )
 
     def __getitem__(self, key) -> Union[np.ndarray, "StimulusResponseIndexer"]:
-        if isinstance(key, str) and key in self.responses.cell_types:
-            return self.cell_type(key)
-        elif (
-            isinstance(key, Iterable)
-            and all([isinstance(k, str) for k in key])
-            and all([k in self.responses.cell_types for k in key])
+        if (
+            isinstance(key, str)
+            and key in self.responses.cell_types
+            or (
+                isinstance(key, Iterable)
+                and all([isinstance(k, str) for k in key])
+                and all([k in self.responses.cell_types for k in key])
+            )
         ):
             return self.cell_type(key)
         if isinstance(key, slice) and key == slice(None, None, None):
             return self.responses[:]  # .squeeze()
-        elif isinstance(key, Iterable) and len(key) <= len(self.responses[:].shape):
-            return self.view(responses=self.responses[:][key])
-
-        elif isinstance(key, np.ndarray) and len(key.shape) == 1:
+        elif (
+            isinstance(key, Iterable)
+            and len(key) <= len(self.responses[:].shape)
+            or isinstance(key, np.ndarray)
+            and len(key.shape) == 1
+        ):
             return self.view(responses=self.responses[:][key])
 
         return object.__getattribute__(self, key)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.arg_df}, {self.responses}, {self.dt}, {self.stim_sample_dim}, {self.temporal_dim})"
+        return (
+            f"{self.__class__.__name__}({self.arg_df}, {self.responses}, {self.dt}, "
+            f"{self.stim_sample_dim}, {self.temporal_dim})"
+        )
 
 
 def asymmetric_weighting(tensor, gamma=1.0, delta=0.1):

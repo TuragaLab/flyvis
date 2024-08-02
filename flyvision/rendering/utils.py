@@ -1,11 +1,9 @@
 """Rendering utils"""
 
-from PIL import Image
-
 import numpy as np
 import torch
 import torch.nn.functional as F
-
+from PIL import Image
 
 # ----- Supporting definitions -------------------------------------------------
 
@@ -56,7 +54,9 @@ def median(x, kernel_size, stride=1, n_chunks=10):
             (
                 x.unsqueeze_(0).unsqueeze_(0)
                 if len(shape) == 2
-                else x.unsqueeze_(0) if len(shape) == 3 else None
+                else x.unsqueeze_(0)
+                if len(shape) == 3
+                else None
             )
             assert len(x.shape) == 4
             _x = F.pad(x, padding, mode="reflect")
@@ -164,18 +164,12 @@ def center_crop(array, out_nelements_ratio):
 
 
 """Rendering utils"""
-from PIL import Image
-
-import numpy as np
-import torch
-import torch.nn.functional as F
 
 
 # ----- Supporting definitions -------------------------------------------------
 
 
 def hex_center_coordinates(n_hex_area, img_width, img_height, center=True):
-
     # Horizontal extent of the grid
     n = np.floor(np.sqrt(n_hex_area / 3)).astype("int")
 
@@ -370,7 +364,6 @@ def cartesian_gratings(
 
 
 def rotate_image(img, angle=0):
-
     h, w = img.shape
 
     diagonal = int(np.sqrt(h**2 + w**2))
@@ -408,7 +401,9 @@ def resample(stims, t_stim, dt, dim=0):
         tensor: stims of shape (#frames, #hexals).
     """
     n_offsets = stims.shape[dim]
-    repeats = torch.linspace(0, n_offsets - 1, int(t_stim / dt), device=stims.device).long()
+    repeats = torch.linspace(
+        0, n_offsets - 1, int(t_stim / dt), device=stims.device
+    ).long()
     return torch.index_select(stims, dim, repeats)
 
 

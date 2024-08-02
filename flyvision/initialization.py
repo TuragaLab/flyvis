@@ -9,24 +9,22 @@ Note: to maintain compatibility with old configurations, e.g. to reinitialize
     a trained network, careful when refactoring any of these types or syntax.
 """
 
-from copy import deepcopy
 import functools
-from typing import Any, Dict, Iterable, List
 import logging
+from copy import deepcopy
+from typing import Any, Dict, Iterable, List
+
 import numpy as np
 import pandas as pd
-
 import torch
-from torch import Tensor
 import torch.nn as nn
-
 from datamate import Namespace
+from torch import Tensor
 
 from flyvision.connectome import ConnectomeDir
+from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.tensor_utils import atleast_column_vector, where_equal_rows
 from flyvision.utils.type_utils import byte_to_str
-from flyvision.utils.class_utils import forward_subclass
-
 
 logging = logger = logging.getLogger(__name__)
 
@@ -135,29 +133,6 @@ class Normal(InitialDistribution):
         )
     """
 
-    # def __init__(self, param_config: Namespace) -> None:
-    #     if param_config.mode == "mean":
-    #         _values = torch.tensor(param_config.mean).float()
-    #     elif param_config.mode == "sample":
-    #         seed = param_config.get("seed", None)
-    #         if seed is not None:
-    #             torch.manual_seed(seed)
-    #         try:
-    #             _values = torch.distributions.normal.Normal(
-    #                 torch.tensor(param_config.mean).float(),
-    #                 torch.tensor(param_config.std).float(),
-    #             ).sample()
-    #         except RuntimeError as e:
-    #             raise RuntimeError(
-    #                 f"Failed to sample from normal distribution with mean {param_config.mean} and std {param_config.std}"
-    #             ) from e
-    #     else:
-    #         raise ValueError("Mode must be either mean or sample.")
-    #     _values = self.clamp(_values, param_config)
-    #     self.raw_values = nn.Parameter(
-    #         _values, requires_grad=param_config.requires_grad
-    #     )
-
     def __init__(
         self, mean, std, requires_grad, mode="sample", clamp=False, seed=None, **kwargs
     ) -> None:
@@ -173,7 +148,7 @@ class Normal(InitialDistribution):
                 ).sample()
             except RuntimeError as e:
                 raise RuntimeError(
-                    f"Failed to sample from normal distribution with mean {mean} and std {std}"
+                    f"Failed to sample from normal with mean {mean} and std {std}"
                 ) from e
         else:
             raise ValueError("Mode must be either mean or sample.")
@@ -267,11 +242,15 @@ class Parameter:
                     ).first()
 
                     param_config["type"] = grouped_nodes["type"].values
-                    param_config["mean"] = np.repeat(param_config["mean"], len(grouped_nodes))
-                    param_config["std"] = np.repeat(param_config["std"], len(grouped_nodes))
+                    param_config["mean"] = np.repeat(param_config["mean"],
+                                                     len(grouped_nodes))
+                    param_config["std"] = np.repeat(param_config["std"],
+                                                    len(grouped_nodes))
 
                     self.parameter = InitialDistribution(param_config)
-                    self.indices = get_scatter_indices(nodes, grouped_nodes, param_config.groupby)
+                    self.indices = get_scatter_indices(nodes,
+                                                       grouped_nodes,
+                                                       param_config.groupby)
                     self.keys = param_config["type"].tolist()
                     self.symmetry_masks = symmetry_masks(
                         param_config.get("symmetric", []), self.keys
@@ -291,12 +270,6 @@ class Parameter:
     indices: torch.Tensor
     symmetry_masks: List[torch.Tensor]
     keys: List[Any]
-
-    # def __new__(cls, param_config: Namespace, connectome: ConnectomeDir):
-    #     obj = forward_subclass(cls, deepcopy(param_config), subclass_key="type")
-    #     # object.__setattr__(obj, "_config", param_config)
-    #     object.__setattr__(obj, "config", deepcopy(param_config))
-    #     return obj
 
     @deepcopy_config
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
@@ -352,9 +325,9 @@ class RestingPotential(Parameter):
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
         nodes_dir = connectome.nodes
 
-        nodes = pd.DataFrame(
-            {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}
-        )
+        nodes = pd.DataFrame({
+            k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby
+        })
         grouped_nodes = nodes.groupby(
             param_config.groupby, as_index=False, sort=False
         ).first()
@@ -380,9 +353,9 @@ class TimeConstant(Parameter):
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
         nodes_dir = connectome.nodes
 
-        nodes = pd.DataFrame(
-            {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}
-        )
+        nodes = pd.DataFrame({
+            k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby
+        })
         grouped_nodes = nodes.groupby(
             param_config.groupby, as_index=False, sort=False
         ).first()
@@ -410,9 +383,9 @@ class SynapseSign(Parameter):
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
         edges_dir = connectome.edges
 
-        edges = pd.DataFrame(
-            {k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "sign"]}
-        )
+        edges = pd.DataFrame({
+            k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "sign"]
+        })
         grouped_edges = edges.groupby(
             param_config.groupby, as_index=False, sort=False
         ).first()
@@ -450,9 +423,9 @@ class SynapseCount(Parameter):
 
         edges_dir = connectome.edges
 
-        edges = pd.DataFrame(
-            {k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "n_syn"]}
-        )
+        edges = pd.DataFrame({
+            k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "n_syn"]
+        })
         grouped_edges = edges.groupby(
             param_config.groupby, as_index=False, sort=False
         ).mean()
@@ -489,9 +462,9 @@ class SynapseCountScaling(Parameter):
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
         edges_dir = connectome.edges
 
-        edges = pd.DataFrame(
-            {k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "n_syn"]}
-        )
+        edges = pd.DataFrame({
+            k: byte_to_str(edges_dir[k][:]) for k in [*param_config.groupby, "n_syn"]
+        })
         grouped_edges = edges.groupby(
             param_config.groupby, as_index=False, sort=False
         ).mean()
@@ -595,12 +568,12 @@ def symmetry_masks(
         return []
     symmetry_masks = []  # type: List[torch.Tensor]
     keys = atleast_column_vector(keys)
-    for i, identifiers in enumerate(symmetric):
+    for identifiers in symmetric:
         identifiers = atleast_column_vector(identifiers)
         # to allow identifiers like [None, "A", None, 0]
         # for parameters that have tuples as keys
         columns = np.arange(identifiers.shape[1] + 1)[
-            np.where((identifiers != None).all(axis=0))
+            np.where((identifiers is not None).all(axis=0))
         ]
         try:
             symmetry_masks.append(

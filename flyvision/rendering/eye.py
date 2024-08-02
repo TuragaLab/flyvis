@@ -1,16 +1,13 @@
-"""'Transduction' of cartesian pixels to hexals on a regular hexagonal lattice.
-"""
+"""'Transduction' of cartesian pixels to hexals on a regular hexagonal lattice."""
 
+from itertools import product
 from typing import Iterator, Tuple
 
 import numpy as np
-from numpy.typing import NDArray
-
 import torch
-from torch import nn
 import torch.nn.functional as F
 import torchvision.transforms.functional as ttf
-from itertools import product
+from torch import nn
 
 from flyvision.plots.plt_utils import init_plot, rm_spines
 from flyvision.rendering.utils import (
@@ -49,8 +46,9 @@ class BoxEye:
     def __init__(self, extent: int = 15, kernel_size: int = 13):
         self.extent = extent
         self.kernel_size = kernel_size
-        self.receptor_centers = torch.tensor([*self._receptor_centers()],
-                                              dtype=torch.long)
+        self.receptor_centers = torch.tensor(
+            [*self._receptor_centers()], dtype=torch.long
+        )
         self.hexals = len(self.receptor_centers)
         # The rest of kernel_size distance from outer centers to the border
         # is taken care of by the padding of the convolution object.
@@ -152,7 +150,8 @@ class BoxEye:
         """Sample receptor locations from a sequence of cartesian frames.
 
         Args:
-            sequence: cartesian movie sequences of shape (samples, frames, height, width).
+            sequence: cartesian movie sequences of shape
+                (samples, frames, height, width).
 
         Returns:
             torch.Tensor: shape (samples, frames, 1, hexals)
@@ -209,7 +208,7 @@ class BoxEye:
         angles = [45, 135, 225, 315, 405]
         for _y_c, _x_c in zip(y_hc, x_hc):
             _vertices = []
-            for i, angle in enumerate(angles):
+            for angle in angles:
                 offset = r * np.exp(np.radians(angle) * 1j)
                 _vertices.append([_y_c + offset.real, _x_c + offset.imag])
             vertices.append(_vertices)
@@ -245,7 +244,6 @@ class HexEye:
         device="cuda",
         dtype=torch.float16,
     ):
-
         n_hex_circfer = 2 * (-1 / 2 + np.sqrt(1 / 4 - ((1 - n_ommatidia) / 3))) + 1
 
         if n_hex_circfer % 1 != 0:
@@ -326,9 +324,9 @@ class HexEye:
                 dim=0
             )
 
-        except RuntimeError:
+        except RuntimeError as e:
             if n_chunks > shape[0]:
-                raise ValueError
+                raise ValueError from e
 
             if self.device != "cpu":
                 torch.cuda.empty_cache()
@@ -352,7 +350,6 @@ class HexEye:
         cartesian=False,
         mode="mean",
     ):
-
         bar_width_px = int(bar_width_rad / self.omm_width_rad * self.ppo)
         bar_height_px = int(bar_height_rad / self.omm_height_rad * self.ppo)
         bar_loc_horizontal_px = int(
@@ -428,7 +425,6 @@ class HexEye:
         cartesian=False,
         mode="mean",
     ):
-
         dphase_px = np.radians(
             5.8 / 2
         )  # half ommatidia width - corresponds to led width of 2.25 degree
@@ -453,9 +449,8 @@ class HexEye:
         return torch.cat(gratings, dim=0)
 
     def wn_bars(self, frames=1, moving_angle=0, cartesian=False, mode="mean"):
-
         bars = []
-        for frame in range(frames):
+        for _ in range(frames):
             bars.append(
                 cartesian_bars(
                     self.monitor_height_px,
@@ -500,7 +495,7 @@ class HexEye:
             tensor: moving bars, (#offsets, hexals)
         """
         flashes = []
-        for i, offset in enumerate(offsets):
+        for offset in offsets:
             flashes.append(
                 self.bar(
                     bar_width_rad,
@@ -562,7 +557,8 @@ class HexEye:
         stim_frames = round(t_stim / (len(offsets) * dt))
         if stim_frames == 0:
             raise ValueError(
-                f"stimulus time {t_stim}s not sufficient to sample {len(offsets)} offsets at {dt}s"
+                f"stimulus time {t_stim}s not sufficient to sample {len(offsets)} "
+                "offsets at {dt}s"
             )
         between_frames = round(t_between / dt)
         post_frames = round(t_post / dt)
@@ -589,12 +585,10 @@ class HexEye:
                     torch.ones([between_frames, self.n_ommatidia]) * bg_intensity
                 )
         if post_frames:
-
             flashes.append(torch.ones([post_frames, self.n_ommatidia]) * bg_intensity)
         return torch.cat(flashes, dim=0)
 
     def illustrate(self, figsize=[5, 5], fontsize=5):
-
         x_hc, y_hc, (dist_w, dist_h) = hex_center_coordinates(
             self.n_ommatidia, self.monitor_width_px, self.monitor_height_px
         )

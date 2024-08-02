@@ -1,7 +1,7 @@
-import torch
 import numpy as np
-from datamate import Namespace
 import pytest
+import torch
+from datamate import Namespace
 
 from flyvision.initialization import InitialDistribution, Parameter
 from flyvision.utils.class_utils import forward_subclass

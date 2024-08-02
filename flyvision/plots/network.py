@@ -1,10 +1,9 @@
 """Utils for plotting whole network graph."""
-import numpy as np
-import networkx as nx
-from typing import Dict
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
+
 import matplotlib
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
 from toolz import valfilter
 
 from flyvision.plots import plt_utils
@@ -69,7 +68,7 @@ class WholeNetworkFigure:
         edge_cmap=None,
     ):
         def _network_graph(nodes, edges):
-            """Transform graph representation from df to list to create a networkx.Graph object."""
+            """Transform graph from df to list to create networkx.Graph object."""
             nodes = nodes.groupby(by=["type"], sort=False, as_index=False).first().type
             edges = list(
                 map(
@@ -84,19 +83,20 @@ class WholeNetworkFigure:
             for cell_type in self.cell_types
         }
 
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
-        edge_ax = self.fig.add_axes(
-            [
-                lefts.min(),
-                bottoms.min(),
-                rights.max() - lefts.min(),
-                tops.max() - bottoms.min(),
-            ]
-        )
+        edge_ax = self.fig.add_axes([
+            lefts.min(),
+            bottoms.min(),
+            rights.max() - lefts.min(),
+            tops.max() - bottoms.min(),
+        ])
         edge_ax.set_zorder(0)
         edge_ax = plt_utils.rm_spines(edge_ax, rm_xticks=True, rm_yticks=True)
         edge_ax.patch.set_alpha(0.0)
@@ -156,7 +156,10 @@ class WholeNetworkFigure:
             edge_vmax=edge_vmax,
             alpha=edge_alpha,
             arrows=arrows,
-            arrowstyle="-|>, head_length=0.4, head_width=0.075, widthA=1.0, widthB=1.0, lengthA=0.2, lengthB=0.2",
+            arrowstyle=(
+                "-|>, head_length=0.4, head_width=0.075, widthA=1.0, "
+                "widthB=1.0, lengthA=0.2, lengthB=0.2"
+            ),
             width=np.array([edge_width[tuple(edge)] for edge in edge_list]),
         )
 
@@ -166,10 +169,13 @@ class WholeNetworkFigure:
             node_type: [ax for ax in self.axes if ax.get_label() == node_type][0]
             for node_type in retina_node_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
         retina_box_ax = self.fig.add_axes(
             [
@@ -348,10 +354,13 @@ class WholeNetworkFigure:
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
             for cell_type in intermediate_cell_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
         self.fig.text(
             lefts.min() + (rights.max() - lefts.min()) / 2,
@@ -367,10 +376,13 @@ class WholeNetworkFigure:
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
             for cell_type in output_cell_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
         self.fig.text(
             lefts.min() + (rights.max() - lefts.min()) / 2,

@@ -179,6 +179,7 @@ def test_simulate(network):
     with pytest.warns(IntegrationWarning):
         network.simulate(x, 1 / 49)
 
+
 def test_steady_state(network: Network):
     steady_state = network.steady_state(1, 1 / 20, 2, 0.5, None, False)
 

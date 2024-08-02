@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 
-from flyvision.utils.activity_utils import LayerActivity
-from flyvision.plots.network import WholeNetworkFigure
 from flyvision.animations.animations import Animation
-from flyvision.animations.hexscatter import HexScatter
 from flyvision.animations.hexflow import HexFlow
+from flyvision.animations.hexscatter import HexScatter
 from flyvision.animations.imshow import Imshow
+from flyvision.plots.network import WholeNetworkFigure
+from flyvision.utils.activity_utils import LayerActivity
 
 
 class WholeNetworkAnimation(Animation):
@@ -25,7 +25,7 @@ class WholeNetworkAnimation(Animation):
         labelxy=(0, 0.9),
         titlepad=1,
         fontsize=5,
-        **kwargs
+        **kwargs,
     ):
         self.fig_backbone = WholeNetworkFigure(
             connectome,
@@ -116,7 +116,7 @@ class WholeNetworkAnimation(Animation):
 
         # responses
         self.voltage_axes = []
-        for i, cell_type in enumerate(self.fig_backbone.cell_types):
+        for cell_type in self.fig_backbone.cell_types:
             voltage = self.responses[cell_type][:, :, None]
             nodes = self.fig_backbone.nodes
             nodes = nodes[nodes.type == cell_type]

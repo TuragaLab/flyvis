@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from flyvision import connectome_file
 from flyvision.connectome import ConnectomeDir

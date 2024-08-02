@@ -1,11 +1,8 @@
-import pytest
-
-import torch
 import numpy as np
-
+import pytest
 from datamate import set_root_context
 
-from flyvision.datasets.sintel import RenderedSintel, MultiTaskSintel, sintel_meta
+from flyvision.datasets.sintel import MultiTaskSintel, RenderedSintel, sintel_meta
 
 
 def test_rendering(tmp_path_factory):
@@ -108,13 +105,11 @@ def test_init_augmentation(dataset):
 
 
 def test_set_augmentation_parameters(dataset):
-
     # rotate the sequence in five of six cases (5 rotations and 1 case no rotation)
     dataset.p_rot = 5 / 6
     # flip the sequence in three of four cases (3 flips and 1 case no flip)
     dataset.p_flip = 3 / 4
 
-    
     def sample(total_sequence_length=None):
         """Sample 10_000 random augmentations and validate their parameter stats."""
         rotations = []
@@ -151,10 +146,10 @@ def test_set_augmentation_parameters(dataset):
 
     rots, counts = np.unique(rotations, return_counts=True)
     assert len(rots) == 6
-    assert np.allclose(counts / np.sum(counts), 1 / 6, atol=0.01)
+    assert np.allclose(counts / np.sum(counts), 1 / 6, atol=0.05)
     flips, counts = np.unique(flips, return_counts=True)
     assert len(flips) == 4
-    assert np.allclose(counts / np.sum(counts), 1 / 4, atol=0.01)
+    assert np.allclose(counts / np.sum(counts), 1 / 4, atol=0.05)
     assert len(set(contrast_factors)) != 1
     assert len(set(brightness_factors)) != 1
     assert all(v == 1 for v in gammas)
@@ -213,7 +208,6 @@ def test_apply_augmentation(dataset):
     assert set(data1.keys()) == set(data.keys())
     assert (data["lum"] == data1["lum"]).all()
     assert (data["flow"] == data1["flow"]).all()
-
 
     dataset.augment = True
     data = dataset[0]

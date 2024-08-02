@@ -1,24 +1,26 @@
 """Ensemble of trained networks."""
 
-from dataclasses import dataclass
-from typing import Dict, Iterable, Iterator, List, Tuple, Union
+from __future__ import annotations
+
 import logging
-from os import PathLike
+from contextlib import contextmanager
 from copy import deepcopy
-from tqdm.auto import tqdm
+from dataclasses import dataclass
+from os import PathLike
+from pathlib import Path
+from typing import Dict, Iterable, Iterator, List, Tuple, Union
 
-
+import numpy as np
+import torch
+from datamate import Directory, root
+from matplotlib import colormaps as cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
-from matplotlib import colormaps as cm
-import torch
-import numpy as np
 from numpy.typing import NDArray
-from contextlib import contextmanager
-from datamate import Directory, root
+from tqdm.auto import tqdm
 
 from flyvision import plots, results_dir
-from flyvision.network import Network, NetworkView, NetworkDir
+from flyvision.network import Network, NetworkDir, NetworkView
 from flyvision.plots.plt_utils import init_plot
 from flyvision.utils.nn_utils import simulation
 
@@ -166,15 +168,19 @@ class Ensemble(dict):
             array: response of each individual network
         """
         for network in self.yield_networks():
-            yield network.simulate(
-                movie_input,
-                dt,
-                initial_state=(
-                    network.fade_in_state(1.0, dt, movie_input[:, 0])
-                    if fade_in
-                    else "auto"
-                ),
-            ).cpu().numpy()
+            yield (
+                network.simulate(
+                    movie_input,
+                    dt,
+                    initial_state=(
+                        network.fade_in_state(1.0, dt, movie_input[:, 0])
+                        if fade_in
+                        else "auto"
+                    ),
+                )
+                .cpu()
+                .numpy()
+            )
 
     def decode(self, movie_input, dt):
         """Decode the ensemble responses with the ensemble decoders."""
@@ -277,9 +283,9 @@ class Ensemble(dict):
                 self.names = [*_context_best_names, *_context_worst_names]
 
                 if self.names:  # to prevent an empty index
-                    self._model_index = np.array(
-                        [i for i, name in enumerate(_names) if name in self.names]
-                    )
+                    self._model_index = np.array([
+                        i for i, name in enumerate(_names) if name in self.names
+                    ])
                     self._model_mask = np.zeros(len(_names), dtype=bool)
                     self._model_mask[self._model_index] = True
             try:
@@ -428,8 +434,8 @@ def model_path_names(model_paths):
     return model_names, ensemble_name
 
 
-def model_paths_from_names_or_paths(paths):
-    """Return a list of model paths and an ensemble path from a list of model names or paths."""
+def model_paths_from_names_or_paths(paths: List[str | Path]) -> Tuple[List[Path], Path]:
+    """Return model paths and ensemble path from model names or paths."""
     model_paths = []
     _ensemble_paths = []
     for path in paths:

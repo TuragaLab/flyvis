@@ -1,11 +1,11 @@
 import re
-from typing import Iterable, Union, List, Tuple
+from typing import Iterable, List, Tuple, Union
+
 import numpy as np
+import torch
 from numpy.typing import NDArray
 
-import torch
-
-from flyvision.connectome import ConnectomeDir
+from flyvision import connectome
 from flyvision.utils import groundtruth_utils
 
 
@@ -62,7 +62,8 @@ def order_node_type_list(
         else:
             type_groups[len(groups) + 1].append((node_index, cell_type))
 
-    # ordered = [y for x in type_groups.values() for y in sorted(x, key=lambda z: sort_fn(z[1]))]
+    # ordered = [y for x in type_groups.values() for y in sorted(x, key=lambda z:
+    # sort_fn(z[1]))]
     ordered = []
     for x in type_groups.values():
         for y in sorted(x, key=lambda z: sort_numeric(z[1])):
@@ -73,7 +74,8 @@ def order_node_type_list(
     if set(node_types) - set(nodes):
         print(set(node_types) - set(nodes))
         raise AssertionError(
-            "Defined sorting through regular expressions does not include all cell types."
+            "Defined sorting through regular expressions does not include all cell"
+            " types."
         )
 
     if _len != len(nodes) or _len != len(index):
@@ -147,7 +149,9 @@ class NodeIndexer(dict):
     """
 
     def __init__(
-        self, connectome: ConnectomeDir = None, unique_cell_types: NDArray = None
+        self,
+        connectome: "connectome.ConnectomeDir" = None,
+        unique_cell_types: NDArray = None,
     ):
         # if connectome is specified, the indices are taken from the connectome
         # and reference to positions in the entire list of nodes/cells
@@ -202,7 +206,7 @@ class CellTypeArray:
     def __init__(
         self,
         array: Union[NDArray, torch.Tensor],
-        connectome: ConnectomeDir = None,
+        connectome: "connectome.ConnectomeDir" = None,
         cell_types: NDArray = None,
         dim: int = -1,
     ):
@@ -217,13 +221,11 @@ class CellTypeArray:
 
     def __dir__(self):
         return list(
-            set(
-                [
-                    *object.__dir__(self),
-                    *dict.__dir__(self.node_indexer),
-                    *dict.__iter__(self.node_indexer),
-                ]
-            )
+            set([
+                *object.__dir__(self),
+                *dict.__dir__(self.node_indexer),
+                *dict.__iter__(self.node_indexer),
+            ])
         )
 
     @property
@@ -254,12 +256,12 @@ class CellTypeArray:
                 return self.array
             elif isinstance(key, str) and key in self.node_indexer.unique_cell_types:
                 indices = np.int_([dict.__getitem__(self.node_indexer, key)])
-            elif isinstance(key, Iterable) and any(
-                [_key in self.node_indexer.unique_cell_types for _key in key]
-            ):
-                indices = np.int_(
-                    [dict.__getitem__(self.node_indexer, _key) for _key in key]
-                )
+            elif isinstance(key, Iterable) and any([
+                _key in self.node_indexer.unique_cell_types for _key in key
+            ]):
+                indices = np.int_([
+                    dict.__getitem__(self.node_indexer, _key) for _key in key
+                ])
             elif key in self.node_indexer.__dir__():
                 return object.__getattribute__(self.node_indexer, key)
             else:

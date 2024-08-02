@@ -1,6 +1,7 @@
 """Utility functions for operations on pandas DataFrames."""
 
 from typing import Iterable
+
 from pandas import DataFrame
 
 
@@ -25,7 +26,9 @@ def filter_by_column_values(
 def where_dataframe(arg_df, **kwargs):
     """Return indices of rows in a DataFrame where conditions are met.
 
-    Conditions are passed as keyword arguments, e.g. `where_dataframe(df, type='T4a', u=2, v=0)`. Then the dataframe is expected to have columns `type`, `u`, and `v` and the function will return the indices of rows where the conditions are met.
+    Conditions are passed as keyword arguments, e.g. `where_dataframe(df, type='T4a',
+    u=2, v=0)`. Then the dataframe is expected to have columns `type`, `u`, and `v` and
+     the function will return the indices of rows where the conditions are met.
     """
 
     def _query_from_kwargs(kwargs):
@@ -34,10 +37,10 @@ def where_dataframe(arg_df, **kwargs):
 
         _query_elements = []
         for i, (key, value) in enumerate(kwargs.items()):
-            if isinstance(value, str):
-                # strings must be encapsulated in extra quotes
-                if not value.startswith("'") or value.startswith('"'):
-                    value = f"'{value}'"
+            if isinstance(value, str) and (
+                not value.startswith("'") or value.startswith('"')
+            ):
+                value = f"'{value}'"
             if i == 0:
                 _query_elements.append(_query_start.format(key, value))
             else:

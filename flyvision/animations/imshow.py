@@ -1,8 +1,9 @@
 """Cartesian frame animation."""
+
 from time import sleep
 
-from flyvision.plots import plt_utils
 from flyvision.animations.animations import Animation
+from flyvision.plots import plt_utils
 
 
 class Imshow(Animation):
@@ -29,7 +30,7 @@ class Imshow(Animation):
         update=True,
         figsize=[1, 1],
         sleep=0.01,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.fig, self.ax = plt_utils.init_plot(
