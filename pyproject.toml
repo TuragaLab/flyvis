@@ -77,7 +77,7 @@ version = {attr = "flyvision.__version__"}
 # ruff configs
 [tool.ruff]
 extend-include = []
-line-length = 88
+line-length = 90
 
 [tool.ruff.lint]
 # pycodestyle, Pyflakes, pyupgrade, flake8-bugbear, flake8-simplify, isort
