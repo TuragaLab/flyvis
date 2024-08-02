@@ -1,27 +1,24 @@
 """Modules for decoding the DMN activity."""
 
+import logging
 from typing import Dict
 
 import numpy as np
 import torch
 import torch.nn.functional as nnf
+from datamate import Namespace
 from torch import nn
 
-from datamate import Namespace
-
 from flyvision import device
-from flyvision.utils.activity_utils import LayerActivity
-from flyvision.utils.nn_utils import n_params
-from flyvision.utils.hex_utils import get_hex_coords
 from flyvision.connectome import ConnectomeDir
-
-import logging
+from flyvision.utils.activity_utils import LayerActivity
+from flyvision.utils.hex_utils import get_hex_coords
+from flyvision.utils.nn_utils import n_params
 
 logging = logger = logging.getLogger(__name__)
 
 
 class ActivityDecoder(nn.Module):
-
     dvs_channels: Dict[str, torch.Tensor]
 
     def __init__(self, connectome):

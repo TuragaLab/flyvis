@@ -1,11 +1,10 @@
-"""Color coded flow-field animation.
-"""
+"""Color coded flow-field animation."""
+
 import numpy as np
 
 from flyvision import utils
-from flyvision.plots import plots
-from flyvision.plots import plt_utils
 from flyvision.animations.animations import Animation
+from flyvision.plots import plots, plt_utils
 
 
 class HexFlow(Animation):
@@ -52,7 +51,7 @@ class HexFlow(Animation):
         path=None,
         figsize=[2, 2],
         fontsize=5,
-        **kwargs
+        **kwargs,
     ):
         self.fig = fig
         self.ax = ax
@@ -92,7 +91,7 @@ class HexFlow(Animation):
             label=self.label.format(self.batch_sample, frame),
             figsize=self.figsize,
             fontsize=self.fontsize,
-            **self.kwargs
+            **self.kwargs,
         )
 
     def animate(self, frame):

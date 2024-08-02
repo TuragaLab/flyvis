@@ -1,23 +1,17 @@
 """Base class for animations.""" ""
 import itertools
-import shutil
-from time import sleep
-from contextlib import contextmanager
-import matplotlib
-import matplotlib.pyplot as plt
-from IPython import display
-
-from pathlib import Path
-from typing import Iterable
-import weakref
-import re
 import logging
+import os
+import re
+import shutil
+import weakref
+from time import sleep
+from typing import Iterable
 
 import ffmpeg
-
+import matplotlib
+from IPython import display
 from datamate import get_root_dir
-
-import os
 
 colab = False
 if os.getenv("COLAB_RELEASE_TAG"):
@@ -168,7 +162,7 @@ class Animation:
             try:
                 self.convert(fname + "_bak", delete_if_exists, framerate, type=type)
             except Exception as ee:
-                raise (Exception([e, ee]))
+                raise Exception([e, ee]) from None
         self.convert(
             fname,
             delete_if_exists,
@@ -284,8 +278,7 @@ class AnimationCollector(Animation):
 
     def __setattr__(self, key, val):
         """Set the batch_sample for all Animation objects at once."""
-        if key == "batch_sample":
-            if hasattr(self, "animations"):
-                for animation in self.animations:
-                    animation.__setattr__(key, val)
+        if key == "batch_sample" and hasattr(self, "animations"):
+            for animation in self.animations:
+                animation.__setattr__(key, val)
         object.__setattr__(self, key, val)

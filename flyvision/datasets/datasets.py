@@ -1,16 +1,15 @@
 """Base classes for all dynamic stimuli datasets."""
 
-from typing import Iterable, Any, Union, Dict, List, Callable
+from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from abc import abstractmethod, ABCMeta
+from typing import Any, Callable, Dict, Iterable, List, Union
 
-import torch
 import numpy as np
 import pandas as pd
+import torch
 
 from flyvision.augmentation import temporal
 from flyvision.utils.dataset_utils import get_random_data_split
-
 
 __all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
 
@@ -134,7 +133,6 @@ class SequenceDataset(torch.utils.data.Dataset, metaclass=ABCMeta):
 
 
 class StimulusDataset(SequenceDataset, metaclass=ABCMeta):
-
     @property
     @abstractmethod
     def arg_df(self) -> pd.DataFrame:
@@ -146,9 +144,9 @@ class StimulusDataset(SequenceDataset, metaclass=ABCMeta):
         """Returns the indices for where requested_params occur in all_params."""
         if requested_params is None:
             return slice(None)
-        return np.array(
-            [[i] for i, param in enumerate(all_params) if param in requested_params]
-        )
+        return np.array([
+            [i] for i, param in enumerate(all_params) if param in requested_params
+        ])
 
     def _get_sequence_id_from_arguments(self, args: Dict[str, Any]) -> int:
         """Get the sequence id for a set of arguments.

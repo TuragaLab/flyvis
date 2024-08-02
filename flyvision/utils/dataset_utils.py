@@ -1,33 +1,14 @@
 """Dataset utilities."""
 
+import zipfile
 from pathlib import Path
+
 import numpy as np
 from numpy.random import RandomState
-
 from torch.hub import download_url_to_file
 from torch.utils.data.sampler import Sampler
-import zipfile
 
 import flyvision
-
-
-class IndexSampler(Sampler):
-    """Samples the provided indices in sequence.
-
-    Note, to be used with torch.utils.data.DataLoader.
-
-    Args:
-        indices: list of indices to sample.
-    """
-
-    def __init__(self, indices):
-        self.indices = indices
-
-    def __iter__(self):
-        return (self.indices[i] for i in range(len(self.indices)))
-
-    def __len__(self):
-        return len(self.indices)
 
 
 def random_walk_of_blocks(
@@ -100,7 +81,7 @@ def random_walk_of_blocks(
         initial_y = np.random.choice(y_coordinates)
         return initial_x, initial_y, block_at_coords(initial_x, initial_y)
 
-    for b in range(n_blocks):
+    for _b in range(n_blocks):
         for i in range(sequences.shape[0]):
             for t in range(sequences.shape[1]):
                 if t == 0:
@@ -147,7 +128,8 @@ def download_sintel(delete_if_exists=False, depth=False):
     """Downloads the sintel dataset.
 
     Args:
-        delete_if_exists (bool): If True, delete the dataset if it exists and download again.
+        delete_if_exists (bool): If True, delete the dataset if it exists and download
+        again.
         depth (bool): If True, download the depth dataset as well.
 
     Returns:
@@ -241,7 +223,13 @@ def get_random_data_split(fold, n_samples, n_folds, shuffle=True, seed=0):
 
 
 class IndexSampler(Sampler):
-    """Yields indices in sequence."""
+    """Samples the provided indices in sequence.
+
+    Note, to be used with torch.utils.data.DataLoader.
+
+    Args:
+        indices: list of indices to sample.
+    """
 
     def __init__(self, indices):
         self.indices = indices

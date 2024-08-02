@@ -1,4 +1,122 @@
+[build-system]
+requires = [
+    "setuptools>=65", "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flyvision"
+description = "Connectome and task-constrained vision models of the fruit fly."
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Topic :: Adaptive Technologies",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    """License :: OSI Approved :: APACHE 2.0""",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
+]
+requires-python = ">=3.6"
+dynamic = ["version"]
+readme = "README.md"
+dependencies = [
+    "ipython",
+    "datamate",
+    "scipy",
+    "matplotlib",
+    "networkx",
+    "ffmpeg-python",
+    "black",
+    "pytest",
+    "torch",
+    "torchvision",
+    "python-dotenv",
+    "hydra-core",
+    "toolz",
+    "tqdm",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Lint
+    "pre-commit",
+    "ruff",
+    # Test
+    "pytest",
+]
+docs = [
+    # Documentation
+    "mkdocs",
+    "mkdocs-material",
+    "markdown-include",
+    "mkdocs-redirects",
+    "mkdocstrings[python] >= 0.18",
+    "jupyter",
+    "nbconvert",
+]
+example = [# Examples
+    "jupyter"
+    ]
+
+# Package installation configuration
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["."] by default)
+include = ["flyvision*"]  # package names should match these glob patterns (["*"] by default)
+exclude = []  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[tool.setuptools.dynamic]
+version = {attr = "flyvision.__version__"}
+
+# ruff configs
+[tool.ruff]
+extend-include = []
+line-length = 90
+
+[tool.ruff.lint]
+# pycodestyle, Pyflakes, pyupgrade, flake8-bugbear, flake8-simplify, isort
+select = ["E", "F", "W", "B", "SIM", "I"]
+ignore = [
+    "E731",  # allow naming lambda functions.
+    "B006",  # allow mutable default arguments.
+    "B008",  # allow function calls in default args.
+    "F841",  # allow unused variables.
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"__init__.py" = ["I001", "E402", "F401", "F403"]  # allow unused imports and undefined names
+"test_*.py" = ["F403", "F405"]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+lines-between-types = 0  # like isort default.
+relative-imports-order = "furthest-to-closest"  # like isort default.
+known-first-party = ["flyvision", "tests", "examples", "scripts"]
+
+[tool.ruff.format]
+exclude = ["*.ipynb"]
+preview = true
+quote-style = "preserve"
+
+# Pytest configuration
 [tool.pytest.ini_options]
 testpaths = [
-    "tests"
+    "tests",
 ]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "gpu: marks tests that require a gpu (deselect with '-m \"not gpu\"')"
+]
+
+# Pyright configuration
+[tool.pyright]
+include = ["flyvision", "tests"]
+exclude = ["**/__pycache__", "**/__node_modules__", ".git", "docs", "examples", "config", "data"]
+python_version = "3.x"
+reportUnsupportedDunderAll = false

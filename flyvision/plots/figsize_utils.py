@@ -1,5 +1,7 @@
 """Functions to calculate figure sizes for plotting."""
+
 from dataclasses import dataclass
+
 import flyvision
 
 
@@ -37,9 +39,7 @@ class FigsizeCM:
 
     @property
     def inches_wh(self):
-        return cm_to_inch(
-            self.width + self.pad, self.height + self.pad
-        )
+        return cm_to_inch(self.width + self.pad, self.height + self.pad)
 
     @property
     def panel_height_cm(self):
@@ -83,7 +83,6 @@ def figure_size_cm(
     panel_width_cm: float = 3.6,
     allow_rearranging: bool = True,
 ):
-
     width = n_panel_columns * panel_width_cm
     height = n_panel_rows * panel_height_cm
     n_panels = n_panel_rows * n_panel_columns
@@ -136,7 +135,6 @@ def fit_panel_size(
     dw_cm=0.1,
     allow_rearranging=True,
 ):
-
     ratio = panel_width_cm / panel_height_cm
 
     try:

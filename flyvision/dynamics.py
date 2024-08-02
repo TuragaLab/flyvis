@@ -1,11 +1,10 @@
 """Classes defining the voltage initialization, voltage and current dynamics."""
 
 from typing import Callable
+
 import torch
 from torch import nn
 
-from datamate import namespacify
-from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
 __all__ = ["NetworkDynamics", "PPNeuronIGRSynapses"]
@@ -60,7 +59,7 @@ class NetworkDynamics:
         self,
         state: AutoDeref[str, AutoDeref[str, RefTensor]],
         params: AutoDeref[str, AutoDeref[str, RefTensor]],
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Initialize a network's state variables from its network parameters.
@@ -85,7 +84,7 @@ class NetworkDynamics:
         state: AutoDeref[str, AutoDeref[str, RefTensor]],
         params: AutoDeref[str, AutoDeref[str, RefTensor]],
         target_sum: Callable,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Compute dx/dt for each state variable.

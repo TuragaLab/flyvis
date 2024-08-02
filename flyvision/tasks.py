@@ -1,16 +1,16 @@
-from typing import Dict
-from torch.utils.data import DataLoader, sampler
-from toolz import valmap
 import logging
+from typing import Dict
 
 from datamate import Namespace
+from toolz import valmap
+from torch.utils.data import DataLoader, sampler
 
 from flyvision.connectome import ConnectomeDir
-from flyvision.utils.dataset_utils import IndexSampler
-from flyvision.utils.class_utils import forward_subclass
 from flyvision.datasets.datasets import MultiTaskDataset
 from flyvision.decoder import ActivityDecoder
 from flyvision.objectives import Objective
+from flyvision.utils.class_utils import forward_subclass
+from flyvision.utils.dataset_utils import IndexSampler
 
 
 class Task:
@@ -27,7 +27,6 @@ class Task:
         fold=1,
         seed=0,
     ):
-
         self.batch_size = batch_size
         self.n_iters = n_iters
         self.n_folds = n_folds
@@ -36,12 +35,10 @@ class Task:
         self.decoder = decoder
 
         # Initialize dataset.
-        self.dataset = forward_subclass(
-            MultiTaskDataset, dataset
-        )  # type: MultiTaskDataset
-        self.dataset.losses = Namespace(
-            {task: forward_subclass(Objective, config) for task, config in loss.items()}
-        )
+        self.dataset = forward_subclass(MultiTaskDataset, dataset)  # type: MultiTaskDataset
+        self.dataset.losses = Namespace({
+            task: forward_subclass(Objective, config) for task, config in loss.items()
+        })
 
         self.train_seq_index, self.val_seq_index = self.dataset.get_random_data_split(
             fold, n_folds, seed
@@ -61,7 +58,8 @@ class Task:
             drop_last=False,
         )
         logging.info(
-            f"Initialized dataloader with training sequence indices \n {self.train_seq_index}"
+            "Initialized dataloader with training sequence indices \n"
+            "{self.train_seq_index}"
         )
 
         self.val_data = DataLoader(
@@ -75,7 +73,8 @@ class Task:
             sampler=IndexSampler(self.val_seq_index[:batch_size]),
         )
         logging.info(
-            f"Initialized dataloader with validation sequence indices \n {self.val_seq_index}"
+            "Initialized dataloader with validation sequence indices \n"
+            "{self.val_seq_index}"
         )
 
         # Initialize overfitting loader.
@@ -83,19 +82,6 @@ class Task:
 
     def init_decoder(self, connectome):
         return _init_decoder(self.decoder, connectome)
-
-
-class IndexSampler(sampler.Sampler):
-    """Samples the provided indices in sequence."""
-
-    def __init__(self, indices):
-        self.indices = indices
-
-    def __iter__(self):
-        return (self.indices[i] for i in range(len(self.indices)))
-
-    def __len__(self):
-        return len(self.indices)
 
 
 def _init_decoder(

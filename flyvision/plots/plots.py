@@ -1,21 +1,21 @@
-from typing import Iterable, Tuple
-from dataclasses import dataclass
-import numpy as np
-from numpy.typing import NDArray
-
-import matplotlib.pyplot as plt
-from numbers import Number
 import logging
-import torch
+from contextlib import suppress
+from dataclasses import dataclass
+from numbers import Number
+from typing import Iterable, Tuple
 
-from matplotlib import colormaps as cm
-from matplotlib.lines import Line2D
-from matplotlib.patches import RegularPolygon
 import matplotlib as mpl
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from matplotlib import colormaps as cm
 from matplotlib.axis import Axis
 from matplotlib.colorbar import Colorbar
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from matplotlib.patches import RegularPolygon
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+from numpy.typing import NDArray
 
 from flyvision import utils
 from flyvision.plots import plt_utils
@@ -60,7 +60,8 @@ def heatmap(
     Args:
         matrix (np.ndarray): 2D matrix
         xlabels (list): list of x labels
-        ylabels (list): list of y labels. Optional. If not provided, xlabels will be used.
+        ylabels (list): list of y labels. Optional. If not provided, xlabels will be
+            used.
         scale (bool): whether to scale the size of the scatter points with the value.
             If True, the sizes of the scatter points will be |value| * size_scale
             or |value| * 0.005 * (size_scale or prod(figsize)).
@@ -68,7 +69,8 @@ def heatmap(
         size_scale (float): size scale of the scatter points. Optional.
             If not provided, prod(figsize) will be used.
         origin (str): origin of the matrix. Either "upper" or "lower".
-        size_transform (callable): optional function to transform the values to the size of the scatter points.
+        size_transform (callable): optional function to transform the values to the
+            size of the scatter points.
 
     Returns:
         fig, ax, cbar, matrix
@@ -79,7 +81,7 @@ def heatmap(
         y = np.arange(matrix.shape[0])
         table = []
         for _x in x:
-            for i, _y in enumerate(y):
+            for _y in y:
                 val = matrix[_y, _x]
                 if val:
                     table.append((_x, _y, val))
@@ -323,7 +325,7 @@ def hex_scatter(
             # if utils.hex_utils.get_hextent(len(color)) != extent:
             if origin == "upper":
                 y_cs = y_cs[::-1]
-            for i, (_x, _y) in enumerate(zip(x_cs, y_cs)):
+            for _x, _y in zip(x_cs, y_cs):
                 _hex = RegularPolygon(
                     (_x, _y),
                     numVertices=6,
@@ -335,10 +337,11 @@ def hex_scatter(
                     alpha=alpha,
                     ls="-",
                 )
-                # Adding the fill to the patches not allows to simply loop through the actual patches
-                # and assigning new colors to them in the animation's update functions if neurons are strided
-                # as used in LayerActivityGrid. Therefore, store the start index for the actually valid patches as
-                # attribute of the axis.
+                # Adding fill to patches not allows to loop through actual patches.
+                # We assign new colors to them in animation's update functions.
+                # Requires tracking actual and filled hexals if neurons are strided
+                # as used in LayerActivityGrid. Simply store start index for the actual
+                # valid patches as attribute of the axis.
                 ax.add_patch(_hex)
                 _valid_patches_start_index += 1
         elif isinstance(fill, Number):
@@ -350,7 +353,7 @@ def hex_scatter(
             # if utils.hex_utils.get_hextent(len(color)) != fill:
             if origin == "upper":
                 y_cs = y_cs[::-1]
-            for i, (_x, _y) in enumerate(zip(x_cs, y_cs)):
+            for _x, _y in zip(x_cs, y_cs):
                 _hex = RegularPolygon(
                     (_x, _y),
                     numVertices=6,
@@ -362,10 +365,11 @@ def hex_scatter(
                     alpha=alpha,
                     ls="-",
                 )
-                # Adding the fill to the patches not allows to simply loop through the actual patches
-                # and assigning new colors to them in the animation's update functions if neurons are strided
-                # as used in LayerActivityGrid. Therefore, store the start index for the actually valid patches as
-                # attribute of the axis.
+                # Adding fill to patches not allows to loop through actual patches.
+                # We assign new colors to them in animation's update functions.
+                # Requires tracking actual and filled hexals if neurons are strided
+                # as used in LayerActivityGrid. Simply store start index for the actual
+                # valid patches as attribute of the axis.
                 ax.add_patch(_hex)
                 _valid_patches_start_index += 1
     ax._valid_patches_start_index = _valid_patches_start_index
@@ -884,19 +888,14 @@ def traces(
 
     if contour is not None and contour_mode is not None:
         ylim = ylim or plt_utils.get_lims(
-            np.array(
-                [
-                    min(contour.min(), trace.min()),
-                    max(contour.max(), trace.max()),
-                ]
-            ),
+            np.array([
+                min(contour.min(), trace.min()),
+                max(contour.max(), trace.max()),
+            ]),
             0.1,
         )
 
-        if x is None or len(x) != len(contour):
-            _x = np.arange(len(contour))
-        else:
-            _x = x
+        _x = np.arange(len(contour)) if x is None or len(x) != len(contour) else x
         if contour_mode == "full":
             contour_y_range = (-20_000, 20_000)
         elif contour_mode == "top":
@@ -970,19 +969,18 @@ def traces(
             fontsize=fontsize,
         )
 
-    if scale_pos:
-        if not any([isinstance(a, AnchoredSizeBar) for a in ax.artists]):
-            scalebar = AnchoredSizeBar(
-                ax.transData,
-                size=0.1,
-                label=scale_label,
-                loc=scale_pos,
-                pad=0.4,
-                frameon=False,
-                size_vertical=0.01 * (ax.get_ylim()[1] - ax.get_ylim()[0]),
-                fontproperties=dict(size=fontsize),
-            )
-            ax.add_artist(scalebar)
+    if scale_pos and not any([isinstance(a, AnchoredSizeBar) for a in ax.artists]):
+        scalebar = AnchoredSizeBar(
+            ax.transData,
+            size=0.1,
+            label=scale_label,
+            loc=scale_pos,
+            pad=0.4,
+            frameon=False,
+            size_vertical=0.01 * (ax.get_ylim()[1] - ax.get_ylim()[0]),
+            fontproperties=dict(size=fontsize),
+        )
+        ax.add_artist(scalebar)
 
     if fancy:
         plt_utils.rm_spines(ax, ("left", "bottom"), rm_yticks=True, rm_xticks=True)
@@ -1008,18 +1006,17 @@ def grouped_traces(
     legend_frame_alpha=0,
     **kwargs,
 ):
-    """Line plot with 
-    """
+    """Line plot with"""
     assert len(trace.shape) == 3, "Traces provided to `grouped_traces` must be 3d"
 
     fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax=ax, fig=fig)
 
-    shape = trace.shape # (#groups, #traces, #points)
+    shape = trace.shape  # (#groups, #traces, #points)
 
     legends = legend if len(legend) == shape[0] else ("",) * shape[0]
 
     if color is None:
-        color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        color_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         colors = [color_cycle[i % len(color_cycle)] for i in range(shape[0])]
     elif len(np.shape(color)) <= 1:
         colors = (color,) * shape[0]
@@ -1051,10 +1048,7 @@ def grouped_traces(
             **kwargs,
         )
     if legend:
-        custom_lines = [
-            Line2D([0], [0], color=c)
-            for c in colors
-        ]
+        custom_lines = [Line2D([0], [0], color=c) for c in colors]
         ax.legend(
             custom_lines,
             legends,
@@ -1070,7 +1064,7 @@ def grouped_traces(
             ),
         )
     return fig, ax
-    
+
 
 # -- violins ----
 
@@ -1086,6 +1080,7 @@ def get_violin_x_locations(n_groups, n_random_variables, violin_width):
 
     return violin_locations, first_violins_location
 
+
 @dataclass
 class ViolinData:
     # fig: Figure
@@ -1093,6 +1088,7 @@ class ViolinData:
     data: np.ndarray
     locations: np.ndarray
     colors: np.ndarray
+
 
 def violin_groups(
     values,
@@ -1191,14 +1187,12 @@ def violin_groups(
             if mean_median_bar_length is not None:
                 (_, y0), (_, y1) = parts["cmeans"].get_segments()[0]
                 (x0_vert, _), _ = parts["cbars"].get_segments()[0]
-                parts["cmeans"].set_segments(
+                parts["cmeans"].set_segments([
                     [
-                        [
-                            [x0_vert - mean_median_bar_length * width / 2, y0],
-                            [x0_vert + mean_median_bar_length * width / 2, y1],
-                        ]
+                        [x0_vert - mean_median_bar_length * width / 2, y0],
+                        [x0_vert + mean_median_bar_length * width / 2, y1],
                     ]
-                )
+                ])
         if "cmedians" in parts:
             parts["cmedians"].set_color(mean_median_color)
             parts["cmedians"].set_linewidth(mean_median_linewidth)
@@ -1208,14 +1202,12 @@ def violin_groups(
             if mean_median_bar_length is not None:
                 (_, y0), (_, y1) = parts["cmedians"].get_segments()[0]
                 (x0_vert, _), _ = parts["cbars"].get_segments()[0]
-                parts["cmedians"].set_segments(
+                parts["cmedians"].set_segments([
                     [
-                        [
-                            [x0_vert - mean_median_bar_length * width / 2, y0],
-                            [x0_vert + mean_median_bar_length * width / 2, y1],
-                        ]
+                        [x0_vert - mean_median_bar_length * width / 2, y0],
+                        [x0_vert + mean_median_bar_length * width / 2, y1],
                     ]
-                )
+                ])
         return parts["bodies"][0]
 
     shape = np.array(values).shape
@@ -1234,9 +1226,9 @@ def violin_groups(
                 n_groups, 4
             )
         if color_by == "experiments":
-            C = np.asarray(
-                [cmap(cstart + i * cdist) for i in range(n_random_variables)]
-            ).reshape(n_random_variables, 4)
+            C = np.asarray([
+                cmap(cstart + i * cdist) for i in range(n_random_variables)
+            ]).reshape(n_random_variables, 4)
     elif isinstance(colors, Iterable):
         if color_by == "groups":
             if len(colors) == n_groups:
@@ -1296,15 +1288,15 @@ def violin_groups(
         ax.set_xticks(first_violins_location + (n_groups - 1) / 2 * width)
         ax.set_xticklabels(xticklabels, rotation=rotation)
 
-    try:
+    with suppress(ValueError):
         ax.set_xlim(np.min(X - width), np.max(X + width))
-    except ValueError:
-        pass
 
     ax.set_ylabel(ylabel or "", fontsize=fontsize)
     ax.set_title(title, fontsize=fontsize)
 
     if pvalues is not None:
-        plt_utils.display_pvalues(ax, pvalues, xticklabels, values, **display_pvalues_kwargs)
+        plt_utils.display_pvalues(
+            ax, pvalues, xticklabels, values, **display_pvalues_kwargs
+        )
 
     return fig, ax, ViolinData(values, X, colors)

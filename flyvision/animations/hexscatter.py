@@ -1,11 +1,10 @@
-"""HexScatter animation.
-"""
-import numpy as np
+"""HexScatter animation."""
+
 from matplotlib import colormaps as cm
 
 from flyvision import utils
+from flyvision.animations.animations import Animation
 from flyvision.plots import plots, plt_utils
-from flyvision.animations.animations import Animation, AnimationCollector
 
 
 class HexScatter(Animation):
@@ -69,7 +68,7 @@ class HexScatter(Animation):
         cbar=True,
         background_color="none",
         midpoint=None,
-        **kwargs
+        **kwargs,
     ):
         self.fig = fig
         self.ax = ax
@@ -147,7 +146,7 @@ class HexScatter(Animation):
             fill=False,
             cbar=False,
             fontsize=self.fontsize,
-            **self.kwargs
+            **self.kwargs,
         )
         self.fig.patch.set_facecolor(self.background_color)
         self.ax.patch.set_facecolor(self.background_color)

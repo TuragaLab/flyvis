@@ -1,11 +1,13 @@
 """Transformations and augmentations on hex-lattices."""
-import numpy as np
-import torch
 
 from typing import Any, Optional
 
-from .augmentation import Augmentation
+import numpy as np
+import torch
+
 from flyvision import utils
+
+from .augmentation import Augmentation
 
 __all__ = [
     "HexRotate",
@@ -321,9 +323,8 @@ class GammaCorrection(Augmentation):
         return seq
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if name == "gamma":
-            if value < 0:
-                raise ValueError("Gamma must be positive.")
+        if name == "gamma" and value < 0:
+            raise ValueError("Gamma must be positive.")
         return super().__setattr__(name, value)
 
     def set_or_sample(self, gamma=None):
@@ -335,22 +336,18 @@ class GammaCorrection(Augmentation):
 def rotation_matrix(angle_in_rad, three_d=False):
     if three_d:
         return torch.tensor(
-            np.array(
-                [
-                    [np.cos(angle_in_rad), -np.sin(angle_in_rad), 0],
-                    [np.sin(angle_in_rad), np.cos(angle_in_rad), 0],
-                    [0, 0, 1],
-                ]
-            ),
+            np.array([
+                [np.cos(angle_in_rad), -np.sin(angle_in_rad), 0],
+                [np.sin(angle_in_rad), np.cos(angle_in_rad), 0],
+                [0, 0, 1],
+            ]),
             dtype=torch.float,
         )
     return torch.tensor(
-        np.array(
-            [
-                [np.cos(angle_in_rad), -np.sin(angle_in_rad)],
-                [np.sin(angle_in_rad), np.cos(angle_in_rad)],
-            ]
-        ),
+        np.array([
+            [np.cos(angle_in_rad), -np.sin(angle_in_rad)],
+            [np.sin(angle_in_rad), np.cos(angle_in_rad)],
+        ]),
         dtype=torch.float,
     )
 
@@ -371,7 +368,7 @@ def rotate_Nx60(u, v, n):
         """R = [[0, -1], [1, 1]]"""
         return -v, u + v
 
-    for i in range(n % 6):
+    for _ in range(n % 6):
         u, v = rotate(u, v)
 
     return u, v
@@ -383,26 +380,22 @@ def flip_matrix(angle_in_rad, three_d=False):
     """
     if three_d:
         return torch.tensor(
-            np.array(
+            np.array([
+                [np.cos(2 * angle_in_rad), np.sin(2 * angle_in_rad), 0],
                 [
-                    [np.cos(2 * angle_in_rad), np.sin(2 * angle_in_rad), 0],
-                    [
-                        np.sin(2 * angle_in_rad),
-                        -np.cos(2 * angle_in_rad),
-                        0,
-                    ],
-                    [0, 0, 1],
-                ]
-            ),
+                    np.sin(2 * angle_in_rad),
+                    -np.cos(2 * angle_in_rad),
+                    0,
+                ],
+                [0, 0, 1],
+            ]),
             dtype=torch.float,
         )
     return torch.tensor(
-        np.array(
-            [
-                [np.cos(2 * angle_in_rad), np.sin(2 * angle_in_rad)],
-                [np.sin(2 * angle_in_rad), -np.cos(2 * angle_in_rad)],
-            ]
-        ),
+        np.array([
+            [np.cos(2 * angle_in_rad), np.sin(2 * angle_in_rad)],
+            [np.sin(2 * angle_in_rad), -np.cos(2 * angle_in_rad)],
+        ]),
         dtype=torch.float,
     )
 

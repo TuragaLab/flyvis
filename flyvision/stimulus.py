@@ -1,12 +1,10 @@
 """Interface to control the cell-specific stimulus for the network."""
 
-from typing import Dict, Union
-from contextlib import contextmanager
+from typing import Dict
 
 import numpy as np
-from numpy.typing import NDArray
-
 import torch
+from numpy.typing import NDArray
 from torch import Tensor
 
 from flyvision.connectome import ConnectomeDir
@@ -73,12 +71,10 @@ class Stimulus:
                 connectome.central_cells_index[:],
             )
         )
-        self.input_index = np.array(
-            [
-                self.layer_index[cell_type.decode()]
-                for cell_type in connectome.input_cell_types[:]
-            ]
-        )
+        self.input_index = np.array([
+            self.layer_index[cell_type.decode()]
+            for cell_type in connectome.input_cell_types[:]
+        ])
         self.n_input_elements = self.input_index.shape[1]
         self.n_samples, self.n_frames, self.n_nodes = (
             n_samples,
@@ -146,9 +142,7 @@ class Stimulus:
             )
         n_samples, n_frames_input = shape[:2]
 
-        if not hasattr(self, "buffer"):
-            self.zero(n_samples, n_frames_buffer or n_frames_input)
-        elif not cumulate and self.nonzero:
+        if not hasattr(self, "buffer") or not cumulate and self.nonzero:
             self.zero(n_samples, n_frames_buffer or n_frames_input)
 
         try:
@@ -173,9 +167,7 @@ class Stimulus:
             stop: stop index in time. Defaults to None.
         """
 
-        if not hasattr(self, "buffer"):
-            self.zero(None, n_frames_buffer)
-        elif self.nonzero:
+        if not hasattr(self, "buffer") or self.nonzero:
             self.zero(None, n_frames_buffer)
 
         try:

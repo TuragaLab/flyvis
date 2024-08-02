@@ -1,11 +1,11 @@
 """Animations of traces."""
+
 import numpy as np
 from matplotlib import colormaps as cm
 
 from flyvision import utils
-from flyvision.plots import plots
-from flyvision.plots import plt_utils
 from flyvision.animations.animations import Animation
+from flyvision.plots import plots, plt_utils
 
 
 class Trace(Animation):
@@ -73,9 +73,9 @@ class Trace(Animation):
         self.title = title
         self.contour = contour
         if self.contour is not None:
-            self.contour_lims = np.array(
-                [plt_utils.get_lims(c, 0.01) for c in self.contour]
-            )
+            self.contour_lims = np.array([
+                plt_utils.get_lims(c, 0.01) for c in self.contour
+            ])
         self.dt = dt
         self.figsize = figsize
         super().__init__(path, self.fig)

@@ -1,18 +1,16 @@
 from os import PathLike
+from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-import urllib
+import numpy as np
 import pytest
 import requests
-from pathlib import Path
 import torch
-import numpy as np
 from datamate import Directory
+from matplotlib.figure import Figure
 
 import flyvision
-from flyvision import connectome_file
-from flyvision import ConnectomeDir, ConnectomeView
+from flyvision import ConnectomeView
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision.ensemble import EnsembleView
 from flyvision.utils.activity_utils import LayerActivity
@@ -122,14 +120,11 @@ def test_moving_mnist_url():
     def url_exists(url):
         try:
             response = requests.head(url)
-            if response.status_code == 200:
-                return True
-            else:
-                return False
+            return response.status_code == 200
         except requests.ConnectionError as e:
             return e
 
-    assert url_exists(moving_mnist_url) == True
+    assert url_exists(moving_mnist_url)
 
 
 def test_imshow(sequence_path):
@@ -169,7 +164,12 @@ def test_sequence_dataset(custom_dataset):
 
 
 def test_model_responses(custom_dataset):
-    ensemble = EnsembleView("opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
+    ensemble = EnsembleView(
+        "opticflow/000",
+        checkpoint="best_chkpt",
+        validation_subdir="",
+        loss_file_name="validation_loss",
+    )
 
     movie_input = custom_dataset[0]
 
@@ -191,48 +191,49 @@ def test_cluster():
     from datamate import namespacify
 
     cell_type = "T4c"
-    ensemble = EnsembleView("opticflow/000", checkpoint="best_chkpt", validation_subdir="", loss_file_name="validation_loss")
+    ensemble = EnsembleView(
+        "opticflow/000",
+        checkpoint="best_chkpt",
+        validation_subdir="",
+        loss_file_name="validation_loss",
+    )
 
     cluster_indices = ensemble.cluster_indices(cell_type)
 
-    assert namespacify(cluster_indices) == namespacify(
-        {
-            0: np.array(
-                [
-                    0,
-                    1,
-                    2,
-                    3,
-                    6,
-                    7,
-                    9,
-                    11,
-                    12,
-                    13,
-                    14,
-                    16,
-                    17,
-                    18,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    24,
-                    27,
-                    29,
-                    30,
-                    31,
-                    35,
-                    36,
-                    37,
-                    42,
-                    44,
-                    47,
-                    48,
-                ]
-            ),
-            1: np.array([4, 5, 26, 33, 38, 40, 43]),
-            2: np.array([8, 10, 15, 25, 28, 32, 34, 39, 41, 45, 46, 49]),
-        }
-    )
+    assert namespacify(cluster_indices) == namespacify({
+        0: np.array([
+            0,
+            1,
+            2,
+            3,
+            6,
+            7,
+            9,
+            11,
+            12,
+            13,
+            14,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            27,
+            29,
+            30,
+            31,
+            35,
+            36,
+            37,
+            42,
+            44,
+            47,
+            48,
+        ]),
+        1: np.array([4, 5, 26, 33, 38, 40, 43]),
+        2: np.array([8, 10, 15, 25, 28, 32, 34, 39, 41, 45, 46, 49]),
+    })

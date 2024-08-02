@@ -1,6 +1,7 @@
-from typing import Tuple, Union, Dict, List
-from pathlib import Path
+import logging
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -8,7 +9,6 @@ from torch import nn
 
 import flyvision
 from flyvision.utils.logging_utils import warn_once
-import logging
 
 logging = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def init_or_get_checkpoints(
         # if the index had up to 6 digits, but the string format
         # of the index expected 5, then the sorting is more save on the
         # numbers instead of the string.
-        _index = [int(re.findall("\d{1,10}", p.parts[-1])[0]) for p in paths]
+        _index = [int(re.findall(r"\d{1,10}", p.parts[-1])[0]) for p in paths]
         _sorting_index = np.argsort(_index)
         paths = paths[_sorting_index].tolist()
         index = np.array(_index)[_sorting_index].tolist()
@@ -77,10 +77,10 @@ def recover_decoder(
     """Same as _recover_network for multiple decoders."""
     states = get_from_state_dict(state_dict, "decoder")
     if states is not None:
-        for key, decoder in decoder.items():
+        for key, dec in decoder.items():
             state = states.pop(key, None)
             if state is not None:
-                decoder.load_state_dict(state, strict=strict)
+                dec.load_state_dict(state, strict=strict)
                 logging.info(f"Recovered {key} decoder state.")
             else:
                 logging.warning(f"Could not recover state of {key} decoder.")

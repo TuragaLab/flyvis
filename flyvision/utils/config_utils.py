@@ -1,8 +1,9 @@
-import hydra
 from typing import List
-from omegaconf import OmegaConf
-from hydra.core.global_hydra import GlobalHydra
+
+import hydra
 from datamate import namespacify
+from hydra.core.global_hydra import GlobalHydra
+from omegaconf import OmegaConf
 
 
 def get_default_config(

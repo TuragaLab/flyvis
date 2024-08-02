@@ -1,14 +1,13 @@
 import os
-from pathlib import Path
-import dotenv
 from datetime import datetime
-from pytz import timezone
-import torch
+from pathlib import Path
 
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
+import dotenv
+import torch
+from pytz import timezone
+
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 torch.set_default_device(device)
 del torch
 

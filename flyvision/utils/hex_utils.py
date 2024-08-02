@@ -1,12 +1,12 @@
 """Utility function for operations on hexagonal lattices."""
-from typing import Iterable, Tuple
+
 from numbers import Number
+from typing import Iterable, Tuple
 
 import numpy as np
-from numpy.typing import NDArray
-
 import torch
 from matplotlib import colormaps as cm
+from numpy.typing import NDArray
 
 import flyvision
 from flyvision.utils.tensor_utils import matrix_mask_by_sub
@@ -253,7 +253,6 @@ def get_extent(u, v, astype=int):
 
 
 class Hexal:
-
     """Hexal representation containing u, v, z coordinates and value.
 
     Args:
@@ -557,11 +556,8 @@ class HexArray(np.ndarray):
     def with_stride(self, u_stride=None, v_stride=None):
         """Returns a sliced instance obeying strides in u- and v-direction."""
         new = []
-        for u, v, val in zip(self.u, self.v, self.values):
-            if u % u_stride == 0 and v % v_stride == 0:
-                new.append(True)
-            else:
-                new.append(False)
+        for u, v, _ in zip(self.u, self.v, self.values):
+            new.append(u % u_stride == 0 and v % v_stride == 0)
         return self[np.array(new)]
 
     def where(self, value):
@@ -662,7 +658,7 @@ class HexLattice(HexArray):
         lattice = HexLattice(extent=max(radius or 0, self.extent), center=center)
         radius = radius or self.extent
         circle = []
-        for i, h in enumerate(lattice):
+        for _, h in enumerate(lattice):
             distance = center.distance(h)
             if distance == radius:
                 h.value = 1
@@ -683,7 +679,7 @@ class HexLattice(HexArray):
         lattice = HexLattice(extent=radius or 0, center=center)
         radius = radius
         circle = []
-        for i, h in enumerate(lattice):
+        for _, h in enumerate(lattice):
             distance = center.distance(h)
             if distance <= radius:
                 h.value = 1
@@ -751,7 +747,7 @@ class HexLattice(HexArray):
 
     def valid_neighbours(self):
         neighbours = ()
-        for i, h in enumerate(self):
+        for i in range(len(self)):
             neighbours += (self._get_neighbour_indices(i),)
         return neighbours
 

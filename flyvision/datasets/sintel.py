@@ -1,32 +1,31 @@
-from dataclasses import dataclass
-from pathlib import Path
-from itertools import product
-from typing import Iterable, Dict, List, Any, Optional, Union, Callable, Tuple
 import logging
-from tqdm import tqdm
 from contextlib import contextmanager
+from dataclasses import dataclass
+from itertools import product
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
-import torch
-import torch.nn.functional as nnf
 import numpy as np
 import pandas as pd
+import torch
+import torch.nn.functional as nnf
 from PIL import Image
-
-from datamate import Directory, root, Namespace
+from datamate import Directory, Namespace, root
+from tqdm import tqdm
 
 import flyvision
+from flyvision.augmentation.hex import (
+    ContrastBrightness,
+    GammaCorrection,
+    HexFlip,
+    HexRotate,
+    PixelNoise,
+)
 from flyvision.augmentation.temporal import (
     CropFrames,
     Interpolate,
 )
 from flyvision.datasets.datasets import MultiTaskDataset
-from flyvision.augmentation.hex import (
-    ContrastBrightness,
-    GammaCorrection,
-    HexRotate,
-    HexFlip,
-    PixelNoise,
-)
 from flyvision.rendering import BoxEye
 from flyvision.rendering.utils import split
 from flyvision.utils.dataset_utils import download_sintel
@@ -209,7 +208,7 @@ def sintel_meta(rendered, sintel_path, n_frames, vertical_splits, render_depth):
     sequence_index_to_splits = {}
     for i, p in enumerate(sorted((sintel_path / "training/final").iterdir())):
         if len(list(p.iterdir())) - 1 >= n_frames and any(
-            p.name in key for key in rendered.keys()
+            p.name in key for key in rendered
         ):
             lum_paths.append(p)
             sequence_indices.append(i)
@@ -417,7 +416,8 @@ class MultiTaskSintel(MultiTaskDataset):
 
         self.init_augmentation()
         self._augmentations_are_initialized = True
-        # note: self.augment is a property with a setter that relies on _augmentations_are_initialized
+        # note: self.augment is a property with a setter that relies on
+        # _augmentations_are_initialized
         self.augment = augment
 
         self.unittest = unittest
@@ -482,7 +482,7 @@ class MultiTaskSintel(MultiTaskDataset):
         # some changes have no effect cause they are fixed, or set by the pre-rendering
         if name == "framerate":
             raise AttributeError("cannot change framerate")
-        if hasattr(self, "rendered") and name in self.rendered.config.keys():
+        if hasattr(self, "rendered") and name in self.rendered.config:
             raise AttributeError("cannot change attribute of rendered initialization")
         super().__setattr__(name, value)
         # also update augmentation if it is already initialized
@@ -588,7 +588,7 @@ class MultiTaskSintel(MultiTaskDataset):
         finally:
             self.augment = _augment
             for key in augmentations:
-                setattr(getattr(self, key), "augment", states[key])
+                getattr(self, key).augment = states[key]
 
     @property
     def augment(self):
@@ -666,8 +666,8 @@ class MultiTaskSintel(MultiTaskDataset):
         """Get the original sequence index from an index of the split."""
         for index, splits in self.meta.sequence_index_to_splits.items():
             if key in splits:
-                break
-        return index
+                return index
+        raise ValueError(f"key {key} not found in splits")
 
     def cartesian_sequence(
         self,
@@ -683,9 +683,9 @@ class MultiTaskSintel(MultiTaskDataset):
         # into multiple ones
         key = self.original_sequence_index(key)
         lum_path = self.meta.lum_paths[key]
-        images = np.array(
-            [sample_lum(path) for path in sorted(lum_path.iterdir())[sampling]]
-        )
+        images = np.array([
+            sample_lum(path) for path in sorted(lum_path.iterdir())[sampling]
+        ])
         return split(
             images,
             outwidth,
@@ -704,9 +704,9 @@ class MultiTaskSintel(MultiTaskDataset):
         """To return the cartesian flow of a fly eye rendered flow."""
         key = self.original_sequence_index(key)
         flow_path = self.meta.flow_paths[key]
-        flow = np.array(
-            [sample_flow(path) for path in sorted(flow_path.iterdir())[sampling]]
-        )
+        flow = np.array([
+            sample_flow(path) for path in sorted(flow_path.iterdir())[sampling]
+        ])
 
         return split(
             flow,
@@ -726,9 +726,9 @@ class MultiTaskSintel(MultiTaskDataset):
         """To return the cartesian depth of a fly eye rendered depth."""
         key = self.original_sequence_index(key)
         flow_path = self.meta.depth_paths[key]
-        depth = np.array(
-            [sample_depth(path) for path in sorted(flow_path.iterdir())[sampling]]
-        )
+        depth = np.array([
+            sample_depth(path) for path in sorted(flow_path.iterdir())[sampling]
+        ])
 
         return split(
             depth,
@@ -1018,10 +1018,10 @@ class AugmentedSintel(MultiTaskSintel):
         try:
             mask = self.mask(sequence, flip_ax, n_rot)
             return np.arange(len(self))[mask].item()
-        except ValueError:
+        except ValueError as e:
             raise ValueError(
                 f"sequence: {sequence}, flip_ax: {flip_ax}, n_rot: {n_rot} invalid."
-            )
+            ) from e
 
     def _params(self, key):
         return self.arg_df.iloc[key].values
@@ -1083,9 +1083,7 @@ class AugmentedSintelLum(AugmentedSintel):
     __doc__ = """Overriding get_item to return only luminosity to be compatible with
     network.stimulus_responses.
     From parent class:
-    {}""".format(
-        AugmentedSintel.__doc__
-    )
+    {}""".format(AugmentedSintel.__doc__)
 
     def get_item(self, key):
         data = super().get_item(key)
@@ -1093,7 +1091,7 @@ class AugmentedSintelLum(AugmentedSintel):
 
 
 def temporal_split_cached_samples(cached_sequences, max_frames, split=True):
-    """To deterministically split sequences in temporal dimension into regularly binned sequences.
+    """To deterministically split sequences in time dim into regularly binned sequences.
 
     Note: overlapping splits of sequences which
         lengths are not an integer multiple of max_frames contain repeating frames.
@@ -1109,7 +1107,7 @@ def temporal_split_cached_samples(cached_sequences, max_frames, split=True):
         array: original index of each new split.
     """
     if split:
-        seq_lists = {k: [] for k in cached_sequences[0].keys()}
+        seq_lists = {k: [] for k in cached_sequences[0]}
 
         splits_per_seq = []
         for i, sequence in enumerate(cached_sequences):
@@ -1146,9 +1144,7 @@ def temporal_split_sequence(sequence, max_frames):
         max_frames,
         splits,
         center_crop_fraction=None,
-    ).transpose(
-        1, -1
-    )  # cause first will be splits, second will be frames
+    ).transpose(1, -1)  # cause first will be splits, second will be frames
 
 
 def remove_nans(responses):

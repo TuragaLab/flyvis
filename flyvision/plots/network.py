@@ -1,14 +1,13 @@
 """Utils for plotting whole network graph."""
 
-from numbers import Number
-import itertools
 import collections
-import numpy as np
-import networkx as nx
-from typing import Dict
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
+import itertools
+from numbers import Number
+
 import matplotlib
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
 from toolz import valfilter
 
 from flyvision.plots import plt_utils
@@ -93,7 +92,7 @@ class WholeNetworkFigure:
         nx_kwargs={},
     ):
         def _network_graph(nodes, edges):
-            """Transform graph representation from df to list to create a networkx.Graph object."""
+            """Transform graph from df to list to create networkx.Graph object."""
             nodes = nodes.groupby(by=["type"], sort=False, as_index=False).first().type
             edges = list(
                 map(
@@ -108,19 +107,20 @@ class WholeNetworkFigure:
             for cell_type in self.cell_types
         }
 
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
-        edge_ax = self.fig.add_axes(
-            [
-                lefts.min(),
-                bottoms.min(),
-                rights.max() - lefts.min(),
-                tops.max() - bottoms.min(),
-            ]
-        )
+        edge_ax = self.fig.add_axes([
+            lefts.min(),
+            bottoms.min(),
+            rights.max() - lefts.min(),
+            tops.max() - bottoms.min(),
+        ])
         edge_ax.set_zorder(0)
         edge_ax = plt_utils.rm_spines(edge_ax, rm_xticks=True, rm_yticks=True)
         edge_ax.patch.set_alpha(0.0)
@@ -180,7 +180,10 @@ class WholeNetworkFigure:
             edge_vmax=edge_vmax,
             alpha=edge_alpha,
             arrows=arrows,
-            arrowstyle="-|>, head_length=0.4, head_width=0.075, widthA=1.0, widthB=1.0, lengthA=0.2, lengthB=0.2",
+            arrowstyle=(
+                "-|>, head_length=0.4, head_width=0.075, widthA=1.0, "
+                "widthB=1.0, lengthA=0.2, lengthB=0.2"
+            ),
             width=np.array([edge_width[tuple(edge)] for edge in edge_list]),
             **nx_kwargs,
         )
@@ -192,10 +195,13 @@ class WholeNetworkFigure:
             node_type: [ax for ax in self.axes if ax.get_label() == node_type][0]
             for node_type in retina_node_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
         retina_box_ax = self.fig.add_axes(
             [
@@ -353,7 +359,6 @@ class WholeNetworkFigure:
                 )
 
     def add_neuropil_labels(self, fontsize=5):
-
         retina_cell_types = valfilter(lambda v: v == "retina", self.layout)
         axes = {
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
@@ -376,10 +381,13 @@ class WholeNetworkFigure:
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
             for cell_type in intermediate_cell_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
         self.fig.text(
             lefts.min() + (rights.max() - lefts.min()) / 2,
@@ -395,10 +403,13 @@ class WholeNetworkFigure:
             cell_type: [ax for ax in self.axes if ax.get_label() == cell_type][0]
             for cell_type in output_cell_types
         }
-        (lefts, bottoms, rights, tops), (
-            centers,
-            widths,
-            height,
+        (
+            (lefts, bottoms, rights, tops),
+            (
+                centers,
+                widths,
+                height,
+            ),
         ) = plt_utils.get_ax_positions(list(axes.values()))
         self.fig.text(
             lefts.min() + (rights.max() - lefts.min()) / 2,
@@ -541,20 +552,18 @@ class FancyArrowFactory:
                 v_shift = vertical_shift or 0.1 * self.selfloop_height
                 h_shift = horizontal_shift or v_shift * 0.5
                 # put the top of the loop first so arrow is not hidden by node
-                path = self.np.asarray(
-                    [
-                        # 1
-                        [origin_x, v_shift],
-                        # 4 4 4
-                        [h_shift, v_shift],
-                        [h_shift, origin_y],
-                        [origin_x, origin_y],
-                        # 4 4 4
-                        [-h_shift, origin_y],
-                        [-h_shift, v_shift],
-                        [origin_x, v_shift],
-                    ]
-                )
+                path = self.np.asarray([
+                    # 1
+                    [origin_x, v_shift],
+                    # 4 4 4
+                    [h_shift, v_shift],
+                    [h_shift, origin_y],
+                    [origin_x, origin_y],
+                    # 4 4 4
+                    [-h_shift, origin_y],
+                    [-h_shift, v_shift],
+                    [origin_x, v_shift],
+                ])
                 # Rotate self loop 90 deg. if more than 1
                 # This will allow for maximum of 4 visible self loops
                 if edge_index % 4:
@@ -590,7 +599,6 @@ class FancyArrowFactory:
     ):
         import matplotlib as mpl
         import matplotlib.patches  # call as mpl.patches
-        import matplotlib.pyplot as plt
         import numpy as np
 
         if isinstance(connectionstyle, str):

@@ -1,5 +1,6 @@
-from typing import Mapping
 from numbers import Number
+from typing import Mapping
+
 import numpy as np
 
 

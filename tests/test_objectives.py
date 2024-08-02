@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from flyvision.utils.class_utils import forward_subclass
 from flyvision.objectives import Objective
+from flyvision.utils.class_utils import forward_subclass
 
 
 @pytest.mark.parametrize("type", ["L2Norm", "EPE"])

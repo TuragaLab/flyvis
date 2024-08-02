@@ -1,13 +1,14 @@
 """Animations of neural activations."""
+
 from typing import List
 
-from matplotlib import colormaps as cm
 import numpy as np
+from matplotlib import colormaps as cm
 
 from flyvision import utils
-from flyvision.plots import plt_utils, figsize_utils
 from flyvision.animations.animations import AnimationCollector
 from flyvision.animations.hexscatter import HexScatter
+from flyvision.plots import figsize_utils
 
 
 class StimulusResponse(AnimationCollector):
