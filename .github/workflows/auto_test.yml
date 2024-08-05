@@ -15,11 +15,27 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Set up Python 3.9.16
       uses: actions/setup-python@v3
       with:
         python-version: "3.9.16"
+
     - name: Install the repository in editable mode
       run: pip install -e ".[dev]"
+
+    - name: Clean up pip cache
+      run: pip cache purge
+
+    - name: Clean up apt cache
+      run: sudo apt-get clean
+
     - name: Test with pytest
       run: pytest
+
+    - name: Clean up workspace
+      run: |
+        sudo rm -rf /var/lib/apt/lists/*
+        sudo rm -rf /tmp/*
+        sudo rm -rf ~/.cache/pip
+        sudo docker system prune -af
