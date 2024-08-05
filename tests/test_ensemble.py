@@ -50,9 +50,7 @@ def test_simulate(ensemble: Ensemble):
     assert activity.shape == (len(ensemble), 1, 2, network.n_nodes)
 
     with pytest.raises(ValueError):
-        activity = np.array(
-            list(ensemble.simulate(torch.ones(1, 2, 721).random_(2), 1))
-        )
+        activity = np.array(list(ensemble.simulate(torch.ones(1, 2, 721).random_(2), 1)))
 
 
 def test_validation_losses(ensemble):

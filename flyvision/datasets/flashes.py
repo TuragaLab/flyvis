@@ -71,9 +71,7 @@ class RenderedFlashes(Directory):
         self.flashes = np.array(sequence)
 
 
-def get_flash(
-    n_ommatidia, intensity, baseline, t_stim, t_pre, dt, alternations, radius
-):
+def get_flash(n_ommatidia, intensity, baseline, t_stim, t_pre, dt, alternations, radius):
     """Generate a sequence of flashes on a hexagonal lattice.
 
     Args:

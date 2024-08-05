@@ -14,9 +14,7 @@ def network() -> Network:
         connectome=Namespace(
             type="ConnectomeDir", file="fib25-fib19_v2.2.json", extent=15, n_syn_fill=1
         ),
-        dynamics=Namespace(
-            type="PPNeuronIGRSynapses", activation=Namespace(type="relu")
-        ),
+        dynamics=Namespace(type="PPNeuronIGRSynapses", activation=Namespace(type="relu")),
         node_config=Namespace(
             bias=Namespace(
                 type="RestingPotential",

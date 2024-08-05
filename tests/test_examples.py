@@ -52,9 +52,7 @@ class CustomStimuli(SequenceDataset):
 
     def get_item(self, key):
         sequence = self.sequences[key]
-        resample = self.get_temporal_sample_indices(
-            sequence.shape[0], sequence.shape[0]
-        )
+        resample = self.get_temporal_sample_indices(sequence.shape[0], sequence.shape[0])
         return sequence[resample]
 
 

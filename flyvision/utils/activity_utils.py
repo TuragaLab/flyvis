@@ -20,6 +20,7 @@ from numpy.typing import NDArray
 from torch import nn
 
 from flyvision.connectome import ConnectomeDir
+from flyvision.plots.plots import grouped_traces
 from flyvision.utils import nodes_edges_utils
 from flyvision.utils.df_utils import where_dataframe
 from flyvision.utils.nodes_edges_utils import CellTypeArray
@@ -550,9 +551,7 @@ class StimulusResponseIndexer:
         new_arg_df.reset_index(drop=True, inplace=True)
         return self.view(responses=new_responses, arg_df=new_arg_df)
 
-    def between_seconds(
-        self, t_start, t_end, masked=False
-    ) -> "StimulusResponseIndexer":
+    def between_seconds(self, t_start, t_end, masked=False) -> "StimulusResponseIndexer":
         mask = (self.time >= t_start) & (self.time <= t_end)
         if masked:
             return self.masked(~mask, (self.temporal_dim,))
@@ -581,27 +580,15 @@ class StimulusResponseIndexer:
         return self.view(responses=new_responses)
 
     def peak(self, dim=None) -> "StimulusResponseIndexer":
+        time = None
         if dim is None:
             dim = self.temporal_dim
+            time = np.array([
+                np.nan
+            ])  # TODO?: do this for every operation that collapses dims
 
         peak = np.nanmax(self.responses[:], axis=dim, keepdims=True)
-        return self.view(responses=peak)
-
-    def angular(self, dim=None) -> "StimulusResponseIndexer":
-        if dim is None:
-            dim = self.stim_sample_dim
-            view = self.reshape_stim_sample_dim("angle")
-        else:
-            view = self
-        shape = view.shape
-        angles = np.radians(self.arg_df.angle.unique())
-
-        complex_responses = view.responses[:] * np.exp(
-            np.expand_dims(angles, [i for i in range(len(shape)) if i != dim]) * 1j
-        )
-        return self.view(
-            responses=complex_responses, stim_sample_dim=view.stim_sample_dim
-        )
+        return self.view(responses=peak, time=time)
 
     def baseline(self, dim=None) -> "StimulusResponseIndexer":
         if dim is None:
@@ -703,6 +690,7 @@ class StimulusResponseIndexer:
         return self.view(responses=new_responses)
 
     def squeeze(self, dims=None) -> "StimulusResponseIndexer":
+        print("maybe don't do this")
         return self.view(responses=np.squeeze(self.responses[:], axis=dims))
 
     def mean(self, dims=None, keepdims=False) -> "StimulusResponseIndexer":
@@ -763,7 +751,7 @@ class StimulusResponseIndexer:
             )
         return self
 
-    def reshape_stim_sample_dim(self, *args) -> "StimulusResponseIndexer":
+    def reshape_stim_sample_dim(self, *args) -> "CellTypeArray":
         """Reshape the originally flat stimulus sample dimension
         to unflattened based on arg_df column names.
         """
@@ -800,6 +788,12 @@ class StimulusResponseIndexer:
             responses=self.responses[:].reshape(*new_shape),
             stim_sample_dim=new_stim_sample_dim,
             temporal_dim=new_temporal_dim,
+        )
+
+    def groupby(self, by):
+        return StimulusResponseIndexerGroupBy(
+            keys=by,
+            sri=self,
         )
 
     def take_single(self, indices, dims) -> "StimulusResponseIndexer":
@@ -867,6 +861,193 @@ class StimulusResponseIndexer:
             f"{self.__class__.__name__}({self.arg_df}, {self.responses}, {self.dt}, "
             f"{self.stim_sample_dim}, {self.temporal_dim})"
         )
+
+    def plot_traces(
+        self,
+        cell_type,
+        t_start=None,
+        t_end=None,
+        plot_kwargs=dict(),
+        groupby=None,
+        **stim_kwargs,
+    ):
+        if self.responses.shape[self.temporal_dim] != len(self.time) or np.all(
+            np.isnan(self.time)
+        ):
+            raise ValueError(
+                "Cannot plot. Previous operations have mis-aligned the "
+                "response data and timestamps."
+            )
+        cell_trace = self.cell_type(cell_type)
+        t_start = t_start or self.time[0] - 1
+        t_end = t_end or self.time[-1] + 1
+        cell_trace = cell_trace.between_seconds(t_start=t_start, t_end=t_end)
+        if stim_kwargs:
+            cell_trace = cell_trace.where_stim_args(**stim_kwargs)
+        if groupby is None:
+            groupby = [
+                col
+                for col in cell_trace.arg_df.columns
+                if cell_trace.arg_df[col].nunique() > 1
+            ]
+        if len(groupby) > 0:
+            grouped = cell_trace.groupby(groupby)
+            responses = [sri[:] for _, sri in grouped]
+            names = [
+                ", ".join([f"{key}={val}" for key, val in zip(grouped.keys, names)])
+                for names in grouped.names
+            ]
+        else:
+            responses = [cell_trace.responses[:]]
+            names = []
+        responses = [
+            resp.swapaxes(self.temporal_dim, -1).reshape(
+                -1, resp.shape[self.temporal_dim]
+            )
+            for resp in responses
+        ]
+        defaults = dict(
+            linewidth=1.0,
+            legend=tuple(names),
+            ylabel="activity (a.u.)",
+            xlabel="time (s)",
+            title=f"{cell_type} stimulus response",
+        )
+        defaults.update(plot_kwargs)
+        return grouped_traces(
+            responses,
+            cell_trace.time,
+            **defaults,
+        )
+
+
+class StimulusResponseIndexerGroupBy:
+    def __init__(
+        self,
+        keys: Union[str, tuple[str]],
+        sri: "StimulusResponseIndexer",
+    ):
+        super().__init__()
+        if isinstance(keys, str):
+            keys = [keys]
+        self.keys = keys
+        self.sri = sri
+        self.names = sorted([
+            tuple(values)
+            for values in self.sri.arg_df[self.keys].drop_duplicates().values.tolist()
+        ])
+        self.sris = [
+            self.sri.where_stim_args(**dict(zip(self.keys, name))) for name in self.names
+        ]
+
+    def __iter__(self):
+        return zip(self.names, self.sris)
+
+    @property
+    def groups(self):
+        return dict(zip(self.names, self.sris))
+
+    @property
+    def indices(self):
+        return {
+            name: self.sri.where_stim_args_index(
+                **dict(zip(self.keys, name)),
+            )
+            for name in self.names
+        }
+
+    def get_group(self, name) -> "StimulusResponseIndexer":
+        index = self.names.index(name)
+        return self.sris[index]
+
+    def _rebuild(
+        self, sris: list[StimulusResponseIndexer] = None
+    ) -> "StimulusResponseIndexer":
+        # TODO: give more informative errors
+        if sris is not None:
+            assert len(sris) == len(self.sris)
+            assert all([sri.stim_sample_dim == sris[0].stim_sample_dim for sri in sris])
+            assert all([sri.temporal_dim == sris[0].temporal_dim for sri in sris])
+            assert all([len(sri.shape) == len(sris[0].shape) for sri in sris])
+            non_stim_dims = np.array(
+                list(set(np.arange(len(sris[0].shape))) - set([sris[0].stim_sample_dim]))
+            )
+            for dim in non_stim_dims.tolist():
+                assert all([sri.shape[dim] == sris[0].shape[dim] for sri in sris])
+            assert all([
+                sri.shape[sri.stim_sample_dim] == orig_sri.shape[orig_sri.stim_sample_dim]
+                for sri, orig_sri in zip(sris, self.sris)
+            ])
+        else:
+            sris = self.sris
+        shape = list(sris[0].shape)
+        shape[sris[0].stim_sample_dim] = len(self.sri.arg_df)
+        responses = np.empty(shape).swapaxes(0, sris[0].stim_sample_dim)
+        for sri, indices in zip(sris, self.indices.values()):
+            responses[np.array(indices, dtype=int)] = sri.responses[:].swapaxes(
+                0, sri.stim_sample_dim
+            )
+        responses = responses.swapaxes(0, sris[0].stim_sample_dim)
+        return self.sri.view(responses=responses)
+
+    def apply(self, func, *args, **kwargs) -> "StimulusResponseIndexer":
+        sris = [func(sri, *args, **kwargs) for sri in self.sris]
+        return self._rebuild(sris)
+
+    def sum(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nansum(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def min(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmin(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def max(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmax(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def mean(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmean(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def median(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmedian(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
 
 
 def asymmetric_weighting(tensor, gamma=1.0, delta=0.1):

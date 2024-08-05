@@ -226,9 +226,9 @@ class MultiTaskSolver:
         # The number of full presentations of the training data is derived from the
         # preset number of training iterations, the length of the dataloader and the
         # current iteration.
-        n_epochs = np.ceil(
-            (self.task.n_iters - self.iteration) / len(dataloader)
-        ).astype(int)
+        n_epochs = np.ceil((self.task.n_iters - self.iteration) / len(dataloader)).astype(
+            int
+        )
 
         # This is after how many epochs the training states are checkpointed.
         chkpt_every_epoch = self.config.scheduler.chkpt_every_epoch
@@ -337,9 +337,7 @@ class MultiTaskSolver:
                 # however, we allow steps only after full presentations of the data.
                 if epoch + 1 != n_epochs:
                     self.scheduler(self.iteration)
-                    logging.info(
-                        "Scheduled paremeters for iteration %s.", self.iteration
-                    )
+                    logging.info("Scheduled paremeters for iteration %s.", self.iteration)
 
                 # Checkpointing.
                 if (epoch % chkpt_every_epoch == 0) or (epoch + 1 == n_epochs):
@@ -386,9 +384,7 @@ class MultiTaskSolver:
             dataloader=self.task.val_data, subdir="validation", track_loss=True
         )
         logging.info("Test on training data.")
-        _ = self.test(
-            dataloader=self.task.train_data, subdir="training", track_loss=True
-        )
+        _ = self.test(dataloader=self.task.train_data, subdir="training", track_loss=True)
         logging.info("Test on validation batch.")
         _ = self.test(
             dataloader=self.task.val_batch, subdir="validation_batch", track_loss=True
@@ -843,8 +839,7 @@ class Penalty:
             dtype=torch.float32,
         )
         return (
-            config.kwargs["lambda"]
-            * ((getattr(self.network, param) - prior) ** 2).sum()
+            config.kwargs["lambda"] * ((getattr(self.network, param) - prior) ** 2).sum()
         )
 
 

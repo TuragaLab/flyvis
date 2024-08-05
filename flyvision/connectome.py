@@ -597,9 +597,7 @@ class ConnectomeView:
         label = cell_type
         if ax is not None:
             # prevent labeling twice
-            label = (
-                cell_type if cell_type not in [t.get_text() for t in ax.texts] else ""
-            )
+            label = cell_type if cell_type not in [t.get_text() for t in ax.texts] else ""
 
         fig, ax, _ = plots.hex_scatter(
             u,

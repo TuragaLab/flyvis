@@ -1390,9 +1390,9 @@ def display_pvalues(
     ylim = ax.get_ylim()
     bars = []
     for ticklabel, pvalue in pvalues.items():
-        index = [
-            i for i, _ticklabel in enumerate(ticklabels) if _ticklabel == ticklabel
-        ][0]
+        index = [i for i, _ticklabel in enumerate(ticklabels) if _ticklabel == ticklabel][
+            0
+        ]
         _values = data[index]
 
         if location == "above":

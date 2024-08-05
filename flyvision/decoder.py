@@ -162,9 +162,7 @@ class DecoderGAVP(ActivityDecoder):
         out_channels = shape[-1]
         self._out_channels = out_channels
         self.out_channels = (
-            out_channels * n_out_features
-            if n_out_features is not None
-            else out_channels
+            out_channels * n_out_features if n_out_features is not None else out_channels
         )
         self.n_out_features = n_out_features
 

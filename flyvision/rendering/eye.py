@@ -303,9 +303,7 @@ class HexEye:
         if len(stim.shape) == 3:
             h, w = stim.shape[1:]
             if h < self.monitor_height_px or w < self.monitor_width_px:
-                stim = ttf.resize(
-                    stim, [self.monitor_height_px, self.monitor_height_px]
-                )
+                stim = ttf.resize(stim, [self.monitor_height_px, self.monitor_height_px])
             stim = stim.reshape(shape[0], -1)
 
         try:
@@ -355,9 +353,7 @@ class HexEye:
         bar_loc_horizontal_px = int(
             self.monitor_width_px * bar_loc_theta / np.radians(180)
         )
-        bar_loc_vertical_px = int(
-            self.monitor_height_px * bar_loc_phi / np.radians(180)
-        )
+        bar_loc_vertical_px = int(self.monitor_height_px * bar_loc_phi / np.radians(180))
 
         bar = cartesian_bars(
             self.monitor_height_px,

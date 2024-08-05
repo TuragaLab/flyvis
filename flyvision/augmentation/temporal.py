@@ -41,9 +41,7 @@ class Interpolate(Augmentation):
         return (
             nnf.interpolate(
                 indices,
-                size=math.ceil(
-                    self.target_framerate / self.original_framerate * length
-                ),
+                size=math.ceil(self.target_framerate / self.original_framerate * length),
                 mode="nearest-exact",
                 align_corners=None,
             )

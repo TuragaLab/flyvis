@@ -1,4 +1,5 @@
 """Groundtruth from literature in appropriate datastructures."""
+
 # -- polarity ------------------------------------------------------------------
 
 # 1 is ON, 0 is unknown, -1 is OFF
@@ -493,6 +494,8 @@ no_motion_tuning = [
 ]
 
 motion_tuning = ["T5a", "T5b", "T5c", "T5d", "T4a", "T4b", "T4c", "T4d"]
+on_motion_tuning = ["T4a", "T4b", "T4c", "T4d"]
+off_motion_tuning = ["T5a", "T5b", "T5c", "T5d"]
 
 known_dsi_types = [*no_motion_tuning, *motion_tuning]
 

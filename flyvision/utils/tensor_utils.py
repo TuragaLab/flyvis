@@ -1,6 +1,6 @@
 """Utility on tensors and arrays."""
 
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Iterable, Mapping
 
 import numpy as np
 import torch
@@ -311,3 +311,23 @@ def scatter_mean(src, index, dim=-1):
 def scatter_add(src, index, dim=-1):
     """Sum along dimension `dim` using values in the `index` tensor."""
     return scatter_reduce(src, index, dim, "sum")
+
+
+def select_along_axes(array, indices, dims):
+    """Select indices from array along dims.
+
+    Args:
+        array (array): array to take indices from
+        indices (array): indices to take
+        dims (list): dimensions to take indices from
+    """
+    if not isinstance(indices, Iterable):
+        indices = [indices]
+    if not isinstance(dims, Iterable):
+        dims = [dims]
+
+    for index, dim in zip(indices, dims):
+        if not isinstance(index, Iterable):
+            index = [index]
+        array = array.take(index, axis=dim)
+    return array

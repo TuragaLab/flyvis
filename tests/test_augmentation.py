@@ -109,9 +109,7 @@ def test_hex_flip():
     )
     assert_equals = {0: 0, 1: 180, 2: 300, 3: 60}
     for axis, expected in assert_equals.items():
-        assert np.allclose(
-            _angle(hexflip(flow, axis).cpu().numpy().squeeze()), expected
-        )
+        assert np.allclose(_angle(hexflip(flow, axis).cpu().numpy().squeeze()), expected)
     hexflip.augment = False
     assert np.allclose(hexflip(flow).tolist(), flow.tolist())
 

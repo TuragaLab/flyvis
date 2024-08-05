@@ -69,9 +69,7 @@ def test_add_input(stimulus: Stimulus):
     )
 
     # don't cumulate
-    stimulus.add_input(
-        x, start=start, stop=stop, n_frames_buffer=frames, cumulate=False
-    )
+    stimulus.add_input(x, start=start, stop=stop, n_frames_buffer=frames, cumulate=False)
     assert stimulus.buffer.sum() == batch_size * (stop - start) * np.prod(
         stimulus.input_index.shape
     )

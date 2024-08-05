@@ -6,6 +6,7 @@ import dotenv
 import torch
 from pytz import timezone
 
+from flyvision.version import __version__
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 torch.set_default_device(device)

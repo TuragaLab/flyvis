@@ -1,11 +1,15 @@
 [build-system]
 requires = [
-    "setuptools>=65", "wheel"
+    "setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools_scm]
+write_to = "flyvision/version.py"
+
 [project]
 name = "flyvision"
+dynamic = ["version"]
 description = "Connectome and task-constrained vision models of the fruit fly."
 classifiers = [
     "Intended Audience :: Developers",
@@ -22,7 +26,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
 ]
 requires-python = ">=3.6"
-dynamic = ["version"]
 readme = "README.md"
 dependencies = [
     "ipython",
@@ -71,8 +74,6 @@ include = ["flyvision*"]  # package names should match these glob patterns (["*"
 exclude = []  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
-[tool.setuptools.dynamic]
-version = {attr = "flyvision.__version__"}
 
 # ruff configs
 [tool.ruff]

@@ -280,8 +280,8 @@ def fri_violins(
     sorted_type_list=None,
     scatter_edge_width=0.5,
     scatter_best_edge_width=0.75,
-    scatter_edge_color="k",
-    scatter_face_color="none",
+    scatter_edge_color="none",
+    scatter_face_color="k",
     scatter_alpha=0.35,
     scatter_best_alpha=1.0,
     scatter_all_marker="o",
@@ -289,6 +289,9 @@ def fri_violins(
     scatter_best_marker="o",
     scatter_best_color=None,
     known_first=True,
+    mean_median_linewidth=1.5,
+    mean_median_bar_length=1.0,
+    violin_alpha=0.3,
     **kwargs,
 ):
     # always add empty group axis for violin plot unless fris is provided
@@ -331,11 +334,11 @@ def fri_violins(
         fontsize=fontsize,
         figsize=figsize,
         width=0.7,
-        # scatter_edge_color=scatter_edge_color,
-        # scatter_radius=5,
-        # scatter_edge_width=scatter_edge_width,
         showmeans=showmeans,
         showmedians=showmedians,
+        mean_median_linewidth=mean_median_linewidth,
+        mean_median_bar_length=mean_median_bar_length,
+        violin_alpha=violin_alpha,
         **kwargs,
     )
 

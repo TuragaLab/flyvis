@@ -341,9 +341,7 @@ class RestingPotential(Parameter):
         )
         self.indices = get_scatter_indices(nodes, grouped_nodes, param_config.groupby)
         self.keys = param_config["type"].tolist()
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
+        self.symmetry_masks = symmetry_masks(param_config.get("symmetric", []), self.keys)
 
 
 class TimeConstant(Parameter):
@@ -368,9 +366,7 @@ class TimeConstant(Parameter):
             InitialDistribution, param_config, subclass_key="initial_dist"
         )
         self.keys = param_config["type"].tolist()
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
+        self.symmetry_masks = symmetry_masks(param_config.get("symmetric", []), self.keys)
 
 
 # -- edge / synapse type parameter ----------------------------------------------
@@ -404,9 +400,7 @@ class SynapseSign(Parameter):
                 param_config.target_type.tolist(),
             )
         )
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
+        self.symmetry_masks = symmetry_masks(param_config.get("symmetric", []), self.keys)
 
 
 class SynapseCount(Parameter):
@@ -450,9 +444,7 @@ class SynapseCount(Parameter):
                 param_config.dv.tolist(),
             )
         )
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
+        self.symmetry_masks = symmetry_masks(param_config.get("symmetric", []), self.keys)
 
 
 class SynapseCountScaling(Parameter):
@@ -495,9 +487,7 @@ class SynapseCountScaling(Parameter):
                 param_config.target_type.tolist(),
             )
         )
-        self.symmetry_masks = symmetry_masks(
-            param_config.get("symmetric", []), self.keys
-        )
+        self.symmetry_masks = symmetry_masks(param_config.get("symmetric", []), self.keys)
 
 
 def get_scatter_indices(

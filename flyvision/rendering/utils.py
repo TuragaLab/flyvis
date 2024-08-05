@@ -109,9 +109,7 @@ def split(array, out_nelements, n_splits, center_crop_fraction=0.7):
         if isinstance(arr, np.ndarray):
             return np.take(arr, np.arange(start, stop), axis=-1)[None]
         elif isinstance(arr, torch.Tensor):
-            return torch.index_select(arr, dim=-1, index=torch.arange(start, stop))[
-                None
-            ]
+            return torch.index_select(arr, dim=-1, index=torch.arange(start, stop))[None]
 
     if n_splits == 1:
         out = (array[None, :],)
@@ -158,9 +156,7 @@ def center_crop(array, out_nelements_ratio):
 
     nelements = array.shape[-1]
     out_nelements = int(out_nelements_ratio * nelements)
-    return take(
-        array, (nelements - out_nelements) // 2, (nelements + out_nelements) // 2
-    )
+    return take(array, (nelements - out_nelements) // 2, (nelements + out_nelements) // 2)
 
 
 """Rendering utils"""
@@ -389,7 +385,7 @@ def rotate_image(img, angle=0):
     ]
 
 
-def resample(stims, t_stim, dt, dim=0):
+def resample(stims, t_stim, dt, dim=0, device="cuda", return_indices=False):
     """Resamples set of stims for given stimulus duration and dt.
 
     Args:
@@ -401,10 +397,12 @@ def resample(stims, t_stim, dt, dim=0):
         tensor: stims of shape (#frames, #hexals).
     """
     n_offsets = stims.shape[dim]
-    repeats = torch.linspace(
-        0, n_offsets - 1, int(t_stim / dt), device=stims.device
-    ).long()
-    return torch.index_select(stims, dim, repeats)
+    # round to nearest integer
+    # this results in unequal counts of each frame usually by +-1
+    indices = torch.linspace(0, n_offsets - 1, int(t_stim / dt), device=device).long()
+    if not return_indices:
+        return torch.index_select(stims, dim, indices)
+    return torch.index_select(stims, dim, indices), indices
 
 
 def shuffle(stims, randomstate=None):
@@ -440,6 +438,11 @@ def pad(stim, t_stim, dt, fill=0, mode="end", pad_mode="value"):
 
     Args:
         stim (tensor): stimulus (..., n_frames, n_hexals)
+        t_stim (float): target stimulus duration in seconds.
+        dt (float): integration time constant in seconds.
+        fill (float): value to fill with if pad_mode is "value".
+        mode (str): "end" or "start".
+        pad_mode (str): "value", "continue" or "reflect".
     """
     diff = int(t_stim / dt) - stim.shape[-2]
     if diff <= 0:
@@ -459,8 +462,7 @@ def pad(stim, t_stim, dt, fill=0, mode="end", pad_mode="value"):
 
 
 def repeat_last(stim, dim, n_repeats):
-    last = stim.index_select(
-        dim, torch.tensor([stim.size(dim) - 1], device=stim.device)
-    )
+    """Returns stim with last frame repeated n_repeats times along dim."""
+    last = stim.index_select(dim, torch.tensor([stim.size(dim) - 1], device=stim.device))
     stim = torch.cat((stim, last.repeat_interleave(n_repeats, dim=dim)), dim=dim)
     return stim

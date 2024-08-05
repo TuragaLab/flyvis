@@ -285,9 +285,7 @@ class CellTypeArray:
             index = dict.__getitem__(self.node_indexer, key)
             np.put_along_axis(
                 self.array,
-                np.expand_dims(
-                    np.array([index]), list(range(len(self.array.shape[1:])))
-                ),
+                np.expand_dims(np.array([index]), list(range(len(self.array.shape[1:])))),
                 value,
                 self.dim,
             )

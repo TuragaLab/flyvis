@@ -427,9 +427,7 @@ def model_paths_from_parent(path):
 
 def model_path_names(model_paths):
     """Return a list of model names and an ensemble name from a list of model paths."""
-    model_names = [
-        str(path).replace(str(results_dir) + "/", "") for path in model_paths
-    ]
+    model_names = [str(path).replace(str(results_dir) + "/", "") for path in model_paths]
     ensemble_name = ", ".join(np.unique([n[:-4] for n in model_names]).tolist())
     return model_names, ensemble_name
 

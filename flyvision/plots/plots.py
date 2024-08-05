@@ -5,6 +5,7 @@ from numbers import Number
 from typing import Iterable, Tuple
 
 import matplotlib as mpl
+import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -124,9 +125,7 @@ def heatmap(
     ax.set_xticklabels(xlabels, rotation=90, fontsize=fontsize)
     ax.set_yticks(np.arange(matrix.shape[0]))
     ylabels = ylabels or xlabels
-    ax.set_yticklabels(
-        ylabels[::-1] if origin == "upper" else ylabels, fontsize=fontsize
-    )
+    ax.set_yticklabels(ylabels[::-1] if origin == "upper" else ylabels, fontsize=fontsize)
 
     ax.grid(False, "major")
     ax.grid(True, "minor", linewidth=grid_linewidth)
@@ -307,9 +306,7 @@ def hex_scatter(
         # c_mask = np.ma.masked_invalid(framed_color)
         # framed_color[c_mask.mask] = 0.0
         framed_color_rgba[mask] = color_rgba
-        framed_color_rgba[~mask] = (
-            frame_color if frame_color else np.array([0, 0, 0, 1])
-        )
+        framed_color_rgba[~mask] = frame_color if frame_color else np.array([0, 0, 0, 1])
         u, v, color_rgba, color = _u, _v, framed_color_rgba, framed_color
 
     extent = utils.hex_utils.get_extent(u, v) or 1
@@ -989,7 +986,7 @@ def traces(
 
 
 def grouped_traces(
-    trace,
+    trace_groups: list[np.ndarray],
     x=None,
     legend=(),
     color=None,
@@ -1007,20 +1004,16 @@ def grouped_traces(
     **kwargs,
 ):
     """Line plot with"""
-    assert len(trace.shape) == 3, "Traces provided to `grouped_traces` must be 3d"
-
     fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax=ax, fig=fig)
 
-    shape = trace.shape  # (#groups, #traces, #points)
-
-    legends = legend if len(legend) == shape[0] else ("",) * shape[0]
+    legends = legend if len(legend) == len(trace_groups) else ("",) * len(trace_groups)
 
     if color is None:
         color_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        colors = [color_cycle[i % len(color_cycle)] for i in range(shape[0])]
+        colors = [color_cycle[i % len(color_cycle)] for i in range(len(trace_groups))]
     elif len(np.shape(color)) <= 1:
-        colors = (color,) * shape[0]
-    elif len(color) == shape[0]:
+        colors = (color,) * len(trace_groups)
+    elif len(color) == len(trace_groups):
         colors = color
     else:
         raise ValueError(
@@ -1028,7 +1021,7 @@ def grouped_traces(
             f"`traces.shape[0]`, or None. Got {color}."
         )
 
-    for i, _trace in enumerate(trace):
+    for i, _trace in enumerate(trace_groups):
         fig, ax, *_ = traces(
             trace=_trace,
             x=x,
@@ -1300,3 +1293,441 @@ def violin_groups(
         )
 
     return fig, ax, ViolinData(values, X, colors)
+
+
+# ---- POLAR
+
+
+def plot_complex(z, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5):
+    fig, ax = plt_utils.init_plot(
+        figsize=figsize, projection="polar", fontsize=fontsize, fig=fig, ax=ax
+    )
+
+    theta = np.angle(z)
+    r = np.abs(z)
+
+    ax.plot([0, theta], [0, r], marker=marker)
+    return fig, ax
+
+
+def plot_complex_vector(
+    z0, z1, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5
+):
+    fig, ax = plt_utils.init_plot(
+        figsize=figsize, projection="polar", fontsize=fontsize, fig=fig, ax=ax
+    )
+
+    theta0 = np.angle(z0)
+    r0 = np.abs(z0)
+
+    theta = np.angle(z1)
+    r = np.abs(z1)
+
+    ax.plot([theta0, theta], [r0, r], marker=marker)
+    return fig, ax
+
+
+def polar(
+    theta,
+    r,
+    ax=None,
+    fig=None,
+    color="b",
+    linestyle="-",
+    marker="",
+    markersize=None,
+    label=None,
+    title="",
+    figsize=(5, 5),
+    fontsize=10,
+    xlabel="",
+    fontweight="normal",
+    anglepad=-2,
+    xlabelpad=-3,
+    linewidth=2,
+    ymin=None,
+    ymax=None,
+    stroke_kwargs={},
+    yticks_off=True,
+    zorder=100,
+    **kwargs,
+):
+    """Polar tuning plot.
+
+    Args:
+        theta (array): angles or x in degree!
+        r (array): radius or y.
+
+    Returns:
+        [type]: [description]
+    """
+    fig, ax = plt_utils.init_plot(
+        figsize=figsize,
+        title=title,
+        fontsize=fontsize,
+        ax=ax,
+        fig=fig,
+        projection="polar",
+    )
+
+    if sum(theta) < 100:
+        logging.warning("using radians instead of degree?")
+
+    closed = theta[-1] % 360 == theta[0]
+    theta = theta * np.pi / 180
+    if not closed:
+        theta = np.append(theta, theta[0])
+
+    if not closed:
+        r = np.append(r, np.expand_dims(r[0], 0), axis=0)
+
+    line_effects = None
+    if stroke_kwargs:
+        line_effects = [
+            path_effects.Stroke(**stroke_kwargs),
+            path_effects.Normal(),
+        ]
+
+    if r.ndim == 2:
+        for i, _r in enumerate(r.T):
+            if isinstance(color, Iterable):
+                if isinstance(color, str) and color.startswith("#"):
+                    _color = color
+                elif len(color) == r.shape[1]:
+                    _color = color[i]
+                else:
+                    _color = color
+            else:
+                _color = color
+
+            ax.plot(
+                theta,
+                _r,
+                linewidth=linewidth,
+                color=_color,
+                linestyle=linestyle,
+                marker=marker,
+                label=label,
+                path_effects=line_effects,
+                zorder=zorder,
+                markersize=markersize,
+            )
+    elif r.ndim == 1:
+        ax.plot(
+            theta,
+            r,
+            linewidth=linewidth,
+            color=color,
+            linestyle=linestyle,
+            marker=marker,
+            label=label,
+            path_effects=line_effects,
+            zorder=zorder,
+            markersize=markersize,
+        )
+
+    ax.tick_params(axis="both", which="major", labelsize=fontsize, pad=anglepad)
+    if yticks_off:
+        ax.set_yticks([])
+        ax.set_yticklabels([])
+    ax.set_xticks([
+        0,
+        np.pi / 4,
+        np.pi / 2,
+        3 / 4 * np.pi,
+        np.pi,
+        5 / 4 * np.pi,
+        3 / 2 * np.pi,
+        7 / 4 * np.pi,
+    ])
+    ax.set_xticklabels(["0°", "45°", "90°", "", "", "", "", ""])
+
+    ax.set_xlabel(xlabel, fontsize=fontsize, labelpad=xlabelpad, fontweight=fontweight)
+    if all((val is not None for val in (ymin, ymax))):
+        ax.set_ylim((ymin, ymax))
+    plt.setp(ax.spines.values(), color="grey", linewidth=1)
+    return fig, ax
+
+
+def half_polar(theta, r, **kwargs):
+    """To plot orientation tuning from oriented bars."""
+
+    theta = np.append(theta, theta + 180)
+    r = np.append(r, r)
+
+    return polar(theta, r, **kwargs)
+
+
+def multi_polar(
+    theta,
+    r,
+    ax=None,
+    fig=None,
+    mean_color="b",
+    norm=True,
+    std=False,
+    color="b",
+    mean=False,
+    linestyle="-",
+    marker="",
+    label="",
+    legend=False,
+    title="",
+    figsize=(0.98, 2.38),
+    fontsize=5,
+    xlabel="",
+    fontweight="bold",
+    alpha=1,
+    anglepad=-6,
+    xlabelpad=-3,
+    linewidth=0.75,
+    ymin=None,
+    ymax=None,
+    zorder=None,
+    legend_kwargs=dict(fontsize=5),
+    rm_yticks=True,
+    **kwargs,
+):
+    """Polar tuning plot.
+
+    Args:
+        theta (array): angles or x.
+        r (array): radius or y, (nsamples, values).
+
+    Returns:
+        [type]: [description]
+    """
+    fig, ax = plt_utils.init_plot(
+        figsize=figsize,
+        title=title,
+        fontsize=fontsize,
+        ax=ax,
+        fig=fig,
+        projection="polar",
+    )
+    r = np.atleast_2d(r)
+    n_traces = r.shape[0]
+
+    if norm:
+        r = r / (r.max(axis=1, keepdims=True) + 1e-15)
+
+    closed = theta[-1] % 360 == theta[0]
+    theta = theta * np.pi / 180
+    if not closed:
+        theta = np.append(theta, theta[0])
+        r = np.append(r, np.expand_dims(r[:, 0], 1), axis=1)
+
+    if not isinstance(color, (list, np.ndarray)):
+        color = n_traces * (color,)
+
+    if not isinstance(label, (list, np.ndarray)):
+        label = n_traces * (label,)
+
+    if not isinstance(zorder, (list, np.ndarray)):
+        zorder = n_traces * (100,)
+
+    # why?
+    if n_traces >= 1:
+        for i, _r in enumerate(r):
+            ax.plot(
+                theta,
+                _r,
+                linewidth=linewidth,
+                color=color[i],
+                linestyle=linestyle,
+                marker=marker,
+                label=label[i],
+                zorder=zorder[i],
+                alpha=alpha,
+            )
+
+    if mean:
+        ax.plot(
+            theta,
+            r.mean(0),
+            linewidth=linewidth,
+            color=mean_color,
+            linestyle=linestyle,
+            marker=marker,
+            label="average",
+            alpha=alpha,
+        )
+
+    if std:
+        ax.fill_between(
+            theta,
+            r.mean(0) - r.std(0),
+            r.mean(0) + r.std(0),
+            color="0.8",
+            alpha=0.5,
+            zorder=-1,
+        )
+
+    ax.tick_params(axis="both", which="major", labelsize=fontsize, pad=anglepad)
+    if rm_yticks:
+        ax.set_yticks([])
+        ax.set_yticklabels([])
+    ax.set_xticks([
+        0,
+        np.pi / 4,
+        np.pi / 2,
+        3 / 4 * np.pi,
+        np.pi,
+        5 / 4 * np.pi,
+        3 / 2 * np.pi,
+        7 / 4 * np.pi,
+    ])
+    ax.set_xticklabels(["0°", "45°", "90°", "", "", "", "", ""])
+
+    ax.set_xlabel(xlabel, fontsize=fontsize, labelpad=xlabelpad, fontweight=fontweight)
+    if all((val is not None for val in (ymin, ymax))):
+        ax.set_ylim((ymin, ymax))
+    plt.setp(ax.spines.values(), color="grey", linewidth=0.5)
+
+    if legend:
+        ax.legend(**legend_kwargs)
+
+    return fig, ax
+
+
+def half_multi_polar(
+    theta,
+    r,
+    ax=None,
+    fig=None,
+    mean_color="b",
+    norm=True,
+    std=False,
+    color="b",
+    mean=False,
+    linestyle="-",
+    marker="",
+    label="",
+    legend=False,
+    title="",
+    figsize=(0.98, 2.38),
+    fontsize=5,
+    xlabel="",
+    fontweight="bold",
+    alpha=1,
+    anglepad=-6,
+    xlabelpad=-3,
+    linewidth=0.75,
+    ymin=None,
+    ymax=None,
+    zorder=None,
+    legend_kwargs=dict(fontsize=5),
+    rm_yticks=True,
+    **kwargs,
+):
+    """Polar tuning plot.
+
+    Args:
+        theta (array): angles or x.
+        r (array): radius or y, (nsamples, values).
+
+    Returns:
+        [type]: [description]
+    """
+    fig, ax = plt_utils.init_plot(
+        figsize=figsize,
+        title=title,
+        fontsize=fontsize,
+        ax=ax,
+        fig=fig,
+        projection="polar",
+    )
+
+    theta = np.append(theta, theta + 180)
+    r = np.atleast_2d(r)
+    r = np.append(r, r, axis=1)
+
+    n_traces = r.shape[0]
+
+    if norm:
+        r = r / (r.max(axis=1, keepdims=True) + 1e-15)
+
+    closed = theta[-1] % 360 == theta[0]
+    theta = theta * np.pi / 180
+    if not closed:
+        theta = np.append(theta, theta[0])
+        r = np.append(r, np.expand_dims(r[:, 0], 1), axis=1)
+
+    if not isinstance(color, (list, np.ndarray)):
+        color = n_traces * (color,)
+
+    if not isinstance(label, (list, np.ndarray)):
+        label = n_traces * (label,)
+
+    if not isinstance(zorder, (list, np.ndarray)):
+        zorder = n_traces * (100,)
+
+    # why?
+    if n_traces >= 1:
+        for i, _r in enumerate(r):
+            ax.plot(
+                theta,
+                _r,
+                linewidth=linewidth,
+                color=color[i],
+                linestyle=linestyle,
+                marker=marker,
+                label=label[i],
+                zorder=zorder[i],
+                alpha=alpha,
+            )
+
+    if mean:
+        ax.plot(
+            theta,
+            r.mean(0),
+            linewidth=linewidth,
+            color=mean_color,
+            linestyle=linestyle,
+            marker=marker,
+            label="average",
+            alpha=alpha,
+        )
+
+    if std:
+        ax.fill_between(
+            theta,
+            r.mean(0) - r.std(0),
+            r.mean(0) + r.std(0),
+            color="0.8",
+            alpha=0.5,
+            zorder=-1,
+        )
+
+    ax.tick_params(axis="both", which="major", labelsize=fontsize, pad=anglepad)
+    if rm_yticks:
+        ax.set_yticks([])
+        ax.set_yticklabels([])
+    ax.set_xticks([
+        0,
+        np.pi / 4,
+        np.pi / 2,
+        3 / 4 * np.pi,
+        np.pi,
+        5 / 4 * np.pi,
+        3 / 2 * np.pi,
+        7 / 4 * np.pi,
+    ])
+    ax.set_xticklabels(["0°", "45°", "90°", "", "", "", "", ""])
+
+    ax.set_xlabel(xlabel, fontsize=fontsize, labelpad=xlabelpad, fontweight=fontweight)
+    if all((val is not None for val in (ymin, ymax))):
+        ax.set_ylim((ymin, ymax))
+    plt.setp(ax.spines.values(), color="grey", linewidth=1)
+
+    if legend:
+        ax.legend(**legend_kwargs)
+
+    return fig, ax
+
+
+def stim_trace(time, stim, linewidth=1):
+    fig, ax = plt.subplots(figsize=[2, 0.1])
+    ax.plot(time, stim, "k", linewidth=linewidth)
+    plt_utils.rm_spines(ax)
+    return fig, ax

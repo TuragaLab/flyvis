@@ -728,13 +728,15 @@ class Network(nn.Module):
                 # when datasets return dictionaries, we assume that the stimulus
                 # is stored under the key `default_stim_key`
                 if isinstance(stim, dict):
-                    stim = stim[default_stim_key].squeeze(-2)
+                    stim = stim[default_stim_key]  # (batch, frames, 1, hexals)
+                else:
+                    stim = stim.unsqueeze(-2)  # (batch, frames, 1, hexals)
 
                 # fade in stimulus
                 fade_in_state = self.fade_in_state(
                     t_fade_in=t_fade_in,
                     dt=dt,
-                    initial_frames=stim[:, 0].unsqueeze(1),
+                    initial_frames=stim[:, [0]],
                     state=initial_state,
                 )
 

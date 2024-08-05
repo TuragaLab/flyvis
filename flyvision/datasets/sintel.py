@@ -1003,9 +1003,7 @@ class AugmentedSintel(MultiTaskSintel):
         pdb.set_trace()
         if self.augment:
             return self.pad_nans(
-                self.apply_augmentation(
-                    self.cached_sequences[key], n_rot=0, flip_axis=0
-                ),
+                self.apply_augmentation(self.cached_sequences[key], n_rot=0, flip_axis=0),
                 pad_to_length,
             )
         return self.pad_nans(self.cached_sequences[key], pad_to_length)

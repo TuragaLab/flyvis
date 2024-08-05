@@ -3,6 +3,7 @@
 !/examples/01_flyvision_connectome.ipynb
 !/examples/02_flyvision_optic_flow_task.ipynb
 !/examples/03_flyvision_flash_responses.ipynb
+!/examples/04_flyvision_moving_edge_responses.ipynb
 !/examples/07_flyvision_providing_custom_stimuli.ipynb
 
 /data/**
@@ -17,3 +18,4 @@
 **/__pycache__
 **/**/__pycache__
 .coverage
+flyvision/version.py

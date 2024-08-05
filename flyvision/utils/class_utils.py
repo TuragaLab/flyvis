@@ -51,9 +51,7 @@ def forward_subclass(
                 stacklevel=2,
             )
     else:
-        warn(
-            f"Missing {subclass_key} in config. Using {cls.__qualname__}.", stacklevel=2
-        )
+        warn(f"Missing {subclass_key} in config. Using {cls.__qualname__}.", stacklevel=2)
 
     # Default case: create an instance of the base class
     instance = object.__new__(cls)

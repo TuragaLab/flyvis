@@ -84,9 +84,7 @@ class Task:
         return _init_decoder(self.decoder, connectome)
 
 
-def _init_decoder(
-    config: Dict, connectome: ConnectomeDir
-) -> Dict[str, ActivityDecoder]:
+def _init_decoder(config: Dict, connectome: ConnectomeDir) -> Dict[str, ActivityDecoder]:
     """Initialize decoders.
 
     Returns:
