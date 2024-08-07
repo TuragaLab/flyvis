@@ -88,9 +88,7 @@ def main():
     destination_dir = Path(__file__).parent.parent / "data"
     api_key = "AIzaSyDOy2_N7B5UjxKy5Xxeyd9WZfnDWzQ4-54"
 
-    download_and_unpack_files(
-        folder_id, destination_dir, api_key, large_files=args.skip_large_files
-    )
+    download_and_unpack_files(folder_id, destination_dir, api_key, args.skip_large_files)
 
 
 if __name__ == "__main__":
