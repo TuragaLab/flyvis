@@ -56,6 +56,7 @@ dev = [
     "ruff",
     # Test
     "pytest",
+    "jupyter",
     "papermill"
 ]
 docs = [
