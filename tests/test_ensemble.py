@@ -11,6 +11,8 @@ from flyvision import results_dir
 from flyvision.ensemble import Ensemble, EnsembleView, TaskError
 from flyvision.network import IntegrationWarning, Network
 
+pytestmark = pytest.mark.require_download
+
 
 @pytest.fixture(scope="module")
 def ensemble() -> Ensemble:
@@ -98,6 +100,7 @@ def test_task_error(ensemble):
     assert len(task_error.values) == len(task_error.colors)
 
 
+@pytest.mark.require_large_download
 def test_cluster_indices():
     ensemble = Ensemble(results_dir / "flow/0000")
     network = next(ensemble.yield_networks())

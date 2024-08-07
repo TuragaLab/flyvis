@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-          
+
     steps:
     - uses: actions/checkout@v3
 
@@ -50,5 +50,14 @@ jobs:
     - name: Clean up pip cache
       run: pip cache purge
 
-    - name: Test with pytest
-      run: pytest
+    - name: Test regular tests with pytest
+      run: pytest -m "not require_large_download and not require_download"
+
+    - name: Download data for test
+      run: python scripts/download_pretrained_models.py --skip_large_files
+
+    - name: Test download tests with pytest
+      run: pytest -m "require_download"
+
+    - name: Delete downloaded data
+      run: rm -rf data/results

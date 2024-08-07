@@ -4,6 +4,9 @@ from datamate import set_root_context
 
 from flyvision.datasets.sintel import MultiTaskSintel, RenderedSintel, sintel_meta
 
+# add large_download mark to deselect this test in CI
+pytestmark = pytest.mark.require_large_download
+
 
 def test_rendering(tmp_path_factory):
     with set_root_context(tmp_path_factory.mktemp("tmp")):

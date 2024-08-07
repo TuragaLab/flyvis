@@ -123,12 +123,27 @@ testpaths = [
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "gpu: marks tests that require a gpu (deselect with '-m \"not gpu\"')"
+    "gpu: marks tests that require a gpu (deselect with '-m \"not gpu\"')",
+    "require_large_download: tests that require large data downloads (deselect with '-m \"not require_large_download\"')",
+    "require_download: tests that require data downloads (deselect with '-m \"not require_download\"')"
 ]
+
 
 # Pyright configuration
 [tool.pyright]
-include = ["flyvision", "tests"]
-exclude = ["**/__pycache__", "**/__node_modules__", ".git", "docs", "examples", "config", "data"]
+exclude = [
+    "**/__pycache__",
+    "**/__node_modules__",
+    ".git",
+    "docs",
+  ".fonts",
+  ".ruff_cache",
+  "config",
+  "data",
+  "examples",
+  "images"
+]
+ignore = []
+include = ["flyvision", "scripts", "tests"]
 python_version = "3.x"
 reportUnsupportedDunderAll = false

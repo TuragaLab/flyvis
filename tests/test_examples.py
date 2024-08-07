@@ -7,13 +7,25 @@ import pytest
 examples_path = Path(__file__).parent.parent / "examples"
 # List of notebook names
 notebooks = [
-    "01_flyvision_connectome.ipynb",
-    "02_flyvision_optic_flow_task.ipynb",
-    "03_flyvision_flash_responses.ipynb",
-    "04_flyvision_moving_edge_responses.ipynb",
-    "05_flyvision_umap_and_clustering_models.ipynb",
-    # "06_flyvision_tmy_predictions.ipynb",
-    "07_flyvision_providing_custom_stimuli.ipynb",
+    pytest.param("01_flyvision_connectome.ipynb"),
+    pytest.param(
+        "02_flyvision_optic_flow_task.ipynb", marks=pytest.mark.require_large_download
+    ),
+    pytest.param(
+        "03_flyvision_flash_responses.ipynb", marks=pytest.mark.require_download
+    ),
+    pytest.param(
+        "04_flyvision_moving_edge_responses.ipynb", marks=pytest.mark.require_download
+    ),
+    pytest.param(
+        "05_flyvision_umap_and_clustering_models.ipynb",
+        marks=pytest.mark.require_large_download,
+    ),
+    # pytest.param("06_flyvision_tmy_predictions.ipynb"),
+    pytest.param(
+        "07_flyvision_providing_custom_stimuli.ipynb",
+        marks=pytest.mark.require_download,
+    ),
 ]
 
 

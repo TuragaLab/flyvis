@@ -4,6 +4,9 @@ from datamate import set_root_context
 from flyvision.solver import MultiTaskSolver
 from flyvision.utils.config_utils import get_default_config
 
+# add large_download mark to deselect this test in CI
+pytestmark = pytest.mark.require_large_download
+
 
 @pytest.fixture(scope="module")
 def solver(tmp_path_factory) -> MultiTaskSolver:

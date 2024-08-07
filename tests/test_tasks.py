@@ -1,6 +1,10 @@
+import pytest
 from datamate import Namespace
 
 from flyvision.tasks import Task
+
+# add large_download mark to deselect this test in CI
+pytestmark = pytest.mark.require_large_download
 
 
 def test_task(connectome):
