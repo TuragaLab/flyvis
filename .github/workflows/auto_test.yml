@@ -12,9 +12,22 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+          
     steps:
     - uses: actions/checkout@v3
+
+    - name: Maximize build disk space
+      uses: easimon/maximize-build-space@v10
+      with:
+        root-reserve-mb: 1024  # optional, adjust as needed
+        temp-reserve-mb: 100   # optional, adjust as needed
+        swap-size-mb: 4096     # optional, adjust as needed
+        overprovision-lvm: false  # optional, default is false
+        remove-dotnet: true       # optional, default is false
+        remove-android: true      # optional, default is false
+        remove-haskell: true      # optional, default is false
+        remove-codeql: true       # optional, default is false
+        remove-docker-images: true  # optional, default is false
 
     - name: Set up Python 3.9.16
       uses: actions/setup-python@v3
@@ -27,15 +40,5 @@ jobs:
     - name: Clean up pip cache
       run: pip cache purge
 
-    - name: Clean up apt cache
-      run: sudo apt-get clean
-
     - name: Test with pytest
       run: pytest
-
-    - name: Clean up workspace
-      run: |
-        sudo rm -rf /var/lib/apt/lists/*
-        sudo rm -rf /tmp/*
-        sudo rm -rf ~/.cache/pip
-        sudo docker system prune -af
