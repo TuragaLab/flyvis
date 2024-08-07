@@ -16,18 +16,28 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Display disk space
+      run: df -h /
+
     - name: Maximize build disk space
-      uses: easimon/maximize-build-space@v10
-      with:
-        root-reserve-mb: 1024  # optional, adjust as needed
-        temp-reserve-mb: 100   # optional, adjust as needed
-        swap-size-mb: 4096     # optional, adjust as needed
-        overprovision-lvm: false  # optional, default is false
-        remove-dotnet: true       # optional, default is false
-        remove-android: true      # optional, default is false
-        remove-haskell: true      # optional, default is false
-        remove-codeql: true       # optional, default is false
-        remove-docker-images: true  # optional, default is false
+      # Remove software and language runtimes we're not using
+      run: sudo rm -rf \
+          "$AGENT_TOOLSDIRECTORY" \
+          /opt/google/chrome \
+          /opt/microsoft/msedge \
+          /opt/microsoft/powershell \
+          /opt/pipx \
+          /usr/lib/mono \
+          /usr/local/julia* \
+          /usr/local/lib/android \
+          /usr/local/lib/node_modules \
+          /usr/local/share/chromium \
+          /usr/local/share/powershell \
+          /usr/share/dotnet \
+          /usr/share/swift
+
+    - name: Display disk space
+      run: df -h /
 
     - name: Set up Python 3.9.16
       uses: actions/setup-python@v3
