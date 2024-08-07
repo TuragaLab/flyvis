@@ -29,10 +29,13 @@ requires-python = ">=3.6"
 readme = "README.md"
 dependencies = [
     "ipython",
+    "numba==0.55.2",
     "datamate",
     "scipy",
-    "matplotlib",
+    "matplotlib==3.7.1",
     "networkx",
+    "scikit-learn==1.1.1",
+    "umap-learn==0.5.3",
     "ffmpeg-python",
     "black",
     "pytest",
@@ -43,6 +46,7 @@ dependencies = [
     "toolz",
     "tqdm",
     "requests",
+    "google-api-python-client"
 ]
 
 [project.optional-dependencies]
@@ -52,6 +56,7 @@ dev = [
     "ruff",
     # Test
     "pytest",
+    "papermill"
 ]
 docs = [
     # Documentation
@@ -66,6 +71,12 @@ docs = [
 example = [# Examples
     "jupyter"
     ]
+no-version-pins = [
+    "numba",
+    "matplotlib",
+    "scikit-learn",
+    "umap-learn",
+]
 
 # Package installation configuration
 [tool.setuptools.packages.find]

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import pickle
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
@@ -12,14 +13,18 @@ from typing import Dict, Iterable, Iterator, List, Tuple, Union
 
 import numpy as np
 import torch
-from datamate import Directory, root
+from datamate import Directory, get_root_dir, root
 from matplotlib import colormaps as cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
-from flyvision import plots, results_dir
+from flyvision import experiments_dir, plots
+from flyvision.analysis.clustering import (
+    GaussianMixtureClustering,
+    get_cluster_to_indices,
+)
 from flyvision.network import Network, NetworkDir, NetworkView
 from flyvision.plots.plt_utils import init_plot
 from flyvision.utils.nn_utils import simulation
@@ -31,7 +36,13 @@ class Ensemble(dict):
     """Dictionary to a collection of trained networks.
 
     Args:
-        path: Path to ensemble directory or list of paths to model directories.
+        path: Path to ensemble directory or list of paths to model directories. Can be
+            a single string, then assumes the path is the root directory as configured
+            by datamate.
+        checkpoint: Checkpoint to load from each network.
+        validation_subdir: Subdirectory to look for validation files.
+        loss_file_name: Name of the loss file.
+        try_sort: Whether to try to sort the ensemble by validation error.
 
     Attributes:
         names: List of model names.
@@ -40,7 +51,7 @@ class Ensemble(dict):
         model_paths: List of paths to model directories.
         dir: Directory object for ensemble directory.
 
-    Note, the ensemble is a dynamic dictionary, so you can access the networks
+    Note: the ensemble is a dynamic dictionary, so you can access the networks
     in the ensemble by name or index. For example, to access the first network
     simply do:
         ensemble[0]
@@ -52,8 +63,7 @@ class Ensemble(dict):
 
     def __init__(
         self,
-        path: Union[str, PathLike, Iterable, "EnsembleDir"] = results_dir
-        / "opticflow/000",
+        path: Union[str, PathLike, Iterable, "EnsembleDir"],
         checkpoint="best",
         validation_subdir="validation",
         loss_file_name="loss",
@@ -79,7 +89,7 @@ class Ensemble(dict):
 
         # Initialize pointers to model directories.
         for i, name in tqdm(
-            enumerate(self.names), desc="Loading ensembles", total=len(self.names)
+            enumerate(self.names), desc="Loading ensemble", total=len(self.names)
         ):
             self[name] = NetworkView(
                 NetworkDir(self.model_paths[i]),
@@ -99,6 +109,8 @@ class Ensemble(dict):
             self[0].checkpoints.loss_file_name,
             try_sort,
         )
+
+        self.cache = {}
 
     def __truediv__(self, key):
         return self.__getitem__(key)
@@ -138,11 +150,21 @@ class Ensemble(dict):
     def values(self) -> List[NetworkView]:
         return [self[k] for k in self]
 
+    def check_configs_match(self):
+        """Check if the configurations of the networks in the ensemble match."""
+        config0 = self[0].dir.config
+        for i in range(1, len(self)):
+            diff = config0.diff(self[i].dir.config, name1="first", name2="second").first
+            if diff:
+                logging.warning(
+                    f"{self[0].name} differs from {self[i].name}. Diff is {diff}."
+                )
+                return False
+        return True
+
     def yield_networks(self) -> Iterator[Network]:
         """Yield initialized networks from the ensemble."""
-        # TODO: since the nn.Module is simply updated with inidividual weights
-        # for efficiency, this requires a config check somwhere to make sure the
-        # networks are compatible.
+        assert self.check_configs_match(), "configurations do not match"
         network = self[0].init_network()
         yield network
         for network_view in self.values()[1:]:
@@ -150,6 +172,7 @@ class Ensemble(dict):
 
     def yield_decoders(self):
         """Yield initialized decoders from the ensemble."""
+        assert self.check_configs_match(), "configurations do not match"
         decoder = self[0].init_decoder()
         for network_view in self.values():
             yield network_view.init_decoder(decoder=decoder)
@@ -166,8 +189,15 @@ class Ensemble(dict):
 
         Yields:
             array: response of each individual network
+
+        Note: simulates across batch_size in parallel, i.e., easily leading to OOM for
+        large batch sizes.
         """
-        for network in self.yield_networks():
+        for network in tqdm(
+            self.yield_networks(),
+            desc="Simulating network",
+            total=len(self.names),
+        ):
             yield (
                 network.simulate(
                     movie_input,
@@ -181,6 +211,43 @@ class Ensemble(dict):
                 .cpu()
                 .numpy()
             )
+
+    def simulate_from_dataset(
+        self,
+        dataset,
+        dt: float,
+        indices: Iterable[int] = None,
+        t_pre: float = 1.0,
+        t_fade_in: float = 0.0,
+        default_stim_key: str = "lum",
+        batch_size: int = 1,
+        central_cell_only=True,
+    ):
+        if central_cell_only:
+            central_cells_index = self[0].connectome.central_cells_index[:]
+        for network in tqdm(
+            self.yield_networks(),
+            desc="Simulating network",
+            total=len(self.names),
+        ):
+
+            def handle_network(network):
+                for _, resp in network.stimulus_response(
+                    dataset,
+                    dt=dt,
+                    indices=indices,
+                    t_pre=t_pre,
+                    t_fade_in=t_fade_in,
+                    default_stim_key=default_stim_key,
+                    batch_size=batch_size,
+                ):
+                    if central_cell_only:
+                        yield resp[:, :, central_cells_index]
+                    else:
+                        yield resp
+
+            r = np.stack(list(handle_network(network)))
+            yield r.reshape(-1, r.shape[-2], r.shape[-1])
 
     def decode(self, movie_input, dt):
         """Decode the ensemble responses with the ensemble decoders."""
@@ -219,10 +286,21 @@ class Ensemble(dict):
         except Exception as e:
             logging.info(f"sorting failed: {e}")
 
-    def validation_losses(self, subdir=None, file=None):
+    def validation_losses(self, subdir: str = None, file: str = None):
         """Return a list of validation losses for each network in the ensemble."""
         subdir, file = self.validation_file(subdir, file)
+
+        cache_key = (",".join(self.names), subdir, file)
+
+        # Check if the result is in the cache
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
         losses = [network.dir[subdir][file][()].min() for network in self.values()]
+
+        # Store the result in the cache
+        self.cache[cache_key] = losses
+
         return losses
 
     @contextmanager
@@ -309,7 +387,7 @@ class Ensemble(dict):
         The TaskError object contains the validation losses, the colors, the
         colormap, the norm, and the scalar mapper.
         """
-        error = self.validation_losses()
+        error = np.array(self.validation_losses())
 
         if truncate is None:
             # truncate because the maxval would be white with the default colormap
@@ -326,46 +404,49 @@ class Ensemble(dict):
 
         return TaskError(error, colors, cmap, norm, sm)
 
+    def clustering(self, cell_type) -> GaussianMixtureClustering:
+        """Return the clustering of the ensemble for a given cell type."""
+
+        if not self.dir.umap_and_clustering:
+            # TODO: port the clustering code here
+            raise ValueError("clustering not available")
+
+        path = self.dir.umap_and_clustering[f"{cell_type}.pickle"]
+        with open(path, "rb") as file:
+            clustering = pickle.load(file)
+
+        return clustering
+
     def cluster_indices(self, cell_type: str) -> Dict[int, NDArray[int]]:
         """Clusters from responses to naturalistic stimuli of the given cell type.
 
-        Args:
-            cell_type: The cell type to return the clusters for.
+         Args:
+             cell_type: The cell type to return the clusters for.
 
-        Returns: keys are the cluster ids and the values are the model indices
-            in the ensemble.
+         Returns: keys are the cluster ids and the values are the model indices
+             in the ensemble.
 
-        Note, this method accesses precomputed clusters.
+        TODO: add computing the clusters if not available.
 
-        Example:
-            ensemble = Ensemble("path/to/ensemble")
-            cluster_indices = ensemble.cluster_indices("T4a")
-            first_cluster = ensemble[cluster_indices[0]]
+         Example:
+             ensemble = Ensemble("path/to/ensemble")
+             cluster_indices = ensemble.cluster_indices("T4a")
+             first_cluster = ensemble[cluster_indices[0]]
         """
-        if not self.dir.clustering:
-            raise ValueError("clustering not available")
-        if cell_type not in list(self.dir.clustering.keys()):
-            raise ValueError(f"cell type {cell_type} not available")
-        cluster_indices = self.dir.clustering[cell_type].to_dict()
 
-        _models = sorted(
-            np.concatenate(list(self.dir.clustering[cell_type].to_dict().values()))
+        clustering = self.clustering(cell_type)
+        cluster_indices = get_cluster_to_indices(
+            clustering.embedding.mask, clustering.labels, task_error=self.task_error()
         )
-        if len(_models) != len(self) or not np.all(_models == np.arange(len(self))):
+
+        _models = sorted(np.concatenate(list(cluster_indices.values())))
+        if len(_models) != clustering.embedding.mask.sum() or len(_models) > len(self):
             raise ValueError("stored clustering does not match ensemble")
 
-        return dict(
-            sorted(
-                {
-                    int(k): np.sort(v)
-                    for k, v in cluster_indices.items()
-                    if k != "masked"
-                }.items()
-            )
-        )
+        return cluster_indices
 
 
-@root(results_dir)
+@root(experiments_dir)
 class EnsembleDir(Directory):
     """A directory that contains a collection of trained networks."""
 
@@ -427,7 +508,9 @@ def model_paths_from_parent(path):
 
 def model_path_names(model_paths):
     """Return a list of model names and an ensemble name from a list of model paths."""
-    model_names = [str(path).replace(str(results_dir) + "/", "") for path in model_paths]
+    model_names = [
+        str(path).replace(str(get_root_dir()) + "/", "") for path in model_paths
+    ]
     ensemble_name = ", ".join(np.unique([n[:-4] for n in model_names]).tolist())
     return model_names, ensemble_name
 
@@ -440,7 +523,7 @@ def model_paths_from_names_or_paths(paths: List[str | Path]) -> Tuple[List[Path]
         if isinstance(path, str):
             # assuming task/ensemble_id/model_id
             if len(path.split("/")) == 3:
-                model_paths.append(results_dir / path)
+                model_paths.append(get_root_dir() / path)
             # assuming task/ensemble_id
             elif len(path.split("/")) == 2:
                 model_paths.extend(model_paths_from_parent(path)[0])

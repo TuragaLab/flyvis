@@ -13,7 +13,7 @@ from PIL import Image
 from datamate import Directory, Namespace, root
 from tqdm import tqdm
 
-import flyvision
+from flyvision import renderings_dir
 from flyvision.augmentation.hex import (
     ContrastBrightness,
     GammaCorrection,
@@ -33,7 +33,7 @@ from flyvision.utils.dataset_utils import download_sintel
 logging = logger = logging.getLogger(__name__)
 
 
-@root(flyvision.sintel_dir)
+@root(renderings_dir)
 class RenderedSintel(Directory):
     """Rendering and referencing rendered sintel data.
 
@@ -998,9 +998,6 @@ class AugmentedSintel(MultiTaskSintel):
         return data
 
     def get_item(self, key, pad_to_length=None):
-        import pdb
-
-        pdb.set_trace()
         if self.augment:
             return self.pad_nans(
                 self.apply_augmentation(self.cached_sequences[key], n_rot=0, flip_axis=0),

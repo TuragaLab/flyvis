@@ -1,46 +1,37 @@
-# Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution
+# Flyvision
 
-Official implementation of [Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
-
-We provide our deep mechanistic networks (DMN) as discovery tool for generating
+A connectome constrained deep mechanistic network (DMN) model of the fruit fly visual system in Pytorch as discovery tool for generating
 and testing hypotheses about neural computations with connectomes.
 
-The library includes abstractions and extension points for building DMNs
-and dynamic stimulus datasets in Pytorch.
+It's our official implementation of [Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
 
-## Generating hypotheses about neural computations with DMNs
+Besides pretrained models and analyses, the library includes abstractions and
+extension points for building DMNs and dynamic stimulus datasets in Pytorch.
 
-### Getting started
+## Quickstart
 
-We first release examples to
-explore the connectome and how to provide custom stimuli to the models and
-explore their responses. Try our models inside our Google Colab notebooks:
+Try the models and code inside our Google Colab notebooks for a quickstart.
 
-- [Explore the connectome](Todo)
-- [Provide custom stimuli](Todo)
+- [Explore the connectome](https://colab.research.google.com/drive/16xi96XS3whNhwMNeFihBNNgADVh60XHH?usp=sharing)
+- [Provide custom stimuli](https://colab.research.google.com/drive/1xBJ-xLgmLGhXgkf8XLw2PRRlDrYQ1Hhv?usp=sharing)
+- [Optic flow task]()
+- [Flash responses]()
+- [Moving edge responses]()
+- [Umap and clustering]()
+- [Maximally excitatory stimuli]()
 
-All in between, touching
-results already described in the paper, will come soon.
-
-### More to come 🔜
-
-- Optic flow task
-- Flash responses
-- Moving edge responses
-- Naturalistic stimuli responses
-- Maximally excitatory stimuli
-- Predictions for unknown cell types
-
-### Local installation
-
-For installing the package locally, follow the steps below (assuming conda is installed):
+## Local installation
 
 1. create a new conda environment `conda create --name flyvision -y`
 2. activate the new conda environment `conda activate flyvision`
 3. install python `conda install "python>=3.7.11,<3.10.0"`
 4. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
 5. navigate to the repo `cd flyvis` and install in developer mode `pip install -e .`
-6. (run `pytest` to check if all tests run through)
+
+## Download pretrained models
+
+1. run `python scripts/download_pretrained_models.py` from active conda environment
+
 
 ## Background
 
@@ -64,11 +55,6 @@ computation from naturalistic movie inputs.
 <img src="images/tweet_5_training_light.gif"  width="60%" height="30%" class="center">
 </p>
 
-## Contributors
-
-- Janne ([@lappalainenj](https://github.com/lappalainenj), lappalainenjk@gmail.com)
-- Mason ([@MasonMcGill](https://github.com/MasonMcGill))
-
 ## Citation
 
 ```
@@ -82,3 +68,6 @@ computation from naturalistic movie inputs.
   year={2023}
 }
 ```
+
+## Correspondence
+[mailto:lappalainenjk@gmail.com](mailto:lappalainenjk@gmail.com)

@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-from datamate import Directory, Namespace
+from datamate import Directory, Namespace, root
 from matplotlib.patches import RegularPolygon
 from tqdm.auto import tqdm
 
+from flyvision import renderings_dir
 from flyvision.datasets.datasets import StimulusDataset
 from flyvision.plots.plots import quick_hex_scatter
 from flyvision.plots.plt_utils import init_plot
@@ -20,6 +21,7 @@ from flyvision.rendering.utils import pad, resample, shuffle
 logging = logging.getLogger()
 
 
+@root(renderings_dir)
 class RenderedOffsets(Directory):
     """Rendered offsets for the moving bar stimulus.
 

@@ -15,6 +15,7 @@ from datamate import Directory, Namespace, root
 from toolz import valmap
 from torch import Tensor
 from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 
 import flyvision
 from flyvision.connectome import ConnectomeDir, ConnectomeView
@@ -31,7 +32,6 @@ from flyvision.utils.chkpt_utils import (
 )
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.dataset_utils import IndexSampler
-from flyvision.utils.logging_utils import warn_once
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
@@ -689,6 +689,7 @@ class Network(nn.Module):
         t_fade_in: float = 0.0,
         grad: bool = False,
         default_stim_key: Any = "lum",
+        batch_size: int = 1,
     ):
         """Compute stimulus responses for a given stimulus dataset.
 
@@ -714,7 +715,7 @@ class Network(nn.Module):
         if indices is None:
             indices = np.arange(len(stim_dataset))
         stim_loader = DataLoader(
-            stim_dataset, batch_size=1, sampler=IndexSampler(indices)
+            stim_dataset, batch_size=batch_size, sampler=IndexSampler(indices)
         )
 
         stimulus = self.stimulus
@@ -724,7 +725,9 @@ class Network(nn.Module):
 
         with self.enable_grad(grad):
             logging.info(f"Computing {len(indices)} stimulus responses.")
-            for stim in stim_loader:
+            for stim in tqdm(
+                stim_loader, desc="Batch", total=len(stim_loader), leave=False
+            ):
                 # when datasets return dictionaries, we assume that the stimulus
                 # is stored under the key `default_stim_key`
                 if isinstance(stim, dict):
@@ -848,14 +851,9 @@ class Network(nn.Module):
                 yield handle_stim(stim, fade_in_state)
 
 
-@root(flyvision.results_dir)
+@root(flyvision.experiments_dir)
 class NetworkDir(Directory):
     """Directory for a network."""
-
-
-def _is_paper_result(name):
-    """Check if the results dir is a paper result."""
-    return name.startswith("opticflow/000")
 
 
 class NetworkView(ConnectomeView):
@@ -881,23 +879,10 @@ class NetworkView(ConnectomeView):
             network_dir = NetworkDir(network_dir)
         self.dir = network_dir
         self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")
-
-        paper_result = _is_paper_result(self.name)
-        if paper_result:
-            warn_once(
-                logger,
-                "Loading paper result, adapting checkpoint and validation subdir...",
-            )
-            checkpoint, validation_subdir, loss_file_name = (
-                "best_chkpt",
-                "",
-                "validation_loss",
-            )
-
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
         self.checkpoints = resolve_checkpoints(
-            self.dir, checkpoint, validation_subdir, loss_file_name, paper_result
+            self.dir, checkpoint, validation_subdir, loss_file_name
         )
         self._initialized = dict(network=False, decoder=False)
 

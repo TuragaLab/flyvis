@@ -14,15 +14,8 @@ from flyvision.network import IntegrationWarning, Network
 
 @pytest.fixture(scope="module")
 def ensemble() -> Ensemble:
-    models = [results_dir / f"opticflow/000/{i:04}" for i in range(6)]
-    ensemble = Ensemble(
-        models,
-        checkpoint="best_chkpt",
-        validation_subdir="",
-        loss_file_name="validation_loss",
-        try_sort=True,
-    )
-    # ensemble = Ensemble(results_dir / "opticflow/000")
+    models = [results_dir / f"flow/0000/{i:03}" for i in range(6)]
+    ensemble = Ensemble(models)
     return ensemble
 
 
@@ -106,12 +99,7 @@ def test_task_error(ensemble):
 
 
 def test_cluster_indices():
-    ensemble = Ensemble(
-        results_dir / "opticflow/000",
-        checkpoint="best_chkpt",
-        validation_subdir="",
-        loss_file_name="validation_loss",
-    )
+    ensemble = Ensemble(results_dir / "flow/0000")
     network = next(ensemble.yield_networks())
     for cell_type in network.cell_types:
         cluster_indices = ensemble.cluster_indices(cell_type)
@@ -132,10 +120,7 @@ def test_loss_histogram(ensemble: Ensemble):
 
 def test_responses():
     ensemble = Ensemble(
-        results_dir / "opticflow/000",
-        checkpoint="best_chkpt",
-        validation_subdir="",
-        loss_file_name="validation_loss",
+        results_dir / "flow/0000",
     )
 
     test_data_dir = Directory(Path(__file__).parent / "data")

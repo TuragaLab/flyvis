@@ -1013,12 +1013,15 @@ def grouped_traces(
         colors = [color_cycle[i % len(color_cycle)] for i in range(len(trace_groups))]
     elif len(np.shape(color)) <= 1:
         colors = (color,) * len(trace_groups)
-    elif len(color) == len(trace_groups):
+    elif len(color) == len(trace_groups) or (
+        len(trace_groups) == 1 and len(color) == trace_groups[0].shape[0]
+    ):
         colors = color
     else:
         raise ValueError(
             "`color` should be a single value, an iterable of length "
-            f"`traces.shape[0]`, or None. Got {color}."
+            f"`traces.shape[0]`, or None. Got {color} of shape {np.shape(color)}."
+            f"Expected {np.shape(trace_groups)}."
         )
 
     for i, _trace in enumerate(trace_groups):

@@ -117,7 +117,7 @@ def launch_range(
     job_id_names = {}
     for i in range(start, end):
         kw = kwargs.copy()
-        network_id = f"{ensemble_id:03}/{i:04}"
+        network_id = f"{ensemble_id:04}/{i:03}"
         assert "_" not in network_id
         network_dir = results_dir / task_name / network_id
         if not network_dir.exists():

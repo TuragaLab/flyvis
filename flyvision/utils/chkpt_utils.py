@@ -146,21 +146,14 @@ def resolve_checkpoints(
     checkpoint: Union[int, str] = "best",
     validation_subdir: str = "validation",
     loss_file_name: str = "loss",
-    paper_results: bool = False,
 ) -> Checkpoints:
     """Resolves checkpoints from networkdir."""
-    if paper_results:
+
+    if networkdir.status == "paper results":
         # This is for the shared trained models, which follow a slightly different
-        # naming convention and only store one checkpoint in comparison to new models.
-        return Checkpoints(
-            choice=checkpoint,
-            index=0,
-            path=networkdir[checkpoint],
-            indices=[0],
-            paths=[networkdir[checkpoint]],
-            validation_subdir=validation_subdir,
-            loss_file_name=loss_file_name,
-        )
+        # naming convention and only store one checkpoint in comparison to new models
+        # to make sure we don't mix them up.
+        return _resolve_paper_results(networkdir)
 
     index = _check_checkpoint(networkdir, checkpoint, validation_subdir, loss_file_name)
     indices, paths = init_or_get_checkpoints(networkdir.chkpts.path)
@@ -202,3 +195,19 @@ def _check_checkpoint(
         checkpoint = slice(None)
 
     return checkpoint
+
+
+def _resolve_paper_results(networkdir):
+    warn_once(
+        logging,
+        "Loading paper result from stored checkpoint and validation subdir...",
+    )
+    return Checkpoints(
+        choice="best_chkpt",
+        index=0,
+        path=networkdir["best_chkpt"],
+        indices=[0],
+        paths=[networkdir["best_chkpt"]],
+        validation_subdir="",
+        loss_file_name="validation_loss",
+    )
