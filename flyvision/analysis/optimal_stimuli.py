@@ -16,32 +16,32 @@ from flyvision.utils import cache_utils, hex_utils, tensor_utils
 from flyvision.utils.activity_utils import CellTypeArray, LayerActivity
 
 
-class NaturalisticOptimalStimuli:
-    """Methods to derive optimal stimuli for cells.
+class FindOptimalStimuli:
+    """Methods to derive optimal stimuli for cells from stimuli dataset.
 
     Args:
         network_view (NetworkView): network view.
-        naturalistic_stimuli (StimulusDataset | str, optional): naturalistic stimuli.
+        stimuli (StimulusDataset | str, optional): stimuli dataset.
             Defaults to "default" (AugmentedSintelLum).
     """
 
     def __init__(
         self,
         network_view: NetworkView,
-        naturalistic_stimuli: StimulusDataset | str = "default",
+        stimuli: StimulusDataset | str = "default",
     ):
         self.network = network_view.init_network()  # type: Network
         for param in self.network.parameters():
             param.requires_grad = False
         self.central_cells_index = self.network.connectome.central_cells_index[:]
-        self.naturalistic_stimuli = (
+        self.stimuli = (
             AugmentedSintel(tasks=["lum"], dt=1 / 100, temporal_split=True)
-            if naturalistic_stimuli == "default"
-            else naturalistic_stimuli
+            if stimuli == "default"
+            else stimuli
         )
         self.cache = {}
 
-    def compute_responses_to_naturalistic_stimuli(
+    def compute_responses_to_stimuli(
         self,
         dt=None,
         batch_size=4,
@@ -58,8 +58,8 @@ class NaturalisticOptimalStimuli:
 
         def handle_network(network: Network):
             for _, resp in network.stimulus_response(
-                self.naturalistic_stimuli,
-                dt=dt or self.naturalistic_stimuli.dt,
+                self.stimuli,
+                dt=dt or self.stimuli.dt,
                 indices=indices,
                 t_pre=t_pre,
                 t_fade_in=t_fade_in,
@@ -74,7 +74,7 @@ class NaturalisticOptimalStimuli:
         self.cache[cache_key] = responses
         return responses
 
-    def naturalistic_optimal_stimuli(
+    def optimal_stimuli(
         self,
         cell_type,
         dt=1 / 100,
@@ -83,14 +83,18 @@ class NaturalisticOptimalStimuli:
         batch_size=4,
         indices=None,
     ):
-        """Derives optimal stimuli for a given cell type using naturalistic stimuli.
+        """Finds optimal stimuli for a given cell type in stimuli dataset.
 
         Args:
-            cell_type (str): cell type.
-            dt (float, optional): integration time constant. Defaults to None.
-            mode (str, optional): transient or sustained"""
+            cell_type (str): node type.
+            dt (float, optional): time step. Defaults to 1 / 100.
+            t_pre (float, optional): pre-stimulus time. Defaults to 0.
+            t_fade_in (float, optional): fade-in time. Defaults to 2.0.
+            batch_size (int, optional): batch size. Defaults to 4.
+            indices (list, optional): indices of stimuli. Defaults to None.
+        """
 
-        responses = self.compute_responses_to_naturalistic_stimuli(
+        responses = self.compute_responses_to_stimuli(
             dt=dt,
             batch_size=batch_size,
             t_pre=t_pre,
@@ -98,8 +102,11 @@ class NaturalisticOptimalStimuli:
             indices=indices,
         )
         cell_responses = responses[cell_type]
+
         argmax = np.argmax(np.nanmax(cell_responses, axis=1))
-        nat_opt_stim = self.naturalistic_stimuli[argmax]["lum"]
+        if indices is not None:
+            argmax = indices[argmax]
+        nat_opt_stim = self.stimuli[argmax]["lum"]
 
         n_frames = nat_opt_stim.shape[0]
         initial_state = self.network.steady_state(1.0, dt, 1)
@@ -111,9 +118,9 @@ class NaturalisticOptimalStimuli:
             cell_type
         ]
 
-        return NatOptimalStimuli(nat_opt_stim[None, :], response[:, :, None])
+        return OptimalStimulus(nat_opt_stim[None, :], response[:, :, None])
 
-    def regularized_naturalistic_optimal_stimuli(
+    def regularized_optimal_stimuli(
         self,
         cell_type,
         l2_act=1,
@@ -126,24 +133,25 @@ class NaturalisticOptimalStimuli:
         batch_size=4,
         indices=None,
     ):
-        """Regularizes the nmei such that the central node activity of the given type
-        is unaltered but the mean square of the input pixels is minimized.
+        """Regularizes the optimal stimulus such that the central node activity of the
+        given type remains but the mean square of the input pixels is minimized.
 
         Args:
             cell_type (str): node type.
+            l2_act (float, optional): L2 regularization strength for the activity.
+            Defaults to 1.
             lr (float, optional): learning rate. Defaults to 1e-2.
-            l2_stim (float, optional): stimulus regularization. Defaults to 0.01.
+            l2_stim (float, optional): L2 regularization strength for the stimulus.
+            Defaults to 1.
             n_iters (int, optional): number of iterations. Defaults to 100.
-
-        Returns:
-            tensor: stimulus bin maximally exciting the central node of the type.
-            tensor: accompanying activity bin of that node type lattice.
-            tuple of tensors: recorded and target central activity.
-            tensor: unaltered stimulus.
-            tensor: unaltered activity.
+            dt (float, optional): time step. Defaults to 1 / 100.
+            t_pre (float, optional): pre-stimulus time. Defaults to 0.
+            t_fade_in (float, optional): fade-in time. Defaults to 2.0.
+            batch_size (int, optional): batch size. Defaults to 4.
+            indices (list, optional): indices of stimuli. Defaults to None.
         """
 
-        nat_optim_stimuli = self.naturalistic_optimal_stimuli(
+        optim_stimuli = self.optimal_stimuli(
             cell_type=cell_type,
             dt=dt,
             t_pre=t_pre,
@@ -152,24 +160,24 @@ class NaturalisticOptimalStimuli:
             indices=indices,
         )
         non_nan = ~torch.isnan(
-            nat_optim_stimuli.stimulus[0, :, 0, nat_optim_stimuli.stimulus.shape[-1] // 2]
+            optim_stimuli.stimulus[0, :, 0, optim_stimuli.stimulus.shape[-1] // 2]
         )
-        reg_nat_opt_stim = nat_optim_stimuli.stimulus.clone()
-        reg_nat_opt_stim = reg_nat_opt_stim[:, non_nan]
-        reg_nat_opt_stim.requires_grad = True
+        reg_opt_stim = optim_stimuli.stimulus.clone()
+        reg_opt_stim = reg_opt_stim[:, non_nan]
+        reg_opt_stim.requires_grad = True
 
         central_target_response = (
-            nat_optim_stimuli.response.to(non_nan.device)[
-                :, non_nan, :, nat_optim_stimuli.response.shape[-1] // 2
+            optim_stimuli.response.to(non_nan.device)[
+                :, non_nan, :, optim_stimuli.response.shape[-1] // 2
             ]
             .clone()
             .detach()
             .squeeze()
         )
 
-        optim = torch.optim.Adam([reg_nat_opt_stim], lr=lr)
+        optim = torch.optim.Adam([reg_opt_stim], lr=lr)
 
-        n_frames = reg_nat_opt_stim.shape[1]
+        n_frames = reg_opt_stim.shape[1]
 
         stim = Stimulus(self.network.connectome, 1, n_frames)
 
@@ -181,7 +189,7 @@ class NaturalisticOptimalStimuli:
         for _ in range(n_iters):
             optim.zero_grad()
             stim.zero()
-            stim.add_input(reg_nat_opt_stim)
+            stim.add_input(reg_opt_stim)
             activities = self.network(stim(), dt, state=initial_state)
             layer_activity.update(activities)
             central_predicted_response = layer_activity.central[cell_type].squeeze()
@@ -190,25 +198,25 @@ class NaturalisticOptimalStimuli:
                 l2_act
                 * ((central_predicted_response - central_target_response) ** 2).sum()
             )
-            stim_loss = l2_stim * ((reg_nat_opt_stim - 0.5) ** 2).mean(dim=0).sum()
+            stim_loss = l2_stim * ((reg_opt_stim - 0.5) ** 2).mean(dim=0).sum()
             loss = act_loss + stim_loss
             loss.backward(retain_graph=True)
             optim.step()
             losses.append(loss.detach().cpu().numpy())
 
         stim.zero()
-        reg_nat_opt_stim.requires_grad = False
-        stim.add_input(reg_nat_opt_stim)
+        reg_opt_stim.requires_grad = False
+        stim.add_input(reg_opt_stim)
         activities = self.network(stim(), dt, state=initial_state)
         layer_activity.update(activities)
 
-        reg_nat_opt_stim = reg_nat_opt_stim.detach().cpu()
+        reg_opt_stim = reg_opt_stim.detach().cpu()
         rnmei_response = layer_activity[cell_type].detach().cpu()
         central_predicted_response = central_predicted_response.detach().cpu()
         central_target_response = central_target_response.detach().cpu()
-        return RegNatOptimalStimuli(
-            nat_optim_stimuli,
-            reg_nat_opt_stim,
+        return RegularizedOptimalStimulus(
+            optim_stimuli,
+            reg_opt_stim,
             rnmei_response,
             central_predicted_response,
             central_target_response,
@@ -216,7 +224,7 @@ class NaturalisticOptimalStimuli:
         )
 
 
-class ArtificialOptimalStimuli:
+class GenerateOptimalStimuli:
     """Methods to generate optimal stimuli for cells from random noise."""
 
     def __init__(self, network_view: NetworkView):
@@ -308,18 +316,18 @@ class ArtificialOptimalStimuli:
         responses = activity.detach().cpu().numpy()[:, :, stimulus.layer_index[cell_type]]
 
         art_opt_stim = art_opt_stim.cpu().numpy()
-        return ArtOptimalStimuli(art_opt_stim, responses, losses)
+        return GeneratedOptimalStimulus(art_opt_stim, responses, losses)
 
 
 @dataclass
-class NatOptimalStimuli:
+class OptimalStimulus:
     stimulus: np.ndarray
     response: np.ndarray
 
 
 @dataclass
-class RegNatOptimalStimuli:
-    stimulus: NatOptimalStimuli
+class RegularizedOptimalStimulus:
+    stimulus: OptimalStimulus
     regularized_stimulus: np.ndarray
     response: np.ndarray
     central_predicted_response: np.ndarray
@@ -328,7 +336,7 @@ class RegNatOptimalStimuli:
 
 
 @dataclass
-class ArtOptimalStimuli:
+class GeneratedOptimalStimulus:
     stimulus: np.ndarray
     response: np.ndarray
     losses: np.ndarray
