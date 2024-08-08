@@ -141,10 +141,9 @@ exclude = [
   ".ruff_cache",
   "config",
   "data",
-  "examples",
   "images"
 ]
 ignore = []
-include = ["flyvision", "scripts", "tests"]
+include = ["flyvision", "scripts", "tests", "examples"]
 python_version = "3.x"
 reportUnsupportedDunderAll = false

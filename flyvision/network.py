@@ -632,6 +632,7 @@ class Network(nn.Module):
         # replicate initial frame over int(t_fade_in/dt) frames and fade in
         # by ramping up the contrast
         self.stimulus.zero(batch_size, int(t_fade_in / dt))
+
         initial_frames = (
             torch.linspace(0, 1, int(t_fade_in / dt))[None, :, None]
             * (initial_frames.repeat(1, int(t_fade_in / dt), 1) - 0.5)
@@ -739,7 +740,7 @@ class Network(nn.Module):
                 fade_in_state = self.fade_in_state(
                     t_fade_in=t_fade_in,
                     dt=dt,
-                    initial_frames=stim[:, [0]],
+                    initial_frames=stim[:, 0],
                     state=initial_state,
                 )
 

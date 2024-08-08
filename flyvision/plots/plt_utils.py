@@ -12,6 +12,7 @@ from matplotlib import colormaps as cm
 from matplotlib.axes import Axes
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, Normalize, TwoSlopeNorm, hex2color
+from matplotlib.gridspec import GridSpec
 
 
 def init_plot(
@@ -918,6 +919,89 @@ def divide_axis_to_grid(
         axes[_ax] = fig.add_axes(pos, projection=projection)
 
     return axes
+
+
+def divide_figure_to_grid(
+    matrix=[
+        [0, 1, 1, 1, 2, 2, 2],
+        [3, 4, 5, 6, 2, 2, 2],
+        [3, 7, 7, 7, 2, 2, 2],
+        [3, 8, 8, 12, 2, 2, 2],
+        [3, 10, 11, 12, 2, 2, 2],
+    ],
+    as_matrix=False,
+    alpha=0,
+    constrained_layout=False,
+    fig=None,
+    figsize=[10, 10],
+    projection=None,
+    wspace=0.1,
+    hspace=0.3,
+    no_spines=False,
+    keep_nan_axes=False,
+    fontsize=5,
+    reshape_order="F",
+):
+    """
+    Creates a figure grid specified by the arrangement of unique
+    elements in a matrix.
+
+    Today there is also an official plt.subplot_mosaic with more features.
+    """
+
+    def _array_to_slice(array):
+        step = 1
+        start = array.min()
+        stop = array.max() + 1
+        return slice(start, stop, step)
+
+    fig = plt.figure(figsize=figsize) if fig is None else fig
+    fig.set_constrained_layout(constrained_layout)
+    matrix = np.ma.masked_invalid(matrix)
+    rows, columns = matrix.shape
+
+    gs = GridSpec(rows, columns, figure=fig, hspace=hspace, wspace=wspace)
+
+    axes = {}
+    for val in np.unique(matrix[~matrix.mask]):
+        _row_ind, _col_ind = np.where(matrix == val)
+        _row_slc, _col_slc = _array_to_slice(_row_ind), _array_to_slice(_col_ind)
+
+        _projection = projection[val] if isinstance(projection, dict) else projection
+        ax = fig.add_subplot(gs[_row_slc, _col_slc], projection=_projection)
+        ax.patch.set_alpha(alpha)
+        ax.tick_params(axis="both", which="major", labelsize=fontsize)
+        if projection is None:
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+        axes[val] = ax
+
+    if keep_nan_axes:
+        for _row_ind, _col_ind in np.array(np.where(np.isnan(matrix))).T:
+            _row_slc, _col_slc = _array_to_slice(_row_ind), _array_to_slice(_col_ind)
+            ax = fig.add_subplot(gs[_row_slc, _col_slc])
+            ax.patch.set_alpha(alpha)
+            rm_spines(ax, ("left", "right", "top", "bottom"))
+
+    if no_spines:
+        for ax in axes.values():
+            rm_spines(ax, rm_xticks=True, rm_yticks=True)
+
+    if as_matrix:
+        if reshape_order == "special":
+            # reshape based on elements in matrix
+            ax_matrix = np.ones(matrix.shape, dtype=object) * np.nan
+            for key, value in axes.items():
+                _row_ind, _col_ind = np.where(matrix == key)
+                ax_matrix[_row_ind, _col_ind] = value
+            axes = ax_matrix
+        else:
+            # reshape without considering specific locations
+            _axes = np.ones(matrix.shape, dtype=object).flatten() * np.nan
+            _axes[: len(axes)] = np.array(list(axes.values()), dtype=object)
+            axes = _axes.reshape(matrix.shape, order=reshape_order)
+
+    return fig, axes
 
 
 def scale(x, y, wpad=0.1, hpad=0.1, wspace=0, hspace=0):
