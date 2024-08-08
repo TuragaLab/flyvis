@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Union
 import numpy as np
 import torch
 import torch.nn as nn
-from datamate import Directory, Namespace, root
+from datamate import Directory, Namespace, root, set_root_context
 from toolz import valmap
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -852,7 +852,7 @@ class Network(nn.Module):
                 yield handle_stim(stim, fade_in_state)
 
 
-@root(flyvision.experiments_dir)
+@root(flyvision.results_dir)
 class NetworkDir(Directory):
     """Directory for a network."""
 
@@ -877,19 +877,55 @@ class NetworkView(ConnectomeView):
         loss_file_name="loss",
     ):
         if isinstance(network_dir, (PathLike, str)):
-            network_dir = NetworkDir(network_dir)
+            with set_root_context(flyvision.results_dir):
+                network_dir = Directory(network_dir)
         self.dir = network_dir
+        if not self.dir.config.type == "NetworkDir":
+            raise ValueError(
+                f"Expected NetworkDir, found {self.dir.config.type} at {self.dir.path}."
+            )
         self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
-        self.checkpoints = resolve_checkpoints(
-            self.dir, checkpoint, validation_subdir, loss_file_name
-        )
-        self._initialized = dict(network=False, decoder=False)
+        self._initialized = dict(network=None, decoder=None)
+        self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
+        logging.info(f"Initialized network view at {str(self.dir.path)}.")
 
-    def reset_init(self, key):
-        """Reset initialization of a component."""
-        self._initialized[key] = False
+    def update_checkpoint(
+        self, checkpoint=None, validation_subdir=None, loss_file_name=None
+    ):
+        self.checkpoints = resolve_checkpoints(
+            self.dir,
+            self.checkpoints.choice if checkpoint is None else checkpoint,
+            (
+                self.checkpoints.validation_subdir
+                if validation_subdir is None
+                else validation_subdir
+            ),
+            (
+                self.checkpoints.loss_file_name
+                if loss_file_name is None
+                else loss_file_name
+            ),
+        )
+        if (
+            self._initialized["network"]
+            and self.checkpoints.path != self._initialized["network"]
+        ):
+            self.init_network(self.network)
+        if (
+            self._initialized["decoder"]
+            and self.checkpoints.path != self._initialized["decoder"]
+        ):
+            self.init_decoder(self.decoder)
+
+    def recover_network(
+        self, checkpoint=None, validation_subdir=None, loss_file_name=None
+    ):
+        """Recover the network from the checkpoint."""
+        self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
+        self.init_network()
+        return self.network
 
     def init_network(self, network: Optional[Network] = None) -> Network:
         """Initialize the network.
@@ -901,11 +937,11 @@ class NetworkView(ConnectomeView):
         Returns:
             network instance.
         """
-        if self._initialized["network"] and network is None:
+        if self._initialized["network"] == self.checkpoints.path and network is None:
             return self.network
         self.network = network or Network(**self.dir.config.network)
         recover_network(self.network, self.checkpoints.path)
-        self._initialized["network"] = True
+        self._initialized["network"] = self.checkpoints.path
         return self.network
 
     def init_decoder(self, decoder=None):
@@ -917,13 +953,13 @@ class NetworkView(ConnectomeView):
         Returns:
             decoder instance.
         """
-        if self._initialized["decoder"] and decoder is None:
+        if self._initialized["decoder"] == self.checkpoints.path and decoder is None:
             return self.decoder
         self.decoder = decoder or _init_decoder(
             self.dir.config.task.decoder, self.connectome
         )
         recover_decoder(self.decoder, self.checkpoints.path)
-        self._initialized["decoder"] = True
+        self._initialized["decoder"] = self.checkpoints.path
         return self.decoder
 
     def __call__(self, movie_input, dt, initial_state=None, as_states=False):

@@ -20,7 +20,7 @@ from matplotlib.colors import Colormap, Normalize
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
-from flyvision import experiments_dir, plots
+from flyvision import plots, results_dir
 from flyvision.analysis.clustering import (
     GaussianMixtureClustering,
     get_cluster_to_indices,
@@ -449,7 +449,7 @@ class Ensemble(dict):
         return cluster_indices
 
 
-@root(experiments_dir)
+@root(results_dir)
 class EnsembleDir(Directory):
     """A directory that contains a collection of trained networks."""
 

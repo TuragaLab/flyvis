@@ -187,7 +187,7 @@ def _check_checkpoint(
         and loss_file_name in networkdir[validation_subdir]
     ):
         loss_file_name = check_loss_name(networkdir[validation_subdir], loss_file_name)
-        index = np.argmin(networkdir[validation_subdir][loss_file_name][:])
+        index = np.argmin(networkdir[validation_subdir][loss_file_name][()])
         checkpoint = indices[index]
     elif checkpoint in indices:
         checkpoint = indices[checkpoint]

@@ -1,3 +1,4 @@
+import argparse
 from typing import List
 
 import hydra
@@ -23,3 +24,12 @@ def get_default_config(
     config = namespacify(OmegaConf.to_container(config, resolve=True))
     GlobalHydra.instance().clear()
     return config
+
+
+def parse_kwargs_to_dict(values):
+    """Parse a list of key-value pairs into a dictionary."""
+    kwargs = argparse.Namespace()
+    for value in values:
+        key, value = value.split("=")
+        setattr(kwargs, key, value)
+    return kwargs

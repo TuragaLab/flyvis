@@ -46,9 +46,7 @@ def resolve_root_dir():
 
 
 root_dir = resolve_root_dir()
-# path for experiments
-experiments_dir = root_dir / "experiments"
-# path for results (copy of succesful experiments)
+# path for results
 results_dir = root_dir / "results"
 renderings_dir = root_dir / "renderings"
 sintel_dir = root_dir / "SintelDataSet"

@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 import flyvision
-from flyvision import Network
+from flyvision import Network, NetworkView
 from flyvision.datasets import MultiTaskDataset
 from flyvision.utils.class_utils import forward_subclass
 
@@ -88,11 +88,10 @@ def validate(
 
 
 def validate_all_checkpoints(
-    network_view,
+    network_view: NetworkView,
     loss_fns=None,
     dt=1 / 50,
     t_pre=0.5,
-    batch_size=4,
     validation_subdir="validation",
 ):
     dataset = forward_subclass(MultiTaskDataset, network_view.dir.config.task.dataset)
@@ -103,17 +102,17 @@ def validate_all_checkpoints(
 
     dataloader = DataLoader(
         dataset,
-        batch_size=batch_size,
+        batch_size=1,
         num_workers=0,
         sampler=flyvision.utils.dataset_utils.IndexSampler(val_sequences),
-        drop_last=True,
+        drop_last=False,
     )
 
     dataloader.dataset.dt = dt
 
     loss = []
     progress = tqdm(total=len(network_view.dir.chkpt_index))
-    for chkpt in network_view.dir.chkpt_index[:]:
+    for chkpt in network_view.checkpoints.indices:
         network_view.update_checkpoint(checkpoint=chkpt)
         network = network_view.network
         decoder = network_view.decoder
@@ -141,7 +140,6 @@ def validate_all_checkpoints(
             spec=dict(
                 dt=dt,
                 t_pre=t_pre,
-                batch_size=batch_size,
                 loss_fns=[fn.__class__.__name__ for fn in loss_fns],
                 validation_subdir=validation_subdir,
                 validation_function=inspect.currentframe().f_code.co_name,

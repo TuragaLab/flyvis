@@ -82,6 +82,7 @@ class FindOptimalStimuli:
         t_fade_in=2.0,
         batch_size=4,
         indices=None,
+        responses: CellTypeArray = None,
     ):
         """Finds optimal stimuli for a given cell type in stimuli dataset.
 
@@ -93,14 +94,14 @@ class FindOptimalStimuli:
             batch_size (int, optional): batch size. Defaults to 4.
             indices (list, optional): indices of stimuli. Defaults to None.
         """
-
-        responses = self.compute_responses_to_stimuli(
-            dt=dt,
-            batch_size=batch_size,
-            t_pre=t_pre,
-            t_fade_in=t_fade_in,
-            indices=indices,
-        )
+        if not responses:
+            responses = self.compute_responses_to_stimuli(
+                dt=dt,
+                batch_size=batch_size,
+                t_pre=t_pre,
+                t_fade_in=t_fade_in,
+                indices=indices,
+            )
         cell_responses = responses[cell_type]
 
         argmax = np.argmax(np.nanmax(cell_responses, axis=1))
@@ -132,6 +133,7 @@ class FindOptimalStimuli:
         t_fade_in=2.0,
         batch_size=4,
         indices=None,
+        responses: CellTypeArray = None,
     ):
         """Regularizes the optimal stimulus such that the central node activity of the
         given type remains but the mean square of the input pixels is minimized.
@@ -158,6 +160,7 @@ class FindOptimalStimuli:
             t_fade_in=t_fade_in,
             batch_size=batch_size,
             indices=indices,
+            responses=responses,
         )
         non_nan = ~torch.isnan(
             optim_stimuli.stimulus[0, :, 0, optim_stimuli.stimulus.shape[-1] // 2]
