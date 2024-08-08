@@ -69,6 +69,22 @@ def hex_to_pixel(u, v, size=1, mode="default"):
         raise ValueError(f"{mode} not recognized.")
 
 
+def hex_rows(n_rows, n_columns, eps=0.1, mode="pointy"):
+    """To return a hex grid in pixel coordinates."""
+    u = []
+    v = []
+    for r in range(n_rows):
+        for c in range(n_columns):
+            u.append(c)
+            v.append(r)
+    u = np.array(u)
+    v = np.array(v)
+    x, y = hex_to_pixel(u, v, mode=mode)
+    x += eps
+    y += eps
+    return x, y
+
+
 def pixel_to_hex(x, y, size=1, mode="default"):
     """Returns a hex coordinate from the pixel coordinate.
 

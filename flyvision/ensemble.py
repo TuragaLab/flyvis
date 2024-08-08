@@ -9,7 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Tuple, Union
+from typing import Dict, Generator, Iterable, Iterator, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -162,7 +162,7 @@ class Ensemble(dict):
                 return False
         return True
 
-    def yield_networks(self) -> Iterator[Network]:
+    def yield_networks(self) -> Generator[Network, None, None]:
         """Yield initialized networks from the ensemble."""
         assert self.check_configs_match(), "configurations do not match"
         network = self[0].init_network()
@@ -223,15 +223,15 @@ class Ensemble(dict):
         batch_size: int = 1,
         central_cell_only=True,
     ):
+        """Simulate the ensemble activity from a dataset."""
         if central_cell_only:
             central_cells_index = self[0].connectome.central_cells_index[:]
-        for network in tqdm(
-            self.yield_networks(),
-            desc="Simulating network",
-            total=len(self.names),
-        ):
 
-            def handle_network(network):
+        progress_bar = tqdm(desc="Simulating network", total=len(self.names))
+
+        for network in self.yield_networks():
+
+            def handle_network(network: Network):
                 for _, resp in network.stimulus_response(
                     dataset,
                     dt=dt,
@@ -248,6 +248,9 @@ class Ensemble(dict):
 
             r = np.stack(list(handle_network(network)))
             yield r.reshape(-1, r.shape[-2], r.shape[-1])
+
+            progress_bar.update(1)
+        progress_bar.close()
 
     def decode(self, movie_input, dt):
         """Decode the ensemble responses with the ensemble decoders."""
