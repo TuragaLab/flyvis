@@ -4,7 +4,7 @@ import argparse
 import logging
 
 from flyvision import script_dir
-from flyvision.utils.lsf_utils import launch_range
+from flyvision.utils.lsf_utils import launch_range, launch_single
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
@@ -71,6 +71,18 @@ if __name__ == "__main__":
         dest="launch_synthetic_recordings",
         action="store_true",
         help="Run synthetic recordings.",
+    )
+    parser.add_argument(
+        "--ensemble_analysis_script",
+        type=str,
+        default=f"{str(script_dir)}/analysis/ensemble_analysis.py",
+        help="Script to run.",
+    )
+    parser.add_argument(
+        "--launch_ensemble_analysis",
+        dest="launch_ensemble_analysis",
+        action="store_true",
+        help="Run ensemble analysis.",
     )
 
     parser.add_argument(
@@ -142,6 +154,18 @@ if __name__ == "__main__":
             args.gpu,
             args.q,
             args.synthetic_recordings_script,
+            args.dry,
+            kwargs,
+        )
+
+    if args.launch_ensemble_analysis:
+        launch_single(
+            args.ensemble_id,
+            args.task_name,
+            args.nP,
+            args.gpu,
+            args.q,
+            args.ensemble_analysis_script,
             args.dry,
             kwargs,
         )

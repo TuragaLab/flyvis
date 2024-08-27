@@ -5,8 +5,6 @@ python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=000
 --functions spatial_impulses_responses_main central_impulses_responses_main
 """
 
-import argparse
-
 from flyvision import NetworkView
 from flyvision.analysis.stimulus_responses import (
     central_impulses_responses_main,
@@ -17,12 +15,12 @@ from flyvision.analysis.stimulus_responses import (
     optimal_stimulus_responses_main,
     spatial_impulses_responses_main,
 )
-from flyvision.utils.config_utils import parse_kwargs_to_dict
+from flyvision.utils.config_utils import HybridArgumentParser
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Record synthetic responses.")
-    parser.add_argument(
-        "keywords", nargs="*", help="keyword arguments in the form key=value"
+    parser = HybridArgumentParser(
+        hybrid_args=["task_name", "ensemble_and_network_id"],
+        description="Record synthetic responses.",
     )
     parser.add_argument(
         "--chkpt", type=str, default="best", help="checkpoint to evaluate."
@@ -55,9 +53,8 @@ if __name__ == "__main__":
         choices=default_functions,
     )
     args = parser.parse_args()
-    kwargs = parse_kwargs_to_dict(args.keywords)
 
-    network_name = f"{kwargs.task_name}/{kwargs.ensemble_and_network_id}"
+    network_name = f"{args.task_name}/{args.ensemble_and_network_id}"
     network_view = NetworkView(
         network_name,
         checkpoint=args.chkpt,
