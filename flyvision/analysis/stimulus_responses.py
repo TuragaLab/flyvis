@@ -14,11 +14,14 @@ from flyvision.utils.activity_utils import CellTypeArray
 
 logging = logging.getLogger(__name__)
 
+# TODO: make generators and create facade in network view
+
 
 def flash_responses_main(
     network_view: NetworkView, subdir="flash_responses", radius=[-1, 6]
 ):
     """Store flash responses."""
+
     dt = 1 / 200
 
     flashes = Namespace(
@@ -35,6 +38,9 @@ def flash_responses_main(
     ):
         extend_stored_activity(network_view, responses, subdir)
 
+    # store config to be able to reproduce the dataset
+    network_view.dir[subdir].config = dataset.config
+
     logging.info("Stored flash responses.")
 
 
@@ -45,6 +51,7 @@ def movingedge_responses_main(
     offsets=(-10, 11),
 ):
     """Store moving edge responses."""
+
     dt = 1 / 200
 
     dataset = MovingEdge(
@@ -67,13 +74,14 @@ def movingedge_responses_main(
     ):
         extend_stored_activity(network_view, responses, subdir)
 
+    network_view.dir[subdir].config = dataset.config
+
     logging.info("Stored moving edge response.")
 
 
 def movingbar_responses_main(network_view: NetworkView, subdir="movingbar"):
     dt = 1 / 200
     ### ---------------------------- moving bars si ---------------------------#
-    # v4, putting 2.4 speed inside again from -12 to 12 only
     dataset = MovingBar(
         widths=[1, 2, 4],  # in 1 * radians(2.25)
         offsets=(-10, 11),  # in 1 * radians(2.25)
@@ -91,13 +99,15 @@ def movingbar_responses_main(network_view: NetworkView, subdir="movingbar"):
         dataset, dt, t_pre=1.0, t_fade_in=0.0
     ):
         extend_stored_activity(network_view, responses, subdir)
+
+    network_view.dir[subdir].config = dataset.config
+
     logging.info("Stored moving bar response.")
 
 
 def naturalistic_stimuli_responses_main(
     network_view: NetworkView, subdir="naturalistic_stimuli_responses"
 ):
-    """t fade in 2 second; remove redundant flip and rotation axes."""
     dt = 1 / 100
 
     config = Namespace(
@@ -113,6 +123,9 @@ def naturalistic_stimuli_responses_main(
         dataset, dt, t_pre=0.0, t_fade_in=2.0
     ):
         extend_stored_activity(network_view, responses, subdir)
+
+    network_view.dir[subdir].config = dataset.config
+
     logging.info("Stored naturalistic stimuli response.")
 
 
@@ -143,6 +156,9 @@ def central_impulses_responses_main(
         dataset, dt, t_pre=4.0, t_fade_in=0.0
     ):
         extend_stored_activity(network_view, responses, subdir)
+
+    network_view.dir[subdir].config = dataset.config
+
     logging.info("Stored central ommatidium flash response.")
 
 
@@ -156,6 +172,7 @@ def spatial_impulses_responses_main(
     subdir="spatial_impulses_responses",
 ):
     """Single ommatidium impulses across the eye."""
+
     config = Namespace(
         impulse_durations=impulse_durations,
         max_extent=max_extent,
@@ -175,6 +192,9 @@ def spatial_impulses_responses_main(
         dataset, dt, t_pre=4.0, t_fade_in=0.0
     ):
         extend_stored_activity(network_view, responses, subdir)
+
+    network_view.dir[subdir].config = dataset.config
+
     logging.info("Stored spatial ommatidium flash response.")
 
 

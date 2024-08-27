@@ -542,8 +542,7 @@ class ConnectomeView:
         else:
             raise ValueError
 
-        fig, axes, cbar, matrix = plots.heatmap(matrix, cell_types, **kwargs)
-        return fig
+        return plots.heatmap(matrix, cell_types, **kwargs)
 
     def _weights(self) -> NDArray:
         return self.edges.sign[:] * self.edges.n_syn[:]

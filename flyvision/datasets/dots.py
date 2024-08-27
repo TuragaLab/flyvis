@@ -36,7 +36,7 @@ class Dots(StimulusDataset):
     ):
         if dot_column_radius > max_extent:
             raise ValueError("dot_column_radius must be smaller than max_extent")
-        self.spec = Namespace(
+        self.config = Namespace(
             dot_column_radius=dot_column_radius,
             max_extent=max_extent,
             bg_intensity=bg_intensity,
@@ -247,6 +247,8 @@ class CentralImpulses(StimulusDataset):
             device=device,
         )
         self.impulse_durations = impulse_durations
+        self.config = self.dots.config
+        self.config.update(impulse_durations=impulse_durations)
         self.params = [
             (*p[0], p[1])
             for p in product(self.dots.arg_df.values.tolist(), impulse_durations)
@@ -325,6 +327,10 @@ class SpatialImpulses(StimulusDataset):
         )
         self.dt = dt
         self.impulse_durations = impulse_durations
+
+        self.config = self.dots.config
+        self.config.update(impulse_durations=impulse_durations)
+
         self.params = [
             (*p[0], p[1])
             for p in product(self.dots.arg_df.values.tolist(), impulse_durations)

@@ -90,7 +90,7 @@ def launch_range(
     # hydra syntax, i.e. ["kw=val", ...]
     kwargs: list,
 ):
-    """Launch a range of jobs."""
+    """Launch a range of models."""
 
     LSF_PART = "bsub -J {}_{} -n {} -o {} -gpu '{}' -q {} "
     SCRIPT_PART = "{} {} {}"  # --{}"
@@ -129,5 +129,57 @@ def launch_range(
         logging.info(command)
         job_id = run_job(command, dry)
         job_id_names[job_id] = f"{task_name}_{ensemble_and_network_id}"
+
+    wait_for_many(job_id_names, dry)
+
+
+def launch_single(
+    ensemble_id: str,
+    task_name: str,
+    nP: int,
+    gpu: str,
+    q: str,
+    script: str,
+    dry: bool,
+    # note: kwargs is an ordered list(str) of kwargs: ["-kw", "val", ...] or following
+    # hydra syntax, i.e. ["kw=val", ...]
+    kwargs: list,
+):
+    """Launch a single job for an ensemble."""
+
+    LSF_PART = "bsub -J {}_{} -n {} -o {} -gpu '{}' -q {} "
+    SCRIPT_PART = "{} {} {}"  # --{}"
+
+    job_id_names = {}
+    kw = kwargs.copy()
+    ensemble_id = f"{ensemble_id:04}"
+    assert "_" not in ensemble_id
+    ensemble_dir = results_dir / task_name / ensemble_id
+
+    assert ensemble_dir.exists()
+    log_file = ensemble_dir / f"{script.split('/')[-1].split('.')[0]}.log"
+    if log_file.exists():
+        log_file.unlink()
+
+    kw.extend([f"ensemble_id={ensemble_id}"])
+    kw.extend([f"task_name={task_name}"])
+
+    LSF_CMD = LSF_PART.format(
+        task_name,  # -J {}_ job name prefix
+        ensemble_id,  # -J _{} job name suffix
+        nP,  # -n {} num proc
+        log_file,  # -o {} output file name
+        gpu,  # -gpu '{}' number of gpus
+        q,  # -q {} queue
+    )
+    SCRIPT_CMD = SCRIPT_PART.format(
+        sys.executable,  # {} python
+        script,  # {} script
+        " ".join(kw),  # {} all other key word arguments
+    )
+    command = LSF_CMD + SCRIPT_CMD
+    logging.info(command)
+    job_id = run_job(command, dry)
+    job_id_names[job_id] = f"{task_name}_{ensemble_id}"
 
     wait_for_many(job_id_names, dry)

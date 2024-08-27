@@ -140,6 +140,10 @@ class Checkpoints:
     validation_subdir: str = "validation"
     loss_file_name: str = "loss"
 
+    @property
+    def chkpt_subdir_name(self):
+        return f"chkpt_{self.choice}_{self.validation_subdir}_{self.loss_file_name}"
+
 
 def resolve_checkpoints(
     networkdir: "flyvision.network.NetworkDir",

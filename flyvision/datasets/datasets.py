@@ -2,11 +2,12 @@
 
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Union
 
 import numpy as np
 import pandas as pd
 import torch
+from torch.nn.modules.loss import _Loss
 
 from flyvision.augmentation import temporal
 from flyvision.utils.dataset_utils import get_random_data_split
@@ -244,17 +245,18 @@ class MultiTaskDataset(SequenceDataset):
 
     @property
     @abstractmethod
-    def losses(self) -> Dict[str, Callable]:
+    def losses(self) -> Dict[str, _Loss]:
         """A loss function for each task."""
         pass
 
+    # pylint: disable=redefined-builtin
     def loss(
-        self, y: torch.Tensor, y_est: torch.Tensor, task: str, **kwargs
+        self, input: torch.Tensor, target: torch.Tensor, task: str, **kwargs
     ) -> torch.Tensor:
         """Returns the task loss multiplied with the task weight."""
         return (
             self.task_weights[task]
-            * self.losses[task](y, y_est, **kwargs)
+            * self.losses[task](input, target, **kwargs)
             / self.task_weights_sum
         )
 

@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Union
 import numpy as np
 import torch
 import torch.nn as nn
-from datamate import Directory, Namespace, root, set_root_context
+from datamate import Directory, Namespace, set_root_context
 from toolz import valmap
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -20,6 +20,7 @@ from tqdm.auto import tqdm
 import flyvision
 from flyvision.connectome import ConnectomeDir, ConnectomeView
 from flyvision.datasets.datasets import SequenceDataset
+from flyvision.directories import NetworkDir
 from flyvision.dynamics import NetworkDynamics
 from flyvision.initialization import Parameter
 from flyvision.stimulus import Stimulus
@@ -37,7 +38,7 @@ from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
 logging = logger = logging.getLogger(__name__)
 
-__all__ = ["Network", "NetworkDir", "NetworkView"]
+__all__ = ["Network", "NetworkView"]
 
 
 class Network(nn.Module):
@@ -852,11 +853,6 @@ class Network(nn.Module):
                 yield handle_stim(stim, fade_in_state)
 
 
-@root(flyvision.results_dir)
-class NetworkDir(Directory):
-    """Directory for a network."""
-
-
 class NetworkView(ConnectomeView):
     """Views and convenience methods for trained networks.
 
@@ -888,6 +884,7 @@ class NetworkView(ConnectomeView):
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
         self._initialized = dict(network=None, decoder=None)
+        self.checkpoints = None  # type: Checkpoints
         self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
 

@@ -1,4 +1,6 @@
+import contextlib
 import logging
+import pickle
 from dataclasses import dataclass
 from typing import Iterable, Union
 
@@ -9,6 +11,8 @@ from matplotlib.axes import Axes
 from matplotlib.colors import Colormap, LogNorm, Normalize
 from matplotlib.figure import Figure
 
+import flyvision
+from flyvision.datasets.sintel import AugmentedSintel
 from flyvision.plots import plt_utils
 from flyvision.utils.activity_utils import CentralActivity
 
@@ -292,13 +296,13 @@ class EnsembleEmbedding:
 
     def from_cell_type(
         self,
-        node_type,
+        cell_type,
         embedding_kwargs=None,
     ) -> Embedding:
         """Umap Embedding of the responses of a specific cell type."""
 
         embedding_kwargs = embedding_kwargs or {}
-        return Embedding(*umap_embedding(self.responses[node_type], **embedding_kwargs))
+        return Embedding(*umap_embedding(self.responses[cell_type], **embedding_kwargs))
 
     def __call__(
         self,
@@ -607,3 +611,72 @@ def get_cluster_to_indices(mask, labels, task_error=None):
         label_id: indices[labels == label_id] for label_id in np.unique(labels)
     }
     return dict(sorted({int(k): np.sort(v) for k, v in cluster_indices.items()}.items()))
+
+
+def umap_and_clustering_main(
+    ensemble: "flyvision.Ensemble",
+    dt=1 / 100,
+    batch_size=4,
+    embedding_kwargs={
+        "min_dist": 0.105,
+        "spread": 9.0,
+        "n_neighbors": 5,
+        "random_state": 42,
+        "n_epochs": 1500,
+    },
+    gm_kwargs={
+        "range_n_clusters": [2, 3, 3, 4, 5],
+        "n_init": 100,
+        "max_iter": 1000,
+        "random_state": 42,
+        "tol": 0.001,
+    },
+    subdir="umap_and_clustering",
+    subdir_responses="naturalistic_stimuli_responses",
+):
+    """Compute UMAP embedding and Gaussian Mixture clustering of the ensemble responses.
+
+    If available, reads responses from responses directory, or else computes them.
+    """
+    # TODO: this may be an ensemble view method and split
+    destination = ensemble.path / subdir
+
+    responses = None
+    with contextlib.suppress(Exception):
+        # load responses
+        responses = np.stack([
+            network.dir[subdir_responses].network_states.nodes.activity_central
+            for network in ensemble.values()
+        ])
+    if responses is None:
+        # compute responses
+        dataset = AugmentedSintel(
+            tasks=["flow"],
+            interpolate=False,
+            boxfilter=dict(extent=15, kernel_size=13),
+            temporal_split=True,
+            dt=dt,
+        )
+        responses = np.stack(
+            list(
+                ensemble.simulate_from_dataset(
+                    dataset,
+                    dt=dt,
+                    batch_size=batch_size,
+                    central_cell_only=True,
+                )
+            )
+        )
+
+    central_responses = CentralActivity(responses, ensemble[0].connectome, keepref=True)
+    embeddings = EnsembleEmbedding(central_responses)
+
+    for cell_type in ensemble[0].cell_types_sorted:
+        embedding = embeddings.from_cell_type(
+            cell_type, embedding_kwargs=embedding_kwargs
+        )
+        embedding_and_clustering = embedding.cluster.gaussian_mixture(**gm_kwargs)
+        # Save the renamed pickle
+        with open((destination / cell_type).with_suffix(".pickle"), "wb") as f:
+            pickle.dump(embedding_and_clustering, f)
+        print(f"Saved {cell_type} embedding and clustering to {destination}.")

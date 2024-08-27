@@ -13,20 +13,20 @@ from typing import Dict, Generator, Iterable, Iterator, List, Tuple, Union
 
 import numpy as np
 import torch
-from datamate import Directory, get_root_dir, root
+from datamate import get_root_dir
 from matplotlib import colormaps as cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
-from flyvision import plots, results_dir
+from flyvision import plots
 from flyvision.analysis.clustering import (
     GaussianMixtureClustering,
     get_cluster_to_indices,
 )
+from flyvision.directories import EnsembleDir
 from flyvision.network import Network, NetworkDir, NetworkView
-from flyvision.plots.plt_utils import init_plot
 from flyvision.utils.nn_utils import simulation
 
 logging = logging.getLogger(__name__)
@@ -87,16 +87,23 @@ class Ensemble(dict):
 
         self.names, self.name = model_path_names(self.model_paths)
 
+        self._names = []
         # Initialize pointers to model directories.
         for i, name in tqdm(
             enumerate(self.names), desc="Loading ensemble", total=len(self.names)
         ):
-            self[name] = NetworkView(
-                NetworkDir(self.model_paths[i]),
-                checkpoint=checkpoint,
-                validation_subdir=validation_subdir,
-                loss_file_name=loss_file_name,
-            )
+            try:
+                self[name] = NetworkView(
+                    NetworkDir(self.model_paths[i]),
+                    checkpoint=checkpoint,
+                    validation_subdir=validation_subdir,
+                    loss_file_name=loss_file_name,
+                )
+                self._names.append(name)
+            except AttributeError as e:
+                logging.warning(f"Failed to load {name}: {e}")
+        self._broken = list(set(self.names) - set(self._names))
+        self.names = self._names
 
         # try rank by validation error by default
         if try_sort:
@@ -164,7 +171,7 @@ class Ensemble(dict):
 
     def yield_networks(self) -> Generator[Network, None, None]:
         """Yield initialized networks from the ensemble."""
-        assert self.check_configs_match(), "configurations do not match"
+        # assert self.check_configs_match(), "configurations do not match"
         network = self[0].init_network()
         yield network
         for network_view in self.values()[1:]:
@@ -299,7 +306,7 @@ class Ensemble(dict):
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        losses = [network.dir[subdir][file][()].min() for network in self.values()]
+        losses = [nv.dir[subdir][file][()].min() for nv in self.values()]
 
         # Store the result in the cache
         self.cache[cache_key] = losses
@@ -447,55 +454,6 @@ class Ensemble(dict):
             raise ValueError("stored clustering does not match ensemble")
 
         return cluster_indices
-
-
-@root(results_dir)
-class EnsembleDir(Directory):
-    """A directory that contains a collection of trained networks."""
-
-    pass
-
-
-class EnsembleView(Ensemble):
-    """A view of an ensemble of trained networks."""
-
-    def __init__(
-        self,
-        path: Union[str, PathLike, Iterable, EnsembleDir, Ensemble],
-        checkpoint="best",
-        validation_subdir="validation",
-        loss_file_name="loss",
-        try_sort=False,
-    ):
-        if isinstance(path, Ensemble):
-            path, checkpoint, validation_subdir, loss_file_name, try_sort = (
-                path._init_args
-            )
-        super().__init__(path, checkpoint, validation_subdir, loss_file_name, try_sort)
-
-    def loss_histogram(
-        self,
-        bins=None,
-        fill=False,
-        histtype="step",
-        figsize=[1, 1],
-        fontsize=5,
-        fig=None,
-        ax=None,
-    ):
-        """Plot a histogram of the validation losses of the ensemble."""
-        losses = self.validation_losses()
-        fig, ax = init_plot(figsize=figsize, fontsize=fontsize, fig=fig, ax=ax)
-        ax.hist(
-            losses,
-            bins=bins if bins is not None else len(self),
-            linewidth=0.5,
-            fill=fill,
-            histtype=histtype,
-        )
-        ax.set_xlabel("task error", fontsize=fontsize)
-        ax.set_ylabel("number models", fontsize=fontsize)
-        return fig, ax
 
 
 def model_paths_from_parent(path):

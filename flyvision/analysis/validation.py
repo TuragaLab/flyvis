@@ -3,7 +3,6 @@ import logging
 
 import numpy as np
 import torch
-from datamate.directory import write_meta
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -63,7 +62,7 @@ def validate(
                 y = data[task]
                 y_est = decoder[task](activity)
                 losses[task].append([
-                    fn(y, y_est, **loss_kwargs).detach().cpu().item() for fn in loss_fns
+                    fn(y_est, y, **loss_kwargs).detach().cpu().item() for fn in loss_fns
                 ])
 
     summed_loss = 0
@@ -134,19 +133,14 @@ def validate_all_checkpoints(
     for i, fn in enumerate(loss_fns):
         network_view.dir[validation_subdir][fn.__class__.__name__] = loss[:, i]
 
-    write_meta(
-        network_view.dir[validation_subdir].path,
-        **dict(
-            spec=dict(
-                dt=dt,
-                t_pre=t_pre,
-                loss_fns=[fn.__class__.__name__ for fn in loss_fns],
-                validation_subdir=validation_subdir,
-                validation_function=inspect.currentframe().f_code.co_name,
-            ),
-            status="done",
-        ),
+    network_view.dir[validation_subdir].config = dict(
+        dt=dt,
+        t_pre=t_pre,
+        loss_fns=[fn.__class__.__name__ for fn in loss_fns],
+        validation_subdir=validation_subdir,
+        validation_function=inspect.currentframe().f_code.co_name,
     )
+
     return loss
 
 
