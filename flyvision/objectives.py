@@ -4,7 +4,14 @@ import functools
 import inspect
 
 import torch
-from torch.nn.modules.loss import _Loss
+
+
+class Loss:
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
+
+    def forward(self, input, target):
+        raise NotImplementedError
 
 
 def check_shape(expected_dims):
@@ -35,7 +42,7 @@ def check_shape(expected_dims):
     return decorator
 
 
-class L2Norm(_Loss):
+class L2Norm(Loss):
     """Sample-average L2 norm of prediction error.
 
     Dims are (#samples, #frames, ndim, #hexals or #features).
@@ -53,7 +60,7 @@ class L2Norm(_Loss):
         return torch.sqrt(((input - target) ** 2).sum(dim=(1, 2, 3))).mean()
 
 
-class EPE(_Loss):
+class EPE(Loss):
     """Average endpoint error, conventionally reported in optic flow tasks.
 
     Dims are (#samples, #frames, ndim, #hexals or #features).

@@ -14,7 +14,7 @@ def solver(tmp_path_factory) -> MultiTaskSolver:
         config_name="solver",
         overrides=[
             "task_name=flow",
-            "network_id=0",
+            "ensemble_and_network_id=0",
             "task.n_iters=50",
         ],
     )
@@ -28,11 +28,11 @@ def test_solver_config():
         config_name="solver",
         overrides=[
             "task_name=flow",
-            "network_id=0",
+            "ensemble_and_network_id=0",
         ],
     )
     assert config.task_name == "flow"
-    assert config.network_id == 0
+    assert config.ensemble_and_network_id == 0
 
 
 def test_solver_init(solver):

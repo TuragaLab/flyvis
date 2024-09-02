@@ -7,9 +7,9 @@ from typing import Any, Dict, Iterable, List, Union
 import numpy as np
 import pandas as pd
 import torch
-from torch.nn.modules.loss import _Loss
 
 from flyvision.augmentation import temporal
+from flyvision.objectives import Loss
 from flyvision.utils.dataset_utils import get_random_data_split
 
 __all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
@@ -245,7 +245,7 @@ class MultiTaskDataset(SequenceDataset):
 
     @property
     @abstractmethod
-    def losses(self) -> Dict[str, _Loss]:
+    def losses(self) -> Dict[str, Loss]:
         """A loss function for each task."""
         pass
 
