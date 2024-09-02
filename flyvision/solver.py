@@ -293,7 +293,7 @@ class MultiTaskSolver:
                             }
 
                             losses[task] = self.task.dataset.loss(
-                                y, y_est, task, **loss_kwargs
+                                y_est, y, task, **loss_kwargs
                             )
 
                         # Sum all task losses. The weighting of the tasks is done in the
@@ -485,7 +485,7 @@ class MultiTaskSolver:
                         **data.get("loss_kwargs", {}),
                     }
                     losses[task] += (
-                        self.task.dataset.loss(y, y_est, task, **loss_kwargs)
+                        self.task.dataset.loss(y_est, y, task, **loss_kwargs)
                         .detach()
                         .cpu()
                         .item(),

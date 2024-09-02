@@ -23,15 +23,12 @@ from flyvision.plots import plt_utils
 
 logging = logger = logging.getLogger(__name__)
 
-# ---- connectivity matrix
-
 
 def heatmap(
     matrix,
     xlabels,
     ylabels=None,
-    scale=True,
-    size_scale=None,
+    size_scale="auto",
     cmap=cm.get_cmap("seismic"),
     origin="upper",
     ax=None,
@@ -42,8 +39,6 @@ def heatmap(
     symlog=None,
     cbar_label="",
     log=None,
-    xlabel="Postsynaptic",
-    ylabel="Presynaptic",
     cbar_height=0.5,
     cbar_width=0.01,
     title="",
@@ -52,7 +47,6 @@ def heatmap(
     midpoint=None,
     cbar=True,
     grid_linewidth=0.5,
-    size_transform=None,
     **kwargs,
 ) -> Tuple[Figure, Axis, Colorbar, NDArray]:
     """
@@ -76,19 +70,8 @@ def heatmap(
     Returns:
         fig, ax, cbar, matrix
     """
-
-    def x_y_value(matrix):
-        x = np.arange(matrix.shape[1])
-        y = np.arange(matrix.shape[0])
-        table = []
-        for _x in x:
-            for _y in y:
-                val = matrix[_y, _x]
-                if val:
-                    table.append((_x, _y, val))
-        return np.array(table).T
-
-    x, y, value = x_y_value(matrix)
+    y, x = np.nonzero(matrix)
+    value = matrix[y, x]
 
     fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax=ax, fig=fig, offset=0)
 
@@ -100,20 +83,14 @@ def heatmap(
         midpoint=midpoint,
     )
 
-    # derive the sizes of the scatter points
-    if size_transform is None:
-
-        def default_size_transform(value):
-            if scale:
-                return np.abs(value) * (size_scale or 0.005 * np.prod(figsize))
-            return 100
-
-        size_transform = default_size_transform
+    size = np.abs(value) * (
+        size_scale if size_scale != "auto" else 0.005 * np.prod(figsize)
+    )
 
     ax.scatter(
         x=x,
         y=matrix.shape[0] - y - 1 if origin == "upper" else y,
-        s=size_transform(value),
+        s=size,
         c=value,
         cmap=cmap,
         norm=norm,
@@ -124,7 +101,7 @@ def heatmap(
     ax.set_xticks(np.arange(matrix.shape[1]))
     ax.set_xticklabels(xlabels, rotation=90, fontsize=fontsize)
     ax.set_yticks(np.arange(matrix.shape[0]))
-    ylabels = ylabels or xlabels
+    ylabels = ylabels if ylabels is not None else xlabels
     ax.set_yticklabels(ylabels[::-1] if origin == "upper" else ylabels, fontsize=fontsize)
 
     ax.grid(False, "major")
@@ -132,8 +109,8 @@ def heatmap(
     ax.set_xticks([t + 0.5 for t in ax.get_xticks()[:-1]], minor=True)
     ax.set_yticks([t + 0.5 for t in ax.get_yticks()[:-1]], minor=True)
 
-    ax.set_xlim([-0.5, max(x) + 0.5])
-    ax.set_ylim([-0.5, max(y) + 0.5])
+    ax.set_xlim([-0.5, matrix.shape[1]])
+    ax.set_ylim([-0.5, matrix.shape[0]])
     ax.tick_params(axis="x", which="minor", bottom=False)
     ax.tick_params(axis="y", which="minor", left=False)
 
@@ -146,6 +123,7 @@ def heatmap(
             norm=norm,
             fontsize=fontsize,
             label=cbar_label,
+            x_offset=15,
         )
         if cbar
         else None

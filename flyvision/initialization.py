@@ -193,6 +193,7 @@ def deepcopy_config(f):
 
     @functools.wraps(f)
     def wrapper(cls, param_config, connectome):
+        cls.config = deepcopy(param_config)
         return f(cls, deepcopy(param_config), connectome)
 
     return wrapper

@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, sampler
 from flyvision.connectome import ConnectomeDir
 from flyvision.datasets.datasets import MultiTaskDataset
 from flyvision.decoder import ActivityDecoder
-from flyvision.objectives import Objective
+from flyvision.objectives import Loss
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.dataset_utils import IndexSampler
 
@@ -26,6 +26,7 @@ class Task:
         n_folds=4,
         fold=1,
         seed=0,
+        original_split=False,
     ):
         self.batch_size = batch_size
         self.n_iters = n_iters
@@ -37,12 +38,17 @@ class Task:
         # Initialize dataset.
         self.dataset = forward_subclass(MultiTaskDataset, dataset)  # type: MultiTaskDataset
         self.dataset.losses = Namespace({
-            task: forward_subclass(Objective, config) for task, config in loss.items()
+            task: forward_subclass(Loss, config) for task, config in loss.items()
         })
 
-        self.train_seq_index, self.val_seq_index = self.dataset.get_random_data_split(
-            fold, n_folds, seed
-        )
+        if original_split:
+            self.train_seq_index, self.val_seq_index = (
+                self.dataset.original_train_and_validation_indices()
+            )
+        else:
+            self.train_seq_index, self.val_seq_index = self.dataset.get_random_data_split(
+                fold, n_folds, seed
+            )
 
         # Initialize dataloaders.
         self.train_data = DataLoader(

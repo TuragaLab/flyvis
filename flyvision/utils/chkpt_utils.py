@@ -140,6 +140,10 @@ class Checkpoints:
     validation_subdir: str = "validation"
     loss_file_name: str = "loss"
 
+    @property
+    def chkpt_subdir_name(self):
+        return f"chkpt_{self.choice}_{self.validation_subdir}_{self.loss_file_name}"
+
 
 def resolve_checkpoints(
     networkdir: "flyvision.network.NetworkDir",
@@ -187,7 +191,7 @@ def _check_checkpoint(
         and loss_file_name in networkdir[validation_subdir]
     ):
         loss_file_name = check_loss_name(networkdir[validation_subdir], loss_file_name)
-        index = np.argmin(networkdir[validation_subdir][loss_file_name][:])
+        index = np.argmin(networkdir[validation_subdir][loss_file_name][()])
         checkpoint = indices[index]
     elif checkpoint in indices:
         checkpoint = indices[checkpoint]

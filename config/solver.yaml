@@ -1,9 +1,9 @@
-network_id: ???
+ensemble_and_network_id: ???
 task_name: ???
 train: true
 resume: false
 checkpoint_only: false
-network_name: ${task_name}/${network_id} 
+network_name: ${task_name}/${ensemble_and_network_id}
 description: ???
 overfit: false
 delete_if_exists: false

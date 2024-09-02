@@ -46,14 +46,13 @@ def resolve_root_dir():
 
 
 root_dir = resolve_root_dir()
-# path for experiments
-experiments_dir = root_dir / "experiments"
-# path for results (copy of succesful experiments)
+# path for results
 results_dir = root_dir / "results"
 renderings_dir = root_dir / "renderings"
 sintel_dir = root_dir / "SintelDataSet"
 connectome_file = root_dir / "connectome/fib25-fib19_v2.2.json"
 source_dir = (repo_dir := Path(__file__).parent.parent) / "flyvision"
+script_dir = Path(__file__).parent.parent / "scripts"
 
 datamate.set_root_dir(root_dir)
 del datamate

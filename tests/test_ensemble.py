@@ -8,7 +8,8 @@ import torch
 from datamate import Directory, Namespace
 
 from flyvision import results_dir
-from flyvision.ensemble import Ensemble, EnsembleView, TaskError
+from flyvision.ensemble import Ensemble, TaskError
+from flyvision.ensemble_view import EnsembleView
 from flyvision.network import IntegrationWarning, Network
 
 pytestmark = pytest.mark.require_download
@@ -116,7 +117,7 @@ def test_cluster_indices():
 
 def test_loss_histogram(ensemble: Ensemble):
     ensemble_view = EnsembleView(ensemble)
-    fig, ax = ensemble_view.loss_histogram()
+    fig, ax = ensemble_view.task_error_histogram()
     fig.show()
     plt.close(fig)
 

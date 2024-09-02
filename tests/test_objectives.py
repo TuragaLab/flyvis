@@ -1,13 +1,13 @@
 import pytest
 import torch
 
-from flyvision.objectives import Objective
+from flyvision.objectives import Loss
 from flyvision.utils.class_utils import forward_subclass
 
 
 @pytest.mark.parametrize("type", ["L2Norm", "EPE"])
 def test_objective(type):
-    objective = forward_subclass(Objective, dict(type=type))
+    objective = forward_subclass(Loss, dict(type=type))
     a = torch.ones(4, 3, 2, 5).random_(to=5)
     b = torch.ones(4, 3, 2, 5).random_(to=5)
 
