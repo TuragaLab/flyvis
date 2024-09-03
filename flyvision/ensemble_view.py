@@ -13,11 +13,14 @@ from matplotlib import colormaps as cm
 
 from flyvision import device, plots
 from flyvision.analysis import views
-from flyvision.analysis.flash_responses import plot_fris
-from flyvision.analysis.moving_bar_responses import plot_dsis
+from flyvision.analysis.flash_responses import FlashResponseView, plot_fris
+from flyvision.analysis.moving_bar_responses import MovingEdgeResponseView, plot_dsis
+from flyvision.datasets.flashes import Flashes
+from flyvision.datasets.moving_bar import MovingEdge
 from flyvision.directories import EnsembleDir
 from flyvision.ensemble import Ensemble
 from flyvision.initialization import Parameter
+from flyvision.utils.activity_utils import CellTypeArray
 from flyvision.utils.class_utils import forward_subclass
 
 logging = logging.getLogger(__name__)
@@ -176,13 +179,40 @@ class EnsembleView(Ensemble):
             **kwargs,
         )
 
-    @wraps(plot_fris)
-    def flash_response_indices(self, **kwargs):
-        # TODO: load stored flashes responses
-        from flyvision.analysis.flash_responses import FlashResponseView
-        from flyvision.datasets.flashes import Flashes
-        from flyvision.utils.activity_utils import CellTypeArray
+    def stored_responses(self, subdir, central=True):
+        """Return the stored responses of the ensemble.
 
+        Args:
+            subdir: The subdirectory where the responses are stored.
+            chkpt_key: The checkpoint key corresponding to the checkpoint that the
+                ensemble is initialized with. Must match the checkpoint chosen
+                for running the synthetic recordings script to precompute responses
+                because data is stored under subdir/chkpt_key.
+            central: Whether only central responses are expected. Then reads
+                activity_central instead of activity.
+
+        Ignores:
+            FileNotFoundError: If no recordings are found in the specified directory.
+                Then returns None.
+        """
+        chkpt_key = self[0].checkpoints.current_chkpt_key
+        full_subdir = f"{subdir}/{chkpt_key}"
+        try:
+            responses = np.stack([
+                nv.stored_responses(subdir, central=central) for nv in self.values()
+            ])
+            return responses
+        except FileNotFoundError:
+            logging.info(
+                "No recordings found in %s. Run the analysis script for synthetic "
+                "recordings to precompute them.",
+                full_subdir,
+            )
+            return None
+
+    @wraps(plot_fris)
+    def flash_response_indices(self, subdir="flash_responses", **kwargs):
+        """Plot the flash response indices of the ensemble."""
         dataset = Flashes(
             dynamic_range=[0, 1],
             t_stim=1.0,
@@ -192,15 +222,19 @@ class EnsembleView(Ensemble):
             alternations=(0, 1, 0),
         )
         central_cells_index = self[0].connectome.central_cells_index[:]
-        responses = np.stack(
-            [
-                resp[:, :, central_cells_index].copy()
-                for resp in self.simulate(
-                    torch.stack(dataset[:]).unsqueeze(2).to(device), dt=dataset.dt
-                )
-            ],
-            axis=0,
-        )
+
+        responses = self.stored_responses(subdir, central=True)
+        if responses is None:
+            logging.info("Computing responses.")
+            responses = np.stack(
+                [
+                    resp[:, :, central_cells_index].copy()
+                    for resp in self.simulate(
+                        torch.stack(dataset[:]).unsqueeze(2).to(device), dt=dataset.dt
+                    )
+                ],
+                axis=0,
+            )
         responses_array = CellTypeArray(
             responses,
             cell_types=self[0].connectome.unique_cell_types[:].astype(str),
@@ -226,35 +260,39 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plot_dsis)
-    def direction_selectivity_indices(self, **kwargs):
+    def direction_selectivity_indices(self, subdir="movingedge_responses", **kwargs):
         # TODO: load stored moving edge responses
 
-        from flyvision.analysis.moving_bar_responses import MovingEdgeResponseView
-        from flyvision.datasets.moving_bar import MovingEdge
-        from flyvision.utils.nodes_edges_utils import CellTypeArray
-
-        dataset = MovingEdge(
-            offsets=[-10, 11],
-            intensities=[0, 1],
-            speeds=[19],
-            height=80,
-            post_pad_mode="continue",
-            t_pre=1.0,
-            t_post=1.0,
-            dt=1 / 200,
-            angles=list(np.arange(0, 360, 30)),
-        )
-
-        responses = np.stack(
-            list(
-                self.simulate_from_dataset(
-                    dataset,
-                    dt=dataset.dt,
-                    batch_size=4,
-                    central_cell_only=True,
+        responses = self.stored_responses(subdir, central=True)
+        if responses is None:
+            dataset = MovingEdge(
+                offsets=[-10, 11],
+                intensities=[0, 1],
+                speeds=[19],
+                height=80,
+                post_pad_mode="continue",
+                t_pre=1.0,
+                t_post=1.0,
+                dt=1 / 200,
+                angles=list(np.arange(0, 360, 30)),
+            )
+            logging.info("Computing responses for a subset of stimuli.")
+            responses = np.stack(
+                list(
+                    self.simulate_from_dataset(
+                        dataset,
+                        dt=dataset.dt,
+                        batch_size=4,
+                        central_cell_only=True,
+                    )
                 )
             )
-        )
+        else:
+            # default dataset
+            # TODO: this is a bit hacky
+            config = next(iter(self[0].movingedge_responses())).config
+            dataset = MovingEdge(**config)
+
         responses_array = CellTypeArray(
             responses,
             cell_types=self[0].connectome.unique_cell_types[:].astype(str),
@@ -285,3 +323,6 @@ class EnsembleView(Ensemble):
             scatter_best_color=cm.get_cmap("Blues")(1.0),
             **kwargs,
         )
+
+
+## Helper functions

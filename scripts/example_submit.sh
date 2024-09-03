@@ -52,11 +52,9 @@ python train_ensemble.py \
         --q gpu_rtx \
         --ensemble_id 9998 \
         --task_name flow \
-        --launch_ensemble_analysis \
-        description='test' \
-        train=true \
-        delete_if_exists=true \
-        +task.original_split=true
+        --delete_recordings \
+        --launch_synthetic_recordings \
+        --launch_ensemble_analysis
 
 
 python train_ensemble.py \

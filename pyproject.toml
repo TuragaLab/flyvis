@@ -117,6 +117,9 @@ exclude = ["*.ipynb"]
 preview = true
 quote-style = "preserve"
 
+[tool.pylint."MESSAGES CONTROL"]
+disable = """"""
+
 # Pytest configuration
 [tool.pytest.ini_options]
 testpaths = [

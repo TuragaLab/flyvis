@@ -1,3 +1,4 @@
+# pylint: disable=dangerous-default-value
 """
 Deep mechanistic network module.
 """
@@ -5,6 +6,7 @@ Deep mechanistic network module.
 import logging
 import warnings
 from contextlib import contextmanager
+from functools import wraps
 from os import PathLike
 from typing import Any, Callable, Dict, Iterable, Optional, Union
 
@@ -18,6 +20,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 import flyvision
+from flyvision.analysis import stimulus_responses
 from flyvision.connectome import ConnectomeDir, ConnectomeView
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision.directories import NetworkDir
@@ -27,6 +30,7 @@ from flyvision.stimulus import Stimulus
 from flyvision.tasks import _init_decoder
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.chkpt_utils import (
+    Checkpoints,
     recover_decoder,
     recover_network,
     resolve_checkpoints,
@@ -884,7 +888,7 @@ class NetworkView(ConnectomeView):
         self.connectome = ConnectomeDir(self.dir.config.network.connectome)
         super().__init__(self.connectome)
         self._initialized = dict(network=None, decoder=None)
-        self.checkpoints = None  # type: Checkpoints
+        self.checkpoints: Checkpoints = None
         self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
 
@@ -990,6 +994,71 @@ class NetworkView(ConnectomeView):
             self.network.connectome,
             keepref=True,
         )
+
+    def stored_responses(self, subdir, central=True):
+        """Return the stored responses of the network.
+
+        Args:
+            subdir: The subdirectory where the responses are stored.
+            chkpt_key: The checkpoint key corresponding to the checkpoint that the
+                ensemble is initialized with. Must match the checkpoint chosen
+                for running the synthetic recordings script to precompute responses
+                because data is stored under subdir/chkpt_key.
+            central: Whether only central responses are expected. Then reads
+                activity_central instead of activity.
+
+        Ignores:
+            FileNotFoundError: If no recordings are found in the specified directory.
+                Then returns None.
+        """
+        chkpt_key = self.checkpoints.current_chkpt_key
+        full_subdir = f"{subdir}/{chkpt_key}"
+        responses = self.dir[full_subdir].network_states.nodes[
+            f"activity{'_central' if central else ''}"
+        ][:]
+        return responses
+
+    @wraps(stimulus_responses.flash_responses_generator)
+    def flash_responses(self, **kwargs):
+        """Generate flash responses."""
+        self.init_network()
+        return stimulus_responses.flash_responses_generator(self, **kwargs)
+
+    @wraps(stimulus_responses.movingedge_responses_generator)
+    def movingedge_responses(self, **kwargs):
+        """Generate moving edge responses."""
+        self.init_network()
+        return stimulus_responses.movingedge_responses_generator(self, **kwargs)
+
+    @wraps(stimulus_responses.movingbar_responses_generator)
+    def movingbar_responses(self, **kwargs):
+        """Generate moving bar responses."""
+        self.init_network()
+        return stimulus_responses.movingbar_responses_generator(self, **kwargs)
+
+    @wraps(stimulus_responses.naturalistic_stimuli_responses_generator)
+    def naturalistic_stimuli_responses(self, **kwargs):
+        """Generate naturalistic stimuli responses."""
+        self.init_network()
+        return stimulus_responses.naturalistic_stimuli_responses_generator(self, **kwargs)
+
+    @wraps(stimulus_responses.central_impulses_responses_generator)
+    def central_impulses_responses(self, **kwargs):
+        """Generate central ommatidium impulses responses."""
+        self.init_network()
+        return stimulus_responses.central_impulses_responses_generator(self, **kwargs)
+
+    @wraps(stimulus_responses.spatial_impulses_responses_generator)
+    def spatial_impulses_responses(self, **kwargs):
+        """Generate spatial ommatidium impulses responses."""
+        self.init_network()
+        return stimulus_responses.spatial_impulses_responses_generator(self, **kwargs)
+
+    @wraps(stimulus_responses.optimal_stimulus_responses_generator)
+    def optimal_stimulus_responses(self, **kwargs):
+        """Generate optimal stimuli responses."""
+        self.init_network()
+        return stimulus_responses.optimal_stimulus_responses_generator(self, **kwargs)
 
 
 class IntegrationWarning(Warning):

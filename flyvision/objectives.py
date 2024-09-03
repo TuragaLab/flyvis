@@ -14,9 +14,9 @@ class Loss:
         raise NotImplementedError
 
 
-def check_shape(expected_dims):
+def checkforward(expected_dims):
     """Decorator to validate the shape of prediction and target arguments
-    to prevent hard-to-track errors caused by wrong shapes and broadcasting.
+    preventing errors from broadcasting. Also checks if kwargs are supported.
     """
 
     def decorator(f):
@@ -55,7 +55,7 @@ class L2Norm(Loss):
         super(L2Norm, self).__init__()
         self.sig = inspect.signature(self.forward)
 
-    @check_shape(expected_dims=4)
+    @checkforward(expected_dims=4)
     def forward(self, input, target):
         return torch.sqrt(((input - target) ** 2).sum(dim=(1, 2, 3))).mean()
 
@@ -74,7 +74,7 @@ class EPE(Loss):
         super(EPE, self).__init__()
         self.sig = inspect.signature(self.forward)
 
-    @check_shape(expected_dims=4)
+    @checkforward(expected_dims=4)
     def forward(self, input, target):
         return torch.sqrt(((input - target) ** 2).sum(dim=2)).mean()
 

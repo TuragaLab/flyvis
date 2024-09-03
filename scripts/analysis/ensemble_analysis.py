@@ -48,11 +48,6 @@ if __name__ == "__main__":
         loss_file_name=args.loss_file_name,
     )
 
-    if args.chkpt == "best":
-        subdirchild = f"chkpt_best_{args.validation_subdir}_{args.loss_file_name}"
-    else:
-        subdirchild = f"chkpt_{args.chkpt}"
-
     if "umap_and_clustering_main" in args.functions:
         umap_and_clustering_main(
             ensemble,

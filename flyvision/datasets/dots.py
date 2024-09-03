@@ -264,6 +264,7 @@ class CentralImpulses(StimulusDataset):
                 "t_impulse",
             ],
         )
+        self.dt = dt
 
     def __len__(self):
         return len(self.arg_df)

@@ -1,4 +1,3 @@
-import contextlib
 import logging
 import pickle
 from dataclasses import dataclass
@@ -10,6 +9,12 @@ import numpy.typing as npt
 from matplotlib.axes import Axes
 from matplotlib.colors import Colormap, LogNorm, Normalize
 from matplotlib.figure import Figure
+from sklearn.mixture import GaussianMixture
+from sklearn.preprocessing import MinMaxScaler
+
+# umap import slows down whole library import
+from umap.umap_ import UMAP
+from umap.utils import disconnected_vertices
 
 import flyvision
 from flyvision.datasets.sintel import AugmentedSintel
@@ -18,6 +23,8 @@ from flyvision.utils.activity_utils import CentralActivity
 
 MARKERS = np.array(["o", "^", "s", "*", "+", "h", "p", "8"])
 INVALID_INT = -99999
+
+logging = logging.getLogger(__name__)
 
 
 def _check_markers(N):
@@ -30,8 +37,6 @@ def _check_markers(N):
 
 def scale_tensor(tensor):
     """Scale tensor to range (0, 1)."""
-
-    from sklearn.preprocessing import MinMaxScaler
 
     s = MinMaxScaler(feature_range=(0, 1), copy=True, clip=False)
     return s.fit_transform(tensor), s
@@ -230,9 +235,6 @@ def gaussian_mixture(
             range_n_clusters (Array): (#components) range of components
     """
 
-    # to save time at library import
-    from sklearn.mixture import GaussianMixture
-
     if range_n_clusters is None:
         range_n_clusters = np.array([1, 2, 3, 4, 5])
 
@@ -339,10 +341,6 @@ def umap_embedding(
         n_epochs (int): number of epochs
     """
 
-    # to save some time at library import, because umap loading takes super long
-    import umap
-    from umap.utils import disconnected_vertices
-
     if n_components > X.shape[0] - 2:
         raise ValueError(
             "number of components must be 2 smaller than sample size."
@@ -358,7 +356,7 @@ def umap_embedding(
     # umap doesn't like contant rows
     mask = ~np.isclose(X.std(axis=1), 0)
     X = X[mask]
-    reducer = umap.UMAP(
+    reducer = UMAP(
         n_neighbors=n_neighbors,
         min_dist=min_dist,
         random_state=random_state,
@@ -614,7 +612,7 @@ def get_cluster_to_indices(mask, labels, task_error=None):
 
 
 def umap_and_clustering_main(
-    ensemble: "flyvision.Ensemble",
+    ensemble: "flyvision.EnsembleView",
     dt=1 / 100,
     batch_size=4,
     embedding_kwargs={
@@ -641,13 +639,7 @@ def umap_and_clustering_main(
     # TODO: this may be an ensemble view method and split
     destination = ensemble.path / subdir
 
-    responses = None
-    with contextlib.suppress(Exception):
-        # load responses
-        responses = np.stack([
-            network.dir[subdir_responses].network_states.nodes.activity_central
-            for network in ensemble.values()
-        ])
+    responses = ensemble.stored_responses(subdir=subdir_responses)
     if responses is None:
         # compute responses
         dataset = AugmentedSintel(
@@ -679,4 +671,4 @@ def umap_and_clustering_main(
         # Save the renamed pickle
         with open((destination / cell_type).with_suffix(".pickle"), "wb") as f:
             pickle.dump(embedding_and_clustering, f)
-        print(f"Saved {cell_type} embedding and clustering to {destination}.")
+        logging.info(f"Saved {cell_type} embedding and clustering to {destination}.")

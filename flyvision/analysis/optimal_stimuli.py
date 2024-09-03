@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from flyvision import Network, NetworkView
+import flyvision
 from flyvision.datasets.datasets import StimulusDataset
 from flyvision.datasets.sintel import AugmentedSintel
 from flyvision.plots import plots, plt_utils
@@ -20,17 +20,18 @@ class FindOptimalStimuli:
     """Methods to derive optimal stimuli for cells from stimuli dataset.
 
     Args:
-        network_view (NetworkView): network view.
-        stimuli (StimulusDataset | str, optional): stimuli dataset.
+        network_view: network view.
+        stimuli: stimuli dataset.
             Defaults to "default" (AugmentedSintelLum).
     """
 
     def __init__(
         self,
-        network_view: NetworkView,
+        network_view: flyvision.NetworkView,
         stimuli: StimulusDataset | str = "default",
     ):
-        self.network = network_view.init_network()  # type: Network
+        self.nv = network_view
+        self.network = network_view.init_network()  # type: flyvision.Network
         for param in self.network.parameters():
             param.requires_grad = False
         self.central_cells_index = self.network.connectome.central_cells_index[:]
@@ -40,6 +41,13 @@ class FindOptimalStimuli:
             else stimuli
         )
         self.cache = {}
+
+    def stored_responses(self):
+        try:
+            responses = self.nv.stored_responses("naturalistic_stimuli_responses")
+            return CellTypeArray(responses, self.nv.connectome)
+        except FileNotFoundError:
+            return None
 
     def compute_responses_to_stimuli(
         self,
@@ -56,7 +64,7 @@ class FindOptimalStimuli:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        def handle_network(network: Network):
+        def handle_network(network: flyvision.Network):
             for _, resp in network.stimulus_response(
                 self.stimuli,
                 dt=dt or self.stimuli.dt,
@@ -94,7 +102,8 @@ class FindOptimalStimuli:
             batch_size (int, optional): batch size. Defaults to 4.
             indices (list, optional): indices of stimuli. Defaults to None.
         """
-        if not responses:
+        responses = self.stored_responses()
+        if responses is None:
             responses = self.compute_responses_to_stimuli(
                 dt=dt,
                 batch_size=batch_size,
@@ -230,8 +239,8 @@ class FindOptimalStimuli:
 class GenerateOptimalStimuli:
     """Methods to generate optimal stimuli for cells from random noise."""
 
-    def __init__(self, network_view: NetworkView):
-        self.network = network_view.init_network()  # type: Network
+    def __init__(self, network_view: flyvision.NetworkView):
+        self.network = network_view.init_network()  # type: flyvision.Network
 
         for param in self.network.parameters():
             param.requires_grad = False

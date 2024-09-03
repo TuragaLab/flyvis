@@ -141,7 +141,7 @@ class Checkpoints:
     loss_file_name: str = "loss"
 
     @property
-    def chkpt_subdir_name(self):
+    def current_chkpt_key(self):
         return f"chkpt_{self.choice}_{self.validation_subdir}_{self.loss_file_name}"
 
 

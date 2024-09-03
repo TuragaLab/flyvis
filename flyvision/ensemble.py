@@ -27,6 +27,7 @@ from flyvision.analysis.clustering import (
 )
 from flyvision.directories import EnsembleDir
 from flyvision.network import Network, NetworkDir, NetworkView
+from flyvision.utils.logging_utils import all_logging_disabled
 from flyvision.utils.nn_utils import simulation
 
 logging = logging.getLogger(__name__)
@@ -93,17 +94,19 @@ class Ensemble(dict):
             enumerate(self.names), desc="Loading ensemble", total=len(self.names)
         ):
             try:
-                self[name] = NetworkView(
-                    NetworkDir(self.model_paths[i]),
-                    checkpoint=checkpoint,
-                    validation_subdir=validation_subdir,
-                    loss_file_name=loss_file_name,
-                )
-                self._names.append(name)
+                with all_logging_disabled():
+                    self[name] = NetworkView(
+                        NetworkDir(self.model_paths[i]),
+                        checkpoint=checkpoint,
+                        validation_subdir=validation_subdir,
+                        loss_file_name=loss_file_name,
+                    )
+                    self._names.append(name)
             except AttributeError as e:
                 logging.warning(f"Failed to load {name}: {e}")
         self._broken = list(set(self.names) - set(self._names))
         self.names = self._names
+        logging.info(f"Loaded {len(self)} networks.")
 
         # try rank by validation error by default
         if try_sort:
