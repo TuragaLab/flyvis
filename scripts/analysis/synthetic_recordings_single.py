@@ -122,7 +122,7 @@ if __name__ == "__main__":
         default=default_functions,
         choices=default_functions,
     )
-    args = parser.parse_args()
+    args, _ = parser.parse_known_intermixed_args()
 
     network_name = f"{args.task_name}/{args.ensemble_and_network_id}"
     network_view = NetworkView(

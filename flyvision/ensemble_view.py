@@ -179,37 +179,6 @@ class EnsembleView(Ensemble):
             **kwargs,
         )
 
-    def stored_responses(self, subdir, central=True):
-        """Return the stored responses of the ensemble.
-
-        Args:
-            subdir: The subdirectory where the responses are stored.
-            chkpt_key: The checkpoint key corresponding to the checkpoint that the
-                ensemble is initialized with. Must match the checkpoint chosen
-                for running the synthetic recordings script to precompute responses
-                because data is stored under subdir/chkpt_key.
-            central: Whether only central responses are expected. Then reads
-                activity_central instead of activity.
-
-        Ignores:
-            FileNotFoundError: If no recordings are found in the specified directory.
-                Then returns None.
-        """
-        chkpt_key = self[0].checkpoints.current_chkpt_key
-        full_subdir = f"{subdir}/{chkpt_key}"
-        try:
-            responses = np.stack([
-                nv.stored_responses(subdir, central=central) for nv in self.values()
-            ])
-            return responses
-        except FileNotFoundError:
-            logging.info(
-                "No recordings found in %s. Run the analysis script for synthetic "
-                "recordings to precompute them.",
-                full_subdir,
-            )
-            return None
-
     @wraps(plot_fris)
     def flash_response_indices(self, subdir="flash_responses", **kwargs):
         """Plot the flash response indices of the ensemble."""

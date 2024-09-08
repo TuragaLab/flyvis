@@ -104,3 +104,16 @@ python train_ensemble.py \
         --ensemble_id 9999 \
         --task_name flow \
         --launch_synthetic_recordings
+
+
+python train_ensemble.py \
+         --start 0 \
+        --end 50  \
+        --nP 8   \
+        --gpu num=1   \
+        --q gpu_l4  \
+        --ensemble_id 9998   \
+        --task_name flow   \
+        --delete_recordings    \
+        --launch_synthetic_recordings   \
+        --launch_ensemble_analysis

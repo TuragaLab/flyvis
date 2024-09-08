@@ -431,10 +431,11 @@ def network_layout_axes(
     wspace=0,
     hspace=0,
     as_dict=False,
+    pos=None,
 ):
     fig = fig or plt.figure(figsize=figsize)
 
-    pos = _network_graph_node_pos(
+    pos = pos or _network_graph_node_pos(
         layout, region_spacing=region_spacing, types_per_column=types_per_column
     )
     pos = {

@@ -1,6 +1,7 @@
 import logging
 import pickle
 from dataclasses import dataclass
+from functools import wraps
 from typing import Iterable, Union
 
 import matplotlib.pyplot as plt
@@ -611,64 +612,98 @@ def get_cluster_to_indices(mask, labels, task_error=None):
     return dict(sorted({int(k): np.sort(v) for k, v in cluster_indices.items()}.items()))
 
 
-def umap_and_clustering_main(
+def compute_umap_and_clustering(
     ensemble: "flyvision.EnsembleView",
+    cell_type: str,
     dt=1 / 100,
     batch_size=4,
-    embedding_kwargs={
-        "min_dist": 0.105,
-        "spread": 9.0,
-        "n_neighbors": 5,
-        "random_state": 42,
-        "n_epochs": 1500,
-    },
-    gm_kwargs={
-        "range_n_clusters": [2, 3, 3, 4, 5],
-        "n_init": 100,
-        "max_iter": 1000,
-        "random_state": 42,
-        "tol": 0.001,
-    },
+    embedding_kwargs=None,
+    gm_kwargs=None,
     subdir="umap_and_clustering",
     subdir_responses="naturalistic_stimuli_responses",
 ):
-    """Compute UMAP embedding and Gaussian Mixture clustering of the ensemble responses.
+    """Compute UMAP embedding and Gaussian Mixture clustering of the responses."""
 
-    If available, reads responses from responses directory, or else computes them.
-    """
-    # TODO: this may be an ensemble view method and split
+    if embedding_kwargs is None:
+        embedding_kwargs = {
+            "min_dist": 0.105,
+            "spread": 9.0,
+            "n_neighbors": 5,
+            "random_state": 42,
+            "n_epochs": 1500,
+        }
+    if gm_kwargs is None:
+        gm_kwargs = {
+            "range_n_clusters": [2, 3, 3, 4, 5],
+            "n_init": 100,
+            "max_iter": 1000,
+            "random_state": 42,
+            "tol": 0.001,
+        }
+
     destination = ensemble.path / subdir
 
-    responses = ensemble.stored_responses(subdir=subdir_responses)
-    if responses is None:
-        # compute responses
-        dataset = AugmentedSintel(
-            tasks=["flow"],
-            interpolate=False,
-            boxfilter=dict(extent=15, kernel_size=13),
-            temporal_split=True,
-            dt=dt,
+    def load_from_disk():
+        with open((destination / cell_type).with_suffix(".pickle"), "rb") as f:
+            embedding_and_clustering = pickle.load(f)
+
+        logging.info(
+            "Loaded %s embedding and clustering from %s.", cell_type, destination
         )
-        responses = np.stack(
-            list(
-                ensemble.simulate_from_dataset(
-                    dataset,
-                    dt=dt,
-                    batch_size=batch_size,
-                    central_cell_only=True,
+        return embedding_and_clustering
+
+    # Load the embedding and clustering from disk if it exists
+    if (destination / cell_type).with_suffix(".pickle").exists():
+        return load_from_disk()
+
+    def load_naturalistic_stimulus_responses():
+        """Load or compute naturalistic stimulus responses."""
+        # this reads from disk or cache
+        responses = ensemble.stored_responses(subdir=subdir_responses)
+        if responses is None:
+            # otherwise compute responses
+            # TODO: could be cached if useful somewhere else too, but EnsembleEmbedding
+            # is cached already for this usecase
+            dataset = AugmentedSintel(
+                tasks=["flow"],
+                interpolate=False,
+                boxfilter=dict(extent=15, kernel_size=13),
+                temporal_split=True,
+                dt=dt,
+            )
+            responses = np.stack(
+                list(
+                    ensemble.simulate_from_dataset(
+                        dataset,
+                        dt=dt,
+                        batch_size=batch_size,
+                        central_cell_only=True,
+                    )
                 )
             )
+        return responses
+
+    def create_embedding_object(responses):
+        """Return embedding object from cache or create and write cache."""
+        if "ensemble_embedding_object" in ensemble.cache:
+            return ensemble.cache["ensemble_embedding_object"]
+        central_responses = CentralActivity(
+            responses, ensemble[0].connectome, keepref=True
         )
+        embeddings = EnsembleEmbedding(central_responses)
+        ensemble.cache["ensemble_embedding_object"] = embeddings
+        return embeddings
 
-    central_responses = CentralActivity(responses, ensemble[0].connectome, keepref=True)
-    embeddings = EnsembleEmbedding(central_responses)
+    responses = load_naturalistic_stimulus_responses()
+    embeddings = create_embedding_object(responses)
 
+    embedding = embeddings.from_cell_type(cell_type, embedding_kwargs=embedding_kwargs)
+    embedding_and_clustering = embedding.cluster.gaussian_mixture(**gm_kwargs)
+    return embedding_and_clustering
+
+
+@wraps(compute_umap_and_clustering)
+def umap_and_clustering_generator(ensemble: "flyvision.EnsembleView", **kwargs):
+    """UMAP and clustering of all cell types."""
     for cell_type in ensemble[0].cell_types_sorted:
-        embedding = embeddings.from_cell_type(
-            cell_type, embedding_kwargs=embedding_kwargs
-        )
-        embedding_and_clustering = embedding.cluster.gaussian_mixture(**gm_kwargs)
-        # Save the renamed pickle
-        with open((destination / cell_type).with_suffix(".pickle"), "wb") as f:
-            pickle.dump(embedding_and_clustering, f)
-        logging.info(f"Saved {cell_type} embedding and clustering to {destination}.")
+        yield cell_type, compute_umap_and_clustering(ensemble, cell_type, **kwargs)

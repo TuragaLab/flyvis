@@ -890,6 +890,7 @@ class NetworkView(ConnectomeView):
         self._initialized = dict(network=None, decoder=None)
         self.checkpoints: Checkpoints = None
         self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
+        self.cache = {}
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
 
     def update_checkpoint(
@@ -1013,9 +1014,19 @@ class NetworkView(ConnectomeView):
         """
         chkpt_key = self.checkpoints.current_chkpt_key
         full_subdir = f"{subdir}/{chkpt_key}"
+
+        cache_key = (full_subdir, central)
+
+        # Check if the result is in the cache
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
         responses = self.dir[full_subdir].network_states.nodes[
             f"activity{'_central' if central else ''}"
         ][:]
+
+        self.cache[cache_key] = responses
+
         return responses
 
     @wraps(stimulus_responses.flash_responses_generator)

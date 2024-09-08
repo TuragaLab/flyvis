@@ -5,9 +5,17 @@ python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=000
 --functions spatial_impulses_responses_main central_impulses_responses_main
 """
 
+import logging
+import pickle
+
 from flyvision import Ensemble
-from flyvision.analysis.clustering import umap_and_clustering_main
+from flyvision.analysis.clustering import umap_and_clustering_generator
 from flyvision.utils.config_utils import HybridArgumentParser
+
+logging.basicConfig(
+    format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
+)
+logging = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = HybridArgumentParser(
@@ -38,7 +46,12 @@ if __name__ == "__main__":
         default=default_functions,
         choices=default_functions,
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--delete_umap_and_clustering",
+        default=default_functions,
+        choices=default_functions,
+    )
+    args, _ = parser.parse_known_intermixed_args()
 
     ensemble_name = f"{args.task_name}/{args.ensemble_id}"
     ensemble = Ensemble(
@@ -49,23 +62,19 @@ if __name__ == "__main__":
     )
 
     if "umap_and_clustering_main" in args.functions:
-        umap_and_clustering_main(
-            ensemble,
-            dt=1 / 200,
-            batch_size=4,
-            embedding_kwargs={
-                "min_dist": 0.105,
-                "spread": 9.0,
-                "n_neighbors": 5,
-                "random_state": 42,
-                "n_epochs": 1500,
-            },
-            gm_kwargs={
-                "range_n_clusters": [2, 3, 3, 4, 5],
-                "n_init": 100,
-                "max_iter": 1000,
-                "random_state": 42,
-                "tol": 0.001,
-            },
-            subdir="umap_and_clustering",
-        )
+        destination = ensemble.path / "umap_and_clustering"
+        for cell_type, embedding_and_clustering in umap_and_clustering_generator(
+            ensemble
+        ):
+            # stores if the file does not exist or if the flag is set
+            if not (destination / cell_type).with_suffix(".pickle").exists() or (
+                (destination / cell_type).with_suffix(".pickle").exists()
+                and args.delete_umap_and_clustering
+            ):
+                # Save the renamed pickle
+                with open((destination / cell_type).with_suffix(".pickle"), "wb") as f:
+                    pickle.dump(embedding_and_clustering, f)
+                logging.info(
+                    "Saved %s embedding and clustering to %s.", cell_type, destination
+                )
+            # else nothing to do
