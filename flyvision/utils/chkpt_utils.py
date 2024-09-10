@@ -54,7 +54,11 @@ def check_loss_name(loss_folder, loss_file_name):
     return loss_file_name
 
 
-def recover_network(network: nn.Module, state_dict: Union[Dict, Path]) -> None:
+def recover_network(
+    network: nn.Module,
+    state_dict: Union[Dict, Path],
+    ensemble_and_network_id: str = None,
+) -> None:
     """Loads network parameters from state dict.
 
     Args:
@@ -65,7 +69,10 @@ def recover_network(network: nn.Module, state_dict: Union[Dict, Path]) -> None:
     state = get_from_state_dict(state_dict, "network")
     if state is not None:
         network.load_state_dict(state)
-        logging.info("Recovered network state.")
+        logging.info(
+            "Recovered network state%s",
+            f" {ensemble_and_network_id}." if ensemble_and_network_id else ".",
+        )
     else:
         logging.warning("Could not recover network state.")
     return network
@@ -74,7 +81,7 @@ def recover_network(network: nn.Module, state_dict: Union[Dict, Path]) -> None:
 def recover_decoder(
     decoder: Dict[str, nn.Module], state_dict: Union[Dict, Path], strict=True
 ) -> None:
-    """Same as _recover_network for multiple decoders."""
+    """Same as recover_network for multiple decoders."""
     states = get_from_state_dict(state_dict, "decoder")
     if states is not None:
         for key, dec in decoder.items():
@@ -92,7 +99,7 @@ def recover_decoder(
 def recover_optimizer(
     optimizer: torch.optim.Optimizer, state_dict: Union[Dict, Path]
 ) -> None:
-    """Same as _recover_network for optimizer."""
+    """Same as recover_network for optimizer."""
     state = get_from_state_dict(state_dict, "optim")
     if state is not None:
         optimizer.load_state_dict(state)
@@ -105,7 +112,7 @@ def recover_optimizer(
 def recover_penalty_optimizers(
     optimizers: Dict[str, torch.optim.Optimizer], state_dict: Union[Dict, Path]
 ) -> None:
-    """Same as _recover_network for penalty optimizers."""
+    """Same as recover_network for penalty optimizers."""
     states = get_from_state_dict(state_dict, "penalty_optims")
     if states is not None:
         for key, optim in optimizers.items():
@@ -153,11 +160,11 @@ def resolve_checkpoints(
 ) -> Checkpoints:
     """Resolves checkpoints from networkdir."""
 
-    if networkdir.status == "paper results":
-        # This is for the shared trained models, which follow a slightly different
-        # naming convention and only store one checkpoint in comparison to new models
-        # to make sure we don't mix them up.
-        return _resolve_paper_results(networkdir)
+    # if networkdir.status == "paper results":
+    #     # This is for the shared trained models, which follow a slightly different
+    #     # naming convention and only store one checkpoint in comparison to new models
+    #     # to make sure we don't mix them up.
+    #     return _resolve_paper_results(networkdir)
 
     index = _check_checkpoint(networkdir, checkpoint, validation_subdir, loss_file_name)
     indices, paths = init_or_get_checkpoints(networkdir.chkpts.path)

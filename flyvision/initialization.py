@@ -26,7 +26,7 @@ from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.tensor_utils import atleast_column_vector, where_equal_rows
 from flyvision.utils.type_utils import byte_to_str
 
-logging = logger = logging.getLogger(__name__)
+logging = logging.getLogger(__name__)
 
 # --- Supplementary Error types -------------------------------------------------
 

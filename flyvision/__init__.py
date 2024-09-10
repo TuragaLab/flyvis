@@ -12,18 +12,21 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 torch.set_default_device(device)
 del torch
 
+
+dotenv.load_dotenv(dotenv.find_dotenv())
+
 # Set up logging
 import logging
 
 
 def timetz(*args):
-    tz = timezone("Europe/Berlin")
+    tz = timezone(os.getenv("TIMEZONE", "Europe/Berlin"))
     return datetime.now(tz).timetuple()
 
 
 logging.Formatter.converter = timetz
 logging.basicConfig(
-    format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s",
+    format="[%(asctime)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.INFO,
 )
@@ -35,8 +38,6 @@ import datamate
 
 def resolve_root_dir():
     "Resolving the root directory in which all data is downloaded and stored."
-
-    dotenv.load_dotenv(dotenv.find_dotenv())
 
     # Try to get root directory from environment variable
     root_dir_env = os.getenv(

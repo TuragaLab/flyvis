@@ -33,11 +33,13 @@ class HybridArgumentParser(argparse.ArgumentParser):
         hybrid_args (list): List of required hybrid arguments passed as key=value.
     """
 
-    def __init__(self, *args, hybrid_args=None, **kwargs):
+    def __init__(self, *args, hybrid_args=None, allow_unrecognized=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.hybrid_args = hybrid_args
+        self.allow_unrecognized = allow_unrecognized
 
-    def parse_args(self, args=None, namespace=None):
+    def parse_with_hybrid_args(self, args=None, namespace=None):
+        """Parse arguments and set hybrid arguments as attributes in the namespace."""
         args, unknown_args = self.parse_known_args(args, namespace)
 
         argv = []
@@ -53,7 +55,7 @@ class HybridArgumentParser(argparse.ArgumentParser):
                 if not hasattr(args, arg):
                     self.error(f"argument {arg} is required as {arg}=value")
 
-        if argv:
+        if argv and not self.allow_unrecognized:
             msg = "unrecognized arguments: %s"
             self.error(msg % " ".join(argv))
 

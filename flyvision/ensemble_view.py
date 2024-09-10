@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from os import PathLike
-from typing import Iterable, Union
+from typing import Iterable, List, Union
 
 import numpy as np
 import torch
@@ -180,7 +180,9 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plot_fris)
-    def flash_response_indices(self, subdir="flash_responses", **kwargs):
+    def flash_response_indices(
+        self, subdir="flash_responses", cell_types: List[str] = None, **kwargs
+    ):
         """Plot the flash response indices of the ensemble."""
         dataset = Flashes(
             dynamic_range=[0, 1],
@@ -204,14 +206,16 @@ class EnsembleView(Ensemble):
                 ],
                 axis=0,
             )
-        responses_array = CellTypeArray(
+        responses_cta = CellTypeArray(
             responses,
             cell_types=self[0].connectome.unique_cell_types[:].astype(str),
         )
+        if cell_types is not None:
+            responses_cta = responses_cta.from_cell_types(cell_types)
         frv = FlashResponseView(
             arg_df=dataset.arg_df,
             config=dataset.config,
-            responses=responses_array,
+            responses=responses_cta,
             stim_sample_dim=1,
             temporal_dim=2,
         )
@@ -230,14 +234,13 @@ class EnsembleView(Ensemble):
 
     @wraps(plot_dsis)
     def direction_selectivity_indices(self, subdir="movingedge_responses", **kwargs):
-        # TODO: load stored moving edge responses
-
+        """Plot the direction selectivity indices of the ensemble."""
         responses = self.stored_responses(subdir, central=True)
         if responses is None:
             dataset = MovingEdge(
                 offsets=[-10, 11],
                 intensities=[0, 1],
-                speeds=[19],
+                speeds=[9.7, 13, 19, 25],
                 height=80,
                 post_pad_mode="continue",
                 t_pre=1.0,
@@ -258,17 +261,18 @@ class EnsembleView(Ensemble):
             )
         else:
             # default dataset
-            # TODO: this is a bit hacky
+            # TODO: this is a hack, we should be able to get the dataset in a more
+            # principled way
             config = next(iter(self[0].movingedge_responses())).config
             dataset = MovingEdge(**config)
 
-        responses_array = CellTypeArray(
+        responses_cta = CellTypeArray(
             responses,
             cell_types=self[0].connectome.unique_cell_types[:].astype(str),
         )
         merv = MovingEdgeResponseView(
             arg_df=dataset.arg_df,
-            responses=responses_array,
+            responses=responses_cta,
             config=dataset.config,
             stim_sample_dim=1,
             temporal_dim=2,
@@ -292,6 +296,3 @@ class EnsembleView(Ensemble):
             scatter_best_color=cm.get_cmap("Blues")(1.0),
             **kwargs,
         )
-
-
-## Helper functions

@@ -240,6 +240,47 @@ def add_colorwheel_2d(
     return cb, cs
 
 
+def add_cluster_marker(
+    fig,
+    ax,
+    marker="o",
+    marker_size=15,
+    color="#4F73AE",
+    x_offset=0,
+    y_offset=0,
+):
+    # make all axes transparent to see the marker regardless where on the figure
+    # plane it is
+    for _ax in fig.axes:
+        _ax.patch.set_alpha(0)
+
+    # create an invisible ax that spans the entire figure to scatter the marker on it
+    overlay_ax = [ax for ax in fig.axes if ax.get_label() == "overlay"]
+    overlay_ax = (
+        overlay_ax[0]
+        if overlay_ax
+        else fig.add_axes([0, 0, 1, 1], label="overlay", alpha=0)
+    )
+
+    overlay_ax.set_ylim(0, 1)
+    overlay_ax.set_xlim(0, 1)
+    overlay_ax.patch.set_alpha(0)
+    rm_spines(overlay_ax, visible=False, rm_xticks=True, rm_yticks=True)
+
+    # get where the axis is actually positioned, that will be annotated with the
+    # marker
+    left, bottom, width, height = ax.get_position().bounds
+
+    # scatter the marker relative to that position of the ax
+    overlay_ax.scatter(
+        left + x_offset * width,
+        bottom + y_offset * height,
+        marker=marker,
+        s=marker_size,
+        color=color,
+    )
+
+
 def derive_position_for_supplementary_ax(
     fig, pos="right", width=0.04, height=0.5, x_offset=0, y_offset=0, axes=None
 ):

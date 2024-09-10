@@ -23,6 +23,7 @@ from tqdm.auto import tqdm
 from flyvision import plots
 from flyvision.analysis.clustering import (
     GaussianMixtureClustering,
+    compute_umap_and_clustering,
     get_cluster_to_indices,
 )
 from flyvision.directories import EnsembleDir
@@ -89,6 +90,7 @@ class Ensemble(dict):
         self.names, self.name = model_path_names(self.model_paths)
 
         self._names = []
+        self.model_index = []
         # Initialize pointers to model directories.
         for i, name in tqdm(
             enumerate(self.names), desc="Loading ensemble", total=len(self.names)
@@ -106,6 +108,7 @@ class Ensemble(dict):
                 logging.warning(f"Failed to load {name}: {e}")
         self._broken = list(set(self.names) - set(self._names))
         self.names = self._names
+        self.model_index = np.arange(len(self.names))
         logging.info(f"Loaded {len(self)} networks.")
 
         # try rank by validation error by default
@@ -354,6 +357,7 @@ class Ensemble(dict):
             return
 
         _names = tuple(self.names)
+        _model_index = tuple(self.model_index)
 
         with self.rank_by_validation_error():
             if best is not None and worst is not None and best + worst > 1:
@@ -371,22 +375,62 @@ class Ensemble(dict):
                     self._worst_ratio = worst
                 else:
                     self._worst_ratio = 0
-                self.names = [*_context_best_names, *_context_worst_names]
 
-                if self.names:  # to prevent an empty index
-                    self._model_index = np.array([
-                        i for i, name in enumerate(_names) if name in self.names
+                in_context_names = [*_context_best_names, *_context_worst_names]
+
+                if in_context_names:  # to prevent an empty index
+                    self.model_index = np.array([
+                        i
+                        for i, name in enumerate((_model_index, _names))
+                        if name in in_context_names
                     ])
-                    self._model_mask = np.zeros(len(_names), dtype=bool)
-                    self._model_mask[self._model_index] = True
+                self.names = in_context_names
+                self.in_context = True
             try:
                 yield
             finally:
                 self.names = list(_names)
-                self._model_mask = np.ones(len(self)).astype(bool)
-                self._model_index = np.arange(len(self))
+                self.model_index = _model_index
                 self._best_ratio = 0.5
                 self._worst_ratio = 0.5
+                self.in_context = False
+
+    @contextmanager
+    def select_items(self, indices: List[int]):
+        """To filter the ensemble temporarily by a list of items (int, slice,
+        list, array) while maintaining state of the Ensemble instance."""
+        # no-op
+        try:
+            if indices is None:
+                yield
+                return
+            _names = tuple(self.names)
+            _model_index = tuple(self.model_index)
+            self._names = _names
+
+            if isinstance(indices, (int, np.integer, slice)):
+                in_context_names = self.names[indices]
+            elif isinstance(indices, (list, np.ndarray)):
+                if np.array(indices).dtype == np.array(self.names).dtype:
+                    in_context_names = indices
+                elif np.array(indices).dtype == np.int64:
+                    in_context_names = np.array(self.names)[indices]
+                else:
+                    raise ValueError(f"{indices}")
+            else:
+                raise ValueError(f"{indices}")
+            self.model_index = np.array([
+                i
+                for i, name in enumerate((_model_index, _names))
+                if name in in_context_names
+            ])
+            self.names = in_context_names
+            self.in_context = True
+            yield
+        finally:
+            self.names = list(_names)
+            self.model_index = list(_model_index)
+            self.in_context = False
 
     def task_error(
         self,
@@ -461,8 +505,7 @@ class Ensemble(dict):
             not self.dir.umap_and_clustering
             or not self.dir.umap_and_clustering[cell_type]
         ):
-            # TODO: port the clustering code here
-            raise ValueError("clustering not available")
+            return compute_umap_and_clustering(self, cell_type)
 
         path = self.dir.umap_and_clustering[f"{cell_type}.pickle"]
         with open(path, "rb") as file:
@@ -497,6 +540,40 @@ class Ensemble(dict):
             raise ValueError("stored clustering does not match ensemble")
 
         return cluster_indices
+
+    def responses_norm(self, subdir="naturalistic_stimuli_responses", rectified=False):
+        responses = self.stored_responses(subdir, central=True)
+
+        if responses is None:
+            return None
+
+        def compute_norm(X, rectified=True):
+            """Computes a normalization constant for stimulus
+                responses per cell hypothesis, i.e. cell_type independent values.
+
+            Args:
+                X: (n_stimuli, n_frames, n_cell_types)
+            """
+            if rectified:
+                X = np.maximum(X, 0)
+            n_samples, n_frames, n_cell_types = X.shape
+
+            # replace NaNs with 0
+            X[np.isnan(X)] = 0
+
+            return (
+                1
+                / np.sqrt(n_samples * n_frames)
+                * np.linalg.norm(
+                    X.reshape(-1, n_cell_types),
+                    axis=0,
+                    keepdims=False,
+                )
+            )
+
+        return np.array([
+            compute_norm(responses[i], rectified=rectified) for i in self.model_index
+        ])
 
 
 def model_paths_from_parent(path):

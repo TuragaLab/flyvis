@@ -1,4 +1,5 @@
-from typing import Union
+from dataclasses import dataclass
+from typing import List, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -162,7 +163,7 @@ class MovingBarResponseView(StimulusResponseIndexer):
         )
         angles = sorted(peak_responses.arg_df.angle.unique())
         intensities = sorted(peak_responses.arg_df.intensity.unique())
-        return tuning_curve, (angles, intensities)
+        return TuningCurveData(tuning_curve, angles, intensities)
 
     def get_time_masks(self, from_column=-1.5, to_column=1.5):
         masks = {}
@@ -237,6 +238,8 @@ class MovingBarResponseView(StimulusResponseIndexer):
         average_models=True,
         model_dim=None,
         colors=None,
+        zorder=10,
+        tuning_curves=None,
         **kwargs,
     ):
         """
@@ -245,7 +248,13 @@ class MovingBarResponseView(StimulusResponseIndexer):
                 Must be a MovingBarResponseView of shape
                 (12, 50, 3, 2, 6, 1, 65).
         """
-        tuning_curves, (angles, intensities) = self.tuning_curves()
+        if tuning_curves is None:
+            tuning_curves = self.tuning_curves()
+        tuning_curves, angles, intensities = (
+            tuning_curves.tuning_curve,
+            tuning_curves.angles,
+            tuning_curves.intensities,
+        )
         assert intensity in intensities
         angles = np.array(angles)
 
@@ -305,7 +314,7 @@ class MovingBarResponseView(StimulusResponseIndexer):
             anglepad=anglepad,
             xlabelpad=xlabelpad,
             color=color,
-            zorder=10,
+            zorder=zorder,
             fig=fig,
             ax=ax,
             **kwargs,
@@ -913,3 +922,13 @@ def dsi_violins(
             best_color=scatter_best_color,
         )
     return fig, ax, colors, dsis
+
+
+@dataclass
+class TuningCurveData:
+    tuning_curve: MovingBarResponseView
+    angles: List[float]
+    intensities: List[float]
+
+    def __getitem__(self, key):
+        return TuningCurveData(self.tuning_curve[key], self.angles, self.intensities)

@@ -40,7 +40,7 @@ from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
-logging = logger = logging.getLogger(__name__)
+logging = logging.getLogger(__name__)
 
 __all__ = ["Network", "NetworkView"]
 
@@ -964,7 +964,7 @@ class NetworkView(ConnectomeView):
         self._initialized["decoder"] = self.checkpoints.path
         return self.decoder
 
-    def __call__(self, movie_input, dt, initial_state=None, as_states=False):
+    def __call__(self, movie_input, dt, initial_state=None, as_states=False, t_pre=1.0):
         """Convenience method to simulate the network activity from movie input.
 
         Note, the nn.Module itself provides more flexibility.
@@ -978,6 +978,7 @@ class NetworkView(ConnectomeView):
                 the first movie frame.
             as_states: can return the states as AutoDeref dictionary instead of
                 a tensor. Defaults to False.
+            t_pre: time of the grey-scale stimulus.
 
         Returns:
             LayerActivity object.
@@ -990,11 +991,18 @@ class NetworkView(ConnectomeView):
         """
         if not self._initialized["network"]:
             self.init_network()
+
+        initial_state = self.network.steady_state(
+            t_pre, dt, batch_size=movie_input.shape[0], value=0.5
+        )
+
         return LayerActivity(
             self.network.simulate(movie_input, dt, initial_state, as_states).cpu(),
             self.network.connectome,
             keepref=True,
         )
+
+    simulate = __call__
 
     def stored_responses(self, subdir, central=True):
         """Return the stored responses of the network.

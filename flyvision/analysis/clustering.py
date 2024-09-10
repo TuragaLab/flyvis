@@ -28,7 +28,7 @@ INVALID_INT = -99999
 logging = logging.getLogger(__name__)
 
 
-def _check_markers(N):
+def check_markers(N):
     """Check if the number of clusters is larger than the number of markers."""
 
     if len(MARKERS) < N:
@@ -490,7 +490,7 @@ def plot_embedding(
                 zorder=-1,
             )
 
-        MARKERS = _check_markers(len(np.unique(labels)))
+        MARKERS = check_markers(len(np.unique(labels)))
         for label in np.unique(labels).astype(int):
             # to plot best performing models on top
             _argsort = np.argsort(task_error)[::-1]
@@ -532,7 +532,7 @@ def plot_embedding(
     elif labels is not None:
         X = X[mask]
         labels = labels[mask]
-        MARKERS = _check_markers(len(np.unique(labels)))
+        MARKERS = check_markers(len(np.unique(labels)))
         for label in np.unique(labels).astype(int):
             ax.scatter(
                 X[labels == label, 0],

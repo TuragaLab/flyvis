@@ -30,7 +30,7 @@ from flyvision.rendering import BoxEye
 from flyvision.rendering.utils import split
 from flyvision.utils.dataset_utils import download_sintel
 
-logging = logger = logging.getLogger(__name__)
+logging = logging.getLogger(__name__)
 
 
 @root(renderings_dir)
@@ -944,17 +944,6 @@ class AugmentedSintel(MultiTaskSintel):
         self.temporal_crop.random = False
         if self.temporal_split:
             self.temporal_crop.augment = False
-
-    # def init_responses(self, tnn, subdir="augmented_sintel"):
-    #     self.tnn = tnn
-    #     with exp_path_context():
-    #         if isinstance(tnn, (str, Path)):
-    #             self.tnn, _ = init_network_dir(tnn, None, None)
-    #         self.central_activity = utils.CentralActivity(
-    #             self.tnn[subdir].network_states.nodes.activity_central[:],
-    #             self.tnn.ctome,
-    #             keepref=True,
-    #         )
 
     def __len__(self):
         return len(self.cached_sequences)

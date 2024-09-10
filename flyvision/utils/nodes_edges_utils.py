@@ -256,7 +256,7 @@ class CellTypeArray:
                 return self.array
             elif isinstance(key, str) and key in self.node_indexer.unique_cell_types:
                 indices = np.int_([dict.__getitem__(self.node_indexer, key)])
-            elif isinstance(key, Iterable) and any([
+            elif isinstance(key, Iterable) and all([
                 _key in self.node_indexer.unique_cell_types for _key in key
             ]):
                 indices = np.int_([
@@ -294,6 +294,14 @@ class CellTypeArray:
 
     def __setattr__(self, key, value):
         return self.__setitem__(key, value)
+
+    def from_cell_types(self, cell_types):
+        activity = self[cell_types]
+        return CellTypeArray(
+            activity,
+            cell_types=cell_types,
+            dim=self.dim,
+        )
 
 
 # cell type layout for visualization

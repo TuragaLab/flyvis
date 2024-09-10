@@ -114,6 +114,17 @@ python train_ensemble.py \
         --q gpu_l4  \
         --ensemble_id 9998   \
         --task_name flow   \
-        --delete_recordings    \
-        --launch_synthetic_recordings   \
+        --delete_umap_and_clustering \
         --launch_ensemble_analysis
+
+
+python train_ensemble.py \
+         --start 0 \
+        --end 50  \
+        --nP 8   \
+        --gpu num=1   \
+        --q gpu_l4  \
+        --ensemble_id 0000  \
+        --task_name flow   \
+        --delete_recordings \
+        --launch_synthetic_recordings

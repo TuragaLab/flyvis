@@ -21,7 +21,7 @@ from numpy.typing import NDArray
 from flyvision import utils
 from flyvision.plots import plt_utils
 
-logging = logger = logging.getLogger(__name__)
+logging = logging.getLogger(__name__)
 
 
 def heatmap(
@@ -147,7 +147,8 @@ def hex_scatter(
     title_y=None,
     fontsize=5,
     label="",
-    labelxy=(0, 1),
+    labelxy="auto",
+    label_color="black",
     edgecolor=None,
     edgewidth=0.5,
     alpha=1,
@@ -464,18 +465,38 @@ def hex_scatter(
         for i, (_x, _y) in enumerate(zip(x, y)):
             ax.text(_x, _y, i, ha="center", va="center", fontsize=fontsize)
 
-    # left, bottom, right, top = ax.get_position().extents
+    if labelxy == "auto":
+        u_cs, v_cs = utils.hex_utils.get_hex_coords(extent)
+        z = -u_cs + v_cs
+        labelu, labelv = min(u_cs[z == 0]) - 1, min(v_cs[z == 0]) - 1
+        labelx, labely = utils.hex_utils.hex_to_pixel(labelu, labelv)
+        ha = "right" if len(label) < 4 else "center"
+        label_text = ax.annotate(
+            label,
+            (labelx, labely),
+            ha=ha,
+            va="bottom",
+            fontsize=fontsize,
+            zorder=1000,
+            xycoords="data",
+            color=label_color,
+        )
+    else:
+        label_text = ax.text(
+            labelxy[0],
+            labelxy[1],
+            label,
+            transform=ax.transAxes,
+            ha="left",
+            va="center",
+            fontsize=fontsize,
+            zorder=100,
+            color=label_color,
+        )
 
-    label_text = ax.text(
-        labelxy[0],
-        labelxy[1],
-        label,
-        transform=ax.transAxes,
-        ha="right",
-        va="bottom",
-        fontsize=fontsize,
-        zorder=100,
-    )
+    (xmin, ymin, xmax, ymax) = ax.dataLim.extents
+    ax.set_xlim(plt_utils.get_lims((xmin, xmax), 0.01))
+    ax.set_ylim(plt_utils.get_lims((ymin, ymax), 0.01))
 
     return fig, ax, (label_text, scalarmapper)
 
@@ -1308,6 +1329,25 @@ def plot_complex_vector(
     return fig, ax
 
 
+def extend_arg(arg, argtype, r, dim=-1):
+    """Extend an argument to the correct length for a given dimension."""
+    r = np.asarray(r)
+
+    if r.ndim == 1:
+        return arg
+
+    if isinstance(arg, argtype):
+        # Extend the integer to a list of r.shape[dim] times the same value
+        return [arg] * r.shape[dim]
+    elif isinstance(arg, Iterable) and len(arg) == r.shape[dim]:
+        # If it's already a list of the correct length, return it unchanged
+        return arg
+    else:
+        raise ValueError(
+            f"arg must be either an integer or a list of length {r.shape[-1]}."
+        )
+
+
 def polar(
     theta,
     r,
@@ -1359,6 +1399,7 @@ def polar(
     if not closed:
         theta = np.append(theta, theta[0])
 
+    r = np.asarray(r)
     if not closed:
         r = np.append(r, np.expand_dims(r[0], 0), axis=0)
 
@@ -1368,6 +1409,8 @@ def polar(
             path_effects.Stroke(**stroke_kwargs),
             path_effects.Normal(),
         ]
+
+    zorder = extend_arg(zorder, int, r, dim=-1)
 
     if r.ndim == 2:
         for i, _r in enumerate(r.T):
@@ -1390,7 +1433,7 @@ def polar(
                 marker=marker,
                 label=label,
                 path_effects=line_effects,
-                zorder=zorder,
+                zorder=zorder[i],
                 markersize=markersize,
             )
     elif r.ndim == 1:

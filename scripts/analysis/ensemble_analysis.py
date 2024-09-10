@@ -48,10 +48,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--delete_umap_and_clustering",
-        default=default_functions,
-        choices=default_functions,
+        action="store_true",
     )
-    args, _ = parser.parse_known_intermixed_args()
+    args = parser.parse_with_hybrid_args()
 
     ensemble_name = f"{args.task_name}/{args.ensemble_id}"
     ensemble = Ensemble(
@@ -71,6 +70,7 @@ if __name__ == "__main__":
                 (destination / cell_type).with_suffix(".pickle").exists()
                 and args.delete_umap_and_clustering
             ):
+                destination.mkdir(parents=True, exist_ok=True)
                 # Save the renamed pickle
                 with open((destination / cell_type).with_suffix(".pickle"), "wb") as f:
                     pickle.dump(embedding_and_clustering, f)

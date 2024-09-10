@@ -15,7 +15,7 @@ from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.hex_utils import get_hex_coords
 from flyvision.utils.nn_utils import n_params
 
-logging = logger = logging.getLogger(__name__)
+logging = logging.getLogger(__name__)
 
 
 class ActivityDecoder(nn.Module):

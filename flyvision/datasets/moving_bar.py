@@ -644,6 +644,7 @@ class MovingEdge(MovingBar):
         # -- can be used as stimulus to compute a baseline of motion selectivity
         seed=0,  # only for shuffle_offsets
         angles=[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
+        **kwargs,
     ):
         super().__init__(
             # arbitrary large value to make the 'bar' wide enough to appear as an edge
