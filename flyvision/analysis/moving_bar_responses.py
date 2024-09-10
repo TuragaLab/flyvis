@@ -4,9 +4,9 @@ from typing import List, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from datamate import Namespace
 from matplotlib import colors
 
+from datamate import Namespace
 from flyvision.analysis.simple_correlation import (
     correlation,
     quick_correlation_one_to_many,
@@ -16,12 +16,9 @@ from flyvision.plots import plt_utils
 from flyvision.plots.plots import polar, violin_groups
 from flyvision.utils import groundtruth_utils, nodes_edges_utils
 from flyvision.utils.activity_utils import StimulusResponseIndexer
+from flyvision.utils.color_utils import OFF, ON
 from flyvision.utils.nodes_edges_utils import CellTypeArray
 from flyvision.utils.tensor_utils import select_along_axes
-
-ON = "#af0019"  # red
-OFF = "#00b2b2"  # blue
-BOTH = "#abcdef"
 
 
 def adapt_color_alpha(color, alpha):
