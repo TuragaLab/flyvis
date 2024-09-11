@@ -19,7 +19,7 @@ import torch
 from numpy.typing import NDArray
 from torch import nn
 
-from flyvision.connectome import ConnectomeDir
+from flyvision.connectome import ConnectomeDir, ReceptiveFields
 from flyvision.plots.plots import grouped_traces
 from flyvision.utils import nodes_edges_utils
 from flyvision.utils.df_utils import where_dataframe
@@ -29,6 +29,7 @@ __all__ = [
     "CentralActivity",
     "LayerActivity",
     "StimulusResponseIndexer",
+    "SourceCurrentView",
     "asymmetric_weighting",
 ]
 
@@ -1048,6 +1049,27 @@ class StimulusResponseIndexerGroupBy:
         )
         arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
         return self.sri.view(responses=responses, arg_df=arg_df)
+
+
+class SourceCurrentView:
+    """Create views of source currents for a target type."""
+
+    def __init__(self, rfs: ReceptiveFields, currents):
+        self.target_type = rfs.target_type
+        self.source_types = list(rfs)
+        self.rfs = rfs
+        self.currents = currents
+
+    def __getattr__(self, key):
+        if key in self.source_types:
+            return np.take(self.currents, self.rfs[key].index, axis=-1)
+        return object.__getattr__(self, key)
+
+    def __getitem__(self, key):
+        return self.__getattr__(key)
+
+    def update(self, currents):
+        self.currents = currents
 
 
 def asymmetric_weighting(tensor, gamma=1.0, delta=0.1):

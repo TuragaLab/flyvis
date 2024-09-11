@@ -128,3 +128,14 @@ python train_ensemble.py \
         --task_name flow   \
         --delete_recordings \
         --launch_synthetic_recordings
+
+python train_ensemble.py \
+         --start 0 \
+        --end 50  \
+        --nP 8   \
+        --gpu num=1   \
+        --q gpu_l4  \
+        --ensemble_id 0000  \
+        --task_name flow   \
+        --launch_notebook_single \
+        notebook_path=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/scripts/analysis/movingbar_currents_recording.ipynb

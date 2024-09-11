@@ -854,6 +854,7 @@ class Network(nn.Module):
                         .squeeze(),
                     )
 
+                # stim, activity, currents
                 yield handle_stim(stim, fade_in_state)
 
 

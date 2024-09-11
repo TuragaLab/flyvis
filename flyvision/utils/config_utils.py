@@ -44,7 +44,16 @@ class HybridArgumentParser(argparse.ArgumentParser):
 
         argv = []
         for arg in unknown_args:
-            if "=" in arg:
+            if ":" in arg and "=" in arg:
+                keytype, value = arg.split("=")
+                key, astype = keytype.split(":")
+                if value in ["True", "true", "1"] and astype == "bool":
+                    setattr(args, key, True)
+                elif value in ["False", "false", "0"] and astype == "bool":
+                    setattr(args, key, False)
+                else:
+                    setattr(args, key, eval(astype)(value))
+            elif "=" in arg:
                 key, value = arg.split("=", 1)
                 setattr(args, key, value)
             else:

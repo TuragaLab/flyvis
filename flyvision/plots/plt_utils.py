@@ -1550,6 +1550,80 @@ def display_pvalues(
     ax.set_ylim(*get_lims([bars, ylim], 0.01))
 
 
+def closest_divisors(n):
+    closest_diff = float("inf")
+    closest_divisors = (1, 1)
+
+    for divisor in range(1, int(n**0.5) + 1):
+        if n % divisor == 0:
+            other_divisor = n // divisor
+            diff = abs(divisor - other_divisor)
+
+            if diff < closest_diff:
+                closest_diff = diff
+                closest_divisors = (divisor, other_divisor)
+
+    return closest_divisors
+
+
+def standalone_legend(
+    labels,
+    colors,
+    legend_elements=None,
+    alpha=1,
+    fontsize=6,
+    fig=None,
+    ax=None,
+    lw=4,
+    labelspacing=0.5,
+    handlelength=2.0,
+    n_cols=None,
+    columnspacing=0.8,
+    figsize=None,
+    linestyles=None,
+):
+    if legend_elements is None:
+        from matplotlib.lines import Line2D
+
+        legend_elements = []
+        for i, label in enumerate(labels):
+            legend_elements.append(
+                Line2D(
+                    [0],
+                    [0],
+                    color=colors[i],
+                    lw=lw,
+                    label=label,
+                    alpha=alpha,
+                    solid_capstyle="round",
+                    linestyle=linestyles[i] if linestyles is not None else "solid",
+                )
+            )
+    if n_cols is None:
+        n_rows, n_cols = closest_divisors(
+            len(legend_elements) - (len(legend_elements) % 2)
+        )
+    else:
+        n_rows = int(np.ceil(len(labels) / n_cols))
+    if fig is None or ax is None:
+        figsize = figsize or [0.1 * n_cols, 0.1 * n_rows]
+        fig, ax = plt.subplots(figsize=figsize)
+    ax.legend(
+        handles=legend_elements,
+        loc="center",
+        edgecolor="white",
+        framealpha=1,
+        fontsize=fontsize,
+        # bbox_to_anchor=(0, 1, 0, 1),
+        labelspacing=labelspacing,
+        handlelength=handlelength,
+        columnspacing=columnspacing,
+        ncol=n_cols,
+    )
+    rm_spines(ax, rm_yticks=True, rm_xticks=True)
+    return fig, ax
+
+
 # colormap from
 # https://stackoverflow.com/questions/23712207/cyclic-colormap-without-visual-distortions-for-use-in-phase-angle-plots
 cm_uniform_2d = np.array([

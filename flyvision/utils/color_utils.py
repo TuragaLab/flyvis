@@ -71,6 +71,23 @@ def get_alpha_colormap(saturated_color, number_of_shades):
     return ListedColormap(colors)
 
 
+def adapt_color_alpha(color, alpha):
+    """
+    Transforms a color specification to RGBA and adapts the alpha value.
+
+    Args:
+        color (Union[str, Tuple[float, float, float], Tuple[float, float, float, float]]):
+            Color specification in various formats: hex string, RGB tuple, or RGBA tuple.
+        alpha (float): New alpha value to be applied.
+
+    Returns:
+        Tuple[float, float, float, float]: The adapted color in RGBA format.
+    """
+    color_rgb = to_rgba(color)
+    r, g, b, _ = color_rgb
+    return r, g, b, alpha
+
+
 single_blue_cmap = single_color_cmap("#2c7fb8")
 single_orange_cmap = single_color_cmap("#d95f0e")
 

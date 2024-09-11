@@ -84,6 +84,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Run ensemble analysis.",
     )
+    parser.add_argument(
+        "--launch_notebook_single",
+        action="store_true",
+        help="Run notebooks.",
+    )
 
     parser.add_argument(
         "--dry",
@@ -166,6 +171,20 @@ if __name__ == "__main__":
             args.gpu,
             args.q,
             args.ensemble_analysis_script,
+            args.dry,
+            kwargs,
+        )
+
+    if args.launch_notebook_single:
+        launch_range(
+            args.start,
+            args.end,
+            args.ensemble_id,
+            args.task_name,
+            args.nP,
+            args.gpu,
+            args.q,
+            f"{str(script_dir)}/run_notebook_single.py",
             args.dry,
             kwargs,
         )

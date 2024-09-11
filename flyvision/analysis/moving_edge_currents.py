@@ -3,13 +3,13 @@ from typing import Any, Iterable, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from datamate import Namespace
 from matplotlib import colors
 from matplotlib.axes import Axes
 from matplotlib.colors import hex2color
 from matplotlib.lines import Line2D
 from toolz import valfilter, valmap
 
-from datamate import Namespace
 from flyvision.analysis.moving_bar_responses import adapt_color_alpha
 from flyvision.connectome import ReceptiveFields
 from flyvision.plots import plots, plt_utils
@@ -90,10 +90,10 @@ class MovingEdgeCurrentView:
         self.target_type = target_type
         self.ensemble = ensemble
         self.current_dir = current_dir
-        self.config = ensemble[0].tnn[current_dir].spec
+        self.config = ensemble[0].dir[current_dir].config
         self.arg_df = arg_df
         self.rfs = rfs or reset_index(
-            ReceptiveFields(target_type, ensemble.ctome.edges.to_df())
+            ReceptiveFields(target_type, ensemble[0].connectome.edges.to_df())
         )
         self.source_types = self.rfs.source_types
         self.time = time
@@ -110,7 +110,7 @@ class MovingEdgeCurrentView:
             # (on/off, n_models, n_angles, n_timesteps, n_input_cells)
             self.currents[source_type] = np.array(
                 [
-                    nnv.tnn[self.current_dir][self.target_type][source_type][:]
+                    nnv.dir[self.current_dir][self.target_type][source_type][:]
                     for nnv in self.ensemble.values()
                 ],
             )
@@ -122,7 +122,7 @@ class MovingEdgeCurrentView:
         # (on/off, n_models, n_angles, n_timesteps)
         self.responses = np.array(
             [
-                nnv.tnn[self.current_dir][self.target_type]["activity_central"][:]
+                nnv.dir[self.current_dir][self.target_type]["activity_central"][:]
                 for nnv in self.ensemble.values()
             ],
         )
@@ -168,7 +168,7 @@ class MovingEdgeCurrentView:
 
         response_dims = np.arange(len(self.responses.shape))
         response_norm = np.expand_dims(
-            norm[self.target_type], list(set(response_dims) - set([0]))
+            norm[self.target_type].squeeze(), list(set(response_dims) - set([0]))
         )
 
         # divide the responses by the norm
@@ -179,7 +179,7 @@ class MovingEdgeCurrentView:
         currents_dims = np.arange(len(next(iter(self.currents.values())).shape))
 
         currents_norm = np.expand_dims(
-            norm[self.target_type], list(set(currents_dims) - set([0]))
+            norm[self.target_type].squeeze(), list(set(currents_dims) - set([0]))
         )
 
         # divide the currents by the norm
@@ -234,8 +234,10 @@ class MovingEdgeCurrentView:
         return self.__getitem__(key)
 
     def __getitem__(self, key) -> Union["MovingEdgeCurrentView", Any]:
+        # e.g. view.C3
         if isinstance(key, str) and key in self.source_types:
             return self.view(Namespace({key: self.currents[key]}))
+        # e.g. view["C3", 0, 0, 0]
         elif (
             isinstance(key, Iterable)
             and isinstance(key[0], str)
@@ -243,11 +245,13 @@ class MovingEdgeCurrentView:
             and len(key[1:]) == self.shape
         ):
             return self.view(self.currents[key[0]][key[1:]])
+        # e.g. view[index, :, :, :]
         elif isinstance(key, Iterable) and len(key) == len(self.shape):
             return self.view(
                 Namespace({cell_type: c[key] for cell_type, c in self.currents.items()}),
                 responses=self.responses[key[:-1]],
             )
+        # view[:]
         elif key == slice(None):
             if len(self.currents) == 1:
                 return next(iter(self.currents.values()))
@@ -256,9 +260,17 @@ class MovingEdgeCurrentView:
 
     def __repr__(self):
         cv = {ct: v.shape for ct, v in self.currents.items()}
+        formatted_cv = ",\n        ".join(
+            f"'{ct}': Array(shape={v})" for ct, v in cv.items()
+        )
         return (
-            f"{self.__class__.__name__}({self.ensemble.name}"
-            f" {self.target_type}, {self.current_dir}, {cv}, {self.rfs})"
+            f"{self.__class__.__name__}(\n"
+            f"    ensemble={self.ensemble.name},\n"
+            f"    target_type={self.target_type},\n"
+            f"    current_dir={self.current_dir},\n"
+            f"    currents={{\n        {formatted_cv}\n    }},\n"
+            f"    rfs={self.rfs}\n"
+            f")"
         )
 
     @property
@@ -324,7 +336,7 @@ class MovingEdgeCurrentView:
         Intuitively chunks the y-axis of the current plots into two parts:
             - excitatory
             - inhibitory
-        and each of these into bins bins. In case of 3 corresponding to low-contribution,
+        and each of these into bins. In case of 3 corresponding to low-contribution,
         moderate-contribution, high-contribution. Then all cell types above or below the
         bin edge specified by cut_off_edge are discarded.
         """
@@ -430,7 +442,10 @@ class MovingEdgeCurrentView:
         u, v = current_view.rfs[source_type][["source_u", "source_v"]].values.T
         # average over models
         # (1, n_models, 1, n_timesteps, n_models) -> (n_timesteps, n_models)
-        values = current_view[source_type][:].mean(axis=(0, 1, 2))
+        # import pdb
+
+        # pdb.set_trace()
+        values = current_view[source_type][:].mean(axis=(0, 1))
         if mode == "peak":
             values = values[
                 np.argmax(np.abs(values), axis=0), np.arange(values.shape[-1])
@@ -440,7 +455,7 @@ class MovingEdgeCurrentView:
         elif mode == "std":
             signs = self.signs()
             values = signs[source_type] * np.std(values, axis=0)
-        fig, ax, _ = plt_utils.kernel(
+        fig, ax, _ = plots.kernel(
             u,
             v,
             values,

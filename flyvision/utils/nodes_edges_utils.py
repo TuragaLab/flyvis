@@ -230,11 +230,14 @@ class CellTypeArray:
 
     @property
     def shape(self):
-        return self.array.shape
+        if self.array is not None:
+            return self.array.shape
+        return []
 
     def __repr__(self):
         shape = list(self.shape)
-        shape.pop(self.dim)
+        if len(self.cell_types) > 1:
+            shape.pop(self.dim)
         desc = f"Array({tuple(shape)})"
         return {k: desc for k in self}.__repr__()
 

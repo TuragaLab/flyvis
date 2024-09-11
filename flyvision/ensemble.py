@@ -122,7 +122,7 @@ class Ensemble(dict):
             self[0].checkpoints.loss_file_name,
             try_sort,
         )
-
+        self.connectome = self[next(iter(self))].connectome
         self.cache = {}
 
     def __truediv__(self, key):

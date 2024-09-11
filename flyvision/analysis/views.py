@@ -3,6 +3,8 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 
 from flyvision.plots import plots, plt_utils
+from flyvision.utils import hex_utils
+from flyvision.utils.color_utils import adapt_color_alpha
 
 
 def loss_curves(
@@ -223,5 +225,209 @@ def violins(
 
     # top axis gets the title
     axes[0].set_title(title, y=0.91, fontsize=fontsize)
+
+    return fig, axes
+
+
+def plot_strf(
+    time,
+    rf,
+    hlines=True,
+    vlines=True,
+    time_axis=True,
+    fontsize=6,
+    fig=None,
+    axes=None,
+    figsize=[5, 1],
+    wspace=-0.15,
+    y_offset_time_axis=0,
+):
+    max_extent = hex_utils.get_hextent(rf.shape[-1])
+    t_steps = np.arange(0.0, 0.2, 0.01)[::2]
+
+    u, v = hex_utils.get_hex_coords(max_extent)
+    x, y = hex_utils.hex_to_pixel(u, v)
+    xmin, xmax = x.min(), x.max()
+    ymin, ymax = y.min(), y.max()
+    elev = 0
+    azim = 0
+
+    if fig is None or axes is None:
+        fig, axes = plt_utils.divide_figure_to_grid(
+            np.arange(10).reshape(1, 10),
+            wspace=wspace,
+            as_matrix=True,
+            figsize=figsize,
+        )
+
+    crange = np.abs(rf).max()
+
+    for i, t in enumerate(t_steps):
+        mask = np.where(np.abs(time - t) <= 1e-15, True, False)
+        _rf = rf[mask]
+        plots.quick_hex_scatter(
+            _rf,
+            cmap=plt.cm.coolwarm,
+            edgecolor=None,
+            vmin=-crange,
+            vmax=crange,
+            midpoint=0,
+            cbar=False,
+            max_extent=max_extent,
+            fig=fig,
+            ax=axes[0, i],
+            fill=True,
+            fontsize=fontsize,
+        )
+
+        if hlines:
+            axes[0, i].hlines(elev, xmin, xmax, color="grey", linewidth=0.25)
+        if vlines:
+            axes[0, i].vlines(azim, ymin, ymax, color="grey", linewidth=0.25)
+
+    if time_axis:
+        left = fig.transFigure.inverted().transform(
+            axes[0, 0].transData.transform((0, 0))
+        )[0]
+        right = fig.transFigure.inverted().transform(
+            axes[0, -1].transData.transform((0, 0))
+        )[0]
+
+        lefts, bottoms, rights, tops = np.array([
+            ax.get_position().extents for ax in axes.flatten()
+        ]).T
+        time_axis = fig.add_axes((
+            left,
+            bottoms.min() + y_offset_time_axis * bottoms.min(),
+            right - left,
+            0.01,
+        ))
+        plt_utils.rm_spines(
+            time_axis,
+            ("left", "top", "right"),
+            rm_yticks=True,
+            rm_xticks=False,
+        )
+
+        data_centers_in_points = np.array([
+            ax.transData.transform((0, 0)) for ax in axes.flatten()
+        ])
+        time_axis.tick_params(axis="both", labelsize=fontsize)
+        ticks = time_axis.transData.inverted().transform(data_centers_in_points)[:, 0]
+        time_axis.set_xticks(ticks)
+        time_axis.set_xticklabels(np.arange(0, 200, 20))
+        time_axis.set_xlabel("time (ms)", fontsize=fontsize, labelpad=2)
+        plt_utils.set_spine_tick_params(
+            time_axis,
+            spinewidth=0.25,
+            tickwidth=0.25,
+            ticklength=3,
+            ticklabelpad=2,
+            spines=("top", "right", "bottom", "left"),
+        )
+
+    return fig, axes
+
+
+def plot_strf_quantiles(
+    time,
+    rf,
+    quantiles,
+    time_axis=True,
+    fontsize=6,
+    fig=None,
+    axes=None,
+    figsize=[5, 1],
+    wspace=-0.15,
+    y_offset_time_axis=0,
+):
+    max_extent = hex_utils.get_hextent(rf.shape[-1])
+    t_steps = np.arange(0.0, 0.2, 0.01)[::2]
+
+    u, v = hex_utils.get_hex_coords(max_extent)
+    x, y = hex_utils.hex_to_pixel(u, v)
+
+    if fig is None or axes is None:
+        fig, axes = plt_utils.divide_figure_to_grid(
+            np.arange(10).reshape(1, 10),
+            wspace=wspace,
+            as_matrix=True,
+            figsize=figsize,
+        )
+
+    crange = np.abs(rf).max()
+    sm, _ = plt_utils.get_scalarmapper(
+        cmap=plt.cm.coolwarm,
+        vmin=-crange,
+        vmax=crange,
+    )
+
+    for i, t in enumerate(t_steps):
+        ax = axes[0, i]
+        mask = np.where(np.abs(time - t) <= 1e-15, True, False)
+        _rf = rf[mask].squeeze()
+        _q = quantiles[mask].squeeze()
+        ax.scatter(
+            np.arange(len(_rf)),
+            _rf[::-1],
+            color=sm.to_rgba(_rf[::-1]),
+            zorder=10,
+            s=2,
+            marker="h",
+        )
+
+        ax.fill_between(
+            np.arange(len(_rf)),
+            _q[:, 0][::-1],
+            _q[:, 1][::-1],
+            color=adapt_color_alpha("C0", 0.2),
+            zorder=-10,
+        )
+
+    ylims = plt_utils.get_lims(quantiles, 0.1)
+    for ax in axes.flatten():
+        ax.set_ylim(ylims)
+        plt_utils.rm_spines(ax)
+
+    if time_axis:
+        left = fig.transFigure.inverted().transform(
+            axes[0, 0].transData.transform((len(u) // 2, 0))
+        )[0]
+        right = fig.transFigure.inverted().transform(
+            axes[0, -1].transData.transform((len(u) // 2, 0))
+        )[0]
+
+        lefts, bottoms, rights, tops = np.array([
+            ax.get_position().extents for ax in axes.flatten()
+        ]).T
+        time_axis = fig.add_axes((
+            left,
+            bottoms.min() + y_offset_time_axis * bottoms.min(),
+            right - left,
+            0.01,
+        ))
+        plt_utils.rm_spines(
+            time_axis,
+            ("left", "top", "right"),
+            rm_yticks=True,
+            rm_xticks=False,
+        )
+
+        data_centers_in_points = np.array([
+            ax.transData.transform((len(u) // 2, 0)) for ax in axes.flatten()
+        ])
+        time_axis.tick_params(axis="both", labelsize=fontsize)
+        ticks = time_axis.transData.inverted().transform(data_centers_in_points)[:, 0]
+        time_axis.set_xticks(ticks)
+        time_axis.set_xticklabels(np.arange(0, 200, 20))
+        time_axis.set_xlabel("time (ms)", fontsize=fontsize, labelpad=2)
+        plt_utils.set_spine_tick_params(
+            time_axis,
+            spinewidth=0.25,
+            tickwidth=0.25,
+            ticklength=3,
+            ticklabelpad=2,
+            spines=("top", "right", "bottom", "left"),
+        )
 
     return fig, axes
