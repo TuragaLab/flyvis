@@ -151,6 +151,20 @@ class Checkpoints:
     def current_chkpt_key(self):
         return f"chkpt_{self.choice}_{self.validation_subdir}_{self.loss_file_name}"
 
+    def __repr__(self):
+        return (
+            f"Checkpoints(\n"
+            f"  choice={repr(self.choice)},\n"
+            f"  index={self.index},\n"
+            f"  path={repr(self.path)},\n"
+            f"  indices={repr(self.indices)},\n"
+            f"  paths={repr(self.paths)},\n"
+            f"  validation_subdir={repr(self.validation_subdir)},\n"
+            f"  loss_file_name={repr(self.loss_file_name)},\n"
+            f"  current_chkpt_key={repr(self.current_chkpt_key)}\n"
+            f")"
+        )
+
 
 def resolve_checkpoints(
     networkdir: "flyvision.network.NetworkDir",

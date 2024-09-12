@@ -6,6 +6,9 @@ from matplotlib.colors import (
     to_rgba,
 )
 
+from flyvision.plots.plt_utils import color_labels
+from flyvision.utils.groundtruth_utils import polarity
+
 ON = "#af0019"  # red
 OFF = "#00b2b2"  # blue
 
@@ -86,6 +89,14 @@ def adapt_color_alpha(color, alpha):
     color_rgb = to_rgba(color)
     r, g, b, _ = color_rgb
     return r, g, b, alpha
+
+
+def flash_response_color_labels(ax):
+    on = [key for key, value in polarity.items() if value == 1]
+    off = [key for key, value in polarity.items() if value == -1]
+    color_labels(on, ON_FR, ax)
+    color_labels(off, OFF_FR, ax)
+    return ax
 
 
 single_blue_cmap = single_color_cmap("#2c7fb8")

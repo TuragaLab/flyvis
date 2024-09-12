@@ -28,6 +28,7 @@ from flyvision.analysis.clustering import (
 )
 from flyvision.directories import EnsembleDir
 from flyvision.network import Network, NetworkDir, NetworkView
+from flyvision.utils.cache_utils import make_hashable
 from flyvision.utils.logging_utils import all_logging_disabled
 from flyvision.utils.nn_utils import simulation
 
@@ -306,7 +307,7 @@ class Ensemble(dict):
         """Return a list of validation losses for each network in the ensemble."""
         subdir, file = self.validation_file(subdir, file)
 
-        cache_key = (",".join(self.names), subdir, file)
+        cache_key = make_hashable((",".join(self.names), subdir, file))
 
         # Check if the result is in the cache
         if cache_key in self.cache:
@@ -318,6 +319,23 @@ class Ensemble(dict):
         self.cache[cache_key] = losses
 
         return losses
+
+    def update_checkpoints(
+        self,
+        checkpoint="best",
+        validation_subdir="validation",
+        loss_file_name="loss",
+    ):
+        """Update the checkpoints reference for the ensemble."""
+        for nv in self.values():
+            nv.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
+        self._init_args = (
+            self[0].dir.path,
+            checkpoint,
+            validation_subdir,
+            loss_file_name,
+            False,
+        )
 
     @contextmanager
     def rank_by_validation_error(self, reverse=False):
@@ -461,7 +479,7 @@ class Ensemble(dict):
 
         return TaskError(error, colors, cmap, norm, sm)
 
-    def stored_responses(self, subdir, central=True):
+    def stored_responses(self, subdir, central=True, slice=slice(None)):
         """Return the stored responses of the ensemble.
 
         Args:
@@ -480,13 +498,14 @@ class Ensemble(dict):
         chkpt_key = self[0].checkpoints.current_chkpt_key
         full_subdir = f"{subdir}/{chkpt_key}"
 
-        cache_key = (full_subdir, central)
+        cache_key = make_hashable((full_subdir, central, slice))
         if cache_key in self.cache:
             return self.cache[cache_key]
 
         try:
             responses = np.stack([
-                nv.stored_responses(subdir, central=central) for nv in self.values()
+                nv.stored_responses(subdir, central=central, slice=slice)
+                for nv in self.values()
             ])
             self.cache[cache_key] = responses
             return responses

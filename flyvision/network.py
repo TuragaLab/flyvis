@@ -29,6 +29,7 @@ from flyvision.initialization import Parameter
 from flyvision.stimulus import Stimulus
 from flyvision.tasks import _init_decoder
 from flyvision.utils.activity_utils import LayerActivity
+from flyvision.utils.cache_utils import make_hashable
 from flyvision.utils.chkpt_utils import (
     Checkpoints,
     recover_decoder,
@@ -1005,7 +1006,7 @@ class NetworkView(ConnectomeView):
 
     simulate = __call__
 
-    def stored_responses(self, subdir, central=True):
+    def stored_responses(self, subdir, central=True, slice=slice(None)):
         """Return the stored responses of the network.
 
         Args:
@@ -1024,7 +1025,7 @@ class NetworkView(ConnectomeView):
         chkpt_key = self.checkpoints.current_chkpt_key
         full_subdir = f"{subdir}/{chkpt_key}"
 
-        cache_key = (full_subdir, central)
+        cache_key = make_hashable((full_subdir, central, slice))
 
         # Check if the result is in the cache
         if cache_key in self.cache:
@@ -1032,7 +1033,7 @@ class NetworkView(ConnectomeView):
 
         responses = self.dir[full_subdir].network_states.nodes[
             f"activity{'_central' if central else ''}"
-        ][:]
+        ][slice]
 
         self.cache[cache_key] = responses
 

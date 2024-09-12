@@ -57,7 +57,8 @@ def extend_stored_activity(
         )
 
     # store config
-    network_view.dir[subdir].config = config
+    if network_view.dir[subdir].meta.config is None:
+        network_view.dir[subdir].config = config
 
 
 def store_optimal_stimulus_results(

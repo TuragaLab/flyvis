@@ -213,7 +213,10 @@ class CellTypeArray:
         self.array = array
         self.dim = dim
         self.node_indexer = NodeIndexer(connectome, cell_types)
-        self.cell_types = self.node_indexer.unique_cell_types  # TODO: remove again?
+        self.cell_types = self.node_indexer.unique_cell_types
+
+    def __bool__(self):
+        return self.array is not None
 
     def __iter__(self):
         for cell_type in self.node_indexer.unique_cell_types:
@@ -236,8 +239,6 @@ class CellTypeArray:
 
     def __repr__(self):
         shape = list(self.shape)
-        if len(self.cell_types) > 1:
-            shape.pop(self.dim)
         desc = f"Array({tuple(shape)})"
         return {k: desc for k in self}.__repr__()
 

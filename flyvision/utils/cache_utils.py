@@ -12,6 +12,9 @@ def make_hashable(obj):
     elif isinstance(obj, (tuple, frozenset)):
         # Tuples and frozensets are already immutable
         return tuple(make_hashable(e) for e in obj)
+    elif isinstance(obj, slice):
+        # Convert slices to tuples
+        return (obj.start, obj.stop, obj.step)
     else:
         # Fallback: convert to string (not recommended for complex objects)
         return str(obj)
