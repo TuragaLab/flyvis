@@ -27,8 +27,10 @@ from flyvision.analysis.clustering import (
     get_cluster_to_indices,
 )
 from flyvision.directories import EnsembleDir
+from flyvision.initialization import Parameter
 from flyvision.network import Network, NetworkDir, NetworkView
-from flyvision.utils.cache_utils import make_hashable
+from flyvision.utils.cache_utils import context_aware_cache
+from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.logging_utils import all_logging_disabled
 from flyvision.utils.nn_utils import simulation
 
@@ -303,21 +305,11 @@ class Ensemble(dict):
         except Exception as e:
             logging.info(f"sorting failed: {e}")
 
+    @context_aware_cache(context=lambda self: (self.names))
     def validation_losses(self, subdir: str = None, file: str = None):
         """Return a list of validation losses for each network in the ensemble."""
         subdir, file = self.validation_file(subdir, file)
-
-        cache_key = make_hashable((",".join(self.names), subdir, file))
-
-        # Check if the result is in the cache
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-
         losses = [nv.dir[subdir][file][()].min() for nv in self.values()]
-
-        # Store the result in the cache
-        self.cache[cache_key] = losses
-
         return losses
 
     def update_checkpoints(
@@ -399,7 +391,7 @@ class Ensemble(dict):
                 if in_context_names:  # to prevent an empty index
                     self.model_index = np.array([
                         i
-                        for i, name in enumerate((_model_index, _names))
+                        for i, name in zip(_model_index, _names)
                         if name in in_context_names
                     ])
                 self.names = in_context_names
@@ -431,16 +423,14 @@ class Ensemble(dict):
             elif isinstance(indices, (list, np.ndarray)):
                 if np.array(indices).dtype == np.array(self.names).dtype:
                     in_context_names = indices
-                elif np.array(indices).dtype == np.int64:
+                elif np.array(indices).dtype == np.int_:
                     in_context_names = np.array(self.names)[indices]
                 else:
                     raise ValueError(f"{indices}")
             else:
                 raise ValueError(f"{indices}")
             self.model_index = np.array([
-                i
-                for i, name in enumerate((_model_index, _names))
-                if name in in_context_names
+                i for i, name in zip(_model_index, _names) if name in in_context_names
             ])
             self.names = in_context_names
             self.in_context = True
@@ -479,6 +469,49 @@ class Ensemble(dict):
 
         return TaskError(error, colors, cmap, norm, sm)
 
+    def parameters(self):
+        """Return the parameters of the ensemble."""
+        network_params = {}
+        for network_view in self.values():
+            chkpt_params = torch.load(network_view.checkpoints.path)
+            for key, val in chkpt_params["network"].items():
+                if key not in network_params:
+                    network_params[key] = []
+                network_params[key].append(val.cpu().numpy())
+        for key, val in network_params.items():
+            network_params[key] = np.array(val)
+        return network_params
+
+    def parameter_keys(self):
+        """Return the keys of the parameters of the ensemble."""
+        self.check_configs_match()
+        network_view = self[0]
+        config = network_view.dir.config.network
+
+        parameter_keys = {}
+        for param_name, param_config in config.node_config.items():
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": network_view.connectome,
+                },
+            )
+            parameter_keys[f"nodes_{param_name}"] = param.keys
+        for param_name, param_config in config.edge_config.items():
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": network_view.connectome,
+                },
+            )
+            parameter_keys[f"edges_{param_name}"] = param.keys
+        return parameter_keys
+
+    @context_aware_cache(context=lambda self: (self.names))
     def stored_responses(self, subdir, central=True, slice=slice(None)):
         """Return the stored responses of the ensemble.
 
@@ -497,17 +530,11 @@ class Ensemble(dict):
         """
         chkpt_key = self[0].checkpoints.current_chkpt_key
         full_subdir = f"{subdir}/{chkpt_key}"
-
-        cache_key = make_hashable((full_subdir, central, slice))
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-
         try:
             responses = np.stack([
                 nv.stored_responses(subdir, central=central, slice=slice)
                 for nv in self.values()
             ])
-            self.cache[cache_key] = responses
             return responses
         except FileNotFoundError:
             logging.info(

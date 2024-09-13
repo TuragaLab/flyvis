@@ -6,13 +6,15 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from cachetools import FIFOCache, cachedmethod
+from cachetools.keys import hashkey
 
 import flyvision
 from flyvision.datasets.datasets import StimulusDataset
 from flyvision.datasets.sintel import AugmentedSintel
 from flyvision.plots import plots, plt_utils
 from flyvision.stimulus import Stimulus
-from flyvision.utils import cache_utils, hex_utils, tensor_utils
+from flyvision.utils import hex_utils, tensor_utils
 from flyvision.utils.activity_utils import CellTypeArray, LayerActivity
 
 
@@ -40,7 +42,7 @@ class FindOptimalStimuli:
             if stimuli == "default"
             else stimuli
         )
-        self.cache = {}
+        self.cache = FIFOCache(2)
 
     def stored_responses(self):
         try:
@@ -49,6 +51,10 @@ class FindOptimalStimuli:
         except FileNotFoundError:
             return None
 
+    @cachedmethod(
+        cache=lambda self: self.cache,
+        key=lambda *args: hashkey(args),
+    )
     def compute_responses_to_stimuli(
         self,
         dt=None,
@@ -58,11 +64,6 @@ class FindOptimalStimuli:
         indices=None,
     ):
         """Computes responses to naturalistic stimuli for central cells."""
-
-        cache_key = cache_utils.make_hashable(locals())
-
-        if cache_key in self.cache:
-            return self.cache[cache_key]
 
         def handle_network(network: flyvision.Network):
             for _, resp in network.stimulus_response(
@@ -79,7 +80,6 @@ class FindOptimalStimuli:
         responses = np.stack(list(handle_network(self.network)))
         responses = responses.reshape(-1, responses.shape[-2], responses.shape[-1])
         responses = CellTypeArray(responses, self.network.connectome)
-        self.cache[cache_key] = responses
         return responses
 
     def optimal_stimuli(

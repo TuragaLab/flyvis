@@ -127,14 +127,17 @@ def recover_penalty_optimizers(
     return optimizers
 
 
-def get_from_state_dict(state_dict: Union[Dict, Path], key: str) -> Dict:
+def get_from_state_dict(state_dict: Union[Dict, Path, str], key: str) -> Dict:
     if state_dict is None:
         return
-    if isinstance(state_dict, Path):
+    if isinstance(state_dict, (Path, str)):
         state = torch.load(state_dict, map_location=flyvision.device).pop(key, None)
     elif isinstance(state_dict, dict):
         state = state_dict.get(key, None)
-    return state
+    else:
+        raise TypeError(
+            f"state_dict must be of type Path, str or dict, but is {type(state_dict)}."
+        )
 
 
 @dataclass

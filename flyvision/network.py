@@ -13,7 +13,8 @@ from typing import Any, Callable, Dict, Iterable, Optional, Union
 import numpy as np
 import torch
 import torch.nn as nn
-from datamate import Directory, Namespace, set_root_context
+from datamate import Directory, Namespace, namespacify, set_root_context
+from joblib import Memory
 from toolz import valmap
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -131,15 +132,17 @@ class Network(nn.Module):
         super().__init__()
 
         # Call deecopy to alter passed configs without upstream effects
-        connectome = connectome.deepcopy()
-        dynamics = dynamics.deepcopy()
-        node_config = node_config.deepcopy()
-        edge_config = edge_config.deepcopy()
-        self.config = Namespace(
-            connectome=connectome,
-            dynamics=dynamics,
-            node_config=node_config,
-            edge_config=edge_config,
+        connectome = namespacify(connectome).deepcopy()
+        dynamics = namespacify(dynamics).deepcopy()
+        node_config = namespacify(node_config).deepcopy()
+        edge_config = namespacify(edge_config).deepcopy()
+        self.config = namespacify(
+            dict(
+                connectome=connectome,
+                dynamics=dynamics,
+                node_config=node_config,
+                edge_config=edge_config,
+            )
         ).deepcopy()
 
         # Store the connectome, dynamics, and parameters.
@@ -893,6 +896,7 @@ class NetworkView(ConnectomeView):
         self.checkpoints: Checkpoints = None
         self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
         self.cache = {}
+        self.memory = Memory(location=self.dir.path / "__cache__", verbose=0)
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
 
     def update_checkpoint(
