@@ -56,7 +56,7 @@ def check_loss_name(loss_folder, loss_file_name):
 
 def recover_network(
     network: nn.Module,
-    state_dict: Union[Dict, Path],
+    state_dict: Union[Dict, Path, str],
     ensemble_and_network_id: str = None,
 ) -> None:
     """Loads network parameters from state dict.
@@ -138,6 +138,7 @@ def get_from_state_dict(state_dict: Union[Dict, Path, str], key: str) -> Dict:
         raise TypeError(
             f"state_dict must be of type Path, str or dict, but is {type(state_dict)}."
         )
+    return state
 
 
 @dataclass

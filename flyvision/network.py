@@ -862,6 +862,35 @@ class Network(nn.Module):
                 yield handle_stim(stim, fade_in_state)
 
 
+# class NetworkView2:
+#     dir: Path
+#     best_checkpoint_fn: Callable[[str], int]
+#     checkpoint_mapper: map(int, Path)
+#     cache: Memory
+
+#     def save(self, obj):
+#         # save object to folder here
+
+#     def network(self, checkpoint: int | Literal["best"]) -> CheckpointedNetwork:
+#         match checkpoint:
+#             case str:
+#                 checkpoint_idx = self.best_checkpoint_fn(checkpoint)
+#                 _checkpoint = self.checkpoint_mapper[checkpoint_idx]
+#             case int:
+#                 _checkpoint = self.checkpoint_mapper[checkpoint]
+
+#         return Network(flyvision.Network, config, _checkpoint)
+
+#     def decoder(self, ):
+#         pass
+
+
+# best_checkpointed = Network.network(checkpoint="best")
+# best_checkpointed = best_checkpointed.init()
+
+
+# best_checkpointed = Network.network(checkpoint=1)
+# best_checkpointed = best_checkpointed.init()
 class NetworkView(ConnectomeView):
     """Views and convenience methods for trained networks.
 
@@ -1043,47 +1072,40 @@ class NetworkView(ConnectomeView):
 
         return responses
 
-    @wraps(stimulus_responses.flash_responses_generator)
+    @wraps(stimulus_responses.flash_responses)
     def flash_responses(self, **kwargs):
         """Generate flash responses."""
-        self.init_network()
-        return stimulus_responses.flash_responses_generator(self, **kwargs)
+        return stimulus_responses.flash_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.movingedge_responses_generator)
+    @wraps(stimulus_responses.movingedge_responses)
     def movingedge_responses(self, **kwargs):
         """Generate moving edge responses."""
-        self.init_network()
-        return stimulus_responses.movingedge_responses_generator(self, **kwargs)
+        return stimulus_responses.movingedge_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.movingbar_responses_generator)
+    @wraps(stimulus_responses.movingbar_responses)
     def movingbar_responses(self, **kwargs):
         """Generate moving bar responses."""
-        self.init_network()
-        return stimulus_responses.movingbar_responses_generator(self, **kwargs)
+        return stimulus_responses.movingbar_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.naturalistic_stimuli_responses_generator)
+    @wraps(stimulus_responses.naturalistic_stimuli_responses)
     def naturalistic_stimuli_responses(self, **kwargs):
         """Generate naturalistic stimuli responses."""
-        self.init_network()
-        return stimulus_responses.naturalistic_stimuli_responses_generator(self, **kwargs)
+        return stimulus_responses.naturalistic_stimuli_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.central_impulses_responses_generator)
+    @wraps(stimulus_responses.central_impulses_responses)
     def central_impulses_responses(self, **kwargs):
         """Generate central ommatidium impulses responses."""
-        self.init_network()
-        return stimulus_responses.central_impulses_responses_generator(self, **kwargs)
+        return stimulus_responses.central_impulses_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.spatial_impulses_responses_generator)
+    @wraps(stimulus_responses.spatial_impulses_responses)
     def spatial_impulses_responses(self, **kwargs):
         """Generate spatial ommatidium impulses responses."""
-        self.init_network()
-        return stimulus_responses.spatial_impulses_responses_generator(self, **kwargs)
+        return stimulus_responses.spatial_impulses_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.optimal_stimulus_responses_generator)
+    @wraps(stimulus_responses.optimal_stimulus_responses)
     def optimal_stimulus_responses(self, **kwargs):
         """Generate optimal stimuli responses."""
-        self.init_network()
-        return stimulus_responses.optimal_stimulus_responses_generator(self, **kwargs)
+        return stimulus_responses.optimal_stimulus_responses(self, **kwargs)
 
 
 class IntegrationWarning(Warning):
