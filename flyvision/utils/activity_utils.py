@@ -582,10 +582,11 @@ class StimulusResponseIndexer:
 
     def peak(self, dim=None) -> "StimulusResponseIndexer":
         time = None
-        if dim is None or dim == self.temporal_dim:
+        if dim is None:
             dim = self.temporal_dim
-            time = np.nanargmax(self.responses[:], axis=dim, keepdims=True)
-            # TODO?: do this for every operation that collapses dims
+            time = np.array([
+                np.nan
+            ])  # TODO?: do this for every operation that collapses dims
 
         peak = np.nanmax(self.responses[:], axis=dim, keepdims=True)
         return self.view(responses=peak, time=time)
@@ -690,6 +691,7 @@ class StimulusResponseIndexer:
         return self.view(responses=new_responses)
 
     def squeeze(self, dims=None) -> "StimulusResponseIndexer":
+        print("maybe don't do this")
         return self.view(responses=np.squeeze(self.responses[:], axis=dims))
 
     def mean(self, dims=None, keepdims=False) -> "StimulusResponseIndexer":
@@ -750,7 +752,7 @@ class StimulusResponseIndexer:
             )
         return self
 
-    def reshape_stim_sample_dim(self, *args) -> "StimulusResponseIndexer":
+    def reshape_stim_sample_dim(self, *args) -> "CellTypeArray":
         """Reshape the originally flat stimulus sample dimension
         to unflattened based on arg_df column names.
         """
@@ -787,6 +789,12 @@ class StimulusResponseIndexer:
             responses=self.responses[:].reshape(*new_shape),
             stim_sample_dim=new_stim_sample_dim,
             temporal_dim=new_temporal_dim,
+        )
+
+    def groupby(self, by):
+        return StimulusResponseIndexerGroupBy(
+            keys=by,
+            sri=self,
         )
 
     def take_single(self, indices, dims) -> "StimulusResponseIndexer":
@@ -884,19 +892,12 @@ class StimulusResponseIndexer:
                 if cell_trace.arg_df[col].nunique() > 1
             ]
         if len(groupby) > 0:
-            names = sorted([
-                tuple(values)
-                for values in cell_trace.arg_df[groupby].drop_duplicates().values.tolist()
-            ])
-            responses = [
-                cell_trace.where_stim_args(**dict(zip(groupby, name)))[:]
-                for name in names
-            ]
+            grouped = cell_trace.groupby(groupby)
+            responses = [sri[:] for _, sri in grouped]
             names = [
-                ", ".join([f"{key}={val}" for key, val in zip(groupby, names)])
-                for names in names
+                ", ".join([f"{key}={val}" for key, val in zip(grouped.keys, names)])
+                for names in grouped.names
             ]
-
         else:
             responses = [cell_trace.responses[:]]
             names = []
@@ -919,6 +920,135 @@ class StimulusResponseIndexer:
             cell_trace.time,
             **defaults,
         )
+
+
+class StimulusResponseIndexerGroupBy:
+    def __init__(
+        self,
+        keys: Union[str, tuple[str]],
+        sri: "StimulusResponseIndexer",
+    ):
+        super().__init__()
+        if isinstance(keys, str):
+            keys = [keys]
+        self.keys = keys
+        self.sri = sri
+        self.names = sorted([
+            tuple(values)
+            for values in self.sri.arg_df[self.keys].drop_duplicates().values.tolist()
+        ])
+        self.sris = [
+            self.sri.where_stim_args(**dict(zip(self.keys, name))) for name in self.names
+        ]
+
+    def __iter__(self):
+        return zip(self.names, self.sris)
+
+    @property
+    def groups(self):
+        return dict(zip(self.names, self.sris))
+
+    @property
+    def indices(self):
+        return {
+            name: self.sri.where_stim_args_index(
+                **dict(zip(self.keys, name)),
+            )
+            for name in self.names
+        }
+
+    def get_group(self, name) -> "StimulusResponseIndexer":
+        index = self.names.index(name)
+        return self.sris[index]
+
+    def _rebuild(
+        self, sris: list[StimulusResponseIndexer] = None
+    ) -> "StimulusResponseIndexer":
+        # TODO: give more informative errors
+        if sris is not None:
+            assert len(sris) == len(self.sris)
+            assert all([sri.stim_sample_dim == sris[0].stim_sample_dim for sri in sris])
+            assert all([sri.temporal_dim == sris[0].temporal_dim for sri in sris])
+            assert all([len(sri.shape) == len(sris[0].shape) for sri in sris])
+            non_stim_dims = np.array(
+                list(set(np.arange(len(sris[0].shape))) - set([sris[0].stim_sample_dim]))
+            )
+            for dim in non_stim_dims.tolist():
+                assert all([sri.shape[dim] == sris[0].shape[dim] for sri in sris])
+            assert all([
+                sri.shape[sri.stim_sample_dim] == orig_sri.shape[orig_sri.stim_sample_dim]
+                for sri, orig_sri in zip(sris, self.sris)
+            ])
+        else:
+            sris = self.sris
+        shape = list(sris[0].shape)
+        shape[sris[0].stim_sample_dim] = len(self.sri.arg_df)
+        responses = np.empty(shape).swapaxes(0, sris[0].stim_sample_dim)
+        for sri, indices in zip(sris, self.indices.values()):
+            responses[np.array(indices, dtype=int)] = sri.responses[:].swapaxes(
+                0, sri.stim_sample_dim
+            )
+        responses = responses.swapaxes(0, sris[0].stim_sample_dim)
+        return self.sri.view(responses=responses)
+
+    def apply(self, func, *args, **kwargs) -> "StimulusResponseIndexer":
+        sris = [func(sri, *args, **kwargs) for sri in self.sris]
+        return self._rebuild(sris)
+
+    def sum(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nansum(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def min(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmin(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def max(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmax(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def mean(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmean(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
+
+    def median(self) -> "StimulusResponseIndexer":
+        responses = np.concatenate(
+            [
+                np.nanmedian(sri.responses[:], axis=sri.stim_sample_dim, keepdims=True)
+                for sri in self.sris
+            ],
+            axis=self.sri.stim_sample_dim,
+        )
+        arg_df = self.sri.arg_df[self.keys].drop_duplicates().reset_index(drop=True)
+        return self.sri.view(responses=responses, arg_df=arg_df)
 
 
 class SourceCurrentView:

@@ -19,7 +19,9 @@ from flyvision.datasets.flashes import Flashes
 from flyvision.datasets.moving_bar import MovingEdge
 from flyvision.directories import EnsembleDir
 from flyvision.ensemble import Ensemble
+from flyvision.initialization import Parameter
 from flyvision.utils.activity_utils import CellTypeArray
+from flyvision.utils.class_utils import forward_subclass
 
 logging = logging.getLogger(__name__)
 
@@ -81,6 +83,48 @@ class EnsembleView(Ensemble):
         return views.histogram(
             losses, xlabel="task error", ylabel="number models", **kwargs
         )
+
+    def parameters(self):
+        """Return the parameters of the ensemble."""
+        network_params = {}
+        for network_view in self.values():
+            chkpt_params = torch.load(network_view.checkpoints.path)
+            for key, val in chkpt_params["network"].items():
+                if key not in network_params:
+                    network_params[key] = []
+                network_params[key].append(val.cpu().numpy())
+        for key, val in network_params.items():
+            network_params[key] = np.array(val)
+        return network_params
+
+    def parameter_keys(self):
+        """Return the keys of the parameters of the ensemble."""
+        self.check_configs_match()
+        network_view = self[0]
+        config = network_view.dir.config.network
+
+        parameter_keys = {}
+        for param_name, param_config in config.node_config.items():
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": network_view.connectome,
+                },
+            )
+            parameter_keys[f"nodes_{param_name}"] = param.keys
+        for param_name, param_config in config.edge_config.items():
+            param = forward_subclass(
+                Parameter,
+                config={
+                    "type": param_config.type,
+                    "param_config": param_config,
+                    "connectome": network_view.connectome,
+                },
+            )
+            parameter_keys[f"edges_{param_name}"] = param.keys
+        return parameter_keys
 
     @wraps(views.violins)
     def node_parameters(self, key, max_per_ax=34, **kwargs):

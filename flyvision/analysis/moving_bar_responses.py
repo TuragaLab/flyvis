@@ -1,4 +1,5 @@
-from typing import Union
+from dataclasses import dataclass
+from typing import List, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,20 +73,14 @@ class MovingBarResponseView(StimulusResponseIndexer):
             time if np.any(time) else self.time,
         )
 
-    def angular(self, dim=None) -> "MovingBarResponseView":
-        if dim is None:
-            dim = self.stim_sample_dim
-            view = self.reshape_stim_sample_dim("angle")
-        else:
-            view = self
-        shape = view.shape
-        angles = np.radians(self.arg_df.angle.unique())
-
-        complex_responses = view.responses[:] * np.exp(
-            np.expand_dims(angles, [i for i in range(len(shape)) if i != dim]) * 1j
-        )
+    def angular(self) -> "MovingBarResponseView":
+        angles = np.radians(self.arg_df.angle.to_numpy())
+        angles = angles.reshape(*[
+            (-1 if i == self.stim_sample_dim else 1) for i in range(len(self.shape))
+        ])
+        complex_responses = self.responses[:] * np.exp(angles * 1j)
         return self.view(
-            responses=complex_responses, stim_sample_dim=view.stim_sample_dim
+            responses=complex_responses, stim_sample_dim=self.stim_sample_dim
         )
 
     def peak_responses(
@@ -116,21 +111,38 @@ class MovingBarResponseView(StimulusResponseIndexer):
             view = view.divide_by_given_array(norm, dims=(0, -1))
 
         peak = view.peak()
-
-        # from n_models, n_stimuli, n_timesteps, n_cell_types
-        # to n_angle, n_models, n_width, n_intensity, n_speed, n_timesteps, n_cell_types
-        peak = peak.reshape_stim_sample_dim(
-            "angle", "width", "intensity", "speed"
-        ).transpose(1, 0, 2, 3, 4, 5, 6)
         return peak
 
-    def peak_responses_angular(
-        self, norm=None, from_degree=None, to_degree=None
-    ) -> "MovingBarResponseView":
-        view = self.peak_responses(norm, from_degree, to_degree)
-        # make complex over angles
-        view = view.angular(dim=0)
-        return view
+    def tuning_curves(
+        self,
+        norm=None,
+        from_degree=None,
+        to_degree=None,
+    ):
+        peak_responses = self.peak_responses(
+            norm=norm, from_degree=from_degree, to_degree=to_degree
+        )
+        stim_tunings = [
+            stim_peaks[:]
+            for _, stim_peaks in peak_responses.groupby(["angle", "intensity"])
+        ]
+        stim_tunings = np.stack(stim_tunings, axis=0)
+        stim_tunings = stim_tunings.reshape(
+            len(self.config.angles),
+            len(self.config.intensities),
+            *stim_tunings.shape[1:],
+        )  # angles, intensities, ..., stim_sample_dim, temporal_dim, ..., cell_type
+        tuning_curve = peak_responses.view(
+            responses=stim_tunings,
+            stim_sample_dim=peak_responses.stim_sample_dim + 2,
+            temporal_dim=peak_responses.temporal_dim + 2,
+            arg_df=peak_responses.arg_df.loc[
+                peak_responses.arg_df[["width", "speed"]].drop_duplicates().index
+            ],
+        )
+        angles = sorted(peak_responses.arg_df.angle.unique())
+        intensities = sorted(peak_responses.arg_df.intensity.unique())
+        return TuningCurveData(tuning_curve, angles, intensities)
 
     def get_time_masks(self, from_column=-1.5, to_column=1.5):
         masks = {}
@@ -147,32 +159,31 @@ class MovingBarResponseView(StimulusResponseIndexer):
             )
         return np.array([masks[speed] for speed in self.arg_df.speed.to_list()])
 
-    def dsi(
-        self, average=True, norm=None, from_degree=None, to_degree=None
-    ) -> "MovingEdgeResponseView":
-        view = self.peak_responses_angular(norm, from_degree, to_degree)
-
-        # compute DSI
-        vector_sum = view.sum(dims=(0,))
+    def dsi(self, average=True):
+        Zpeak = self.peak_responses().angular()
+        vector_sum = Zpeak.groupby(by=["width", "intensity", "speed"]).sum()
+        vector_sum = vector_sum.sum(dims=vector_sum.temporal_dim)
         vector_length = vector_sum.abs()
-        normalization = view.abs().sum(dims=(0,)).max(dims=(3,), keepdims=True)
-        dsi = vector_length / (normalization + np.array([1e-15]))
 
+        normalization = Zpeak.abs().groupby(by=["width", "intensity", "speed"]).sum()
+        normalization = normalization.sum(dims=normalization.temporal_dim)
+        normalization = normalization.groupby(by=["width", "speed"]).max()
+        dsi = vector_length.groupby(by=["intensity"]).apply(
+            lambda gpby: gpby / normalization
+        )
+        if average:
+            dsi = dsi.groupby(by=["intensity"]).mean()
+        return dsi
+
+    def preferred_direction(self, average=True):
+        Zpeak = self.peak_responses().angular()
+        vector_sum = Zpeak.groupby(by=["width", "intensity", "speed"]).sum()
         if average:
             # average over widths and speeds
-            dsi = dsi.mean(dims=(2, 4), keepdims=True)
-        return dsi.squeeze()
-
-    def preferred_direction(
-        self, average=True, norm=None, from_degree=None, to_degree=None
-    ):
-        view = self.peak_responses_angular(norm, from_degree, to_degree)
-        vector_sum = view.sum(dims=(0,))
-        theta_pref = np.angle(vector_sum[:])
-        if average:
-            # average over widths and speeds
-            theta_pref = np.angle(vector_sum.sum(dims=(2, 4))[:])
-        return theta_pref
+            theta_pref = np.angle(vector_sum.groupby(by=["intensity"]).sum()[:])
+        else:
+            theta_pref = np.angle(vector_sum[:])
+        return np.ma.filled(theta_pref, np.nan)
 
     def plot_traces(
         self, cell_type, t_start=None, t_end=None, plot_kwargs=dict(), **stim_kwargs
@@ -201,47 +212,51 @@ class MovingBarResponseView(StimulusResponseIndexer):
         groundtruth_linewidth=1.0,
         fig=None,
         ax=None,
-        peak_responses=None,
         compare_across_contrasts=False,
         weighted_average=None,
-        average_models=False,
+        average_models=True,
+        model_dim=None,
         colors=None,
+        zorder=10,
+        tuning_curves=None,
         **kwargs,
     ):
         """
         Args:
             tuning (optional): If provided, use this tuning instead of computing it.
-                Must be a MovingEdgeResponseView of shape
-                (12, 50, 1, 2, 6, 1, 65).
+                Must be a MovingBarResponseView of shape
+                (12, 50, 3, 2, 6, 1, 65).
         """
+        if tuning_curves is None:
+            tuning_curves = self.tuning_curves()
+        tuning_curves, angles, intensities = (
+            tuning_curves.tuning_curve,
+            tuning_curves.angles,
+            tuning_curves.intensities,
+        )
+        assert intensity in intensities
+        angles = np.array(angles)
 
-        if peak_responses is None:
-            peak_responses = self.peak_responses()
-
-        peak_responses = peak_responses[cell_type]
-        # squeeze width, time, and cell_type dims
-        # TODO: this will break with width dim > 1
-        peak_responses = peak_responses[cell_type].squeeze(dims=(2, -2, -1))
-        # average over speeds
-        average_tuning = peak_responses.mean(dims=(3,))
+        # squeeze out the cell type dimension
+        cell_tuning = tuning_curves[cell_type]
+        # average over speeds and widths
+        average_tuning = cell_tuning.mean(dims=(cell_tuning.stim_sample_dim,))
         # average over models
-        if average_models:
-            average_tuning = average_tuning.average(dims=(1,), weights=weighted_average)
+        if model_dim is not None and average_models:
+            average_tuning = average_tuning.average(
+                dims=(model_dim,), weights=weighted_average
+            )
 
         if quantile:
-            # average over speeds and compute the quantile over models
-            quantile = peak_responses.mean(dims=(3,)).quantile(quantile, dims=(1,))[:]
+            # average over speeds, widths and compute the quantile over models
+            quantile = cell_tuning.mean(dims=(cell_tuning.stim_sample_dim,)).quantile(
+                quantile, dims=(1,)
+            )[:]
 
         # being verbose here to avoid misunderstandings cause intensity and their
         # index are identical
-        # TODO: this won't work if intensity is not 0 or 1
-        if intensity == 0:
-            index = 0
-        elif intensity == 1:
-            index = 1
-        else:
-            raise NotImplementedError("Only intensity 0 and 1 are supported")
-        r_predicted = average_tuning.take_single(indices=index, dims=-1)
+        intensity_index = list(intensities).index(intensity)
+        r_predicted = average_tuning.take_single(indices=intensity_index, dims=1)
 
         if compare_across_contrasts:
             r_predicted = r_predicted[:].squeeze() / (
@@ -269,8 +284,6 @@ class MovingBarResponseView(StimulusResponseIndexer):
 
         color = (ON if intensity == 1 else OFF) if colors is None else colors
 
-        angles = self.arg_df.angle.unique()
-
         fig, ax = polar(
             angles,
             r_predicted,
@@ -280,6 +293,7 @@ class MovingBarResponseView(StimulusResponseIndexer):
             anglepad=anglepad,
             xlabelpad=xlabelpad,
             color=color,
+            zorder=zorder,
             fig=fig,
             ax=ax,
             **kwargs,
@@ -315,6 +329,7 @@ class MovingBarResponseView(StimulusResponseIndexer):
                 anglepad=anglepad,
                 xlabelpad=xlabelpad,
                 color="k",
+                zorder=100,
                 fig=fig,
                 ax=ax,
                 **kwargs,
@@ -886,3 +901,13 @@ def dsi_violins(
             best_color=scatter_best_color,
         )
     return fig, ax, colors, dsis
+
+
+@dataclass
+class TuningCurveData:
+    tuning_curve: MovingBarResponseView
+    angles: List[float]
+    intensities: List[float]
+
+    def __getitem__(self, key):
+        return TuningCurveData(self.tuning_curve[key], self.angles, self.intensities)
