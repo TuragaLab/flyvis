@@ -13,7 +13,7 @@ from flyvision.utils.logging_utils import warn_once
 logging = logging.getLogger(__name__)
 
 
-def init_or_get_checkpoints(
+def checkpoint_index_to_path_map(
     path: Path, glob: str = "chkpt_*"
 ) -> Tuple[List[int], List[Path]]:
     """Returns all numerical identifier and paths to checkpoints stored in path.
@@ -143,100 +143,106 @@ def get_from_state_dict(state_dict: Union[Dict, Path, str], key: str) -> Dict:
 
 @dataclass
 class Checkpoints:
-    choice: Union[str, int]
-    index: int
-    path: Path
+    # choice: Union[str, int]
+    # index: int
+    # path: Path
     indices: List[int]
     paths: List[Path]
-    validation_subdir: str = "validation"
-    loss_file_name: str = "loss"
-
-    @property
-    def current_chkpt_key(self):
-        return f"chkpt_{self.choice}_{self.validation_subdir}_{self.loss_file_name}"
+    # best_checkpoint_fn: Callable
+    # best_checkpoint_fn_kwargs: dict
 
     def __repr__(self):
         return (
             f"Checkpoints(\n"
-            f"  choice={repr(self.choice)},\n"
-            f"  index={self.index},\n"
-            f"  path={repr(self.path)},\n"
+            # f"  choice={repr(self.choice)},\n"
+            # f"  index={self.index},\n"
+            # f"  path={repr(self.path)},\n"
             f"  indices={repr(self.indices)},\n"
             f"  paths={repr(self.paths)},\n"
-            f"  validation_subdir={repr(self.validation_subdir)},\n"
-            f"  loss_file_name={repr(self.loss_file_name)},\n"
-            f"  current_chkpt_key={repr(self.current_chkpt_key)}\n"
+            # f"  best_checkpoint_fn={self.best_checkpoint_fn.__name__},\n"
+            # f"  best_checkpoint_fn_kwargs={repr(self.best_checkpoint_fn_kwargs)}\n"
             f")"
         )
 
 
-def resolve_checkpoints(
-    networkdir: "flyvision.network.NetworkDir",
-    checkpoint: Union[int, str] = "best",
-    validation_subdir: str = "validation",
-    loss_file_name: str = "loss",
-) -> Checkpoints:
-    """Resolves checkpoints from networkdir."""
+# def best_checkpoint_default_fn(
+#     networkdir: "flyvision.network.NetworkDir",
+#     checkpoint: Union[int, str] = "best",
+#     validation_subdir: str = "validation",
+#     loss_file_name: str = "loss",
+# ) -> int:
+#     """Validates the checkpoint index. Transform 'best' to the index with the minimal
+#     validation error.
+#     """
+#     checkpoint_dir = networkdir.chkpts.path
+#     indices, _ = init_or_get_checkpoints(checkpoint_dir, glob="chkpt_*")
 
-    # if networkdir.status == "paper results":
-    #     # This is for the shared trained models, which follow a slightly different
-    #     # naming convention and only store one checkpoint in comparison to new models
-    #     # to make sure we don't mix them up.
-    #     return _resolve_paper_results(networkdir)
+#     if (
+#         checkpoint == "best"
+#         and validation_subdir in networkdir
+#         and loss_file_name in networkdir[validation_subdir]
+#     ):
+#         loss_file_name = check_loss_name(networkdir[validation_subdir], loss_file_name)
+#         index = np.argmin(networkdir[validation_subdir][loss_file_name][()])
+#         checkpoint = indices[index]
+#     elif checkpoint in indices:
+#         checkpoint = indices[checkpoint]
+#     else:
+#         checkpoint = slice(None)
 
-    index = _check_checkpoint(networkdir, checkpoint, validation_subdir, loss_file_name)
-    indices, paths = init_or_get_checkpoints(networkdir.chkpts.path)
-
-    return Checkpoints(
-        checkpoint,
-        index,
-        paths[index],
-        indices,
-        paths,
-        validation_subdir,
-        loss_file_name,
-    )
+#     return checkpoint
 
 
-def _check_checkpoint(
-    networkdir: "flyvision.network.NetworkDir",
-    checkpoint: Union[int, str] = "best",
+def best_checkpoint_default_fn(
+    path: Path,
     validation_subdir: str = "validation",
     loss_file_name: str = "loss",
 ) -> int:
-    """Validates the checkpoint index. Transform 'best' to the index with the minimal
-    validation error.
     """
+    Args:
+        path (Path): Path to the network directory.
+        validation_subdir (str, optional): [description]. Defaults to "validation".
+        loss_file_name (str, optional): [description]. Defaults to "loss".
+    """
+    networkdir = flyvision.NetworkDir(path)
     checkpoint_dir = networkdir.chkpts.path
-    indices, _ = init_or_get_checkpoints(checkpoint_dir, glob="chkpt_*")
-
-    if (
-        checkpoint == "best"
-        and validation_subdir in networkdir
-        and loss_file_name in networkdir[validation_subdir]
-    ):
-        loss_file_name = check_loss_name(networkdir[validation_subdir], loss_file_name)
-        index = np.argmin(networkdir[validation_subdir][loss_file_name][()])
-        checkpoint = indices[index]
-    elif checkpoint in indices:
-        checkpoint = indices[checkpoint]
-    else:
-        checkpoint = slice(None)
-
-    return checkpoint
+    indices, paths = checkpoint_index_to_path_map(checkpoint_dir, glob="chkpt_*")
+    loss_file_name = check_loss_name(networkdir[validation_subdir], loss_file_name)
+    index = np.argmin(networkdir[validation_subdir][loss_file_name][()])
+    index = indices[index]
+    path = paths[index]
+    return path
 
 
-def _resolve_paper_results(networkdir):
-    warn_once(
-        logging,
-        "Loading paper result from stored checkpoint and validation subdir...",
-    )
+def resolve_checkpoints(
+    networkdir: "flyvision.network.NetworkDir",
+    # checkpoint: Union[int, str] = "best",
+    # validation_subdir: str = "validation",
+    # loss_file_name: str = "loss",
+    # best_checkpoint_fn: Callable = best_checkpoint_default_fn,
+    # best_checkpoint_kwargs: dict = {
+    #     "validation_subdir": "validation",
+    #     "loss_file_name": "loss",
+    # },
+) -> Checkpoints:
+    """Resolves checkpoints from networkdir."""
+
+    # index = best_checkpoint_fn(networkdir, checkpoint, **best_checkpoint_kwargs)
+    indices, paths = checkpoint_index_to_path_map(networkdir.chkpts.path)
+
     return Checkpoints(
-        choice="best_chkpt",
-        index=0,
-        path=networkdir["best_chkpt"],
-        indices=[0],
-        paths=[networkdir["best_chkpt"]],
-        validation_subdir="",
-        loss_file_name="validation_loss",
+        # checkpoint,
+        # index,
+        indices,
+        paths,  # [index],
+        # paths,
+        # best_checkpoint_fn,
+        # best_checkpoint_kwargs,
+    )
+
+
+if __name__ == "__main__":
+    nv = flyvision.NetworkView("flow/9998/000")
+    print(
+        resolve_checkpoints(nv.dir),
     )

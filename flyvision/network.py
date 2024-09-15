@@ -3,9 +3,12 @@
 Deep mechanistic network module.
 """
 
+from __future__ import annotations
+
 import logging
 import warnings
 from contextlib import contextmanager
+from dataclasses import dataclass
 from functools import wraps
 from os import PathLike
 from typing import Any, Callable, Dict, Iterable, Optional, Union
@@ -22,7 +25,7 @@ from tqdm.auto import tqdm
 
 import flyvision
 from flyvision.analysis import stimulus_responses
-from flyvision.connectome import ConnectomeDir, ConnectomeView
+from flyvision.connectome import ConnectomeDir, flyvision_connectome
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision.directories import NetworkDir
 from flyvision.dynamics import NetworkDynamics
@@ -32,7 +35,7 @@ from flyvision.tasks import _init_decoder
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.cache_utils import make_hashable
 from flyvision.utils.chkpt_utils import (
-    Checkpoints,
+    best_checkpoint_default_fn,
     recover_decoder,
     recover_network,
     resolve_checkpoints,
@@ -483,6 +486,7 @@ class Network(nn.Module):
         dt: float,
         initial_state: Union[AutoDeref, None] = "auto",
         as_states: bool = False,
+        as_layer_activity: bool = False,
     ) -> Union[torch.Tensor, AutoDeref]:
         """Simulate the network activity from movie input.
 
@@ -531,6 +535,12 @@ class Network(nn.Module):
             )
             self.stimulus.zero(batch_size, n_frames)
             self.stimulus.add_input(movie_input)
+            if as_layer_activity:
+                LayerActivity(
+                    self.forward(self.stimulus(), dt, initial_state, as_states).cpu(),
+                    self.connectome,
+                    keepref=True,
+                )
             return self.forward(self.stimulus(), dt, initial_state, as_states)
 
     def forward(
@@ -863,6 +873,23 @@ class Network(nn.Module):
 
 
 # class NetworkView2:
+#     dir: Directory
+#     best_checkpoint_fn: Callable[[str], int]
+#     checkpoint_mapper: map[int, Directory]
+#     cache: Memory
+
+#     def network(self, checkpoint: int | Literal["best"]) -> Network:
+#         match checkpoint:
+#             case str:
+#                 checkpoint_idx = self.best_checkpoint_fn(checkpoint)
+#                 _checkpoint = self.checkpoint_mapper[checkpoint_idx]
+#             case int:
+#                 _checkpoint = self.checkpoint_mapper[checkpoint]
+
+#         return Network(flyvision.Network, config, _checkpoint)
+
+
+# class NetworkView2:
 #     dir: Path
 #     best_checkpoint_fn: Callable[[str], int]
 #     checkpoint_mapper: map(int, Path)
@@ -891,95 +918,179 @@ class Network(nn.Module):
 
 # best_checkpointed = Network.network(checkpoint=1)
 # best_checkpointed = best_checkpointed.init()
-class NetworkView(ConnectomeView):
-    """Views and convenience methods for trained networks.
+
+
+@dataclass
+class CheckpointedNetwork:
+    network_class: Any  # Network class (e.g., flyvision.Network)
+    config: Dict  # Configuration for the network
+    checkpoint: PathLike  # Checkpoint path
+    recover_fn: Any = recover_network  # Function to recover the network
+    network: Optional[Any] = None  # Network instance to avoid reinitialization
+    _recovered_checkpoint: Optional[PathLike] = None
+
+    def init(self, eval: bool = True):
+        if self.network is None:
+            self.network = self.network_class(**self.config)
+        if eval:
+            self.network.eval()
+        self.recover()
+        return self.network
+
+    def recover(self):
+        """Recover the network from the checkpoint."""
+        if self._recovered_checkpoint == self.checkpoint:
+            return self.network
+        self.recover_fn(self.network, self.checkpoint)
+        self._recovered_checkpoint = self.checkpoint
+        return self.network
+
+    def __hash__(self):
+        """Hashable elements that uniquely determine the Network."""
+        return hash((
+            self.network_class,
+            make_hashable(self.config),
+            self.checkpoint,
+        ))
+
+    def __eq__(self, other):
+        """Equality check based on hashable elements."""
+        if not isinstance(other, CheckpointedNetwork):
+            return False
+        return (
+            self.network_class == other.network_class
+            and make_hashable(self.config) == make_hashable(other.config)
+            and self.checkpoint == other.checkpoint
+        )
+
+    def __reduce__(self):
+        """
+        Custom reduce method to make the object compatible with joblib's pickling.
+        This ensures the 'network' attribute is never pickled.
+        """
+        # Return a tuple containing:
+        # 1. A callable that will recreate the object (here, the class itself)
+        # 2. The arguments required to recreate the object (excluding the network)
+        # 3. The state, excluding the 'network' attribute
+
+        state = self.__dict__.copy()
+        state['network'] = None  # Exclude the network from being pickled
+
+        return (
+            self.__class__,  # The callable (class itself)
+            (
+                self.network_class,
+                self.config,
+                self.checkpoint,
+                self.recover_fn,
+                None,
+            ),  # Arguments to reconstruct the object
+            state,  # State without the 'network' attribute
+        )
+
+    def __setstate__(self, state):
+        """
+        Restore the object's state, but do not load the network from the state.
+        """
+        self.__dict__.update(state)
+        self.network = (
+            None  # The network will need to be reinitialized manually or via `init()`
+        )
+
+
+class NetworkView:
+    """IO interface for network.
 
     Args:
         network_dir: directory of the network.
-
-    Attributes:
-        dir: directory of the network.
-        connectome: connectome directory.
-        network: network instance. Requires to call init_network first.
+        network_class: network class.
+        root_dir: root directory.
+        connectome_getter: connectome getter.
+        checkpoint_mapper: checkpoint mapper.
+        best_checkpoint_fn: best checkpoint function.
+        best_checkpoint_fn_kwargs: best checkpoint function kwargs.
+        recover_fn: recover function
     """
 
     def __init__(
         self,
         network_dir: Union[str, PathLike, NetworkDir],
-        checkpoint="best",
-        validation_subdir="validation",
-        loss_file_name="loss",
+        network_class: nn.Module = Network,
+        root_dir: PathLike = flyvision.results_dir,
+        connectome_getter: Callable = flyvision_connectome,
+        checkpoint_mapper: Callable = resolve_checkpoints,
+        best_checkpoint_fn: Callable = best_checkpoint_default_fn,
+        best_checkpoint_fn_kwargs: dict = {
+            "validation_subdir": "validation",
+            "loss_file_name": "loss",
+        },
+        recover_fn: Callable = recover_network,
     ):
-        if isinstance(network_dir, (PathLike, str)):
-            with set_root_context(flyvision.results_dir):
-                network_dir = Directory(network_dir)
-        self.dir = network_dir
-        if not self.dir.config.type == "NetworkDir":
-            raise ValueError(
-                f"Expected NetworkDir, found {self.dir.config.type} at {self.dir.path}."
-            )
-        self.name = str(self.dir.path).replace(str(flyvision.results_dir) + "/", "")
-        self.connectome = ConnectomeDir(self.dir.config.network.connectome)
-        super().__init__(self.connectome)
-        self._initialized = dict(network=None, decoder=None)
-        self.checkpoints: Checkpoints = None
-        self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
-        self.cache = {}
-        self.memory = Memory(location=self.dir.path / "__cache__", verbose=0)
+        self.network_class = network_class
+        self.dir, self.name = self._resolve_dir(network_dir, root_dir)
+        self.connectome = connectome_getter(self.dir)
+        self.checkpoints = checkpoint_mapper(self.dir)
+        self.memory = Memory(location=self.dir.path / "__cache__", verbose=10)
+        self.best_checkpoint_fn = best_checkpoint_fn
+        self.best_checkpoint_fn_kwargs = best_checkpoint_fn_kwargs
+        self.recover_fn = recover_fn
+        self._network = CheckpointedNetwork(
+            self.network_class,
+            self.dir.config.network.to_dict(),
+            self.get_checkpoint("best"),
+            self.recover_fn,
+            network=None,
+        )
+        self._decoder = None
+        self._initialized = {"network": None, "decoder": None}
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
 
-    def update_checkpoint(
-        self, checkpoint=None, validation_subdir=None, loss_file_name=None
-    ):
-        self.checkpoints = resolve_checkpoints(
-            self.dir,
-            self.checkpoints.choice if checkpoint is None else checkpoint,
-            (
-                self.checkpoints.validation_subdir
-                if validation_subdir is None
-                else validation_subdir
-            ),
-            (
-                self.checkpoints.loss_file_name
-                if loss_file_name is None
-                else loss_file_name
-            ),
+    def get_checkpoint(self, checkpoint="best"):
+        """Return the best checkpoint index."""
+        if checkpoint == "best":
+            return self.best_checkpoint_fn(
+                self.dir.path,
+                **self.best_checkpoint_fn_kwargs,
+            )
+        return self.checkpoints.paths[checkpoint]
+
+    def network(
+        self, checkpoint="best", network: Optional[Any] = None
+    ) -> CheckpointedNetwork:
+        """Lazy loading of network instance."""
+        self._network = CheckpointedNetwork(
+            self.network_class,
+            self.dir.config.network.to_dict(),
+            self.get_checkpoint(checkpoint),
+            self.recover_fn,
+            # to avoid reinitialization, allow passing the network instance
+            network=network or self._network.network,
         )
-        if (
-            self._initialized["network"]
-            and self.checkpoints.path != self._initialized["network"]
-        ):
-            self.init_network(self.network)
-        if (
-            self._initialized["decoder"]
-            and self.checkpoints.path != self._initialized["decoder"]
-        ):
-            self.init_decoder(self.decoder)
+        if self._network.network is not None:
+            # then the correct checkpoint needs to be set
+            self._network.recover()
+        return self._network
 
-    def recover_network(
-        self, checkpoint=None, validation_subdir=None, loss_file_name=None
-    ):
-        """Recover the network from the checkpoint."""
-        self.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
-        self.init_network()
-        return self.network
-
-    def init_network(self, network: Optional[Network] = None) -> Network:
+    def init_network(self, network: Optional[Any] = None) -> Network:
         """Initialize the network.
 
         Args:
-            checkpoint: checkpoint to load.
-            network: network instance to initialize.
+            network: network instance to initialize to avoid reinitialization.
 
         Returns:
             network instance.
+
+        TODO: Legacy code, remove in the future.
         """
-        if self._initialized["network"] == self.checkpoints.path and network is None:
-            return self.network
-        self.network = network or Network(**self.dir.config.network)
-        recover_network(self.network, self.checkpoints.path)
-        self._initialized["network"] = self.checkpoints.path
-        return self.network
+        logging.warning(
+            "The `init_network` method is deprecated. Use `network` method instead."
+        )
+        checkpointed_network = self.network(checkpoint='best', network=network)
+
+        if checkpointed_network.network is not None:
+            return checkpointed_network.network
+        checkpointed_network.init()
+        return checkpointed_network.recover()
 
     def init_decoder(self, decoder=None):
         """Initialize the decoder.
@@ -991,101 +1102,40 @@ class NetworkView(ConnectomeView):
             decoder instance.
         """
         if self._initialized["decoder"] == self.checkpoints.path and decoder is None:
-            return self.decoder
-        self.decoder = decoder or _init_decoder(
+            return self._decoder
+        self._decoder = decoder or _init_decoder(
             self.dir.config.task.decoder, self.connectome
         )
-        recover_decoder(self.decoder, self.checkpoints.path)
+        recover_decoder(self._decoder, self.checkpoints.path)
         self._initialized["decoder"] = self.checkpoints.path
-        return self.decoder
+        return self._decoder
 
-    def __call__(self, movie_input, dt, initial_state=None, as_states=False, t_pre=1.0):
-        """Convenience method to simulate the network activity from movie input.
-
-        Note, the nn.Module itself provides more flexibility.
-
-        Args:
-            movie_input: tensor requiring shape (batch_size, n_frames, 1, hexals)
-            dt: integration time constant. Must be 1/50 or less.
-            initial_state: network activity at the beginning of the simulation.
-                Either use fade_in_state or steady_state, to compute the
-                initial state from grey input or from ramping up the contrast of
-                the first movie frame.
-            as_states: can return the states as AutoDeref dictionary instead of
-                a tensor. Defaults to False.
-            t_pre: time of the grey-scale stimulus.
-
-        Returns:
-            LayerActivity object.
-
-        Raises:
-            ValueError if the movie_input is not four-dimensional.
-            ValueError if the integration time step is bigger than 1/50.
-            ValueError if the network is not in evaluation mode or any
-                parameters require grad.
-        """
-        if not self._initialized["network"]:
-            self.init_network()
-
-        initial_state = self.network.steady_state(
-            t_pre, dt, batch_size=movie_input.shape[0], value=0.5
-        )
-
-        return LayerActivity(
-            self.network.simulate(movie_input, dt, initial_state, as_states).cpu(),
-            self.network.connectome,
-            keepref=True,
-        )
-
-    simulate = __call__
-
-    def stored_responses(self, subdir, central=True, slice=slice(None)):
-        """Return the stored responses of the network.
-
-        Args:
-            subdir: The subdirectory where the responses are stored.
-            chkpt_key: The checkpoint key corresponding to the checkpoint that the
-                ensemble is initialized with. Must match the checkpoint chosen
-                for running the synthetic recordings script to precompute responses
-                because data is stored under subdir/chkpt_key.
-            central: Whether only central responses are expected. Then reads
-                activity_central instead of activity.
-
-        Ignores:
-            FileNotFoundError: If no recordings are found in the specified directory.
-                Then returns None.
-        """
-        chkpt_key = self.checkpoints.current_chkpt_key
-        full_subdir = f"{subdir}/{chkpt_key}"
-
-        cache_key = make_hashable((full_subdir, central, slice))
-
-        # Check if the result is in the cache
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-
-        responses = self.dir[full_subdir].network_states.nodes[
-            f"activity{'_central' if central else ''}"
-        ][slice]
-
-        self.cache[cache_key] = responses
-
-        return responses
+    def _resolve_dir(self, network_dir, root_dir):
+        if isinstance(network_dir, (PathLike, str)):
+            with set_root_context(flyvision.results_dir):
+                network_dir = Directory(network_dir)
+        if not network_dir.config.type == "NetworkDir":
+            raise ValueError(
+                f"Expected NetworkDir, found {network_dir.config.type} "
+                f"at {network_dir.path}."
+            )
+        name = str(network_dir.path).replace(str(root_dir) + "/", "")
+        return network_dir, name
 
     @wraps(stimulus_responses.flash_responses)
     def flash_responses(self, **kwargs):
         """Generate flash responses."""
         return stimulus_responses.flash_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.movingedge_responses)
+    @wraps(stimulus_responses.moving_edge_responses)
     def movingedge_responses(self, **kwargs):
         """Generate moving edge responses."""
-        return stimulus_responses.movingedge_responses(self, **kwargs)
+        return stimulus_responses.moving_edge_responses(self, **kwargs)
 
-    @wraps(stimulus_responses.movingbar_responses)
+    @wraps(stimulus_responses.moving_bar_responses)
     def movingbar_responses(self, **kwargs):
         """Generate moving bar responses."""
-        return stimulus_responses.movingbar_responses(self, **kwargs)
+        return stimulus_responses.moving_bar_responses(self, **kwargs)
 
     @wraps(stimulus_responses.naturalistic_stimuli_responses)
     def naturalistic_stimuli_responses(self, **kwargs):
@@ -1135,3 +1185,11 @@ class FlynetPlusDecoder(nn.Module):
             state=initial_state,
         )
         return {task: self.decoder[task](activity) for task in self.decoder}
+
+
+if __name__ == "__main__":
+    nv = NetworkView("flow/9998/000")
+    network = nv.network("best")
+    network.init()
+    network.recover()
+    print(hash(network))

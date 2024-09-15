@@ -9,27 +9,34 @@ from copy import deepcopy
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Dict, Generator, Iterable, Iterator, List, Tuple, Union
+from typing import Callable, Dict, Generator, Iterable, Iterator, List, Tuple, Union
 
 import numpy as np
 import torch
-from datamate import get_root_dir
 from matplotlib import colormaps as cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
 from numpy.typing import NDArray
+from torch import nn
 from tqdm.auto import tqdm
 
+import flyvision
 from flyvision import plots
 from flyvision.analysis.clustering import (
     GaussianMixtureClustering,
     compute_umap_and_clustering,
     get_cluster_to_indices,
 )
+from flyvision.connectome import flyvision_connectome
 from flyvision.directories import EnsembleDir
 from flyvision.initialization import Parameter
 from flyvision.network import Network, NetworkDir, NetworkView
 from flyvision.utils.cache_utils import context_aware_cache
+from flyvision.utils.chkpt_utils import (
+    best_checkpoint_default_fn,
+    recover_network,
+    resolve_checkpoints,
+)
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.logging_utils import all_logging_disabled
 from flyvision.utils.nn_utils import simulation
@@ -69,9 +76,16 @@ class Ensemble(dict):
     def __init__(
         self,
         path: Union[str, PathLike, Iterable, "EnsembleDir"],
-        checkpoint="best",
-        validation_subdir="validation",
-        loss_file_name="loss",
+        network_class: nn.Module = Network,
+        root_dir: PathLike = flyvision.results_dir,
+        connectome_getter: Callable = flyvision_connectome,
+        checkpoint_mapper: Callable = resolve_checkpoints,
+        best_checkpoint_fn: Callable = best_checkpoint_default_fn,
+        best_checkpoint_fn_kwargs: dict = {
+            "validation_subdir": "validation",
+            "loss_file_name": "loss",
+        },
+        recover_fn: Callable = recover_network,
         try_sort=False,
     ):
         # self.model_paths, self.path = model_paths_from_parent(path)
@@ -87,10 +101,10 @@ class Ensemble(dict):
             self.dir = EnsembleDir(path)
             self.model_paths, self.path = model_paths_from_parent(self.dir.path)
         elif isinstance(path, Iterable):
-            self.model_paths, self.path = model_paths_from_names_or_paths(path)
+            self.model_paths, self.path = model_paths_from_names_or_paths(path, root_dir)
             self.dir = EnsembleDir(self.path)
 
-        self.names, self.name = model_path_names(self.model_paths)
+        self.names, self.name = model_path_names(self.model_paths, root_dir)
 
         self._names = []
         self.model_index = []
@@ -102,9 +116,13 @@ class Ensemble(dict):
                 with all_logging_disabled():
                     self[name] = NetworkView(
                         NetworkDir(self.model_paths[i]),
-                        checkpoint=checkpoint,
-                        validation_subdir=validation_subdir,
-                        loss_file_name=loss_file_name,
+                        network_class=network_class,
+                        root_dir=root_dir,
+                        connectome_getter=connectome_getter,
+                        checkpoint_mapper=checkpoint_mapper,
+                        best_checkpoint_fn=best_checkpoint_fn,
+                        best_checkpoint_fn_kwargs=best_checkpoint_fn_kwargs,
+                        recover_fn=recover_fn,
                     )
                     self._names.append(name)
             except AttributeError as e:
@@ -120,9 +138,13 @@ class Ensemble(dict):
 
         self._init_args = (
             path,
-            self[0].checkpoints.choice,
-            self[0].checkpoints.validation_subdir,
-            self[0].checkpoints.loss_file_name,
+            network_class,
+            root_dir,
+            connectome_getter,
+            checkpoint_mapper,
+            best_checkpoint_fn,
+            best_checkpoint_fn_kwargs,
+            recover_fn,
             try_sort,
         )
         self.connectome = self[next(iter(self))].connectome
@@ -633,16 +655,16 @@ def model_paths_from_parent(path):
     return model_paths, path
 
 
-def model_path_names(model_paths):
+def model_path_names(model_paths, root_dir: Path):
     """Return a list of model names and an ensemble name from a list of model paths."""
-    model_names = [
-        str(path).replace(str(get_root_dir()) + "/", "") for path in model_paths
-    ]
+    model_names = [str(path).replace(str(root_dir) + "/", "") for path in model_paths]
     ensemble_name = ", ".join(np.unique([n[:-4] for n in model_names]).tolist())
     return model_names, ensemble_name
 
 
-def model_paths_from_names_or_paths(paths: List[str | Path]) -> Tuple[List[Path], Path]:
+def model_paths_from_names_or_paths(
+    paths: List[str | Path], root_dir: Path
+) -> Tuple[List[Path], Path]:
     """Return model paths and ensemble path from model names or paths."""
     model_paths = []
     _ensemble_paths = []
@@ -650,7 +672,7 @@ def model_paths_from_names_or_paths(paths: List[str | Path]) -> Tuple[List[Path]
         if isinstance(path, str):
             # assuming task/ensemble_id/model_id
             if len(path.split("/")) == 3:
-                model_paths.append(get_root_dir() / path)
+                model_paths.append(root_dir / path)
             # assuming task/ensemble_id
             elif len(path.split("/")) == 2:
                 model_paths.extend(model_paths_from_parent(path)[0])

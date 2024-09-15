@@ -5,21 +5,30 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from os import PathLike
-from typing import Iterable, List, Union
+from typing import Callable, Iterable, List, Union
 
 import numpy as np
 import torch
 from matplotlib import colormaps as cm
+from torch import nn
 
+import flyvision
 from flyvision import device, plots
 from flyvision.analysis import views
 from flyvision.analysis.flash_responses import FlashResponseView, plot_fris
 from flyvision.analysis.moving_bar_responses import MovingEdgeResponseView, plot_dsis
+from flyvision.connectome import flyvision_connectome
 from flyvision.datasets.flashes import Flashes
 from flyvision.datasets.moving_bar import MovingEdge
 from flyvision.directories import EnsembleDir
 from flyvision.ensemble import Ensemble
+from flyvision.network import Network
 from flyvision.utils.activity_utils import CellTypeArray
+from flyvision.utils.chkpt_utils import (
+    best_checkpoint_default_fn,
+    recover_network,
+    resolve_checkpoints,
+)
 
 logging = logging.getLogger(__name__)
 
@@ -30,16 +39,32 @@ class EnsembleView(Ensemble):
     def __init__(
         self,
         path: Union[str, PathLike, Iterable, EnsembleDir, Ensemble],
-        checkpoint="best",
-        validation_subdir="validation",
-        loss_file_name="loss",
+        network_class: nn.Module = Network,
+        root_dir: PathLike = flyvision.results_dir,
+        connectome_getter: Callable = flyvision_connectome,
+        checkpoint_mapper: Callable = resolve_checkpoints,
+        best_checkpoint_fn: Callable = best_checkpoint_default_fn,
+        best_checkpoint_fn_kwargs: dict = {
+            "validation_subdir": "validation",
+            "loss_file_name": "loss",
+        },
+        recover_fn: Callable = recover_network,
         try_sort=False,
     ):
+        init_args = {
+            "path": path,
+            "network_class": network_class,
+            "root_dir": root_dir,
+            "connectome_getter": connectome_getter,
+            "checkpoint_mapper": checkpoint_mapper,
+            "best_checkpoint_fn": best_checkpoint_fn,
+            "best_checkpoint_fn_kwargs": best_checkpoint_fn_kwargs,
+            "recover_fn": recover_fn,
+            "try_sort": try_sort,
+        }
         if isinstance(path, Ensemble):
-            path, checkpoint, validation_subdir, loss_file_name, try_sort = (
-                path._init_args
-            )
-        super().__init__(path, checkpoint, validation_subdir, loss_file_name, try_sort)
+            init_args = path._init_args
+        super().__init__(**init_args)
 
     @wraps(views.loss_curves)
     def training_loss(self, **kwargs):

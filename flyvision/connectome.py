@@ -421,25 +421,25 @@ class ConnectomeView:
             r"Tm.*\d{1,2}.*",
         ],
     ):
-        self.connectome = connectome
+        self.dir = connectome
 
-        assert "nodes" in self.connectome and "edges" in self.connectome
+        assert "nodes" in self.dir and "edges" in self.dir
 
-        self.edges = self.connectome.edges
+        self.edges = self.dir.edges
 
-        self.nodes = self.connectome.nodes
+        self.nodes = self.dir.nodes
 
-        self.cell_types_unsorted = self.connectome.unique_cell_types[:].astype(str)
+        self.cell_types_unsorted = self.dir.unique_cell_types[:].astype(str)
 
         (
             self.cell_types_sorted,
             self.cell_types_sort_index,
         ) = nodes_edges_utils.order_node_type_list(
-            self.connectome.unique_cell_types[:].astype(str), groups
+            self.dir.unique_cell_types[:].astype(str), groups
         )
 
-        self.layout = dict(self.connectome.layout[:].astype(str))
-        self.node_indexer = nodes_edges_utils.NodeIndexer(self.connectome)
+        self.layout = dict(self.dir.layout[:].astype(str))
+        self.node_indexer = nodes_edges_utils.NodeIndexer(self.dir)
 
     # -- connectivity matrix -------------------------------------------------------
 
@@ -559,7 +559,7 @@ class ConnectomeView:
         Args:
             max_extent: integer column radius to visualize.
         """
-        backbone = WholeNetworkFigure(self.connectome)
+        backbone = WholeNetworkFigure(self.dir)
         backbone.init_figure(figsize=[7, 3])
         return self.hex_layout_all(
             max_extent=max_extent, fig=backbone.fig, axes=backbone.axes, **kwargs
@@ -1059,3 +1059,7 @@ def _projective_fields_edge_dfs(
         )
 
     return cls
+
+
+def flyvision_connectome(network_dir):
+    return ConnectomeView(ConnectomeDir(network_dir.config.network.connectome))
