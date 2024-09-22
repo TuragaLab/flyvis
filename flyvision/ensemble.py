@@ -7,12 +7,14 @@ import pickle
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import wraps
 from os import PathLike
 from pathlib import Path
 from typing import Callable, Dict, Generator, Iterable, Iterator, List, Tuple, Union
 
 import numpy as np
 import torch
+import xarray as xr
 from matplotlib import colormaps as cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
@@ -22,6 +24,7 @@ from tqdm.auto import tqdm
 
 import flyvision
 from flyvision import plots
+from flyvision.analysis import stimulus_responses
 from flyvision.analysis.clustering import (
     GaussianMixtureClustering,
     compute_umap_and_clustering,
@@ -301,13 +304,15 @@ class Ensemble(dict):
         """Return the validation file for each network in the ensemble."""
         network_view0 = self[0]
         if validation_subdir is None:
-            validation_subdir = network_view0.checkpoints.validation_subdir
+            validation_subdir = getattr(
+                network_view0.best_checkpoint_fn_kwargs, "validation_subdir", "validation"
+            )
         if loss_file_name is None:
-            loss_file_name = network_view0.checkpoints.loss_file_name
-
-        for nv in self.values():
-            assert nv.checkpoints.validation_subdir == validation_subdir
-            assert nv.checkpoints.loss_file_name == loss_file_name
+            loss_file_name = getattr(
+                network_view0.best_checkpoint_fn_kwargs,
+                "loss_file_name",
+                "loss",
+            )
 
         return validation_subdir, loss_file_name
 
@@ -319,7 +324,7 @@ class Ensemble(dict):
                 key=lambda key: dict(
                     zip(
                         self.keys(),
-                        self.validation_losses(validation_subdir, loss_file_name),
+                        self.min_validation_losses(validation_subdir, loss_file_name),
                     )
                 )[key],
                 reverse=False,
@@ -331,8 +336,12 @@ class Ensemble(dict):
     def validation_losses(self, subdir: str = None, file: str = None):
         """Return a list of validation losses for each network in the ensemble."""
         subdir, file = self.validation_file(subdir, file)
-        losses = [nv.dir[subdir][file][()].min() for nv in self.values()]
+        losses = np.array([nv.dir[subdir][file][()] for nv in self.values()])
         return losses
+
+    def min_validation_losses(self, subdir: str = None, file: str = None):
+        """Return the minimum validation loss of the ensemble."""
+        return np.min(self.validation_losses(subdir, file), axis=1)
 
     def update_checkpoints(
         self,
@@ -365,7 +374,7 @@ class Ensemble(dict):
         try:
             self.names = sorted(
                 self.keys(),
-                key=lambda key: dict(zip(self.keys(), self.validation_losses()))[key],
+                key=lambda key: dict(zip(self.keys(), self.min_validation_losses()))[key],
                 reverse=reverse,
             )
         except Exception as e:
@@ -474,7 +483,7 @@ class Ensemble(dict):
         The TaskError object contains the validation losses, the colors, the
         colormap, the norm, and the scalar mapper.
         """
-        error = np.array(self.validation_losses())
+        error = self.min_validation_losses()
 
         if truncate is None:
             # truncate because the maxval would be white with the default colormap
@@ -495,7 +504,7 @@ class Ensemble(dict):
         """Return the parameters of the ensemble."""
         network_params = {}
         for network_view in self.values():
-            chkpt_params = torch.load(network_view.checkpoints.path)
+            chkpt_params = torch.load(network_view.network('best').checkpoint)
             for key, val in chkpt_params["network"].items():
                 if key not in network_params:
                     network_params[key] = []
@@ -533,41 +542,47 @@ class Ensemble(dict):
             parameter_keys[f"edges_{param_name}"] = param.keys
         return parameter_keys
 
+    @wraps(stimulus_responses.flash_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def stored_responses(self, subdir, central=True, slice=slice(None)):
-        """Return the stored responses of the ensemble.
+    def flash_responses(self, **kwargs) -> xr.Dataset:
+        """Generate flash responses."""
+        return stimulus_responses.flash_responses(self, **kwargs)
 
-        Args:
-            subdir: The subdirectory where the responses are stored.
-            chkpt_key: The checkpoint key corresponding to the checkpoint that the
-                ensemble is initialized with. Must match the checkpoint chosen
-                for running the synthetic recordings script to precompute responses
-                because data is stored under subdir/chkpt_key.
-            central: Whether only central responses are expected. Then reads
-                activity_central instead of activity.
+    @wraps(stimulus_responses.moving_edge_responses)
+    @context_aware_cache(context=lambda self: (self.names))
+    def movingedge_responses(self, **kwargs) -> xr.Dataset:
+        """Generate moving edge responses."""
+        return stimulus_responses.moving_edge_responses(self, **kwargs)
 
-        Ignores:
-            FileNotFoundError: If no recordings are found in the specified directory.
-                Then returns None.
-        """
-        chkpt_key = self[0].checkpoints.current_chkpt_key
-        full_subdir = f"{subdir}/{chkpt_key}"
-        try:
-            responses = np.stack([
-                nv.stored_responses(subdir, central=central, slice=slice)
-                for nv in self.values()
-            ])
-            return responses
-        except FileNotFoundError:
-            logging.info(
-                "No recordings found in %s. Run the analysis script for synthetic "
-                "recordings to precompute them.",
-                full_subdir,
-            )
-            return None
+    @wraps(stimulus_responses.moving_bar_responses)
+    @context_aware_cache(context=lambda self: (self.names))
+    def movingbar_responses(self, **kwargs) -> xr.Dataset:
+        """Generate moving bar responses."""
+        return stimulus_responses.moving_bar_responses(self, **kwargs)
+
+    @wraps(stimulus_responses.naturalistic_stimuli_responses)
+    @context_aware_cache(context=lambda self: (self.names))
+    def naturalistic_stimuli_responses(self, **kwargs) -> xr.Dataset:
+        """Generate naturalistic stimuli responses."""
+        return stimulus_responses.naturalistic_stimuli_responses(self, **kwargs)
+
+    @wraps(stimulus_responses.central_impulses_responses)
+    @context_aware_cache(context=lambda self: (self.names))
+    def central_impulses_responses(self, **kwargs) -> xr.Dataset:
+        """Generate central ommatidium impulses responses."""
+        return stimulus_responses.central_impulses_responses(self, **kwargs)
+
+    @wraps(stimulus_responses.spatial_impulses_responses)
+    @context_aware_cache(context=lambda self: (self.names))
+    def spatial_impulses_responses(self, **kwargs) -> xr.Dataset:
+        """Generate spatial ommatidium impulses responses."""
+        return stimulus_responses.spatial_impulses_responses(self, **kwargs)
 
     def clustering(self, cell_type) -> GaussianMixtureClustering:
         """Return the clustering of the ensemble for a given cell type."""
+
+        if self.in_context:
+            raise ValueError("clustering is not available in context")
 
         if (
             not self.dir.umap_and_clustering
@@ -609,8 +624,8 @@ class Ensemble(dict):
 
         return cluster_indices
 
-    def responses_norm(self, subdir="naturalistic_stimuli_responses", rectified=False):
-        responses = self.stored_responses(subdir, central=True)
+    def responses_norm(self, rectified=False):
+        responses = self.naturalistic_stimuli_responses()
 
         if responses is None:
             return None

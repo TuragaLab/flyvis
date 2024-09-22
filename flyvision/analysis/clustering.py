@@ -18,7 +18,7 @@ from umap.umap_ import UMAP
 from umap.utils import disconnected_vertices
 
 import flyvision
-from flyvision.datasets.sintel import AugmentedSintel
+from flyvision.analysis.stimulus_responses import naturalistic_stimuli_responses
 from flyvision.plots import plt_utils
 from flyvision.utils.activity_utils import CentralActivity
 
@@ -615,12 +615,9 @@ def get_cluster_to_indices(mask, labels, task_error=None):
 def compute_umap_and_clustering(
     ensemble: "flyvision.EnsembleView",
     cell_type: str,
-    dt=1 / 100,
-    batch_size=4,
     embedding_kwargs=None,
     gm_kwargs=None,
     subdir="umap_and_clustering",
-    subdir_responses="naturalistic_stimuli_responses",
 ):
     """Compute UMAP embedding and Gaussian Mixture clustering of the responses."""
 
@@ -656,45 +653,15 @@ def compute_umap_and_clustering(
     if (destination / cell_type).with_suffix(".pickle").exists():
         return load_from_disk()
 
-    def load_naturalistic_stimulus_responses():
-        """Load or compute naturalistic stimulus responses."""
-        # this reads from disk or cache
-        responses = ensemble.stored_responses(subdir=subdir_responses)
-        if responses is None:
-            # otherwise compute responses
-            # TODO: could be cached if useful somewhere else too, but EnsembleEmbedding
-            # is cached already for this usecase
-            dataset = AugmentedSintel(
-                tasks=["flow"],
-                interpolate=False,
-                boxfilter=dict(extent=15, kernel_size=13),
-                temporal_split=True,
-                dt=dt,
-            )
-            responses = np.stack(
-                list(
-                    ensemble.simulate_from_dataset(
-                        dataset,
-                        dt=dt,
-                        batch_size=batch_size,
-                        central_cell_only=True,
-                    )
-                )
-            )
-        return responses
-
     def create_embedding_object(responses):
         """Return embedding object from cache or create and write cache."""
-        if "ensemble_embedding_object" in ensemble.cache:
-            return ensemble.cache["ensemble_embedding_object"]
         central_responses = CentralActivity(
-            responses, ensemble[0].connectome, keepref=True
+            responses['responses'].values, ensemble[0].connectome, keepref=True
         )
         embeddings = EnsembleEmbedding(central_responses)
-        ensemble.cache["ensemble_embedding_object"] = embeddings
         return embeddings
 
-    responses = load_naturalistic_stimulus_responses()
+    responses = naturalistic_stimuli_responses(ensemble)
     embeddings = create_embedding_object(responses)
 
     embedding = embeddings.from_cell_type(cell_type, embedding_kwargs=embedding_kwargs)
@@ -705,5 +672,13 @@ def compute_umap_and_clustering(
 @wraps(compute_umap_and_clustering)
 def umap_and_clustering_generator(ensemble: "flyvision.EnsembleView", **kwargs):
     """UMAP and clustering of all cell types."""
-    for cell_type in ensemble[0].cell_types_sorted:
+    for cell_type in ensemble[0].connectome_view.cell_types_sorted:
         yield cell_type, compute_umap_and_clustering(ensemble, cell_type, **kwargs)
+
+
+if __name__ == "__main__":
+    import flyvision
+
+    ensemble = flyvision.EnsembleView("flow/0000")
+    clustering = ensemble.clustering("T4c")
+    print(clustering)

@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Union
 import numpy as np
 import torch
 import torch.nn as nn
+import xarray as xr
 from datamate import Directory, Namespace, namespacify, set_root_context
 from joblib import Memory
 from toolz import valmap
@@ -33,7 +34,7 @@ from flyvision.initialization import Parameter
 from flyvision.stimulus import Stimulus
 from flyvision.tasks import _init_decoder
 from flyvision.utils.activity_utils import LayerActivity
-from flyvision.utils.cache_utils import make_hashable
+from flyvision.utils.cache_utils import context_aware_cache, make_hashable
 from flyvision.utils.chkpt_utils import (
     best_checkpoint_default_fn,
     recover_decoder,
@@ -872,78 +873,27 @@ class Network(nn.Module):
                 yield handle_stim(stim, fade_in_state)
 
 
-# class NetworkView2:
-#     dir: Directory
-#     best_checkpoint_fn: Callable[[str], int]
-#     checkpoint_mapper: map[int, Directory]
-#     cache: Memory
-
-#     def network(self, checkpoint: int | Literal["best"]) -> Network:
-#         match checkpoint:
-#             case str:
-#                 checkpoint_idx = self.best_checkpoint_fn(checkpoint)
-#                 _checkpoint = self.checkpoint_mapper[checkpoint_idx]
-#             case int:
-#                 _checkpoint = self.checkpoint_mapper[checkpoint]
-
-#         return Network(flyvision.Network, config, _checkpoint)
-
-
-# class NetworkView2:
-#     dir: Path
-#     best_checkpoint_fn: Callable[[str], int]
-#     checkpoint_mapper: map(int, Path)
-#     cache: Memory
-
-#     def save(self, obj):
-#         # save object to folder here
-
-#     def network(self, checkpoint: int | Literal["best"]) -> CheckpointedNetwork:
-#         match checkpoint:
-#             case str:
-#                 checkpoint_idx = self.best_checkpoint_fn(checkpoint)
-#                 _checkpoint = self.checkpoint_mapper[checkpoint_idx]
-#             case int:
-#                 _checkpoint = self.checkpoint_mapper[checkpoint]
-
-#         return Network(flyvision.Network, config, _checkpoint)
-
-#     def decoder(self, ):
-#         pass
-
-
-# best_checkpointed = Network.network(checkpoint="best")
-# best_checkpointed = best_checkpointed.init()
-
-
-# best_checkpointed = Network.network(checkpoint=1)
-# best_checkpointed = best_checkpointed.init()
-
-
 @dataclass
 class CheckpointedNetwork:
     network_class: Any  # Network class (e.g., flyvision.Network)
     config: Dict  # Configuration for the network
+    name: str  # Name of the network
     checkpoint: PathLike  # Checkpoint path
     recover_fn: Any = recover_network  # Function to recover the network
     network: Optional[Any] = None  # Network instance to avoid reinitialization
-    _recovered_checkpoint: Optional[PathLike] = None
 
     def init(self, eval: bool = True):
         if self.network is None:
             self.network = self.network_class(**self.config)
         if eval:
             self.network.eval()
-        self.recover()
         return self.network
 
-    def recover(self):
+    def recover(self, checkpoint: PathLike = None):
         """Recover the network from the checkpoint."""
-        if self._recovered_checkpoint == self.checkpoint:
-            return self.network
-        self.recover_fn(self.network, self.checkpoint)
-        self._recovered_checkpoint = self.checkpoint
-        return self.network
+        if self.network is None:
+            self.init()
+        return self.recover_fn(self.network, checkpoint or self.checkpoint)
 
     def __hash__(self):
         """Hashable elements that uniquely determine the Network."""
@@ -974,7 +924,7 @@ class CheckpointedNetwork:
         # 3. The state, excluding the 'network' attribute
 
         state = self.__dict__.copy()
-        state['network'] = None  # Exclude the network from being pickled
+        state['network'] = None  # Exclude the complex network from being pickled
 
         return (
             self.__class__,  # The callable (class itself)
@@ -1028,15 +978,22 @@ class NetworkView:
     ):
         self.network_class = network_class
         self.dir, self.name = self._resolve_dir(network_dir, root_dir)
-        self.connectome = connectome_getter(self.dir)
+        self.root_dir = root_dir
+        self.connectome_getter = connectome_getter
+        self.checkpoint_mapper = checkpoint_mapper
+        self.connectome_view = connectome_getter(self.dir)
+        self.connectome = self.connectome_view.dir
         self.checkpoints = checkpoint_mapper(self.dir)
-        self.memory = Memory(location=self.dir.path / "__cache__", verbose=10)
+        self.memory = Memory(
+            location=self.dir.path / "__cache__", verbose=0, backend="xarray_dataset_h5"
+        )
         self.best_checkpoint_fn = best_checkpoint_fn
         self.best_checkpoint_fn_kwargs = best_checkpoint_fn_kwargs
         self.recover_fn = recover_fn
         self._network = CheckpointedNetwork(
             self.network_class,
             self.dir.config.network.to_dict(),
+            self.name,
             self.get_checkpoint("best"),
             self.recover_fn,
             network=None,
@@ -1055,23 +1012,24 @@ class NetworkView:
         return self.checkpoints.paths[checkpoint]
 
     def network(
-        self, checkpoint="best", network: Optional[Any] = None
+        self, checkpoint="best", network: Optional[Any] = None, lazy=False
     ) -> CheckpointedNetwork:
         """Lazy loading of network instance."""
         self._network = CheckpointedNetwork(
             self.network_class,
             self.dir.config.network.to_dict(),
+            self.name,
             self.get_checkpoint(checkpoint),
             self.recover_fn,
             # to avoid reinitialization, allow passing the network instance
             network=network or self._network.network,
         )
-        if self._network.network is not None:
+        if self._network.network is not None and not lazy:
             # then the correct checkpoint needs to be set
             self._network.recover()
         return self._network
 
-    def init_network(self, network: Optional[Any] = None) -> Network:
+    def init_network(self, checkpoint="best", network: Optional[Any] = None) -> Network:
         """Initialize the network.
 
         Args:
@@ -1079,20 +1037,15 @@ class NetworkView:
 
         Returns:
             network instance.
-
-        TODO: Legacy code, remove in the future.
         """
-        logging.warning(
-            "The `init_network` method is deprecated. Use `network` method instead."
-        )
-        checkpointed_network = self.network(checkpoint='best', network=network)
+        checkpointed_network = self.network(checkpoint=checkpoint, network=network)
 
         if checkpointed_network.network is not None:
             return checkpointed_network.network
         checkpointed_network.init()
         return checkpointed_network.recover()
 
-    def init_decoder(self, decoder=None):
+    def init_decoder(self, checkpoint="best", decoder=None):
         """Initialize the decoder.
 
         Args:
@@ -1101,14 +1054,18 @@ class NetworkView:
         Returns:
             decoder instance.
         """
-        if self._initialized["decoder"] == self.checkpoints.path and decoder is None:
-            return self._decoder
-        self._decoder = decoder or _init_decoder(
+        checkpointed_network = self.network(checkpoint=checkpoint)
+        if (
+            self._initialized["decoder"] == checkpointed_network.checkpoint
+            and decoder is None
+        ):
+            return self.decoder
+        self.decoder = decoder or _init_decoder(
             self.dir.config.task.decoder, self.connectome
         )
-        recover_decoder(self._decoder, self.checkpoints.path)
-        self._initialized["decoder"] = self.checkpoints.path
-        return self._decoder
+        recover_decoder(self.decoder, checkpointed_network.checkpoint)
+        self._initialized["decoder"] = checkpointed_network.checkpoint
+        return self.decoder
 
     def _resolve_dir(self, network_dir, root_dir):
         if isinstance(network_dir, (PathLike, str)):
@@ -1123,39 +1080,46 @@ class NetworkView:
         return network_dir, name
 
     @wraps(stimulus_responses.flash_responses)
-    def flash_responses(self, **kwargs):
+    @context_aware_cache
+    def flash_responses(self, **kwargs) -> xr.Dataset:
         """Generate flash responses."""
         return stimulus_responses.flash_responses(self, **kwargs)
 
     @wraps(stimulus_responses.moving_edge_responses)
-    def movingedge_responses(self, **kwargs):
+    @context_aware_cache
+    def movingedge_responses(self, **kwargs) -> xr.Dataset:
         """Generate moving edge responses."""
         return stimulus_responses.moving_edge_responses(self, **kwargs)
 
     @wraps(stimulus_responses.moving_bar_responses)
-    def movingbar_responses(self, **kwargs):
+    @context_aware_cache
+    def movingbar_responses(self, **kwargs) -> xr.Dataset:
         """Generate moving bar responses."""
         return stimulus_responses.moving_bar_responses(self, **kwargs)
 
     @wraps(stimulus_responses.naturalistic_stimuli_responses)
-    def naturalistic_stimuli_responses(self, **kwargs):
+    @context_aware_cache
+    def naturalistic_stimuli_responses(self, **kwargs) -> xr.Dataset:
         """Generate naturalistic stimuli responses."""
         return stimulus_responses.naturalistic_stimuli_responses(self, **kwargs)
 
     @wraps(stimulus_responses.central_impulses_responses)
-    def central_impulses_responses(self, **kwargs):
+    @context_aware_cache
+    def central_impulses_responses(self, **kwargs) -> xr.Dataset:
         """Generate central ommatidium impulses responses."""
         return stimulus_responses.central_impulses_responses(self, **kwargs)
 
     @wraps(stimulus_responses.spatial_impulses_responses)
-    def spatial_impulses_responses(self, **kwargs):
+    @context_aware_cache
+    def spatial_impulses_responses(self, **kwargs) -> xr.Dataset:
         """Generate spatial ommatidium impulses responses."""
         return stimulus_responses.spatial_impulses_responses(self, **kwargs)
 
     @wraps(stimulus_responses.optimal_stimulus_responses)
-    def optimal_stimulus_responses(self, **kwargs):
+    @context_aware_cache
+    def optimal_stimulus_responses(self, cell_type, **kwargs) -> xr.Dataset:
         """Generate optimal stimuli responses."""
-        return stimulus_responses.optimal_stimulus_responses(self, **kwargs)
+        return stimulus_responses.optimal_stimulus_responses(self, cell_type, **kwargs)
 
 
 class IntegrationWarning(Warning):

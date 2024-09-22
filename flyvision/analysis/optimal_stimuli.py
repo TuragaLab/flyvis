@@ -6,8 +6,6 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from cachetools import FIFOCache, cachedmethod
-from cachetools.keys import hashkey
 
 import flyvision
 from flyvision.datasets.datasets import StimulusDataset
@@ -15,7 +13,7 @@ from flyvision.datasets.sintel import AugmentedSintel
 from flyvision.plots import plots, plt_utils
 from flyvision.stimulus import Stimulus
 from flyvision.utils import hex_utils, tensor_utils
-from flyvision.utils.activity_utils import CellTypeArray, LayerActivity
+from flyvision.utils.activity_utils import LayerActivity
 
 
 class FindOptimalStimuli:
@@ -42,55 +40,12 @@ class FindOptimalStimuli:
             if stimuli == "default"
             else stimuli
         )
-        self.cache = FIFOCache(2)
-
-    def stored_responses(self):
-        try:
-            responses = self.nv.stored_responses("naturalistic_stimuli_responses")
-            return CellTypeArray(responses, self.nv.connectome)
-        except FileNotFoundError:
-            return None
-
-    @cachedmethod(
-        cache=lambda self: self.cache,
-        key=lambda *args: hashkey(args),
-    )
-    def compute_responses_to_stimuli(
-        self,
-        dt=None,
-        batch_size=4,
-        t_pre=0,
-        t_fade_in=2.0,
-        indices=None,
-    ):
-        """Computes responses to naturalistic stimuli for central cells."""
-
-        def handle_network(network: flyvision.Network):
-            for _, resp in network.stimulus_response(
-                self.stimuli,
-                dt=dt or self.stimuli.dt,
-                indices=indices,
-                t_pre=t_pre,
-                t_fade_in=t_fade_in,
-                default_stim_key="lum",
-                batch_size=batch_size,
-            ):
-                yield resp[:, :, self.central_cells_index]
-
-        responses = np.stack(list(handle_network(self.network)))
-        responses = responses.reshape(-1, responses.shape[-2], responses.shape[-1])
-        responses = CellTypeArray(responses, self.network.connectome)
-        return responses
 
     def optimal_stimuli(
         self,
         cell_type,
         dt=1 / 100,
-        t_pre=0,
-        t_fade_in=2.0,
-        batch_size=4,
         indices=None,
-        responses: CellTypeArray = None,
     ):
         """Finds optimal stimuli for a given cell type in stimuli dataset.
 
@@ -102,16 +57,8 @@ class FindOptimalStimuli:
             batch_size (int, optional): batch size. Defaults to 4.
             indices (list, optional): indices of stimuli. Defaults to None.
         """
-        responses = self.stored_responses()
-        if responses is None:
-            responses = self.compute_responses_to_stimuli(
-                dt=dt,
-                batch_size=batch_size,
-                t_pre=t_pre,
-                t_fade_in=t_fade_in,
-                indices=indices,
-            )
-        cell_responses = responses[cell_type]
+        responses = self.nv.naturalistic_stimuli_responses()
+        cell_responses = responses['responses'].custom.where(cell_type=cell_type).values
 
         argmax = np.argmax(np.nanmax(cell_responses, axis=1))
         if indices is not None:
@@ -138,11 +85,7 @@ class FindOptimalStimuli:
         l2_stim=1,
         n_iters=100,
         dt=1 / 100,
-        t_pre=0,
-        t_fade_in=2.0,
-        batch_size=4,
         indices=None,
-        responses: CellTypeArray = None,
     ):
         """Regularizes the optimal stimulus such that the central node activity of the
         given type remains but the mean square of the input pixels is minimized.
@@ -165,11 +108,7 @@ class FindOptimalStimuli:
         optim_stimuli = self.optimal_stimuli(
             cell_type=cell_type,
             dt=dt,
-            t_pre=t_pre,
-            t_fade_in=t_fade_in,
-            batch_size=batch_size,
             indices=indices,
-            responses=responses,
         )
         non_nan = ~torch.isnan(
             optim_stimuli.stimulus[0, :, 0, optim_stimuli.stimulus.shape[-1] // 2]
@@ -214,7 +153,7 @@ class FindOptimalStimuli:
             loss = act_loss + stim_loss
             loss.backward(retain_graph=True)
             optim.step()
-            losses.append(loss.detach().cpu().numpy())
+            losses.append(loss.detach().cpu().numpy().item())
 
         stim.zero()
         reg_opt_stim.requires_grad = False

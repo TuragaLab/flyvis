@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as nnf
-from PIL import Image
 from datamate import Directory, Namespace, root
+from PIL import Image
 from tqdm import tqdm
 
 from flyvision import renderings_dir
@@ -780,6 +780,10 @@ class MultiTaskSintel(MultiTaskDataset):
             for i, name in enumerate(self.arg_df.name)
             if any([scene_name in name for scene_name in _validation])
         ]
+        # these were dropped by the pytorch dataload because of the chosen
+        # batchsize in the original training run
+        val_indices.remove(37)
+        val_indices.remove(38)
         return train_indices, val_indices
 
 

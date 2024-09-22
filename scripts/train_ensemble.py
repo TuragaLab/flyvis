@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--nP", type=int, default=4, help="Numnber of processors.")
     parser.add_argument("--gpu", type=str, default="num=1")
-    parser.add_argument("--q", type=str, default="gpu_rtx")
+    parser.add_argument("--q", type=str, default="gpu_l4")
     parser.add_argument(
         "--ensemble_id",
         type=int,

@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--loss_file_name",
         type=str,
-        default="EPE",
+        default="epe",
     )
     default_functions = [
         "umap_and_clustering_main",
@@ -53,12 +53,7 @@ if __name__ == "__main__":
     args = parser.parse_with_hybrid_args()
 
     ensemble_name = f"{args.task_name}/{args.ensemble_id}"
-    ensemble = Ensemble(
-        ensemble_name,
-        checkpoint=args.chkpt,
-        validation_subdir=args.validation_subdir,
-        loss_file_name=args.loss_file_name,
-    )
+    ensemble = Ensemble(ensemble_name)
 
     if "umap_and_clustering_main" in args.functions:
         destination = ensemble.path / "umap_and_clustering"

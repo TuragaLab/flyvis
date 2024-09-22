@@ -1,185 +1,67 @@
-from typing import Union
-
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from datamate import Namespace
+import xarray as xr
 
-from flyvision.analysis.simple_correlation import correlation
 from flyvision.plots import plt_utils
-from flyvision.plots.plots import grouped_traces, traces, violin_groups
+from flyvision.plots.plots import violin_groups
 from flyvision.utils import groundtruth_utils, nodes_edges_utils
-from flyvision.utils.activity_utils import StimulusResponseIndexer
-from flyvision.utils.nodes_edges_utils import CellTypeArray
+from flyvision.utils.color_utils import OFF_FR, ON_FR
 
-# -- response indexer ---------------
+# -- FRI computation ------------
 
 
-class FlashResponseView(StimulusResponseIndexer):
-    """FlashResponseView class for indexing and plotting flash responses.
+def flash_response_index(
+    self: xr.DataArray,
+    radius,
+    on_intensity=1.0,
+    off_intensity=0.0,
+    nonnegative=True,
+) -> xr.DataArray:
+    """Compute the Flash Response Index (FRI) using xarray methods."""
 
-    Args:
-        arg_df: DataFrame with stimulus parameters.
-        config: Namespace with dataset configuration.
-        responses: CellTypeArray with responses.
-        stim_sample_dim: Dimension of the stimulus samples.
-        temporal_dim: Dimension of the temporal samples.
-        time: Time array.
-    """
+    # Ensure that the stimulus configuration is correct for FRI computation
+    assert self.attrs['config']['alternations'] == (0, 1, 0)
 
-    def __init__(
-        self,
-        arg_df: pd.DataFrame,
-        config: Namespace,
-        responses: CellTypeArray,
-        stim_sample_dim=0,
-        temporal_dim=1,
-        time=None,
-    ):
-        self.config = config
-        super().__init__(
-            arg_df=arg_df,  # could also construct from config
-            responses=responses,
-            dt=config.dt,
-            t_pre=config.t_pre,
-            stim_sample_dim=stim_sample_dim,
-            temporal_dim=temporal_dim,
-            time=time,
-        )
+    responses = self['responses']
 
-    def view(
-        self,
-        arg_df: pd.DataFrame = None,
-        config: Namespace = None,
-        responses: Union[np.ndarray, CellTypeArray] = None,
-        stim_sample_dim=None,
-        temporal_dim=None,
-        time=None,
-    ) -> "FlashResponseView":
-        """Create a new FlashResponseView instance with the given arguments."""
-        if isinstance(responses, np.ndarray):
-            responses = CellTypeArray(responses, cell_types=self.responses.cell_types)
+    # Select the time window for the stimulus response using query
+    time_query = (
+        f"{-self.attrs['config']['dt']} <= time <= {self.attrs['config']['t_stim']}"
+    )
+    stim_response = responses.query(frame=time_query)
 
-        return self.__class__(
-            arg_df if np.any(arg_df) else self.arg_df,
-            config if config is not None else self.config,
-            responses if responses is not None else self.responses,
-            stim_sample_dim if np.any(stim_sample_dim) else self.stim_sample_dim,
-            temporal_dim or self.temporal_dim,
-            time if np.any(time) else self.time,
-        )
+    # Select the data for the given radius
+    stim_response = stim_response.query(sample=f'radius=={radius}')
 
-    def init_time(self, time=None) -> None:
-        """Initialize the time array."""
-        if time is not None:
-            self.time = time
-            return
-        if self.config:
-            self.time = (
-                self.time
-                if np.any(self.time)
-                and len(self.time) == self.responses.shape[self.temporal_dim]
-                else (
-                    np.arange(0, self.responses.shape[self.temporal_dim]) * self.dt
-                )  # don't subtract t_pre here, since flashes *could* start with
-                # stimulus
-            )
+    # Apply nonnegative constraint if required
+    if nonnegative:
+        minimum = stim_response.min(dim=['frame', 'sample'])
+        stim_response += np.abs(minimum)
 
-    def fri(
-        self,
-        radius,
-        on_intensity=1.0,
-        off_intensity=0.0,
-        nonnegative=True,
-    ):
-        """Compute the Flash Response Index (FRI)."""
-        assert self.config.alternations[0] == 0 and self.config.alternations[1] == 1, (
-            "Invalid Flashes stimulus for computing FRI."
-            " Please use `alternations=[0,1,0]`"
-        )
-        stim_response = self.between_seconds(
-            self.config.t_pre - self.config.dt, self.config.t_pre + self.config.t_stim
-        )
+    # Select the response data for on and off intensities
+    r_on = stim_response.query(sample=f'intensity=={on_intensity}')
+    r_off = stim_response.query(sample=f'intensity=={off_intensity}')
 
-        stim_response = stim_response.where_stim_args(radius=radius)
-        if nonnegative:
-            stim_response = stim_response.nonnegative()
-        r_on = stim_response.where_stim_args(intensity=on_intensity)
-        r_off = stim_response.where_stim_args(intensity=off_intensity)
+    # Compute the peak responses by finding the maximum along the 'frame' dimension
+    on_peak = r_on.max(dim='frame')
+    off_peak = r_off.max(dim='frame')
 
-        on_peak = r_on.peak()
-        off_peak = r_off.peak()
-        fri = on_peak - off_peak
-        fri /= on_peak + off_peak + np.array([1e-16])
+    # Drop the 'sample' coordinate to avoid broadcasting issues
+    on_peak = on_peak.drop('sample')
+    off_peak = off_peak.drop('sample')
 
-        return fri
+    # Compute the Flash Response Index (FRI)
+    fri = on_peak - off_peak
+    fri /= on_peak + off_peak + np.array([1e-16])
 
-    def plot_traces(self, cell_type, time=None, plot_kwargs=dict(), **stim_kwargs):
-        """Plot the flash response traces for the given cell type."""
-        if self.responses.shape[self.temporal_dim] != len(self.time):
-            raise ValueError(
-                "Cannot plot. "
-                "Previous operations have mis-aligned the FlashResponseView "
-                "response data and timestamps."
-            )
-        cell_trace = (
-            self.cell_type(cell_type).where_stim_args(**stim_kwargs).view(time=time)
-        )
-        time_shape = cell_trace.shape[self.temporal_dim]
-        stim_shape = cell_trace.shape[self.stim_sample_dim]
-        response_arr = cell_trace.responses[:]
-        label_cols = [
-            col
-            for col in cell_trace.arg_df.columns
-            if cell_trace.arg_df[col].nunique() > 1
-        ]
-        response_arr = response_arr.transpose(
-            cell_trace.stim_sample_dim,
-            *tuple(
-                set(range(response_arr.ndim))
-                - {cell_trace.stim_sample_dim, cell_trace.temporal_dim}
-            ),
-            cell_trace.temporal_dim,
-        ).reshape(stim_shape, -1, time_shape)
-        if response_arr.shape[1] > 1:
-            return grouped_traces(
-                response_arr,
-                cell_trace.time,
-                linewidth=0.5,
-                legend=tuple([
-                    ", ".join([
-                        f"{col}={cell_trace.arg_df[col].iloc[i].item()}"
-                        for col in label_cols
-                    ])
-                    for i in range(len(cell_trace.arg_df))
-                ]),
-                ylabel="activity (a.u.)",
-                xlabel="time (s)",
-                title=f"{cell_type} flash response",
-                **plot_kwargs,
-            )
-        else:
-            return traces(
-                response_arr[:, 0, :],
-                cell_trace.time,
-                legend=tuple([
-                    ", ".join([
-                        f"{col}={cell_trace.arg_df[col].iloc[i].item()}"
-                        for col in label_cols
-                    ])
-                    for i in range(len(cell_trace.arg_df))
-                ]),
-                ylabel="activity (a.u.)",
-                xlabel="time (s)",
-                title=f"{cell_type} flash response",
-                **plot_kwargs,
-            )
+    # Optionally, you can drop NaN values after computation
+    return fri.dropna(dim='sample', how='any')
 
 
 # -- correlation ------------
 
 
-def fri_correlation_to_known(fris, cell_types):
+def fri_correlation_to_known(fris: xr.DataArray) -> xr.DataArray:
     """Compute the correlation of the FRI to known cell type tunings."""
     known_preferred_contrasts = {
         k: v for k, v in groundtruth_utils.polarity.items() if v != 0
@@ -188,26 +70,23 @@ def fri_correlation_to_known(fris, cell_types):
     groundtruth = list(known_preferred_contrasts.values())
 
     index = np.array([
-        np.where(nt == cell_types)[0].item() for i, nt in enumerate(known_cell_types)
+        np.where(nt == fris.cell_type)[0].item() for i, nt in enumerate(known_cell_types)
     ])
-
-    fris_for_known = fris[:, index]
-
-    corr_fri, _ = correlation(groundtruth, fris_for_known)
-
-    return corr_fri
+    fris = fris.isel(neuron=index)
+    groundtruth = xr.DataArray(
+        data=groundtruth,
+        dims=["neuron"],
+    )
+    return xr.corr(fris, groundtruth, dim="neuron")
 
 
 # -- plotting code -------------
-
-ON_FR = "#c1b933"  # yellow
-OFF_FR = "#b140cc"  # violett
 
 
 def plot_fris(
     fris,  # fris.responses[:]
     cell_types,  # fris.responses.cell_types
-    scatter_best=True,
+    scatter_best=False,
     scatter_all=True,
     bold_output_type_labels=True,
     output_cell_types=None,

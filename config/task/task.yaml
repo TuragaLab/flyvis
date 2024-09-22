@@ -40,9 +40,10 @@ decoder:
     p_dropout: 0.5
 loss:
   flow:
-    type: 'L2Norm'
+    type: 'l2norm'
 batch_size: 4
 n_iters: 250000
 n_folds: 4
 fold: 1
 seed: 0
+original_split: true

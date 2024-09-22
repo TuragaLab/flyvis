@@ -75,6 +75,7 @@ def at_position(rfs, u=None, v=None, central=True, inplace=False):
         return at_position(new, u, v, inplace=True)
 
 
+# TODO: update as xarray dataset
 class MovingEdgeCurrentView:
     def __init__(
         self,

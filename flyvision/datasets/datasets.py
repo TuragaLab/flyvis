@@ -2,14 +2,13 @@
 
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Callable, Dict, Iterable, List, Union
 
 import numpy as np
 import pandas as pd
 import torch
 
 from flyvision.augmentation import temporal
-from flyvision.objectives import Loss
 from flyvision.utils.dataset_utils import get_random_data_split
 
 __all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
@@ -245,7 +244,7 @@ class MultiTaskDataset(SequenceDataset):
 
     @property
     @abstractmethod
-    def losses(self) -> Dict[str, Loss]:
+    def losses(self) -> Dict[str, Callable]:
         """A loss function for each task."""
         pass
 

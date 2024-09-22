@@ -21,6 +21,7 @@ import torch.nn as nn
 from datamate import Namespace
 from torch import Tensor
 
+from flyvision import device
 from flyvision.connectome import ConnectomeDir
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.tensor_utils import atleast_column_vector, where_equal_rows
@@ -139,13 +140,18 @@ class Normal(InitialDistribution):
         if mode == "mean":
             _values = torch.tensor(mean).float()
         elif mode == "sample":
+            # set seed for reproducibility and avoid seeding the global RNG
+            generator = torch.Generator(device=device)
             if seed is not None:
-                torch.manual_seed(seed)
+                generator.manual_seed(seed)
+            else:
+                generator.seed()
             try:
-                _values = torch.distributions.normal.Normal(
+                _values = torch.normal(
                     torch.tensor(mean).float(),
                     torch.tensor(std).float(),
-                ).sample()
+                    generator=generator,
+                )
             except RuntimeError as e:
                 raise RuntimeError(
                     f"Failed to sample from normal with mean {mean} and std {std}"

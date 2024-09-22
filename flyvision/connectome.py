@@ -1061,5 +1061,5 @@ def _projective_fields_edge_dfs(
     return cls
 
 
-def flyvision_connectome(network_dir):
+def flyvision_connectome(network_dir) -> ConnectomeView:
     return ConnectomeView(ConnectomeDir(network_dir.config.network.connectome))

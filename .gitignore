@@ -13,3 +13,4 @@
 **/**/__pycache__
 .coverage
 flyvision/version.py
+debug

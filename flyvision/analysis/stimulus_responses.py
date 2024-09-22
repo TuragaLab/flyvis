@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -29,50 +29,87 @@ class Result:
 
 
 def compute_responses(
-    network: "flyvision.network.CheckpointedNetwork",
+    network: "flyvision.CheckpointedNetwork",
     dataset_class: type,
     dataset_config: Dict,
     batch_size: int,
     t_pre: float,
     t_fade_in: float,
-) -> Result:
-    """Compute responses and return as xarray Dataset.
+    cell_index: Optional[np.ndarray | str] = "central",
+) -> xr.Dataset:
+    """Compute responses and return.
 
     This function is compatible with joblib caching.
     """
     # Reconstruct the network
-    checkpointed_network = network
-    network = checkpointed_network.network
+    network.recover()
+    network = network.network  # type: flyvision.Network
 
     # Initialize dataset
     dataset = dataset_class(**dataset_config)
 
-    # Prepare lists to collect data
-    stimuli_list = []
-    responses_list = []
+    if cell_index == "central":
+        # Prepare central cells index
+        cell_index = network.connectome.central_cells_index[:]
+
+    stimuli_array = []
+    responses_array = []
 
     # Compute responses
-    for stimulus, responses in network.stimulus_response(
-        dataset,
-        dataset.dt,
-        t_pre=t_pre,
-        t_fade_in=t_fade_in,
-        batch_size=batch_size,
+    for _, (stimulus, responses) in enumerate(
+        network.stimulus_response(
+            dataset,
+            dataset.dt,
+            t_pre=t_pre,
+            t_fade_in=t_fade_in,
+            batch_size=batch_size,
+        )
     ):
-        stimuli_list.append(stimulus)
-        responses_list.append(responses)
+        if cell_index is not None:
+            responses = np.take(responses, cell_index, axis=-1)
 
-    # Concatenate data
-    stimuli_array = np.concatenate(stimuli_list, axis=0)
-    responses_array = np.concatenate(responses_list, axis=0)
-    return Result(stimuli_array, responses_array, dataset.arg_df.reset_index(drop=True))
+        stimuli_array.append(stimulus)
+        responses_array.append(responses)
+
+    stimuli_array = np.concatenate(stimuli_array, axis=0)
+    responses_array = np.concatenate(responses_array, axis=0)[None]
+
+    return xr.Dataset(
+        {
+            'stimulus': (
+                [
+                    'sample',
+                    'frame',
+                    'channel',
+                    'hex_pixel',
+                ],
+                stimuli_array,
+            ),
+            'responses': (
+                [
+                    'network_id',
+                    'sample',
+                    'frame',
+                    'neuron',
+                ],
+                responses_array,
+            ),
+        },
+        coords={
+            'sample': np.arange(len(dataset)),
+            **{
+                col: ('sample', dataset.arg_df[col].values)
+                for col in dataset.arg_df.columns
+            },
+        },
+    )
 
 
 def generic_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.EnsembleView"],
-    dataset: Optional[Any],
-    default_dataset_config: Dict,
-    default_dataset_class: type,
+    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    dataset,
+    dataset_config: Dict,
+    default_dataset_cls: type,
     t_pre: float,
     t_fade_in: float,
     batch_size: int,
@@ -80,50 +117,60 @@ def generic_responses(
 ) -> xr.Dataset:
     """Return responses for a given dataset as an xarray Dataset."""
     # Handle both single and multiple NetworkViews
-    if isinstance(network_view_or_ensemble, flyvision.network.NetworkView):
+    if isinstance(network_view_or_ensemble, flyvision.NetworkView):
         network_views = [network_view_or_ensemble]
     else:
         network_views = list(network_view_or_ensemble.values())
 
-    # Prepare dataset configuration
-    if dataset is None:
-        dataset_config = default_dataset_config
-        dataset_class = default_dataset_class
-    else:
-        dataset_config = dataset.config.to_dict()
-        dataset_class = type(dataset)
+    # Prepare dataset class
+    dataset_class = default_dataset_cls if dataset is None else type(dataset)
+    dataset_config = dataset_config if dataset is None else dataset.config.to_dict()
 
     # Prepare list to collect datasets
     results = []
     checkpoints = []
 
-    def handle_network(idx, network_view, network):
-        if idx == 0:
-            # Initialize network
-            checkpointed_network = network_view.network(checkpoint="best")
-            checkpointed_network.init()
-        else:
-            # Pass initialized network over to next network view to avoid
-            # reinitializing the network
-            checkpointed_network = network_view.network(
-                checkpoint="best", network=network
-            )
+    def handle_network(idx, network_view, network=None):
+        # Pass initialized network over to next network view to avoid
+        # reinitializing the network
+        checkpointed_network = network_view.network(
+            checkpoint="best", network=network, lazy=True
+        )
 
-        # use the memory cache from this network_view
-        joblib_cache = network_view.memory.cache
+        # use the cache from this network_view
+        cached_compute_responses_fn = network_view.memory.cache(
+            compute_responses, ignore=['batch_size']
+        )
+        call_in_cache = cached_compute_responses_fn.check_call_in_cache(
+            checkpointed_network,
+            dataset_class,
+            dataset_config,
+            batch_size,
+            t_pre,
+            t_fade_in,
+            cell_index,
+        )
+
+        if call_in_cache:
+            # don't initialize the network when the call is in cache
+            # print('call in cache')
+            pass
+        elif network is None and checkpointed_network.network is None:
+            # initialize the network when the call is not in cache
+            # and the network is not passed from the previous network view
+            # print('call not in cache, init network')
+            checkpointed_network.init()
 
         # Call the cached compute_responses function
-        # This is cached, but the checkpointed_network is not pickled and hashed
-        # because it implements it's own has
         results.append(
-            joblib_cache(compute_responses)(
+            cached_compute_responses_fn(
                 checkpointed_network,
                 dataset_class,
                 dataset_config,
                 batch_size,
                 t_pre,
                 t_fade_in,
-            )  # type: Result
+            )  # type: xr.Dataset
         )
         checkpoints.append(checkpointed_network.checkpoint)
         return checkpointed_network.network
@@ -131,23 +178,44 @@ def generic_responses(
     network = handle_network(0, network_views[0], None)
 
     for idx, network_view in enumerate(network_views[1:], 1):
-        handle_network(idx, network_view, network)
+        network = handle_network(idx, network_view, network)
 
-    # Stack results
-    result = Result(
-        results[0].stimuli,
-        np.stack([r.responses for r in results], axis=0),
-        results[0].arg_df,
-    )
+    if len(results) > 1:
+        # TODO: as long as the concatenation is not lazy, this pattern might not be
+        # the best way to handle the results. See also https://github.com/pydata/xarray/issues/4628.
+        # TODO: lazy dataset loading could be done by caching this result instead, would
+        # require network view or ensemble to be pickable
+        result = xr.concat(
+            results,
+            dim='network_id',
+            data_vars='minimal',
+            coords='minimal',
+            # otherwise repeates stimulus across network_id dim
+            compat='override',
+        )
+
+    result.coords.update({
+        'frame': np.arange(result['stimulus'].shape[1]),
+        'channel': np.arange(result['stimulus'].shape[2]),
+        'hex_pixel': np.arange(result['stimulus'].shape[3]),
+        'neuron': np.arange(result['responses'].shape[3]),
+    })
 
     # Create xarray Dataset with time coordinate
-    cell_types = network_views[0].connectome.dir.nodes.type[:].astype(str)
-    u_coords = network_views[0].connectome.dir.nodes.u[:]
-    v_coords = network_views[0].connectome.dir.nodes.v[:]
-    if cell_index is not None:
+    cell_types = network_views[0].connectome.nodes.type[:].astype(str)
+    u_coords = network_views[0].connectome.nodes.u[:]
+    v_coords = network_views[0].connectome.nodes.v[:]
+    u_in, v_in = np.array([
+        (u_coords[i], v_coords[i])
+        for i, cell_type in enumerate(cell_types)
+        if cell_type == "R1"
+    ]).T
+
+    if cell_index == "central":
         # Prepare central cells index
-        cell_index = network_views[0].connectome.dir.central_cells_index[:]
-        result.responses = result.responses[:, :, :, cell_index]
+        cell_index = network_views[0].connectome.central_cells_index[:]
+
+    if cell_index is not None:
         cell_types = cell_types[cell_index]
         u_coords = u_coords[cell_index]
         v_coords = v_coords[cell_index]
@@ -155,50 +223,37 @@ def generic_responses(
     # Assuming dataset.dt is available
     dt = dataset_config.get('dt')
     t_pre = dataset_config.get('t_pre', 0.0)
-    n_frames = result.stimuli.shape[1]
+    n_frames = result.frame.size
     time = np.arange(n_frames).astype(float) * dt - t_pre
 
-    # Create xarray Dataset with time coordinate
-    responses = xr.Dataset(
-        {
-            'stimulus': (['sample', 'frame', 'channel', 'hex_pixel'], result.stimuli),
-            'responses': (['network_id', 'sample', 'frame', 'neuron'], result.responses),
-        },
-        coords={
-            'network_id': np.arange(len(network_views)),
-            'sample': np.arange(result.stimuli.shape[0]),
-            'frame': np.arange(n_frames),
-            'time': ('frame', time),  # Add time coordinate
-            'channel': np.arange(result.stimuli.shape[2]),
-            'hex_pixel': np.arange(result.stimuli.shape[3]),
-            'neuron': np.arange(result.responses.shape[3]),
-            'cell_type': ('neuron', cell_types),
-            'u': ('neuron', u_coords),
-            'v': ('neuron', v_coords),
-            **{
-                col: ('sample', result.arg_df[col].values)
-                for col in result.arg_df.columns
-            },
-            'checkpoints': ('network_id', checkpoints),
-        },
-        attrs={
-            'config': dataset_config,
-            'network_config': network_views[0].dir.config.network.to_dict(),
-        },
-    )
+    # Add relevant coordinates
+    result.coords.update({
+        'time': ('frame', time),
+        'cell_type': ('neuron', cell_types),
+        'u': ('neuron', u_coords),
+        'v': ('neuron', v_coords),
+        'u_in': ('hex_pixel', u_in),
+        'v_in': ('hex_pixel', v_in),
+        'checkpoints': ('network_id', checkpoints),
+    })
+    result.attrs.update({
+        'config': dataset_config,
+        'network_config': network.config.to_dict(),
+    })
 
-    return responses
+    return result
 
 
 # --------------------- Flash Responses ---------------------
 
 
+# TODO: with network_view pickable, could mem cache this directly.
 def flash_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.EnsembleView"],
+    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
     dataset: Optional[Flashes] = None,
     radius=(-1, 6),
     dt=1 / 200,
-    batch_size=1,
+    batch_size=4,
 ) -> xr.Dataset:
     default_dataset_config = {
         'dynamic_range': [0, 1],
@@ -223,12 +278,12 @@ def flash_responses(
 
 
 def moving_edge_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.EnsembleView"],
+    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
     dataset: Optional[MovingEdge] = None,
     speeds=(2.4, 4.8, 9.7, 13, 19, 25),
     offsets=(-10, 11),
     dt=1 / 200,
-    batch_size=1,
+    batch_size=4,
 ) -> xr.Dataset:
     default_dataset_config = {
         'offsets': offsets,
@@ -256,10 +311,10 @@ def moving_edge_responses(
 
 
 def moving_bar_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.EnsembleView"],
+    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
     dataset: Optional[MovingBar] = None,
     dt=1 / 200,
-    batch_size=1,
+    batch_size=4,
 ) -> xr.Dataset:
     default_dataset_config = {
         'widths': [1, 2, 4],
@@ -288,10 +343,10 @@ def moving_bar_responses(
 
 
 def naturalistic_stimuli_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.EnsembleView"],
+    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
     dataset: Optional[AugmentedSintel] = None,
     dt=1 / 100,
-    batch_size=1,
+    batch_size=4,
 ) -> xr.Dataset:
     default_dataset_config = {
         'tasks': ["flow"],
@@ -315,13 +370,13 @@ def naturalistic_stimuli_responses(
 
 
 def central_impulses_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.EnsembleView"],
+    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
     dataset: Optional[CentralImpulses] = None,
     intensity=1,
     bg_intensity=0.5,
     impulse_durations=(5e-3, 20e-3, 50e-3, 100e-3, 200e-3, 300e-3),
     dt=1 / 200,
-    batch_size=1,
+    batch_size=4,
 ) -> xr.Dataset:
     default_dataset_config = {
         'impulse_durations': impulse_durations,
@@ -351,14 +406,14 @@ def central_impulses_responses(
 
 
 def spatial_impulses_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.EnsembleView"],
+    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
     dataset: Optional[SpatialImpulses] = None,
     intensity=1,
     bg_intensity=0.5,
     impulse_durations=(5e-3, 20e-3),
     max_extent=4,
     dt=1 / 200,
-    batch_size=1,
+    batch_size=4,
 ) -> xr.Dataset:
     default_dataset_config = {
         'impulse_durations': impulse_durations,
@@ -388,96 +443,61 @@ def spatial_impulses_responses(
 # --------------------- Optimal Stimulus Responses ---------------------
 
 
-def _compute_optimal_stimulus_responses(
-    network_config: Dict,
-    checkpoint_path: str,
+def compute_optimal_stimulus_responses(
+    network: "flyvision.CheckpointedNetwork",
+    cell_type: str,
     dataset_config: Dict,
+    dataset_class: type = AugmentedSintel,
 ) -> xr.Dataset:
     """Compute optimal stimuli responses and return as xarray Dataset.
 
     This function is compatible with joblib caching.
     """
-    # Reconstruct the network
-    network = flyvision.Network(**network_config)
-    flyvision.recover_network(network, checkpoint_path)
-    network.eval()
-
     # Create a dummy NetworkView for FindOptimalStimuli
-    network_view = flyvision.NetworkView(network_dir=None)
-    network_view.network = network
-    network_view.init_network()
+    network_view = flyvision.NetworkView(network_dir=network.name)
 
-    if dataset_config == "default":
-        findoptstim = optimal_stimuli.FindOptimalStimuli(network_view, stimuli="default")
-    else:
-        stimuli_dataset = StimulusDataset(**dataset_config)
-        findoptstim = optimal_stimuli.FindOptimalStimuli(
-            network_view, stimuli=stimuli_dataset
-        )
-
-    # Prepare lists to collect data
-    data_list = []
-
-    for cell_type in network_view.cell_types_sorted:
-        optstim = findoptstim.regularized_optimal_stimuli(cell_type)
-        data_list.append({
-            'cell_type': cell_type,
-            'stimulus': optstim.stimulus.stimulus.cpu().numpy(),
-            'response': optstim.stimulus.response.cpu().numpy(),
-            'regularized_stimulus': optstim.regularized_stimulus,
-            'regularized_response': optstim.response,
-            'central_predicted_activity': optstim.central_predicted_response,
-            'central_target_activity': optstim.central_target_response,
-            'losses': optstim.losses,
-        })
-
-    # Convert list of dicts to xarray Dataset
-    ds = xr.Dataset.from_dict({'data': data_list})
-
-    # Add attrs
-    ds.attrs.update({
-        'network_config': network_config,
-        'checkpoint_path': checkpoint_path,
-    })
-
-    return ds
+    # Prepare dataset configuration
+    stimuli_dataset = dataset_class(**dataset_config)
+    findoptstim = optimal_stimuli.FindOptimalStimuli(
+        network_view, stimuli=stimuli_dataset
+    )
+    return findoptstim.regularized_optimal_stimuli(cell_type)
 
 
 def optimal_stimulus_responses(
     network_view: "flyvision.NetworkView",
-    dataset: Optional[StimulusDataset] = None,
+    cell_type: str,
+    dataset: Optional[StimulusDataset] = AugmentedSintel,
+    dt=1 / 100,
 ) -> xr.Dataset:
     """Return optimal stimuli responses as xarray Dataset."""
-    network_view.init_network()
-
-    # Extract network configuration and checkpoint path
-    network_config = network_view.dir.config.network.to_dict()
-    checkpoint_path = str(network_view.checkpoints.path)
 
     # Prepare dataset configuration
-    dataset_config = "default" if dataset is None else dataset.config.to_dict()
+    default_dataset_config = {
+        'tasks': ["flow"],
+        'interpolate': False,
+        'boxfilter': {'extent': 15, 'kernel_size': 13},
+        'temporal_split': True,
+        'dt': dt,
+    }
 
     # Call the cached helper function
-    ds = network_view.memory.cache(_compute_optimal_stimulus_responses)(
-        network_config,
-        checkpoint_path,
-        dataset_config,
+    return network_view.memory.cache(compute_optimal_stimulus_responses)(
+        network_view.network(checkpoint="best", lazy=True),
+        cell_type,
+        default_dataset_config,
+        dataset,
     )
-    return ds
 
 
 if __name__ == '__main__':
     # Example usage
     import time
 
-    # nv = flyvision.NetworkView("flow/0000/000")
-    # start = time.time()
-    # x = flash_responses(nv)
-    # print(x)
-    # print(f"Elapsed time: {time.time() - start:.2f} seconds")
-
-    ensemble = flyvision.EnsembleView("flow/0000")  # ["flow/0000/000", "flow/0000/001"])
+    nv = flyvision.NetworkView("flow/0000/000")
     start = time.time()
-    x = flash_responses(ensemble)
-    print(x)
+    # ds = nv.naturalistic_stimuli_responses()
+    # print(ds)
+    ds = optimal_stimulus_responses(nv, "T4c")
+    print(ds)
     print(f"Elapsed time: {time.time() - start:.2f} seconds")

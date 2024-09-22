@@ -206,7 +206,7 @@ class MultiTaskSolver:
             dir / activity_min.h5
             dir / activity_max.h5
         """
-
+        # pdb.set_trace()
         # return if iterations have already been trained.
         if self.iteration >= self.task.n_iters:
             return
@@ -383,12 +383,12 @@ class MultiTaskSolver:
         val_loss = self.test(
             dataloader=self.task.val_data, subdir="validation", track_loss=True
         )
-        logging.info("Test on training data.")
-        _ = self.test(dataloader=self.task.train_data, subdir="training", track_loss=True)
         logging.info("Test on validation batch.")
         _ = self.test(
             dataloader=self.task.val_batch, subdir="validation_batch", track_loss=True
         )
+        logging.info("Test on training data.")
+        _ = self.test(dataloader=self.task.train_data, subdir="training", track_loss=True)
         logging.info("Test on training batch.")
         _ = self.test(
             dataloader=self.task.train_batch, subdir="training_batch", track_loss=True
@@ -451,6 +451,7 @@ class MultiTaskSolver:
             dir.<subdir>.loss (List): average loss over tasks.
         """
         self._eval()
+        logging.info("Test")
 
         # Update hypterparams.
         self.scheduler(self.iteration)

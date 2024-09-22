@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--loss_file_name",
         type=str,
-        default="EPE",
+        default="epe",
     )
     parser.add_argument(
         "--notebook_path",

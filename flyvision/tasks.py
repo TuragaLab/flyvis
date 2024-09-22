@@ -5,10 +5,10 @@ from datamate import Namespace
 from toolz import valmap
 from torch.utils.data import DataLoader, sampler
 
+from flyvision import objectives
 from flyvision.connectome import ConnectomeDir
 from flyvision.datasets.datasets import MultiTaskDataset
 from flyvision.decoder import ActivityDecoder
-from flyvision.objectives import Loss
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.dataset_utils import IndexSampler
 
@@ -38,7 +38,7 @@ class Task:
         # Initialize dataset.
         self.dataset = forward_subclass(MultiTaskDataset, dataset)  # type: MultiTaskDataset
         self.dataset.losses = Namespace({
-            task: forward_subclass(Loss, config) for task, config in loss.items()
+            task: getattr(objectives, config) for task, config in loss.items()
         })
 
         if original_split:
@@ -65,7 +65,7 @@ class Task:
         )
         logging.info(
             "Initialized dataloader with training sequence indices \n"
-            "{self.train_seq_index}"
+            f"{self.train_seq_index}"
         )
 
         self.val_data = DataLoader(
@@ -80,7 +80,7 @@ class Task:
         )
         logging.info(
             "Initialized dataloader with validation sequence indices \n"
-            "{self.val_seq_index}"
+            f"{self.val_seq_index}"
         )
 
         # Initialize overfitting loader.

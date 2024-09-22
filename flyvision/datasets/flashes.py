@@ -13,7 +13,7 @@ from flyvision import renderings_dir
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision.rendering import BoxEye
 from flyvision.rendering.utils import resample
-from flyvision.utils.hex_utils import HexLattice, Hexal
+from flyvision.utils.hex_utils import Hexal, HexLattice
 
 logging = logging.getLogger()
 
@@ -140,6 +140,7 @@ class Flashes(SequenceDataset):
         radius=[-1, 6],
         alternations=(0, 1, 0),
     ):
+        assert alternations[0] == 0, "First alternation must be 0."
         self.flashes_dir = RenderedFlashes(
             boxfilter=boxfilter,
             dynamic_range=dynamic_range,

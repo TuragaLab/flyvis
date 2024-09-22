@@ -112,12 +112,13 @@ def validate_all_checkpoints(
     loss = []
     progress = tqdm(total=len(network_view.dir.chkpt_index))
     for chkpt in network_view.checkpoints.indices:
-        network_view.update_checkpoint(checkpoint=chkpt)
-        network = network_view.network
-        decoder = network_view.decoder
+        network = network_view.network(checkpoint=chkpt)
+        decoder = network_view.init_decoder(
+            checkpoint=chkpt, decoder=network_view.decoder
+        )
         loss.append(
             validate(
-                network=network,
+                network=network.network,
                 decoder=decoder,
                 dataloader=dataloader,
                 loss_fns=loss_fns,
@@ -148,6 +149,6 @@ def get_loss_fns(loss_fns):
     if loss_fns:
         return loss_fns
     return [
-        flyvision.objectives.L2Norm(),
-        flyvision.objectives.EPE(),
+        flyvision.objectives.l2norm,
+        flyvision.objectives.epe,
     ]

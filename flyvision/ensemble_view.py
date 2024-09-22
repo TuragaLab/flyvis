@@ -8,22 +8,18 @@ from os import PathLike
 from typing import Callable, Iterable, List, Union
 
 import numpy as np
-import torch
 from matplotlib import colormaps as cm
 from torch import nn
 
 import flyvision
-from flyvision import device, plots
+from flyvision import plots
 from flyvision.analysis import views
-from flyvision.analysis.flash_responses import FlashResponseView, plot_fris
-from flyvision.analysis.moving_bar_responses import MovingEdgeResponseView, plot_dsis
+from flyvision.analysis.flash_responses import flash_response_index, plot_fris
+from flyvision.analysis.moving_bar_responses import direction_selectivity_index, plot_dsis
 from flyvision.connectome import flyvision_connectome
-from flyvision.datasets.flashes import Flashes
-from flyvision.datasets.moving_bar import MovingEdge
 from flyvision.directories import EnsembleDir
 from flyvision.ensemble import Ensemble
 from flyvision.network import Network
-from flyvision.utils.activity_utils import CellTypeArray
 from flyvision.utils.chkpt_utils import (
     best_checkpoint_default_fn,
     recover_network,
@@ -82,12 +78,9 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(views.loss_curves)
-    def validation_loss(self, **kwargs):
+    def validation_loss(self, validation_subdir=None, loss_file_name=None, **kwargs):
         task_error = self.task_error()
-        losses = np.array([
-            nv.dir[nv.checkpoints.validation_subdir][nv.checkpoints.loss_file_name][:]
-            for nv in self.values()
-        ])
+        losses = self.validation_losses(validation_subdir, loss_file_name)
         return views.loss_curves(
             losses,
             cbar=True,
@@ -102,7 +95,7 @@ class EnsembleView(Ensemble):
     @wraps(views.histogram)
     def task_error_histogram(self, **kwargs):
         """Plot a histogram of the validation losses of the ensemble."""
-        losses = self.validation_losses()
+        losses = self.min_validation_losses()
         return views.histogram(
             losses, xlabel="task error", ylabel="number models", **kwargs
         )
@@ -135,140 +128,44 @@ class EnsembleView(Ensemble):
     @wraps(plots.plots.heatmap)
     def dead_or_alive(self, **kwargs):
         """Return the number of dead cells in the ensemble."""
-        network_view = self[0]
-        chkpts = network_view.checkpoints
-
-        if chkpts.choice == "best":
-            subdirchild = f"chkpt_best_{chkpts.validation_subdir}_{chkpts.loss_file_name}"
-        else:
-            subdirchild = f"chkpt_{chkpts.index}"
-
-        path = f"naturalistic_stimuli_responses/{subdirchild}"
-
-        dead_count = np.zeros([len(self), len(network_view.cell_types_sorted)])
-        for i, network_view in enumerate(self.values()):
-            dead_count[i] = (
-                network_view.dir[path].network_states.nodes.activity_central[:] < 0
-            ).all(axis=(0, 1))
-
+        responses = self.naturalistic_stimuli_responses()
+        dead_count = (responses['responses'].values < 0).all(axis=(1, 2))
         return plots.plots.heatmap(
             dead_count,
             ylabels=np.arange(len(self)),
-            xlabels=network_view.cell_types_unsorted,
+            xlabels=responses.cell_type.values,
             size_scale=15,
             cbar=False,
             **kwargs,
         )
 
     @wraps(plot_fris)
-    def flash_response_indices(
-        self, subdir="flash_responses", cell_types: List[str] = None, **kwargs
-    ):
+    def flash_response_index(self, cell_types: List[str] = None, **kwargs):
         """Plot the flash response indices of the ensemble."""
-        dataset = Flashes(
-            dynamic_range=[0, 1],
-            t_stim=1.0,
-            t_pre=1.0,
-            dt=1 / 200,
-            radius=[-1, 6],
-            alternations=(0, 1, 0),
-        )
-        central_cells_index = self[0].connectome.central_cells_index[:]
-
-        responses = self.stored_responses(subdir, central=True)
-        if responses is None:
-            logging.info("Computing responses.")
-            responses = np.stack(
-                [
-                    resp[:, :, central_cells_index].copy()
-                    for resp in self.simulate(
-                        torch.stack(dataset[:]).unsqueeze(2).to(device), dt=dataset.dt
-                    )
-                ],
-                axis=0,
-            )
-        responses_cta = CellTypeArray(
-            responses,
-            cell_types=self[0].connectome.unique_cell_types[:].astype(str),
-        )
-        if cell_types is not None:
-            responses_cta = responses_cta.from_cell_types(cell_types)
-        frv = FlashResponseView(
-            arg_df=dataset.arg_df,
-            config=dataset.config,
-            responses=responses_cta,
-            stim_sample_dim=1,
-            temporal_dim=2,
-        )
-        fri_all = frv.fri(radius=6)
-        fris = fri_all.responses.array.squeeze()
-        cell_types = fri_all.responses.cell_types
+        responses = self.flash_responses()
+        fris = flash_response_index(responses, radius=6)
+        cell_types = cell_types or fris.cell_type.data
         task_error = self.task_error()
         best_index = np.argmin(task_error.values)
         return plot_fris(
-            fris,
+            fris.data,
             cell_types,
+            scatter_best=True,
             scatter_best_index=best_index,
             scatter_best_color=cm.get_cmap("Blues")(1.0),
             **kwargs,
         )
 
     @wraps(plot_dsis)
-    def direction_selectivity_indices(self, subdir="movingedge_responses", **kwargs):
+    def direction_selectivity_index(self, **kwargs):
         """Plot the direction selectivity indices of the ensemble."""
-        responses = self.stored_responses(subdir, central=True)
-        if responses is None:
-            dataset = MovingEdge(
-                offsets=[-10, 11],
-                intensities=[0, 1],
-                speeds=[9.7, 13, 19, 25],
-                height=80,
-                post_pad_mode="continue",
-                t_pre=1.0,
-                t_post=1.0,
-                dt=1 / 200,
-                angles=list(np.arange(0, 360, 30)),
-            )
-            logging.info("Computing responses for a subset of stimuli.")
-            responses = np.stack(
-                list(
-                    self.simulate_from_dataset(
-                        dataset,
-                        dt=dataset.dt,
-                        batch_size=4,
-                        central_cell_only=True,
-                    )
-                )
-            )
-        else:
-            # default dataset
-            # TODO: this is a hack, we should be able to get the dataset in a more
-            # principled way
-            config = next(iter(self[0].movingedge_responses())).config
-            dataset = MovingEdge(**config)
-
-        responses_cta = CellTypeArray(
-            responses,
-            cell_types=self[0].connectome.unique_cell_types[:].astype(str),
-        )
-        merv = MovingEdgeResponseView(
-            arg_df=dataset.arg_df,
-            responses=responses_cta,
-            config=dataset.config,
-            stim_sample_dim=1,
-            temporal_dim=2,
-        )
-
-        # compute FRIs for all cell types
-        dsi_all = merv.dsi()
-        # get FRI values and corresponding cell types
-        dsis = dsi_all.responses.array.squeeze()
-        cell_types = dsi_all.responses.cell_types
+        responses = self.movingedge_responses()
+        dsis = direction_selectivity_index(responses)
         task_error = self.task_error()
         best_index = np.argmin(task_error.values)
         return plot_dsis(
-            dsis,
-            cell_types,
+            dsis.values,
+            responses.cell_types,
             bold_output_type_labels=False,
             figsize=[10, 1.2],
             color_known_types=True,
