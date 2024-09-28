@@ -183,7 +183,7 @@ def to_numpy(array):
     elif isinstance(array, list):
         return np.array(array)
     else:
-        raise ValueError
+        raise ValueError(f"type {type(array)} cannot be cast to numpy array")
 
 
 def atleast_column_vector(array):

@@ -164,8 +164,8 @@ class EnsembleView(Ensemble):
         task_error = self.task_error()
         best_index = np.argmin(task_error.values)
         return plot_dsis(
-            dsis.values,
-            responses.cell_types,
+            dsis,
+            responses.cell_type,
             bold_output_type_labels=False,
             figsize=[10, 1.2],
             color_known_types=True,

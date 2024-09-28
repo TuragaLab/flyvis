@@ -35,14 +35,14 @@ if __name__ == "__main__":
         type=str,
         default="epe",
     )
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--delete_recordings", action="store_true")
     default_functions = [
         "flash_responses",
         "movingedge_responses",
         "movingbar_responses",
         "naturalistic_stimuli_responses",
-        "optimal_stimulus_responses",
+        # "optimal_stimulus_responses",
         "spatial_impulses_responses",
         "central_impulses_responses",
     ]
@@ -52,12 +52,19 @@ if __name__ == "__main__":
         nargs="+",
         help="List of functions to run.",
         default=default_functions,
-        choices=default_functions,
     )
     args = parser.parse_with_hybrid_args()
 
     network_name = f"{args.task_name}/{args.ensemble_and_network_id}"
-    network_view = NetworkView(network_name)
+    network_view = NetworkView(
+        network_name,
+        best_checkpoint_fn_kwargs={
+            "validation_subdir": args.validation_subdir,
+            "loss_file_name": args.loss_file_name,
+        },
+    )
+    if args.delete_recordings:
+        network_view._clear_memory()
     network_view.init_network()
 
     if "flash_responses" in args.functions:
@@ -76,10 +83,13 @@ if __name__ == "__main__":
         network_view.naturalistic_stimuli_responses(batch_size=args.batch_size)
         logging.info("Stored naturalistic stimuli responses.")
 
-    if "optimal_stimulus_responses" in args.functions:
-        for cell_type in network_view.connectome_view.cell_types_sorted:
-            network_view.optimal_stimulus_responses(cell_type=cell_type)
-        logging.info("Stored maximally excitatory stimuli.")
+    # TODO: this implementation is currently inefficient as it reloads the cache
+    # for each cell type, but it's also uneccesary to store all of them
+    # these can be computed at runtime relatively eaily for single networks
+    # if "optimal_stimulus_responses" in args.functions:
+    #     for cell_type in network_view.connectome_view.cell_types_sorted:
+    #         network_view.optimal_stimulus_responses(cell_type=cell_type)
+    #     logging.info("Stored maximally excitatory stimuli.")
 
     if "spatial_impulses_responses" in args.functions:
         network_view.spatial_impulses_responses(batch_size=args.batch_size)

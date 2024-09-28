@@ -1,386 +1,392 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Iterable, List, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import xarray as xr
+from datamate import Namespace
 from scipy.interpolate import interp1d
 
 from flyvision.datasets.moving_bar import mask_between_seconds, time_window
 from flyvision.plots import plt_utils
 from flyvision.plots.plots import polar, violin_groups
 from flyvision.utils import groundtruth_utils, nodes_edges_utils
-from flyvision.utils.color_utils import OFF, ON
-
-# class MovingBarResponseView(StimulusResponseIndexer):
-#     def __init__(
-#         self,
-#         arg_df: pd.DataFrame,
-#         config: Namespace,
-#         responses: CellTypeArray,
-#         stim_sample_dim=0,
-#         temporal_dim=1,
-#         time=None,
-#     ):
-#         self.config = config
-#         if time is None:
-#             if len(config.offsets) == 2:
-#                 n_offsets = config.offsets[1] - config.offsets[0]
-#             else:
-#                 n_offsets = len(config.offsets)
-#             t_stim = (n_offsets * np.radians(2.25)) / (
-#                 np.array(config.speeds) * np.radians(5.8)
-#             )
-#             time = np.arange(
-#                 -config.t_pre, np.max(t_stim) + config.t_post - config.dt, config.dt
-#             )
-#         super().__init__(
-#             arg_df=arg_df,  # could also construct from config
-#             responses=responses,
-#             dt=config.dt,
-#             t_pre=config.t_pre,
-#             stim_sample_dim=stim_sample_dim,
-#             temporal_dim=temporal_dim,
-#             time=time,
-#         )
-
-#     def view(
-#         self,
-#         arg_df: pd.DataFrame = None,
-#         config: Namespace = None,
-#         responses: Union[np.ndarray, CellTypeArray] = None,
-#         stim_sample_dim=None,
-#         temporal_dim=None,
-#         time=None,
-#     ) -> "MovingBarResponseView":
-#         if isinstance(responses, (np.ndarray, np.ma.MaskedArray)):
-#             responses = CellTypeArray(responses, cell_types=self.responses.cell_types)
-
-#         return self.__class__(
-#             arg_df if np.any(arg_df) else self.arg_df,
-#             config if config is not None else self.config,
-#             responses if responses is not None else self.responses,
-#             stim_sample_dim if np.any(stim_sample_dim) else self.stim_sample_dim,
-#             temporal_dim or self.temporal_dim,
-#             time if np.any(time) else self.time,
-#         )
-
-#     def angular(self, dim=None) -> "MovingBarResponseView":
-#         if dim is None:
-#             dim = self.stim_sample_dim
-#             view = self.reshape_stim_sample_dim("angle")
-#         else:
-#             view = self
-#         shape = view.shape
-#         angles = np.radians(self.arg_df.angle.unique())
-
-#         complex_responses = view.responses[:] * np.exp(
-#             np.expand_dims(angles, [i for i in range(len(shape)) if i != dim]) * 1j
-#         )
-#         return self.view(
-#             responses=complex_responses, stim_sample_dim=view.stim_sample_dim
-#         )
-
-#     def peak_responses(
-#         self,
-#         norm=None,
-#         from_degree=None,
-#         to_degree=None,
-#     ) -> "MovingBarResponseView":
-#         """Peak responses from rectified voltages that are normalized per cell
-#         if a norm is provided. The normalization does not change the
-#         scale-invariant
-#         direction selectivity index (DSI) of the responses, but if responses
-#         are averaged it will make the average more represetnative of the
-#         population.
-#         """
-#         from_degree = from_degree or self.config.offsets[0] * 2.25
-#         to_degree = to_degree or (self.config.offsets[1] - 1) * 2.25
-#         masks = self.get_time_masks(
-#             from_degree / 5.8,
-#             to_degree / 5.8,
-#         )
-#         # original way from the paper
-#         view = self.masked(
-#             masks, mask_dims=(self.stim_sample_dim, self.temporal_dim)
-#         ).rectify()
-
-#         if norm is not None:
-#             view = view.divide_by_given_array(norm, dims=(0, -1))
-
-#         peak = view.peak()
-
-#         # from n_models, n_stimuli, n_timesteps, n_cell_types
-#         # to n_angle, n_models, n_width, n_intensity, n_speed, n_timesteps, n_cell_types
-#         peak = peak.reshape_stim_sample_dim(
-#             "angle", "width", "intensity", "speed"
-#         ).transpose(1, 0, 2, 3, 4, 5, 6)
-#         return peak
-
-#     def peak_responses_angular(
-#         self, norm=None, from_degree=None, to_degree=None
-#     ) -> "MovingBarResponseView":
-#         view = self.peak_responses(norm, from_degree, to_degree)
-#         # make complex over angles
-#         view = view.angular(dim=0)
-#         return view
-
-#     def get_time_masks(self, from_column=-1.5, to_column=1.5):
-#         masks = {}
-#         for speed in self.arg_df.speed.unique():
-#             masks[speed] = mask_between_seconds(
-#                 *time_window(
-#                     speed,
-#                     from_column=from_column,
-#                     to_column=to_column,
-#                     start=self.config.offsets[0],
-#                     end=self.config.offsets[1],
-#                 ),
-#                 self.time,
-#             )
-#         return np.array([masks[speed] for speed in self.arg_df.speed.to_list()])
-
-#     def dsi(
-#         self, average=True, norm=None, from_degree=None, to_degree=None
-#     ) -> "MovingEdgeResponseView":
-#         view = self.peak_responses_angular(norm, from_degree, to_degree)
-
-#         # compute DSI
-#         vector_sum = view.sum(dims=(0,))
-#         vector_length = vector_sum.abs()
-#         normalization = view.abs().sum(dims=(0,)).max(dims=(3,), keepdims=True)
-#         dsi = vector_length / (normalization + np.array([1e-15]))
-
-#         if average:
-#             # average over widths and speeds
-#             dsi = dsi.mean(dims=(2, 4), keepdims=True)
-#         return dsi.squeeze()
-
-#     def preferred_direction(
-#         self, average=True, norm=None, from_degree=None, to_degree=None
-#     ):
-#         view = self.peak_responses_angular(norm, from_degree, to_degree)
-#         vector_sum = view.sum(dims=(0,))
-#         theta_pref = np.angle(vector_sum[:])
-#         if average:
-#             # average over widths and speeds
-#             theta_pref = np.angle(vector_sum.sum(dims=(2, 4))[:])
-#         return theta_pref
-
-#     def plot_traces(
-#         self, cell_type, t_start=None, t_end=None, plot_kwargs=dict(), **stim_kwargs
-#     ):
-#         if "title" not in plot_kwargs:
-#             plot_kwargs["title"] = f"{cell_type} moving-bar response"
-#         return super().plot_traces(
-#             cell_type=cell_type,
-#             t_start=t_start,
-#             t_end=t_end,
-#             plot_kwargs=plot_kwargs,
-#             **stim_kwargs,
-#         )
-
-#     def plot_angular_tuning(
-#         self,
-#         cell_type,
-#         intensity,
-#         quantile=None,
-#         figsize=[1, 1],
-#         fontsize=5,
-#         linewidth=1,
-#         anglepad=-7,
-#         xlabelpad=-1,
-#         groundtruth=False,
-#         groundtruth_linewidth=1.0,
-#         fig=None,
-#         ax=None,
-#         peak_responses=None,
-#         compare_across_contrasts=False,
-#         weighted_average=None,
-#         average_models=False,
-#         colors=None,
-#         **kwargs,
-#     ):
-#         """
-#         Args:
-#             tuning (optional): If provided, use this tuning instead of computing it.
-#                 Must be a MovingEdgeResponseView of shape
-#                 (12, 50, 1, 2, 6, 1, 65).
-#         """
-
-#         if peak_responses is None:
-#             peak_responses = self.peak_responses()
-
-#         peak_responses = peak_responses[cell_type]
-#         # squeeze width, time, and cell_type dims
-#         # TODO: this will break with width dim > 1
-#         peak_responses = peak_responses[cell_type].squeeze(dims=(2, -2, -1))
-#         # average over speeds
-#         average_tuning = peak_responses.mean(dims=(3,))
-#         # average over models
-#         if average_models:
-#             average_tuning = average_tuning.average(dims=(1,), weights=weighted_average)
-
-#         if quantile:
-#             # average over speeds and compute the quantile over models
-#             quantile = peak_responses.mean(dims=(3,)).quantile(quantile, dims=(1,))[:]
-
-#         # being verbose here to avoid misunderstandings cause intensity and their
-#         # index are identical
-#         # TODO: this won't work if intensity is not 0 or 1
-#         if intensity == 0:
-#             index = 0
-#         elif intensity == 1:
-#             index = 1
-#         else:
-#             raise NotImplementedError("Only intensity 0 and 1 are supported")
-#         r_predicted = average_tuning.take_single(indices=index, dims=-1)
-
-#         if compare_across_contrasts:
-#             r_predicted = r_predicted[:].squeeze() / (
-#                 rabsmax := average_tuning.abs()
-#                 .max(
-#                     dims=(
-#                         0,
-#                         -1,
-#                     )
-#                 )[:]
-#                 .squeeze()
-#             )
-
-#         else:
-#             r_predicted = r_predicted[:].squeeze() / (
-#                 rabsmax := r_predicted.abs()
-#                 .max(
-#                     dims=(
-#                         0,
-#                         -1,
-#                     )
-#                 )[:]
-#                 .squeeze()
-#             )
-
-#         color = (ON if intensity == 1 else OFF) if colors is None else colors
-
-#         angles = self.arg_df.angle.unique()
-
-#         fig, ax = polar(
-#             angles,
-#             r_predicted,
-#             figsize=figsize,
-#             fontsize=fontsize,
-#             linewidth=linewidth,
-#             anglepad=anglepad,
-#             xlabelpad=xlabelpad,
-#             color=color,
-#             fig=fig,
-#             ax=ax,
-#             **kwargs,
-#         )
-
-#         if np.any(quantile):
-#             quantile = np.take(quantile, intensity, axis=-1)
-#             quantile = quantile / rabsmax
-#             closed = angles[-1] % 360 == angles[0]
-#             if not closed:
-#                 angles = np.array([*angles, angles[0]])
-#                 quantile = np.append(quantile, quantile[:, 0][:, None], axis=1)
-#             ax.fill_between(
-#                 np.radians(angles),
-#                 quantile[0],
-#                 quantile[1],
-#                 facecolor=adapt_color_alpha(color, 0.1),
-#                 edgecolor=color,
-#                 linewidth=0.25,
-#                 zorder=0,
-#             )
-
-#         if groundtruth and cell_type in groundtruth_utils.tuning_curves:
-#             r = np.array(groundtruth_utils.tuning_curves[cell_type])
-#             r = r / np.max(np.abs(r))
-#             theta = np.arange(0, 360, 360 / len(r))
-#             polar(
-#                 theta,
-#                 r,
-#                 figsize=figsize,
-#                 fontsize=fontsize,
-#                 linewidth=groundtruth_linewidth,
-#                 anglepad=anglepad,
-#                 xlabelpad=xlabelpad,
-#                 color="k",
-#                 fig=fig,
-#                 ax=ax,
-#                 **kwargs,
-#             )
-#         return fig, ax
-
-#     def plot_t4_tuning(self, tuning):
-#         fig, axes, _ = plt_utils.get_axis_grid(
-#             range(4),
-#             projection="polar",
-#             aspect_ratio=4,
-#             figsize=[2.95, 0.83],
-#             wspace=0.25,
-#         )
-#         for i, cell_type in enumerate(["T4a", "T4b", "T4c", "T4d"]):
-#             self.plot_angular_tuning(
-#                 cell_type,
-#                 intensity=1,
-#                 fig=fig,
-#                 ax=axes[i],
-#                 groundtruth=True,
-#                 aggregate_models="mean",
-#                 linewidth=1.0,
-#                 scale_to_max_over_all_stimuli=False,
-#                 tuning=tuning,
-#             )
-#             axes[i].set_xlabel(cell_type)
-
-#         for ax in axes:
-#             ax.xaxis.label.set_fontsize(8)
-#             [i.set_linewidth(0.5) for i in ax.spines.values()]
-#             ax.grid(True, linewidth=0.5)
-
-#     def plot_t5_tuning(self, tuning):
-#         fig, axes, _ = plt_utils.get_axis_grid(
-#             range(4),
-#             projection="polar",
-#             aspect_ratio=4,
-#             figsize=[2.95, 0.83],
-#             wspace=0.25,
-#         )
-#         for i, cell_type in enumerate(["T5a", "T5b", "T5c", "T5d"]):
-#             self.plot_angular_tuning(
-#                 cell_type,
-#                 intensity=0,
-#                 fig=fig,
-#                 ax=axes[i],
-#                 groundtruth=True,
-#                 aggregate_models="mean",
-#                 linewidth=1.0,
-#                 scale_to_max_over_all_stimuli=False,
-#                 tuning=tuning,
-#             )
-#             axes[i].set_xlabel(cell_type)
-
-#         for ax in axes:
-#             ax.xaxis.label.set_fontsize(8)
-#             [i.set_linewidth(0.5) for i in ax.spines.values()]
-#             ax.grid(True, linewidth=0.5)
+from flyvision.utils.activity_utils import CellTypeArray, StimulusResponseIndexer
+from flyvision.utils.color_utils import OFF, ON, adapt_color_alpha
 
 
-# class MovingEdgeResponseView(MovingBarResponseView):
-#     def plot_traces(
-#         self, cell_type, t_start=None, t_end=None, plot_kwargs=dict(), **stim_kwargs
-#     ):
-#         if "title" not in plot_kwargs:
-#             plot_kwargs["title"] = f"{cell_type} moving-edge response"
-#         return super().plot_traces(
-#             cell_type=cell_type,
-#             t_start=t_start,
-#             t_end=t_end,
-#             plot_kwargs=plot_kwargs,
-#             **stim_kwargs,
-#         )
+class MovingBarResponseView(StimulusResponseIndexer):
+    def __init__(
+        self,
+        arg_df: pd.DataFrame,
+        config: Namespace,
+        responses: CellTypeArray,
+        stim_sample_dim=0,
+        temporal_dim=1,
+        time=None,
+    ):
+        self.config = config
+        if time is None:
+            if len(config.offsets) == 2:
+                n_offsets = config.offsets[1] - config.offsets[0]
+            else:
+                n_offsets = len(config.offsets)
+            t_stim = (n_offsets * np.radians(2.25)) / (
+                np.array(config.speeds) * np.radians(5.8)
+            )
+            time = np.arange(
+                -config.t_pre, np.max(t_stim) + config.t_post - config.dt, config.dt
+            )
+        super().__init__(
+            arg_df=arg_df,  # could also construct from config
+            responses=responses,
+            dt=config.dt,
+            t_pre=config.t_pre,
+            stim_sample_dim=stim_sample_dim,
+            temporal_dim=temporal_dim,
+            time=time,
+        )
+
+    def view(
+        self,
+        arg_df: pd.DataFrame = None,
+        config: Namespace = None,
+        responses: Union[np.ndarray, CellTypeArray] = None,
+        stim_sample_dim=None,
+        temporal_dim=None,
+        time=None,
+    ) -> "MovingBarResponseView":
+        if isinstance(responses, (np.ndarray, np.ma.MaskedArray)):
+            responses = CellTypeArray(responses, cell_types=self.responses.cell_types)
+
+        return self.__class__(
+            arg_df if np.any(arg_df) else self.arg_df,
+            config if config is not None else self.config,
+            responses if responses is not None else self.responses,
+            stim_sample_dim if np.any(stim_sample_dim) else self.stim_sample_dim,
+            temporal_dim or self.temporal_dim,
+            time if np.any(time) else self.time,
+        )
+
+    def angular(self, dim=None) -> "MovingBarResponseView":
+        if dim is None:
+            dim = self.stim_sample_dim
+            view = self.reshape_stim_sample_dim("angle")
+        else:
+            view = self
+        shape = view.shape
+        angles = np.radians(self.arg_df.angle.unique())
+
+        complex_responses = view.responses[:] * np.exp(
+            np.expand_dims(angles, [i for i in range(len(shape)) if i != dim]) * 1j
+        )
+        return self.view(
+            responses=complex_responses, stim_sample_dim=view.stim_sample_dim
+        )
+
+    def peak_responses(
+        self,
+        norm=None,
+        from_degree=None,
+        to_degree=None,
+    ) -> "MovingBarResponseView":
+        """Peak responses from rectified voltages that are normalized per cell
+        if a norm is provided. The normalization does not change the
+        scale-invariant
+        direction selectivity index (DSI) of the responses, but if responses
+        are averaged it will make the average more represetnative of the
+        population.
+        """
+        from_degree = from_degree or self.config.offsets[0] * 2.25
+        to_degree = to_degree or (self.config.offsets[1] - 1) * 2.25
+        masks = self.get_time_masks(
+            from_degree / 5.8,
+            to_degree / 5.8,
+        )
+        # original way from the paper
+        view = self.masked(
+            masks, mask_dims=(self.stim_sample_dim, self.temporal_dim)
+        ).rectify()
+
+        if norm is not None:
+            view = view.divide_by_given_array(norm, dims=(0, -1))
+
+        peak = view.peak()
+
+        # from n_models, n_stimuli, n_timesteps, n_cell_types
+        # to n_angle, n_models, n_width, n_intensity, n_speed, n_timesteps, n_cell_types
+        peak = peak.reshape_stim_sample_dim(
+            "angle", "width", "intensity", "speed"
+        ).transpose(1, 0, 2, 3, 4, 5, 6)
+        return peak
+
+    def peak_responses_angular(
+        self, norm=None, from_degree=None, to_degree=None
+    ) -> "MovingBarResponseView":
+        view = self.peak_responses(norm, from_degree, to_degree)
+        # make complex over angles
+        view = view.angular(dim=0)
+        return view
+
+    def get_time_masks(self, from_column=-1.5, to_column=1.5):
+        masks = {}
+        for speed in self.arg_df.speed.unique():
+            masks[speed] = mask_between_seconds(
+                *time_window(
+                    speed,
+                    from_column=from_column,
+                    to_column=to_column,
+                    start=self.config.offsets[0],
+                    end=self.config.offsets[1],
+                ),
+                self.time,
+            )
+        return np.array([masks[speed] for speed in self.arg_df.speed.to_list()])
+
+    def dsi(
+        self, average=True, norm=None, from_degree=None, to_degree=None
+    ) -> "MovingEdgeResponseView":
+        view = self.peak_responses_angular(norm, from_degree, to_degree)
+        # compute DSI
+        vector_sum = view.sum(dims=(0,))
+        vector_length = vector_sum.abs()
+        normalization = view.abs().sum(dims=(0,)).max(dims=(3,), keepdims=True)
+        dsi = vector_length / (normalization + np.array([1e-15]))
+
+        return dsi
+        if average:
+            # average over widths and speeds
+            dsi = dsi.mean(dims=(2, 4), keepdims=True)
+        return dsi.squeeze()
+
+    def preferred_direction(
+        self, average=True, norm=None, from_degree=None, to_degree=None
+    ):
+        view = self.peak_responses_angular(norm, from_degree, to_degree)
+        vector_sum = view.sum(dims=(0,))
+        theta_pref = np.angle(vector_sum[:])
+        if average:
+            # average over widths and speeds
+            theta_pref = np.angle(vector_sum.sum(dims=(2, 4))[:])
+        return theta_pref
+
+    def plot_traces(
+        self, cell_type, t_start=None, t_end=None, plot_kwargs=dict(), **stim_kwargs
+    ):
+        if "title" not in plot_kwargs:
+            plot_kwargs["title"] = f"{cell_type} moving-bar response"
+        return super().plot_traces(
+            cell_type=cell_type,
+            t_start=t_start,
+            t_end=t_end,
+            plot_kwargs=plot_kwargs,
+            **stim_kwargs,
+        )
+
+    def plot_angular_tuning(
+        self,
+        cell_type,
+        intensity,
+        quantile=None,
+        figsize=[1, 1],
+        fontsize=5,
+        linewidth=1,
+        anglepad=-7,
+        xlabelpad=-1,
+        groundtruth=False,
+        groundtruth_linewidth=1.0,
+        fig=None,
+        ax=None,
+        peak_responses=None,
+        compare_across_contrasts=False,
+        weighted_average=None,
+        average_models=False,
+        colors=None,
+        **kwargs,
+    ):
+        """
+        Args:
+            tuning (optional): If provided, use this tuning instead of computing it.
+                Must be a MovingEdgeResponseView of shape
+                (12, 50, 1, 2, 6, 1, 65).
+        """
+
+        if peak_responses is None:
+            peak_responses = self.peak_responses()
+
+        peak_responses = peak_responses[cell_type]
+        # squeeze width, time, and cell_type dims
+        # TODO: this will break with width dim > 1
+        peak_responses = peak_responses[cell_type].squeeze(dims=(2, -2, -1))
+        # average over speeds
+        average_tuning = peak_responses.mean(dims=(3,))
+        # average over models
+        if average_models:
+            average_tuning = average_tuning.average(dims=(1,), weights=weighted_average)
+
+        if quantile:
+            # average over speeds and compute the quantile over models
+            quantile = peak_responses.mean(dims=(3,)).quantile(quantile, dims=(1,))[:]
+
+        # being verbose here to avoid misunderstandings cause intensity and their
+        # index are identical
+        # TODO: this won't work if intensity is not 0 or 1
+        if intensity == 0:
+            index = 0
+        elif intensity == 1:
+            index = 1
+        else:
+            raise NotImplementedError("Only intensity 0 and 1 are supported")
+        r_predicted = average_tuning.take_single(indices=index, dims=-1)
+
+        if compare_across_contrasts:
+            r_predicted = r_predicted[:].squeeze() / (
+                rabsmax := average_tuning.abs()
+                .max(
+                    dims=(
+                        0,
+                        -1,
+                    )
+                )[:]
+                .squeeze()
+            )
+
+        else:
+            r_predicted = r_predicted[:].squeeze() / (
+                rabsmax := r_predicted.abs()
+                .max(
+                    dims=(
+                        0,
+                        -1,
+                    )
+                )[:]
+                .squeeze()
+            )
+
+        color = (ON if intensity == 1 else OFF) if colors is None else colors
+
+        angles = self.arg_df.angle.unique()
+
+        fig, ax = polar(
+            angles,
+            r_predicted,
+            figsize=figsize,
+            fontsize=fontsize,
+            linewidth=linewidth,
+            anglepad=anglepad,
+            xlabelpad=xlabelpad,
+            color=color,
+            fig=fig,
+            ax=ax,
+            **kwargs,
+        )
+
+        if np.any(quantile):
+            quantile = np.take(quantile, intensity, axis=-1)
+            quantile = quantile / rabsmax
+            closed = angles[-1] % 360 == angles[0]
+            if not closed:
+                angles = np.array([*angles, angles[0]])
+                quantile = np.append(quantile, quantile[:, 0][:, None], axis=1)
+            ax.fill_between(
+                np.radians(angles),
+                quantile[0],
+                quantile[1],
+                facecolor=adapt_color_alpha(color, 0.1),
+                edgecolor=color,
+                linewidth=0.25,
+                zorder=0,
+            )
+
+        if groundtruth and cell_type in groundtruth_utils.tuning_curves:
+            r = np.array(groundtruth_utils.tuning_curves[cell_type])
+            r = r / np.max(np.abs(r))
+            theta = np.arange(0, 360, 360 / len(r))
+            polar(
+                theta,
+                r,
+                figsize=figsize,
+                fontsize=fontsize,
+                linewidth=groundtruth_linewidth,
+                anglepad=anglepad,
+                xlabelpad=xlabelpad,
+                color="k",
+                fig=fig,
+                ax=ax,
+                **kwargs,
+            )
+        return fig, ax
+
+    def plot_t4_tuning(self, tuning):
+        fig, axes, _ = plt_utils.get_axis_grid(
+            range(4),
+            projection="polar",
+            aspect_ratio=4,
+            figsize=[2.95, 0.83],
+            wspace=0.25,
+        )
+        for i, cell_type in enumerate(["T4a", "T4b", "T4c", "T4d"]):
+            self.plot_angular_tuning(
+                cell_type,
+                intensity=1,
+                fig=fig,
+                ax=axes[i],
+                groundtruth=True,
+                aggregate_models="mean",
+                linewidth=1.0,
+                scale_to_max_over_all_stimuli=False,
+                tuning=tuning,
+            )
+            axes[i].set_xlabel(cell_type)
+
+        for ax in axes:
+            ax.xaxis.label.set_fontsize(8)
+            [i.set_linewidth(0.5) for i in ax.spines.values()]
+            ax.grid(True, linewidth=0.5)
+
+    def plot_t5_tuning(self, tuning):
+        fig, axes, _ = plt_utils.get_axis_grid(
+            range(4),
+            projection="polar",
+            aspect_ratio=4,
+            figsize=[2.95, 0.83],
+            wspace=0.25,
+        )
+        for i, cell_type in enumerate(["T5a", "T5b", "T5c", "T5d"]):
+            self.plot_angular_tuning(
+                cell_type,
+                intensity=0,
+                fig=fig,
+                ax=axes[i],
+                groundtruth=True,
+                aggregate_models="mean",
+                linewidth=1.0,
+                scale_to_max_over_all_stimuli=False,
+                tuning=tuning,
+            )
+            axes[i].set_xlabel(cell_type)
+
+        for ax in axes:
+            ax.xaxis.label.set_fontsize(8)
+            [i.set_linewidth(0.5) for i in ax.spines.values()]
+            ax.grid(True, linewidth=0.5)
+
+
+class MovingEdgeResponseView(MovingBarResponseView):
+    def plot_traces(
+        self, cell_type, t_start=None, t_end=None, plot_kwargs=dict(), **stim_kwargs
+    ):
+        if "title" not in plot_kwargs:
+            plot_kwargs["title"] = f"{cell_type} moving-edge response"
+        return super().plot_traces(
+            cell_type=cell_type,
+            t_start=t_start,
+            t_end=t_end,
+            plot_kwargs=plot_kwargs,
+            **stim_kwargs,
+        )
 
 
 # -- correlation ------------
@@ -746,11 +752,11 @@ def dsi_correlation_to_known(dsis: xr.DataArray) -> xr.DataArray:
 
 
 def plot_dsis(
-    dsis: np.ndarray,
-    cell_types,
+    dsis: xr.DataArray,
+    cell_types: xr.DataArray,
     scatter_best=True,
     scatter_all=True,
-    bold_output_type_labels=True,
+    bold_output_type_labels=False,
     output_cell_types=None,
     known_on_off_first=True,
     sorted_type_list=None,
@@ -778,8 +784,8 @@ def plot_dsis(
     for i, intensity in enumerate([1, 0]):
         color = ON if intensity == 1 else OFF
         fig, ax, *_ = dsi_violins(
-            dsis=dsis[:, [intensity], :],
-            cell_types=cell_types,
+            dsis=dsis.sel(intensity=intensity).values,
+            cell_types=cell_types.values,
             cmap=None,
             color=color,
             fig=fig,
@@ -822,8 +828,8 @@ def plot_dsis(
 def dsi_violins(
     dsis,
     cell_types,
-    scatter_best=True,
-    scatter_all=False,
+    scatter_best=False,
+    scatter_all=True,
     cmap=plt.cm.Greens_r,
     colors=None,
     color="b",
@@ -1028,14 +1034,14 @@ def get_groundtruth_tuning_curves(cell_types: List[str], angles: np.ndarray):
     return dataset
 
 
-def maisak_tuning_curve_correlation(dataset: xr.Dataset) -> xr.DataArray:
+def correlation_to_known_tuning_curves(dataset: xr.Dataset) -> xr.DataArray:
     tuning = peak_responses(dataset)
     gt_tuning = get_groundtruth_tuning_curves(
         ["T4a", "T4b", "T4c", "T4d", "T5a", "T5b", "T5c", "T5d"], np.arange(0, 360, 30)
     )
 
     tuning = (
-        peak_responses.set_index(sample=["angle", "intensity", "width", "speed"])
+        tuning.set_index(sample=["angle", "intensity", "width", "speed"])
         .unstack("sample")
         .fillna(0.0)
         .custom.where(cell_type=["T4a", "T4b", "T4c", "T4d", "T5a", "T5b", "T5c", "T5d"])
@@ -1045,6 +1051,7 @@ def maisak_tuning_curve_correlation(dataset: xr.Dataset) -> xr.DataArray:
     tuning["neuron"] = np.arange(tuning.coords["neuron"].size)
 
     correlation = xr.corr(tuning, gt_tuning, dim="angle")
+    correlation = correlation.fillna(0.0)
     correlation = correlation.isel(np.abs(correlation).argmax(dim=("speed", "width")))
     return correlation
 
@@ -1094,7 +1101,7 @@ def direction_selectivity_index(
     vector_length = np.abs(vector_sum)
 
     # Normalization: sum of absolute responses
-    normalization = np.abs(view).sum(dim='angle').max(dim='neuron', keep_attrs=True)
+    normalization = np.abs(view).sum(dim='angle').max(dim='intensity')
     dsi = vector_length / (normalization + 1e-15)
 
     if average:
@@ -1151,7 +1158,7 @@ def plot_angular_tuning(
     intensity: int,
     figsize=(1, 1),
     fontsize: int = 5,
-    linewidth: float = 2,
+    linewidth: float = 1,
     anglepad: float = -7,
     xlabelpad: float = -1,
     groundtruth: bool = True,
@@ -1162,6 +1169,7 @@ def plot_angular_tuning(
     weighted_average: xr.DataArray = None,
     average_models: bool = False,
     colors: str = None,
+    zorder: int | Iterable = 0,
     **kwargs,
 ):
     """
@@ -1215,7 +1223,7 @@ def plot_angular_tuning(
     elif average_models:
         average_tuning = average_tuning.mean(dim='network_id')
 
-    color = ON if intensity == 1 else OFF if colors is None else colors
+    color = (ON if intensity == 1 else OFF) if colors is None else colors
 
     average_tuning = average_tuning / average_tuning.max()
 
@@ -1231,6 +1239,7 @@ def plot_angular_tuning(
         color=color,
         fig=fig,
         ax=ax,
+        zorder=zorder,
         **kwargs,
     )
 
@@ -1249,7 +1258,7 @@ def plot_angular_tuning(
             color="k",
             fig=fig,
             ax=ax,
-            **kwargs,
+            # **kwargs,
         )
 
     return fig, ax

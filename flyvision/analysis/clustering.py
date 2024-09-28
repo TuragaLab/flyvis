@@ -20,27 +20,12 @@ from umap.utils import disconnected_vertices
 import flyvision
 from flyvision.analysis.stimulus_responses import naturalistic_stimuli_responses
 from flyvision.plots import plt_utils
+from flyvision.plots.plt_utils import check_markers
 from flyvision.utils.activity_utils import CentralActivity
 
-MARKERS = np.array(["o", "^", "s", "*", "+", "h", "p", "8"])
 INVALID_INT = -99999
 
 logging = logging.getLogger(__name__)
-
-
-def check_markers(N):
-    """Check if the number of clusters is larger than the number of markers."""
-
-    if len(MARKERS) < N:
-        return [f"${i}$" for i in range(N)]
-    return MARKERS
-
-
-def scale_tensor(tensor):
-    """Scale tensor to range (0, 1)."""
-
-    s = MinMaxScaler(feature_range=(0, 1), copy=True, clip=False)
-    return s.fit_transform(tensor), s
 
 
 @dataclass
@@ -95,6 +80,13 @@ class Embedding:
             fontsize=fontsize,
             **kwargs,
         )
+
+
+def scale_tensor(tensor):
+    """Scale tensor to range (0, 1)."""
+
+    s = MinMaxScaler(feature_range=(0, 1), copy=True, clip=False)
+    return s.fit_transform(tensor), s
 
 
 @dataclass
@@ -603,13 +595,14 @@ def get_cluster_to_indices(mask, labels, task_error=None):
     indices = np.arange(len(labels)).astype(int)
     if task_error is not None:
         labels = task_error_sort_labels(task_error.values, labels)
+
     # to remove models from the index that are invalid
     indices = np.arange(len(labels))[mask]
     labels = labels[mask]
     cluster_indices = {
         label_id: indices[labels == label_id] for label_id in np.unique(labels)
     }
-    return dict(sorted({int(k): np.sort(v) for k, v in cluster_indices.items()}.items()))
+    return cluster_indices
 
 
 def compute_umap_and_clustering(

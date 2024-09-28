@@ -7,11 +7,14 @@ use Zarr and NetCDF formats, which are more efficient for xarray returned from c
 functions.
 """
 
+import logging
 import os
 import warnings
 
 import xarray as xr
 from joblib._store_backends import CacheWarning, FileSystemStoreBackend
+
+logging = logging.getLogger(__name__)
 
 
 class XArrayDatasetZarrStoreBackend(FileSystemStoreBackend):
@@ -47,12 +50,12 @@ class XArrayDatasetZarrStoreBackend(FileSystemStoreBackend):
             )
 
             if verbose > 10:
-                print(f'Persisting Dataset to Zarr at {zarr_path}')
+                logging.info(f'Persisting Dataset to Zarr at {zarr_path}')
 
             try:
                 # Ensure the directory exists
                 self.create_location(os.path.dirname(zarr_path))
-                print("Store item", zarr_path)
+                logging.info("Store item", zarr_path)
 
                 # Save the Dataset to Zarr
                 item.to_zarr(zarr_path, mode='w')
@@ -94,7 +97,7 @@ class XArrayDatasetZarrStoreBackend(FileSystemStoreBackend):
         # Check if the Zarr directory exists
         if self._item_exists(zarr_path):
             if verbose > 1:
-                print(f'Loading Dataset from Zarr at {zarr_path}')
+                logging.info(f'Loading Dataset from Zarr at {zarr_path}')
             try:
                 # Load the Dataset from Zarr
                 return xr.open_zarr(zarr_path)
@@ -165,12 +168,12 @@ class XArrayDataArrayZarrStoreBackend(FileSystemStoreBackend):
             )
 
             if verbose > 10:
-                print(f'Persisting DataArray to Zarr at {zarr_path}')
+                logging.info(f'Persisting DataArray to Zarr at {zarr_path}')
 
             try:
                 # Ensure the directory exists
                 self.create_location(os.path.dirname(zarr_path))
-                print("Store item", zarr_path)
+                logging.info("Store item", zarr_path)
 
                 # Save the DataArray to Zarr
                 item.to_zarr(zarr_path, mode='w')
@@ -212,7 +215,7 @@ class XArrayDataArrayZarrStoreBackend(FileSystemStoreBackend):
         # Check if the Zarr directory exists
         if self._item_exists(zarr_path):
             if verbose > 1:
-                print(f'Loading DataArray from Zarr at {zarr_path}')
+                logging.info(f'Loading DataArray from Zarr at {zarr_path}')
             try:
                 # Load the DataArray from Zarr
                 return xr.open_zarr(zarr_path)
@@ -281,12 +284,12 @@ class XArrayDataArrayNetCDFStoreBackend(FileSystemStoreBackend):
             )
 
             if verbose > 10:
-                print(f'Persisting DataArray to NetCDF at {nc_path}')
+                logging.info(f'Persisting DataArray to NetCDF at {nc_path}')
 
             try:
                 # Ensure the directory exists
                 self.create_location(os.path.dirname(nc_path))
-                print("Store item", nc_path)
+                logging.info("Store item", nc_path)
 
                 # Save the DataArray to NetCDF
                 item.to_netcdf(nc_path, mode='w')
@@ -329,7 +332,7 @@ class XArrayDataArrayNetCDFStoreBackend(FileSystemStoreBackend):
         # Check if the NetCDF file exists
         if self._item_exists(nc_path):
             if verbose > 1:
-                print(f'Loading DataArray from NetCDF at {nc_path}')
+                logging.info(f'Loading DataArray from NetCDF at {nc_path}')
             try:
                 # Load the Dataset from NetCDF
                 dataset = xr.open_dataset(nc_path)
@@ -409,12 +412,12 @@ class XArrayDatasetNetCDFStoreBackend(FileSystemStoreBackend):
             )
 
             if verbose > 10:
-                print(f'Persisting Dataset to NetCDF at {nc_path}')
+                logging.info(f'Persisting Dataset to NetCDF at {nc_path}')
 
             try:
                 # Ensure the directory exists
                 self.create_location(os.path.dirname(nc_path))
-                print("Store item", nc_path)
+                logging.info("Store item", nc_path)
 
                 # Save the Dataset to NetCDF
                 item.to_netcdf(nc_path, mode='w')
@@ -456,7 +459,7 @@ class XArrayDatasetNetCDFStoreBackend(FileSystemStoreBackend):
         # Check if the NetCDF file exists
         if self._item_exists(nc_path):
             if verbose > 1:
-                print(f'Loading Dataset from NetCDF at {nc_path}')
+                logging.info(f'Loading Dataset from NetCDF at {nc_path}')
             try:
                 # Load the Dataset from NetCDF
                 return xr.open_dataset(nc_path)
@@ -529,12 +532,12 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
             )
 
             if verbose > 10:
-                print(f'Persisting Dataset to NetCDF at {nc_path}')
+                logging.info(f'Persisting Dataset to NetCDF at {nc_path}')
 
             try:
                 # Ensure the directory exists
                 self.create_location(os.path.dirname(nc_path))
-                print("Store item", nc_path)
+                logging.info("Store item", nc_path)
 
                 # Save the Dataset to NetCDF
                 item.to_netcdf(nc_path, mode='w')
@@ -576,7 +579,7 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
         # Check if the NetCDF file exists
         if self._item_exists(nc_path):
             if verbose > 1:
-                print(f'Loading Dataset from NetCDF at {nc_path}')
+                logging.info(f'Loading Dataset from NetCDF at {nc_path}')
             try:
                 # Load the Dataset from NetCDF
                 return xr.open_dataset(nc_path)

@@ -163,7 +163,8 @@ def where_xarray(dataset, rtol=1.0e-5, atol=1.0e-8, **kwargs):
 def plot_traces(
     dataset: xr.DataArray | xr.Dataset,
     key: str,
-    x: str,  # x-axis dimension
+    x: str,
+    legend_labels: List[str] = [],
     extra_legend_coords: List[str] = [],
     plot_kwargs={},
     **kwargs,
@@ -218,7 +219,10 @@ def plot_traces(
 
     stacked_legend_labels = list(stack_dims)
 
-    legend_labels = stacked_legend_labels + extra_legend_coords + original_legend_labels
+    legend_labels = (
+        legend_labels
+        or stacked_legend_labels + extra_legend_coords + original_legend_labels
+    )
 
     legend_coords = np.array([np.atleast_1d(traces[col].data) for col in legend_labels]).T
 
@@ -252,7 +256,15 @@ class CustomAccessor:
         return where_xarray(self._obj, **kwargs)
 
     @wraps(plot_traces)
-    def plot_traces(self, x, key="", extra_legend_coords=[], plot_kwargs={}, **kwargs):
+    def plot_traces(
+        self,
+        x,
+        key="",
+        legend_labels=[],
+        extra_legend_coords=[],
+        plot_kwargs={},
+        **kwargs,
+    ):
         __doc__ = (
             plot_traces.__doc__
             + """
@@ -285,6 +297,7 @@ class CustomAccessor:
             self._obj,
             key,
             x,
+            legend_labels,
             extra_legend_coords,
             plot_kwargs,
             **kwargs,

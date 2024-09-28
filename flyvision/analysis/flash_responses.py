@@ -20,7 +20,7 @@ def flash_response_index(
     """Compute the Flash Response Index (FRI) using xarray methods."""
 
     # Ensure that the stimulus configuration is correct for FRI computation
-    assert self.attrs['config']['alternations'] == (0, 1, 0)
+    assert tuple(self.attrs['config']['alternations']) == (0, 1, 0)
 
     responses = self['responses']
 

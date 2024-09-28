@@ -58,9 +58,9 @@ class FindOptimalStimuli:
             indices (list, optional): indices of stimuli. Defaults to None.
         """
         responses = self.nv.naturalistic_stimuli_responses()
-        cell_responses = responses['responses'].custom.where(cell_type=cell_type).values
+        cell_responses = responses['responses'].custom.where(cell_type=cell_type)
 
-        argmax = np.argmax(np.nanmax(cell_responses, axis=1))
+        argmax = cell_responses.argmax(dim=("sample", "frame"))['sample'].item()
         if indices is not None:
             argmax = indices[argmax]
         nat_opt_stim = self.stimuli[argmax]["lum"]

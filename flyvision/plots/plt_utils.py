@@ -14,6 +14,21 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, Normalize, TwoSlopeNorm, hex2color
 from matplotlib.gridspec import GridSpec
 
+MARKERS = np.array(["o", "^", "s", "*", "+", "h", "p", "8"])
+
+
+def check_markers(N):
+    """Check if the number of clusters is larger than the number of markers."""
+
+    if len(MARKERS) < N:
+        return [f"${i}$" for i in range(N)]
+    return MARKERS
+
+
+def get_marker(n):
+    """Get marker for n."""
+    return check_markers(n)[n]
+
 
 def init_plot(
     figsize=[1, 1],
@@ -1280,7 +1295,7 @@ def scatter_on_violins_with_best(
     elif scatter_all:
         assert (
             best_index is not None
-        ), "`best_index` must be provided if `scatter_all=True`"
+        ), "`best_index` must be provided if `scatter_best=True`"
         indices = list(range(data.shape[0]))
         indices.remove(best_index)
         scatter_on_violins_or_bars(

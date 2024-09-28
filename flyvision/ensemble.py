@@ -15,6 +15,7 @@ from typing import Callable, Dict, Generator, Iterable, Iterator, List, Tuple, U
 import numpy as np
 import torch
 import xarray as xr
+from cachetools import FIFOCache
 from matplotlib import colormaps as cm
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
@@ -108,6 +109,7 @@ class Ensemble(dict):
             self.dir = EnsembleDir(self.path)
 
         self.names, self.name = model_path_names(self.model_paths, root_dir)
+        self.in_context = False
 
         self._names = []
         self.model_index = []
@@ -135,7 +137,6 @@ class Ensemble(dict):
         self.model_index = np.arange(len(self.names))
         logging.info(f"Loaded {len(self)} networks.")
 
-        # try rank by validation error by default
         if try_sort:
             self.sort()
 
@@ -151,10 +152,7 @@ class Ensemble(dict):
             try_sort,
         )
         self.connectome = self[next(iter(self))].connectome
-        self.cache = {}
-
-    def __truediv__(self, key):
-        return self.__getitem__(key)
+        self.cache = FIFOCache(maxsize=3)
 
     def __getitem__(
         self, key: Union[str, int, slice, NDArray, list]
@@ -185,18 +183,25 @@ class Ensemble(dict):
     def items(self) -> Iterator[Tuple[str, NetworkView]]:
         return iter((k, self[k]) for k in self)
 
-    def keys(self):
+    def keys(self) -> List[str]:
         return list(self)
 
     def values(self) -> List[NetworkView]:
         return [self[k] for k in self]
+
+    def _clear_cache(self):
+        self.cache = {}
+
+    def _clear_memory(self):
+        for nv in self.values():
+            nv._clear_memory()
 
     def check_configs_match(self):
         """Check if the configurations of the networks in the ensemble match."""
         config0 = self[0].dir.config
         for i in range(1, len(self)):
             diff = config0.diff(self[i].dir.config, name1="first", name2="second").first
-            if diff:
+            if diff and not (len(diff) == 1 and "network_name" in diff[0]):
                 logging.warning(
                     f"{self[0].name} differs from {self[i].name}. Diff is {diff}."
                 )
@@ -304,15 +309,11 @@ class Ensemble(dict):
         """Return the validation file for each network in the ensemble."""
         network_view0 = self[0]
         if validation_subdir is None:
-            validation_subdir = getattr(
-                network_view0.best_checkpoint_fn_kwargs, "validation_subdir", "validation"
+            validation_subdir = network_view0.best_checkpoint_fn_kwargs.get(
+                "validation_subdir"
             )
         if loss_file_name is None:
-            loss_file_name = getattr(
-                network_view0.best_checkpoint_fn_kwargs,
-                "loss_file_name",
-                "loss",
-            )
+            loss_file_name = network_view0.best_checkpoint_fn_kwargs.get("loss_file_name")
 
         return validation_subdir, loss_file_name
 
@@ -332,6 +333,18 @@ class Ensemble(dict):
         except Exception as e:
             logging.info(f"sorting failed: {e}")
 
+    def argsort(self, validation_subdir=None, loss_file_name=None):
+        """Return the indices that would sort the ensemble by a key."""
+        return np.argsort(
+            self.min_validation_losses(
+                *self.validation_file(validation_subdir, loss_file_name)
+            )
+        )
+
+    def zorder(self, validation_subdir=None, loss_file_name=None):
+        """Return the indices that would sort the ensemble by a key."""
+        return len(self) - self.argsort(validation_subdir, loss_file_name).argsort()
+
     @context_aware_cache(context=lambda self: (self.names))
     def validation_losses(self, subdir: str = None, file: str = None):
         """Return a list of validation losses for each network in the ensemble."""
@@ -341,7 +354,10 @@ class Ensemble(dict):
 
     def min_validation_losses(self, subdir: str = None, file: str = None):
         """Return the minimum validation loss of the ensemble."""
-        return np.min(self.validation_losses(subdir, file), axis=1)
+        losses = self.validation_losses(subdir, file)
+        if losses.ndim == 1:
+            return losses
+        return np.min(losses, axis=1)
 
     def update_checkpoints(
         self,
@@ -544,40 +560,41 @@ class Ensemble(dict):
 
     @wraps(stimulus_responses.flash_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def flash_responses(self, **kwargs) -> xr.Dataset:
+    def flash_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate flash responses."""
-        return stimulus_responses.flash_responses(self, **kwargs)
+        return stimulus_responses.flash_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.moving_edge_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def movingedge_responses(self, **kwargs) -> xr.Dataset:
+    def movingedge_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving edge responses."""
-        return stimulus_responses.moving_edge_responses(self, **kwargs)
+        return stimulus_responses.moving_edge_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.moving_bar_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def movingbar_responses(self, **kwargs) -> xr.Dataset:
+    def movingbar_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving bar responses."""
-        return stimulus_responses.moving_bar_responses(self, **kwargs)
+        return stimulus_responses.moving_bar_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.naturalistic_stimuli_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def naturalistic_stimuli_responses(self, **kwargs) -> xr.Dataset:
+    def naturalistic_stimuli_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate naturalistic stimuli responses."""
-        return stimulus_responses.naturalistic_stimuli_responses(self, **kwargs)
+        return stimulus_responses.naturalistic_stimuli_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.central_impulses_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def central_impulses_responses(self, **kwargs) -> xr.Dataset:
+    def central_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate central ommatidium impulses responses."""
-        return stimulus_responses.central_impulses_responses(self, **kwargs)
+        return stimulus_responses.central_impulses_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.spatial_impulses_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def spatial_impulses_responses(self, **kwargs) -> xr.Dataset:
+    def spatial_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate spatial ommatidium impulses responses."""
-        return stimulus_responses.spatial_impulses_responses(self, **kwargs)
+        return stimulus_responses.spatial_impulses_responses(self, *args, **kwargs)
 
+    @context_aware_cache
     def clustering(self, cell_type) -> GaussianMixtureClustering:
         """Return the clustering of the ensemble for a given cell type."""
 
@@ -615,7 +632,9 @@ class Ensemble(dict):
 
         clustering = self.clustering(cell_type)
         cluster_indices = get_cluster_to_indices(
-            clustering.embedding.mask, clustering.labels, task_error=self.task_error()
+            clustering.embedding.mask,
+            clustering.labels,
+            task_error=self.task_error(),
         )
 
         _models = sorted(np.concatenate(list(cluster_indices.values())))
@@ -625,10 +644,8 @@ class Ensemble(dict):
         return cluster_indices
 
     def responses_norm(self, rectified=False):
-        responses = self.naturalistic_stimuli_responses()
-
-        if responses is None:
-            return None
+        response_set = self.naturalistic_stimuli_responses()
+        responses = response_set['responses'].values
 
         def compute_norm(X, rectified=True):
             """Computes a normalization constant for stimulus
@@ -639,7 +656,7 @@ class Ensemble(dict):
             """
             if rectified:
                 X = np.maximum(X, 0)
-            n_samples, n_frames, n_cell_types = X.shape
+            n_models, n_samples, n_frames, n_cell_types = X.shape
 
             # replace NaNs with 0
             X[np.isnan(X)] = 0
@@ -648,15 +665,15 @@ class Ensemble(dict):
                 1
                 / np.sqrt(n_samples * n_frames)
                 * np.linalg.norm(
-                    X.reshape(-1, n_cell_types),
-                    axis=0,
-                    keepdims=False,
+                    X,
+                    axis=(1, 2),
+                    keepdims=True,
                 )
             )
 
-        return np.array([
-            compute_norm(responses[i], rectified=rectified) for i in self.model_index
-        ])
+        return np.take(
+            compute_norm(responses, rectified=rectified), self.model_index, axis=0
+        )
 
 
 def model_paths_from_parent(path):

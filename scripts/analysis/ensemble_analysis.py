@@ -53,7 +53,13 @@ if __name__ == "__main__":
     args = parser.parse_with_hybrid_args()
 
     ensemble_name = f"{args.task_name}/{args.ensemble_id}"
-    ensemble = Ensemble(ensemble_name)
+    ensemble = Ensemble(
+        ensemble_name,
+        best_checkpoint_fn_kwargs={
+            "validation_subdir": args.validation_subdir,
+            "loss_file_name": args.loss_file_name,
+        },
+    )
 
     if "umap_and_clustering_main" in args.functions:
         destination = ensemble.path / "umap_and_clustering"

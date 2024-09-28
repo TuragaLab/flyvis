@@ -9,6 +9,7 @@ from tqdm.auto import tqdm
 import flyvision
 from flyvision import Network, NetworkView
 from flyvision.datasets import MultiTaskDataset
+from flyvision.objectives import epe, l2norm
 from flyvision.utils.class_utils import forward_subclass
 
 logging = logging.getLogger(__name__)
@@ -132,12 +133,12 @@ def validate_all_checkpoints(
     loss = np.array(loss)
 
     for i, fn in enumerate(loss_fns):
-        network_view.dir[validation_subdir][fn.__class__.__name__] = loss[:, i]
+        network_view.dir[validation_subdir][fn.__name__] = loss[:, i]
 
     network_view.dir[validation_subdir].config = dict(
         dt=dt,
         t_pre=t_pre,
-        loss_fns=[fn.__class__.__name__ for fn in loss_fns],
+        loss_fns=[fn.__name__ for fn in loss_fns],
         validation_subdir=validation_subdir,
         validation_function=inspect.currentframe().f_code.co_name,
     )
@@ -148,7 +149,4 @@ def validate_all_checkpoints(
 def get_loss_fns(loss_fns):
     if loss_fns:
         return loss_fns
-    return [
-        flyvision.objectives.l2norm,
-        flyvision.objectives.epe,
-    ]
+    return [l2norm, epe]

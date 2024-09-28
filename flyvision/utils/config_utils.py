@@ -1,4 +1,5 @@
 import argparse
+import sys
 from typing import List
 
 import hydra
@@ -40,10 +41,27 @@ class HybridArgumentParser(argparse.ArgumentParser):
 
     def parse_with_hybrid_args(self, args=None, namespace=None):
         """Parse arguments and set hybrid arguments as attributes in the namespace."""
-        args, unknown_args = self.parse_known_args(args, namespace)
+        if args is None:
+            args = sys.argv[1:]
+
+        args_for_parser = []
+        key_value_args = []
+
+        # Separate key=value pairs from other arguments
+        for arg in args:
+            if '=' in arg and not arg.startswith('-'):
+                key_value_args.append(arg)
+            else:
+                args_for_parser.append(arg)
+
+        # Parse the known arguments
+        args, unknown_args = self.parse_known_args(args_for_parser, namespace)
+
+        # Combine key_value_args with unknown_args for processing
+        all_unknown_args = key_value_args + unknown_args
 
         argv = []
-        for arg in unknown_args:
+        for arg in all_unknown_args:
             if ":" in arg and "=" in arg:
                 keytype, value = arg.split("=")
                 key, astype = keytype.split(":")

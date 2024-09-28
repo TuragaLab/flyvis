@@ -17,6 +17,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import xarray as xr
+from cachetools import FIFOCache
 from datamate import Directory, Namespace, namespacify, set_root_context
 from joblib import Memory
 from toolz import valmap
@@ -985,7 +986,7 @@ class NetworkView:
         self.connectome = self.connectome_view.dir
         self.checkpoints = checkpoint_mapper(self.dir)
         self.memory = Memory(
-            location=self.dir.path / "__cache__", verbose=0, backend="xarray_dataset_h5"
+            location=self.dir.path / "__cache__", verbose=100, backend="xarray_dataset_h5"
         )
         self.best_checkpoint_fn = best_checkpoint_fn
         self.best_checkpoint_fn_kwargs = best_checkpoint_fn_kwargs
@@ -1000,7 +1001,14 @@ class NetworkView:
         )
         self._decoder = None
         self._initialized = {"network": None, "decoder": None}
+        self.cache = FIFOCache(maxsize=3)
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
+
+    def _clear_cache(self):
+        self.cache = self.cache.__class__(maxsize=self.cache.maxsize)
+
+    def _clear_memory(self):
+        self.memory.clear()
 
     def get_checkpoint(self, checkpoint="best"):
         """Return the best checkpoint index."""
@@ -1081,45 +1089,47 @@ class NetworkView:
 
     @wraps(stimulus_responses.flash_responses)
     @context_aware_cache
-    def flash_responses(self, **kwargs) -> xr.Dataset:
+    def flash_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate flash responses."""
-        return stimulus_responses.flash_responses(self, **kwargs)
+        return stimulus_responses.flash_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.moving_edge_responses)
     @context_aware_cache
-    def movingedge_responses(self, **kwargs) -> xr.Dataset:
+    def movingedge_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving edge responses."""
-        return stimulus_responses.moving_edge_responses(self, **kwargs)
+        return stimulus_responses.moving_edge_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.moving_bar_responses)
     @context_aware_cache
-    def movingbar_responses(self, **kwargs) -> xr.Dataset:
+    def movingbar_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving bar responses."""
-        return stimulus_responses.moving_bar_responses(self, **kwargs)
+        return stimulus_responses.moving_bar_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.naturalistic_stimuli_responses)
     @context_aware_cache
-    def naturalistic_stimuli_responses(self, **kwargs) -> xr.Dataset:
+    def naturalistic_stimuli_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate naturalistic stimuli responses."""
-        return stimulus_responses.naturalistic_stimuli_responses(self, **kwargs)
+        return stimulus_responses.naturalistic_stimuli_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.central_impulses_responses)
     @context_aware_cache
-    def central_impulses_responses(self, **kwargs) -> xr.Dataset:
+    def central_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate central ommatidium impulses responses."""
-        return stimulus_responses.central_impulses_responses(self, **kwargs)
+        return stimulus_responses.central_impulses_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.spatial_impulses_responses)
     @context_aware_cache
-    def spatial_impulses_responses(self, **kwargs) -> xr.Dataset:
+    def spatial_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate spatial ommatidium impulses responses."""
-        return stimulus_responses.spatial_impulses_responses(self, **kwargs)
+        return stimulus_responses.spatial_impulses_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.optimal_stimulus_responses)
     @context_aware_cache
-    def optimal_stimulus_responses(self, cell_type, **kwargs) -> xr.Dataset:
+    def optimal_stimulus_responses(self, cell_type, *args, **kwargs) -> xr.Dataset:
         """Generate optimal stimuli responses."""
-        return stimulus_responses.optimal_stimulus_responses(self, cell_type, **kwargs)
+        return stimulus_responses.optimal_stimulus_responses(
+            self, cell_type, *args, **kwargs
+        )
 
 
 class IntegrationWarning(Warning):

@@ -51,10 +51,12 @@ class HexFlow(Animation):
         path=None,
         figsize=[2, 2],
         fontsize=5,
+        background_color="none",
         **kwargs,
     ):
         self.fig = fig
         self.ax = ax
+        self.background_color = background_color
         self.batch_sample = batch_sample
         self.kwargs = kwargs
         self.update = update
@@ -93,6 +95,8 @@ class HexFlow(Animation):
             fontsize=self.fontsize,
             **self.kwargs,
         )
+        self.fig.patch.set_facecolor(self.background_color)
+        self.ax.patch.set_facecolor(self.background_color)
 
     def animate(self, frame):
         flow = self.flow[self.batch_sample, frame]

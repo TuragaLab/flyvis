@@ -1329,19 +1329,20 @@ def plot_complex_vector(
     return fig, ax
 
 
-def extend_arg(arg, argtype, r, dim=-1):
+def extend_arg(arg, argtype, r, default, dim=-1):
     """Extend an argument to the correct length for a given dimension."""
     r = np.asarray(r)
 
-    if r.ndim == 1:
-        return arg
-
-    if isinstance(arg, argtype):
-        # Extend the integer to a list of r.shape[dim] times the same value
+    if isinstance(arg, argtype) and r.ndim > 1:
+        # Extend the arg to a list of r.shape[dim] times the same value
         return [arg] * r.shape[dim]
     elif isinstance(arg, Iterable) and len(arg) == r.shape[dim]:
         # If it's already a list of the correct length, return it unchanged
         return arg
+    elif r.ndim == 1 and np.asarray(arg).size == 1:
+        return arg
+    elif r.ndim == 1:
+        return default
     else:
         raise ValueError(
             f"arg must be either an integer or a list of length {r.shape[-1]}."
@@ -1410,7 +1411,7 @@ def polar(
             path_effects.Normal(),
         ]
 
-    zorder = extend_arg(zorder, int, r, dim=-1)
+    zorder = extend_arg(zorder, int, r, default=0, dim=-1)
 
     if r.ndim == 2:
         for i, _r in enumerate(r.T):

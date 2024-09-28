@@ -841,6 +841,7 @@ class AugmentedSintel(MultiTaskSintel):
         gamma_std=None,
         center_crop_fraction=0.7,
         unittest=False,
+        **kwargs,
     ):
         if any([arg not in self.valid_flip_axes for arg in flip_axes]):
             raise ValueError(f"invalid flip axes {flip_axes}")

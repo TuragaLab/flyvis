@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Dict, Optional, Union
 
 import numpy as np
-import pandas as pd
 import torch
 import xarray as xr
 
@@ -19,13 +17,6 @@ from flyvision.datasets.moving_bar import MovingBar, MovingEdge
 from flyvision.datasets.sintel import AugmentedSintel
 
 # --------------------- Helper Function ---------------------
-
-
-@dataclass
-class Result:
-    stimuli: np.ndarray
-    responses: np.ndarray
-    arg_df: pd.DataFrame
 
 
 def compute_responses(
@@ -126,6 +117,9 @@ def generic_responses(
     dataset_class = default_dataset_cls if dataset is None else type(dataset)
     dataset_config = dataset_config if dataset is None else dataset.config.to_dict()
 
+    # quick bugfix from datasets that have type in their config but don't expect it
+    dataset_config.pop("type", None)
+
     # Prepare list to collect datasets
     results = []
     checkpoints = []
@@ -180,25 +174,24 @@ def generic_responses(
     for idx, network_view in enumerate(network_views[1:], 1):
         network = handle_network(idx, network_view, network)
 
-    if len(results) > 1:
-        # TODO: as long as the concatenation is not lazy, this pattern might not be
-        # the best way to handle the results. See also https://github.com/pydata/xarray/issues/4628.
-        # TODO: lazy dataset loading could be done by caching this result instead, would
-        # require network view or ensemble to be pickable
-        result = xr.concat(
-            results,
-            dim='network_id',
-            data_vars='minimal',
-            coords='minimal',
-            # otherwise repeates stimulus across network_id dim
-            compat='override',
-        )
+    # TODO: as long as the concatenation is not lazy, this pattern might not be
+    # the best way to handle the results. See also https://github.com/pydata/xarray/issues/4628.
+    # TODO: lazy dataset loading could be done by caching this result instead, would
+    # require network view or ensemble to be pickable
+    results = xr.concat(
+        results,
+        dim='network_id',
+        data_vars='minimal',
+        coords='minimal',
+        # otherwise repeates stimulus across network_id dim
+        compat='override',
+    )
 
-    result.coords.update({
-        'frame': np.arange(result['stimulus'].shape[1]),
-        'channel': np.arange(result['stimulus'].shape[2]),
-        'hex_pixel': np.arange(result['stimulus'].shape[3]),
-        'neuron': np.arange(result['responses'].shape[3]),
+    results.coords.update({
+        'frame': np.arange(results['stimulus'].shape[1]),
+        'channel': np.arange(results['stimulus'].shape[2]),
+        'hex_pixel': np.arange(results['stimulus'].shape[3]),
+        'neuron': np.arange(results['responses'].shape[3]),
     })
 
     # Create xarray Dataset with time coordinate
@@ -223,11 +216,11 @@ def generic_responses(
     # Assuming dataset.dt is available
     dt = dataset_config.get('dt')
     t_pre = dataset_config.get('t_pre', 0.0)
-    n_frames = result.frame.size
+    n_frames = results.frame.size
     time = np.arange(n_frames).astype(float) * dt - t_pre
 
     # Add relevant coordinates
-    result.coords.update({
+    results.coords.update({
         'time': ('frame', time),
         'cell_type': ('neuron', cell_types),
         'u': ('neuron', u_coords),
@@ -236,12 +229,12 @@ def generic_responses(
         'v_in': ('hex_pixel', v_in),
         'checkpoints': ('network_id', checkpoints),
     })
-    result.attrs.update({
+    results.attrs.update({
         'config': dataset_config,
-        'network_config': network.config.to_dict(),
+        'network_config': network_views[0].dir.config.to_dict(),
     })
 
-    return result
+    return results
 
 
 # --------------------- Flash Responses ---------------------
@@ -349,7 +342,7 @@ def naturalistic_stimuli_responses(
     batch_size=4,
 ) -> xr.Dataset:
     default_dataset_config = {
-        'tasks': ["flow"],
+        'tasks': ["lum"],
         'interpolate': False,
         'boxfilter': {'extent': 15, 'kernel_size': 13},
         'temporal_split': True,
@@ -474,7 +467,7 @@ def optimal_stimulus_responses(
 
     # Prepare dataset configuration
     default_dataset_config = {
-        'tasks': ["flow"],
+        'tasks': ["lum"],
         'interpolate': False,
         'boxfilter': {'extent': 15, 'kernel_size': 13},
         'temporal_split': True,
