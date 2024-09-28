@@ -201,4 +201,32 @@ python train_ensemble.py \
         --q gpu_l4 \
         --ensemble_id 9997 \
         --task_name flow \
-        --launch_ensemble_analysis
+        --launch_validation \
+        --launch_synthetic_recordings \
+        --launch_ensemble_analysis \
+        --delete_recordings
+
+
+python train_ensemble.py \
+        --start 0 \
+        --end 50 \
+        --nP 8 \
+        --gpu num=1 \
+        --q gpu_l4 \
+        --ensemble_id 0000 \
+        --task_name flow \
+        --launch_validation \
+        --launch_synthetic_recordings \
+        --launch_ensemble_analysis \
+        --delete_recordings
+
+python train_ensemble.py \
+        --start 0 \
+        --end 50 \
+        --nP 8 \
+        --gpu num=1 \
+        --q gpu_l4 \
+        --ensemble_id 0000 \
+        --task_name flow \
+        --functions naturalistic_stimuli_responses \
+        --launch_synthetic_recordings

@@ -144,11 +144,14 @@ class EnsembleView(Ensemble):
         """Plot the flash response indices of the ensemble."""
         responses = self.flash_responses()
         fris = flash_response_index(responses, radius=6)
-        cell_types = cell_types or fris.cell_type.data
+        if cell_types is not None:
+            fris = fris.custom.where(cell_type=cell_types)
+        else:
+            cell_types = fris.cell_type.values
         task_error = self.task_error()
         best_index = np.argmin(task_error.values)
         return plot_fris(
-            fris.data,
+            fris.values,
             cell_types,
             scatter_best=True,
             scatter_best_index=best_index,

@@ -538,7 +538,7 @@ class Network(nn.Module):
             self.stimulus.zero(batch_size, n_frames)
             self.stimulus.add_input(movie_input)
             if as_layer_activity:
-                LayerActivity(
+                return LayerActivity(
                     self.forward(self.stimulus(), dt, initial_state, as_states).cpu(),
                     self.connectome,
                     keepref=True,
@@ -986,7 +986,7 @@ class NetworkView:
         self.connectome = self.connectome_view.dir
         self.checkpoints = checkpoint_mapper(self.dir)
         self.memory = Memory(
-            location=self.dir.path / "__cache__", verbose=100, backend="xarray_dataset_h5"
+            location=self.dir.path / "__cache__", verbose=0, backend="xarray_dataset_h5"
         )
         self.best_checkpoint_fn = best_checkpoint_fn
         self.best_checkpoint_fn_kwargs = best_checkpoint_fn_kwargs
@@ -1003,6 +1003,18 @@ class NetworkView:
         self._initialized = {"network": None, "decoder": None}
         self.cache = FIFOCache(maxsize=3)
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
+
+    def __getattribute__(self, attr):
+        try:
+            return object.__getattribute__(self, attr)
+        except AttributeError:
+            connectome_view = object.__getattribute__(self, 'connectome_view')
+            try:
+                return getattr(connectome_view, attr)
+            except AttributeError:
+                raise AttributeError(  # noqa: B904
+                    f"'{self.__class__.__name__}' object has no attribute '{attr}'"
+                )
 
     def _clear_cache(self):
         self.cache = self.cache.__class__(maxsize=self.cache.maxsize)

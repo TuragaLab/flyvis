@@ -1034,7 +1034,7 @@ def get_groundtruth_tuning_curves(cell_types: List[str], angles: np.ndarray):
     return dataset
 
 
-def correlation_to_known_tuning_curves(dataset: xr.Dataset) -> xr.DataArray:
+def correlation_to_known_tuning_curves(dataset: xr.Dataset, absmax=False) -> xr.DataArray:
     tuning = peak_responses(dataset)
     gt_tuning = get_groundtruth_tuning_curves(
         ["T4a", "T4b", "T4c", "T4d", "T5a", "T5b", "T5c", "T5d"], np.arange(0, 360, 30)
@@ -1052,7 +1052,15 @@ def correlation_to_known_tuning_curves(dataset: xr.Dataset) -> xr.DataArray:
 
     correlation = xr.corr(tuning, gt_tuning, dim="angle")
     correlation = correlation.fillna(0.0)
-    correlation = correlation.isel(np.abs(correlation).argmax(dim=("speed", "width")))
+    if absmax:
+        # take speed and width that maximize the magnitude of the correlation, regardless
+        # of the sign
+        argmax = np.abs(correlation).argmax(dim=("speed", "width"))
+    else:
+        # take speed and width that maximize the correlation as an experimentalist
+        # would do
+        argmax = correlation.argmax(dim=("speed", "width"))
+    correlation = correlation.isel(argmax)
     return correlation
 
 
@@ -1150,6 +1158,63 @@ def preferred_direction(
 
     vector_sum.data = theta_pref
     return vector_sum
+
+
+def angular_distances(x: xr.DataArray, y: np.array, upper=np.pi):
+    assert x.neuron.size == len(y)
+    y_da = xr.DataArray(y, dims=['neuron'], coords={'neuron': x.coords['neuron']})
+
+    result = xr.apply_ufunc(
+        simple_angle_distance,
+        x,
+        y_da,
+        input_core_dims=[['neuron'], ['neuron']],
+        output_core_dims=[['neuron']],
+        vectorize=True,
+        kwargs={'upper': upper},
+    )
+
+    return result
+
+
+def angular_distance_to_known(pds: xr.DataArray):
+    t4s = pds.custom.where(cell_type=["T4a", "T4b", "T4c", "T4d"], intensity=1)
+    t4_distances = angular_distances(t4s, np.array([np.pi, 0, np.pi / 2, 3 * np.pi / 2]))
+    t5s = pds.custom.where(cell_type=["T5a", "T5b", "T5c", "T5d"], intensity=0)
+    t5_distances = angular_distances(t5s, np.array([np.pi, 0, np.pi / 2, 3 * np.pi / 2]))
+    # concatenate both xarrays again in the neuron dimension, drop intensity
+    return xr.concat(
+        [t4_distances.drop('intensity'), t5_distances.drop('intensity')], dim='neuron'
+    )
+
+
+def simple_angle_distance(a, b, upper=np.pi):
+    """Element-wise angle distance between 0 and pi radians.
+
+    Args:
+        a, b: angle in radians, same shape
+
+    Returns: distance between 0 and pi radians.
+    """
+    a = np.atleast_1d(a)
+    b = np.atleast_1d(b)
+    # a = np.radians(a)
+    # b = np.radians(b)
+    # make all angles positive between 0 and 2 * pi
+    a = a % 2 * np.pi
+    b = b % 2 * np.pi
+
+    y = np.zeros_like(a)
+    # subtract the smaller angle from the larger one
+    mask = a >= b
+    y[mask] = a[mask] - b[mask]
+    y[~mask] = b[~mask] - a[~mask]
+
+    # map distances between pi and 2 pi to 0 and pi
+    y[y > np.pi] = 2 * np.pi - y[y > np.pi]
+
+    # map distances between 0 and pi to 0 and upper
+    return y / np.pi * upper
 
 
 def plot_angular_tuning(

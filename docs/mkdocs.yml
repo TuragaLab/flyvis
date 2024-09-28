@@ -1,0 +1,65 @@
+site_name: Jaxley
+site_url: "https://jaxleyverse.github.io/jaxley"
+
+nav:
+  - Home: index.md
+  - Installation: install.md
+
+repo_name: 'jaxleyverse/jaxley'
+repo_url: http://github.com/jaxleyverse/jaxley
+
+theme:
+  name: 'material'
+  features:
+  - content.code.copy
+  palette:
+    primary: 'indigo'
+    accent: 'indigo'
+  logo: logo_white.png
+  collapse_navigation: False
+
+
+markdown_extensions:
+  - extra
+  - smarty
+  - admonition
+  - attr_list
+  - md_in_html
+  - codehilite:
+      guess_lang: false
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - markdown_include.include:
+      base_path: ../
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: true
+            heading_level: 3
+          paths: [..]
+
+watch:
+  - ../flyvision
