@@ -1,0 +1,2621 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://flyvis.github.io/examples/Untitled/">
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
+    
+    
+      
+        <title>Untitled - Flyvis</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Flyvis" class="md-header__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Flyvis
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Untitled
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Flyvis" class="md-nav__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    Flyvis
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_flyvision_connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Explore the connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_flyvision_optic_flow_task/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Train the network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_flyvision_flash_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Flash responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_flyvision_moving_edge_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Moving edge responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_flyvision_umap_and_clustering_models/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ensemble clustering
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_flyvision_maximally_excitatory_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maximally excitatory stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_flyvision_providing_custom_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Custom stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/network/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/initialization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.initialization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decoder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.decoder
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/objectives/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.objectives
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/tasks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.tasks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/solver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.solver
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/network_view/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.networkview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ensemble/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.ensemble
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ensemble_view/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.ensembleview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../acknowledgements/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgements
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>Untitled</h1>
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">datamate</span> <span class="kn">import</span> <span class="n">Namespace</span>
+
+<span class="kn">import</span> <span class="nn">flyvision</span>
+
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">Network</span>
+
+<span class="kn">from</span> <span class="nn">flyvision.utils.tensor_utils</span> <span class="kn">import</span> <span class="n">AutoDeref</span>
+
+<span class="o">%</span><span class="n">load_ext</span> <span class="n">autoreload</span>
+<span class="o">%</span><span class="n">autoreload</span> <span class="mi">2</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="mi">1</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>1
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">network</span> <span class="o">=</span> <span class="n">Network</span><span class="p">()</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>---------------------------------------------------------------------------
+
+NameError                                 Traceback (most recent call last)
+
+Input In [1], in &lt;cell line: 1&gt;()
+----&gt; 1 network = Network()
+
+
+NameError: name &#39;Network&#39; is not defined
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">steady_state</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">steady_state</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="mi">50</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">steady_state</span><span class="p">,</span> <span class="n">AutoDeref</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">steady_state</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="s2">&quot;edges&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">,</span> <span class="s2">&quot;targets&quot;</span><span class="p">]</span>
+
+<span class="k">assert</span> <span class="n">steady_state</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">][</span><span class="s2">&quot;activity&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">network</span><span class="o">.</span><span class="n">n_nodes</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">steady_state</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">][</span><span class="s2">&quot;activity&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">network</span><span class="o">.</span><span class="n">n_edges</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">steady_state</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;activity&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">network</span><span class="o">.</span><span class="n">n_edges</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">torch</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">initial_frames</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">721</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">()</span>
+
+<span class="n">network</span><span class="o">.</span><span class="n">fade_in_state</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="mi">20</span><span class="p">,</span> <span class="n">initial_frames</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nb">len</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>---------------------------------------------------------------------------
+
+TypeError                                 Traceback (most recent call last)
+
+Input In [44], in &lt;cell line: 1&gt;()
+----&gt; 1 len(slice(0, 10, 1))
+
+
+TypeError: object of type &#39;slice&#39; has no len()
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">type</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>slice
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">45000</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="o">%%</span><span class="n">timeit</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">45000</span><span class="p">))</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>4.01 ms ± 108 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="o">%%</span><span class="n">timeit</span>
+<span class="n">x</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>1.54 ms ± 81.1 µs per loop (mean ± std. dev. of 7 runs, 1,000 loops each)
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>torch.Size([4, 40, 1, 45000])
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="o">%</span><span class="n">time</span> <span class="n">x</span> <span class="o">*=</span> <span class="mi">0</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>CPU times: user 13.9 ms, sys: 1.73 ms, total: 15.6 ms
+Wall time: 2.09 ms
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="o">%%</span><span class="n">timeit</span>
+<span class="n">x</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>3.27 ms ± 203 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">x</span><span class="o">.</span><span class="n">ndim</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>1
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">flyvision.ensemble</span> <span class="kn">import</span> <span class="n">EnsembleView</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span> <span class="o">=</span> <span class="n">EnsembleView</span><span class="p">(</span><span class="n">flyvision</span><span class="o">.</span><span class="n">results_dir</span> <span class="o">/</span> <span class="s2">&quot;opticflow/000&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">cluster</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">cluster_indices</span><span class="p">(</span><span class="s2">&quot;T4a&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="p">[</span><span class="n">cluster</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>{&#39;opticflow/000/0000&#39;: &lt;flyvision.network.NetworkView at 0x121e90b50&gt;,
+ &#39;opticflow/000/0001&#39;: &lt;flyvision.network.NetworkView at 0x121e51f10&gt;,
+ &#39;opticflow/000/0002&#39;: &lt;flyvision.network.NetworkView at 0x121e57520&gt;,
+ &#39;opticflow/000/0003&#39;: &lt;flyvision.network.NetworkView at 0x121e902b0&gt;,
+ &#39;opticflow/000/0006&#39;: &lt;flyvision.network.NetworkView at 0x1215670a0&gt;,
+ &#39;opticflow/000/0008&#39;: &lt;flyvision.network.NetworkView at 0x121439640&gt;,
+ &#39;opticflow/000/0009&#39;: &lt;flyvision.network.NetworkView at 0x121e57910&gt;,
+ &#39;opticflow/000/0010&#39;: &lt;flyvision.network.NetworkView at 0x121f800a0&gt;,
+ &#39;opticflow/000/0011&#39;: &lt;flyvision.network.NetworkView at 0x1220190a0&gt;,
+ &#39;opticflow/000/0012&#39;: &lt;flyvision.network.NetworkView at 0x121f42430&gt;,
+ &#39;opticflow/000/0014&#39;: &lt;flyvision.network.NetworkView at 0x121f80190&gt;,
+ &#39;opticflow/000/0021&#39;: &lt;flyvision.network.NetworkView at 0x121e57040&gt;,
+ &#39;opticflow/000/0022&#39;: &lt;flyvision.network.NetworkView at 0x121e51c70&gt;,
+ &#39;opticflow/000/0023&#39;: &lt;flyvision.network.NetworkView at 0x121f42100&gt;,
+ &#39;opticflow/000/0024&#39;: &lt;flyvision.network.NetworkView at 0x121f428b0&gt;,
+ &#39;opticflow/000/0034&#39;: &lt;flyvision.network.NetworkView at 0x121f808b0&gt;}
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="o">.</span><span class="n">validation_losses</span><span class="p">()</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[autoreload of flyvision.network failed: Traceback (most recent call last):
+  File &quot;/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py&quot;, line 257, in check
+    superreload(m, reload, self.old_objects)
+  File &quot;/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py&quot;, line 455, in superreload
+    module = reload(module)
+  File &quot;/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/importlib/__init__.py&quot;, line 169, in reload
+    _bootstrap._exec(spec, module)
+  File &quot;&lt;frozen importlib._bootstrap&gt;&quot;, line 613, in _exec
+  File &quot;&lt;frozen importlib._bootstrap_external&gt;&quot;, line 846, in exec_module
+  File &quot;&lt;frozen importlib._bootstrap_external&gt;&quot;, line 983, in get_code
+  File &quot;&lt;frozen importlib._bootstrap_external&gt;&quot;, line 913, in source_to_code
+  File &quot;&lt;frozen importlib._bootstrap&gt;&quot;, line 228, in _call_with_frames_removed
+  File &quot;/Users/lappalainenj/projects/flyvision/flyvision/network.py&quot;, line 930
+    raise NotImplementedError(&quot;Decoder initialization not implemented yet.&quot;&quot;)
+                                                                             ^
+SyntaxError: EOL while scanning string literal
+]
+
+
+
+
+
+[5.136557112137477,
+ 5.1910432005922,
+ 5.220126719938384,
+ 5.247156371672948,
+ 5.251272610492176,
+ 5.259885032143858,
+ 5.260432395670149,
+ 5.262506494919459,
+ 5.26999799741639,
+ 5.270350070463286,
+ 5.271915781829092,
+ 5.277487408783701,
+ 5.277920800778601,
+ 5.281195688578817,
+ 5.283142616351445,
+ 5.285234338707394,
+ 5.289696128831969,
+ 5.291882056328985,
+ 5.292151802115971,
+ 5.295515714420213,
+ 5.295636435349782,
+ 5.296880326337284,
+ 5.298010385698742,
+ 5.2988701777325735,
+ 5.299407997065121,
+ 5.300875236590703,
+ 5.303517184323734,
+ 5.306977924373415,
+ 5.308157583077748,
+ 5.318766646915012,
+ 5.319535469015439,
+ 5.319623884227541,
+ 5.324388653039932,
+ 5.328959693511327,
+ 5.330954361293051,
+ 5.331605119837655,
+ 5.33213666246997,
+ 5.332739176021682,
+ 5.335818343692356,
+ 5.355444823702176,
+ 5.3596575657526655,
+ 5.359666532940334,
+ 5.36637066801389,
+ 5.371573102143076,
+ 5.378605955176884,
+ 5.383891744746102,
+ 5.417977929115295,
+ 5.418262870775329,
+ 5.427841289175881,
+ 5.677851686875026]
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">results_dir</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">Ensemble</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">results_dir</span> <span class="o">/</span> <span class="s2">&quot;opticflow/000&quot;</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">50</span><span class="p">)]</span>
+<span class="n">ensemble</span> <span class="o">=</span> <span class="n">Ensemble</span><span class="p">(</span><span class="n">models</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="o">.</span><span class="n">names</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[&#39;opticflow/000/0036&#39;,
+ &#39;opticflow/000/0029&#39;,
+ &#39;opticflow/000/0047&#39;,
+ &#39;opticflow/000/0015&#39;,
+ &#39;opticflow/000/0000&#39;,
+ &#39;opticflow/000/0019&#39;,
+ &#39;opticflow/000/0003&#39;,
+ &#39;opticflow/000/0008&#39;,
+ &#39;opticflow/000/0014&#39;,
+ &#39;opticflow/000/0013&#39;,
+ &#39;opticflow/000/0004&#39;,
+ &#39;opticflow/000/0045&#39;,
+ &#39;opticflow/000/0010&#39;,
+ &#39;opticflow/000/0042&#39;,
+ &#39;opticflow/000/0017&#39;,
+ &#39;opticflow/000/0046&#39;,
+ &#39;opticflow/000/0041&#39;,
+ &#39;opticflow/000/0023&#39;,
+ &#39;opticflow/000/0026&#39;,
+ &#39;opticflow/000/0011&#39;,
+ &#39;opticflow/000/0031&#39;,
+ &#39;opticflow/000/0044&#39;,
+ &#39;opticflow/000/0030&#39;,
+ &#39;opticflow/000/0035&#39;,
+ &#39;opticflow/000/0001&#39;,
+ &#39;opticflow/000/0018&#39;,
+ &#39;opticflow/000/0020&#39;,
+ &#39;opticflow/000/0016&#39;,
+ &#39;opticflow/000/0012&#39;,
+ &#39;opticflow/000/0021&#39;,
+ &#39;opticflow/000/0006&#39;,
+ &#39;opticflow/000/0034&#39;,
+ &#39;opticflow/000/0007&#39;,
+ &#39;opticflow/000/0038&#39;,
+ &#39;opticflow/000/0009&#39;,
+ &#39;opticflow/000/0039&#39;,
+ &#39;opticflow/000/0022&#39;,
+ &#39;opticflow/000/0040&#39;,
+ &#39;opticflow/000/0033&#39;,
+ &#39;opticflow/000/0028&#39;,
+ &#39;opticflow/000/0043&#39;,
+ &#39;opticflow/000/0037&#39;,
+ &#39;opticflow/000/0002&#39;,
+ &#39;opticflow/000/0027&#39;,
+ &#39;opticflow/000/0048&#39;,
+ &#39;opticflow/000/0024&#39;,
+ &#39;opticflow/000/0025&#39;,
+ &#39;opticflow/000/0005&#39;,
+ &#39;opticflow/000/0032&#39;,
+ &#39;opticflow/000/0049&#39;]
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">sorted</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[&#39;opticflow/000/0000&#39;,
+ &#39;opticflow/000/0001&#39;,
+ &#39;opticflow/000/0002&#39;,
+ &#39;opticflow/000/0003&#39;,
+ &#39;opticflow/000/0004&#39;,
+ &#39;opticflow/000/0005&#39;,
+ &#39;opticflow/000/0006&#39;,
+ &#39;opticflow/000/0007&#39;,
+ &#39;opticflow/000/0008&#39;,
+ &#39;opticflow/000/0009&#39;,
+ &#39;opticflow/000/0010&#39;,
+ &#39;opticflow/000/0011&#39;,
+ &#39;opticflow/000/0012&#39;,
+ &#39;opticflow/000/0013&#39;,
+ &#39;opticflow/000/0014&#39;,
+ &#39;opticflow/000/0015&#39;,
+ &#39;opticflow/000/0016&#39;,
+ &#39;opticflow/000/0017&#39;,
+ &#39;opticflow/000/0018&#39;,
+ &#39;opticflow/000/0019&#39;,
+ &#39;opticflow/000/0020&#39;,
+ &#39;opticflow/000/0021&#39;,
+ &#39;opticflow/000/0022&#39;,
+ &#39;opticflow/000/0023&#39;,
+ &#39;opticflow/000/0024&#39;,
+ &#39;opticflow/000/0025&#39;,
+ &#39;opticflow/000/0026&#39;,
+ &#39;opticflow/000/0027&#39;,
+ &#39;opticflow/000/0028&#39;,
+ &#39;opticflow/000/0029&#39;,
+ &#39;opticflow/000/0030&#39;,
+ &#39;opticflow/000/0031&#39;,
+ &#39;opticflow/000/0032&#39;,
+ &#39;opticflow/000/0033&#39;,
+ &#39;opticflow/000/0034&#39;,
+ &#39;opticflow/000/0035&#39;,
+ &#39;opticflow/000/0036&#39;,
+ &#39;opticflow/000/0037&#39;,
+ &#39;opticflow/000/0038&#39;,
+ &#39;opticflow/000/0039&#39;,
+ &#39;opticflow/000/0040&#39;,
+ &#39;opticflow/000/0041&#39;,
+ &#39;opticflow/000/0042&#39;,
+ &#39;opticflow/000/0043&#39;,
+ &#39;opticflow/000/0044&#39;,
+ &#39;opticflow/000/0045&#39;,
+ &#39;opticflow/000/0046&#39;,
+ &#39;opticflow/000/0047&#39;,
+ &#39;opticflow/000/0048&#39;,
+ &#39;opticflow/000/0049&#39;]
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">type</span><span class="p">(</span><span class="n">ensemble</span><span class="p">[</span><span class="mi">45</span><span class="p">:</span><span class="mi">49</span><span class="p">])</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>flyvision.ensemble.Ensemble
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="p">[</span><span class="mi">45</span><span class="p">:</span><span class="mi">49</span><span class="p">]</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>Ensemble(/Users/lappalainenj/projects/flyvision/data/results/opticflow/000)
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="o">.</span><span class="n">viewitems</span><span class="p">()</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>---------------------------------------------------------------------------
+
+AttributeError                            Traceback (most recent call last)
+
+Input In [40], in &lt;cell line: 1&gt;()
+----&gt; 1 ensemble.viewitems()
+
+
+AttributeError: &#39;Ensemble&#39; object has no attribute &#39;viewitems&#39;
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">list</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[&#39;Lawf2&#39;,
+ &#39;Tm5a&#39;,
+ &#39;T4b&#39;,
+ &#39;Am&#39;,
+ &#39;TmY3&#39;,
+ &#39;TmY4&#39;,
+ &#39;TmY5a&#39;,
+ &#39;T2a&#39;,
+ &#39;T4c&#39;,
+ &#39;CT1(Lo1)&#39;,
+ &#39;T4d&#39;,
+ &#39;TmY18&#39;,
+ &#39;L3&#39;,
+ &#39;Tm28&#39;,
+ &#39;L4&#39;,
+ &#39;T5a&#39;,
+ &#39;TmY10&#39;,
+ &#39;Tm20&#39;,
+ &#39;Tm16&#39;,
+ &#39;L5&#39;,
+ &#39;L2&#39;,
+ &#39;R7&#39;,
+ &#39;Mi10&#39;,
+ &#39;T2&#39;,
+ &#39;Mi3&#39;,
+ &#39;Tm1&#39;,
+ &#39;Mi4&#39;,
+ &#39;R8&#39;,
+ &#39;R1&#39;,
+ &#39;R6&#39;,
+ &#39;Mi2&#39;,
+ &#39;Tm9&#39;,
+ &#39;T3&#39;,
+ &#39;Mi11&#39;,
+ &#39;Lawf1&#39;,
+ &#39;T4a&#39;,
+ &#39;TmY9&#39;,
+ &#39;Tm5Y&#39;,
+ &#39;Tm5b&#39;,
+ &#39;Tm30&#39;,
+ &#39;Tm5c&#39;,
+ &#39;C3&#39;,
+ &#39;TmY15&#39;,
+ &#39;T5c&#39;,
+ &#39;T5d&#39;,
+ &#39;TmY14&#39;,
+ &#39;TmY13&#39;,
+ &#39;L1&#39;,
+ &#39;C2&#39;,
+ &#39;T5b&#39;,
+ &#39;CT1(M10)&#39;,
+ &#39;Mi14&#39;,
+ &#39;T1&#39;,
+ &#39;Mi9&#39;,
+ &#39;Mi13&#39;,
+ &#39;Tm2&#39;,
+ &#39;R3&#39;,
+ &#39;R4&#39;,
+ &#39;Mi1&#39;,
+ &#39;Tm3&#39;,
+ &#39;Tm4&#39;,
+ &#39;Mi12&#39;,
+ &#39;Mi15&#39;,
+ &#39;R5&#39;,
+ &#39;R2&#39;]
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">a</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">2.3</span><span class="p">],</span> <span class="mi">2</span><span class="p">:</span> <span class="p">[</span><span class="mf">2.3</span><span class="p">,</span> <span class="mf">4.3</span><span class="p">]}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>dict
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]])</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>---------------------------------------------------------------------------
+
+TypeError                                 Traceback (most recent call last)
+
+Input In [48], in &lt;cell line: 1&gt;()
+----&gt; 1 isinstance(a, Dict[int, List[float]])
+
+
+File ~/mambaforge-pypy3/envs/flyvision/lib/python3.9/typing.py:720, in _BaseGenericAlias.__instancecheck__(self, obj)
+    719 def __instancecheck__(self, obj):
+--&gt; 720     return self.__subclasscheck__(type(obj))
+
+
+File ~/mambaforge-pypy3/envs/flyvision/lib/python3.9/typing.py:723, in _BaseGenericAlias.__subclasscheck__(self, cls)
+    722 def __subclasscheck__(self, cls):
+--&gt; 723     raise TypeError(&quot;Subscripted generics cannot be used with&quot;
+    724                     &quot; class and instance checks&quot;)
+
+
+TypeError: Subscripted generics cannot be used with class and instance checks
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">cluster_indices</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[autoreload of flyvision.network failed: Traceback (most recent call last):
+  File &quot;/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py&quot;, line 257, in check
+    superreload(m, reload, self.old_objects)
+  File &quot;/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py&quot;, line 455, in superreload
+    module = reload(module)
+  File &quot;/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/importlib/__init__.py&quot;, line 169, in reload
+    _bootstrap._exec(spec, module)
+  File &quot;&lt;frozen importlib._bootstrap&gt;&quot;, line 613, in _exec
+  File &quot;&lt;frozen importlib._bootstrap_external&gt;&quot;, line 846, in exec_module
+  File &quot;&lt;frozen importlib._bootstrap_external&gt;&quot;, line 983, in get_code
+  File &quot;&lt;frozen importlib._bootstrap_external&gt;&quot;, line 913, in source_to_code
+  File &quot;&lt;frozen importlib._bootstrap&gt;&quot;, line 228, in _call_with_frames_removed
+  File &quot;/Users/lappalainenj/projects/flyvision/flyvision/network.py&quot;, line 930
+    raise NotImplementedError(&quot;Decoder initialization not implemented yet.&quot;&quot;)
+                                                                             ^
+SyntaxError: EOL while scanning string literal
+]
+
+
+
+---------------------------------------------------------------------------
+
+NameError                                 Traceback (most recent call last)
+
+Input In [49], in &lt;cell line: 1&gt;()
+----&gt; 1 cluster_indices
+
+
+NameError: name &#39;cluster_indices&#39; is not defined
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">x</span> <span class="o">=</span> <span class="nb">set</span><span class="p">((</span><span class="n">ensemble</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">T4c</span> <span class="o">/</span> <span class="s2">&quot;0&quot;</span><span class="p">)[:])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">y</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">50</span><span class="p">)))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">y</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>True
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">colormaps</span> <span class="k">as</span> <span class="n">cm</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div style="vertical-align: middle;"><strong>binary</strong> </div>
+<div class="cmap"><img alt="binary colormap" title="binary" style="border: 1px solid #555;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAABACAYAAABsv8+/AAAAFXRFWHRUaXRsZQBiaW5hcnkgY29sb3JtYXDgovmoAAAAG3RFWHREZXNjcmlwdGlvbgBiaW5hcnkgY29sb3JtYXCpNeFMAAAAMHRFWHRBdXRob3IATWF0cGxvdGxpYiB2My43LjEsIGh0dHBzOi8vbWF0cGxvdGxpYi5vcmcqr/hNAAAAMnRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHYzLjcuMSwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZwQJZ2oAAAFQSURBVHic7dYxDsIwFAXBD/c/s01DJERHBBLRzjRWCvul3Nvee8/MPA/nl8611ryyb//K+2ffO+4d32f/x/5/7H/6zvu9s/9h/zf79wEAcgQAAAQJAAAIEgAAECQAACBIAABAkAAAgCABAABBAgAAggQAAAQJAAAIEgAAECQAACBIAABAkAAAgCABAABBAgAAggQAAAQJAAAIEgAAECQAACBIAABAkAAAgCABAABBAgAAggQAAAQJAAAIEgAAECQAACBIAABAkAAAgCABAABBAgAAggQAAAQJAAAIEgAAECQAACBIAABAkAAAgCABAABBAgAAggQAAAQJAAAIEgAAECQAACBIAABAkAAAgCABAABBAgAAggQAAAQJAAAIEgAAECQAACBIAABAkAAAgCABAABBAgAAggQAAAQJAAAIEgAAECQAACBIAABAkAAAgKAHBe68nT8SsbMAAAAASUVORK5CYII="></div>
+<div style="vertical-align: middle; max-width: 514px; display: flex; justify-content: space-between;"><div style="float: left;"><div title="#ffffffff" style="display: inline-block; width: 1em; height: 1em; margin: 0; vertical-align: middle; border: 1px solid #555; background-color: #ffffffff;"></div> under</div><div style="margin: 0 auto; display: inline-block;">bad <div title="#00000000" style="display: inline-block; width: 1em; height: 1em; margin: 0; vertical-align: middle; border: 1px solid #555; background-color: #00000000;"></div></div><div style="float: right;">over <div title="#000000ff" style="display: inline-block; width: 1em; height: 1em; margin: 0; vertical-align: middle; border: 1px solid #555; background-color: #000000ff;"></div></div>
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">matplotlib.cm</span> <span class="kn">import</span> <span class="n">ScalarMappable</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">x</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+</code></pre></div>
+
+
+
+
+    array([0, 1])
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="p">[</span><span class="o">*</span><span class="n">x</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:]]</span>
+</code></pre></div>
+
+
+
+
+    [0, 1, 4, 5]
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">x</span>
+</code></pre></div>
+
+
+
+
+    array([0, 1, 2, 3, 4, 5])
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">results_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;opticflow/000/</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">)]</span>
+<span class="n">ensemble</span> <span class="o">=</span> <span class="n">Ensemble</span><span class="p">(</span><span class="n">models</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">names</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">with</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">ratio</span><span class="p">(</span><span class="n">best</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">worst</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">names</span> <span class="o">==</span> <span class="p">[</span>
+        <span class="o">*</span><span class="n">names</span><span class="p">[:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)],</span>
+        <span class="o">*</span><span class="n">names</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span> <span class="p">:],</span>
+    <span class="p">]</span>
+</code></pre></div>
+
+    ['opticflow/000/0000', 'opticflow/000/0001', 'opticflow/000/0004', 'opticflow/000/0005']
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">names</span>
+</code></pre></div>
+
+
+
+
+    ['opticflow/000/0000',
+     'opticflow/000/0001',
+     'opticflow/000/0002',
+     'opticflow/000/0003',
+     'opticflow/000/0004',
+     'opticflow/000/0005']
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+        <span class="o">*</span><span class="n">names</span><span class="p">[:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)],</span>
+        <span class="o">*</span><span class="n">names</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span> <span class="p">:],</span>
+    <span class="p">]</span>
+</code></pre></div>
+
+
+
+
+    ['opticflow/000/0000',
+     'opticflow/000/0001',
+     'opticflow/000/0004',
+     'opticflow/000/0005']
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="o">.</span><span class="n">cluster_indices</span><span class="p">(</span><span class="s2">&quot;T4c&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+    {0: array([ 0,  1,  2,  3,  6,  9, 23, 24, 13, 12, 21, 22, 37, 19, 35, 30, 27,
+            17, 29, 16, 36, 14, 20,  7, 18, 31, 42, 11, 47, 44, 48]),
+     1: array([ 5, 26,  4, 33, 38, 40, 43]),
+     2: array([ 8, 25, 10, 32, 34, 28, 45, 15, 39, 41, 46, 49])}
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span> <span class="o">=</span> <span class="n">Ensemble</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">dir</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">network</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">yield_networks</span><span class="p">())</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">x</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)))</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">cell_type</span> <span class="ow">in</span> <span class="n">network</span><span class="o">.</span><span class="n">cell_types</span><span class="p">:</span>
+    <span class="n">_dir</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">clustering</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">_dir</span><span class="o">.</span><span class="n">masked</span><span class="p">[()]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+    <span class="n">_dir</span><span class="o">.</span><span class="n">masked</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<span class="c1">#     clustering = np.concatenate(list(ensemble.dir.clustering[cell_type].to_dict().values()))</span>
+<span class="c1">#     mask = np.array(list(x.difference(clustering)), dtype=np.int)</span>
+<span class="c1">#     _dir.masked = mask</span>
+<span class="c1">#     print(_dir)</span>
+<span class="c1">#     print(mask)</span>
+</code></pre></div>
+
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    [16]
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+    []
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">clustering</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</code></pre></div>
+
+
+
+
+    {'2': array([ 0,  5, 26, 25,  4, 16,  7, 32, 42, 45, 15, 44, 48, 49]),
+     '1': array([ 2,  6,  8,  9, 23, 24, 10, 13, 12, 21, 22, 37, 33, 35, 30, 27, 17,
+            38, 14, 20, 18, 31, 34, 28, 40, 39, 47, 43, 46]),
+     '0': array([ 1,  3, 19, 29, 36, 11, 41]),
+     'masked': array([], dtype=int64)}
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">clustering</span><span class="p">)),</span> <span class="n">dt</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+    array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+           17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+           34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49])
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">clustering</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+</code></pre></div>
+
+
+
+
+    array([ 0,  5, 26, 25,  4, 16,  7, 32, 42, 45, 15, 44, 48, 49,  2,  6,  8,
+            9, 23, 24, 10, 13, 12, 21, 22, 37, 33, 35, 30, 27, 17, 38, 14, 20,
+           18, 31, 34, 28, 40, 39, 47, 43, 46,  1,  3, 19, 29, 36, 11, 41])
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span> <span class="o">=</span> <span class="n">Ensemble</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">dir</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span>
+</code></pre></div>
+
+
+
+
+    Ensemble(/Users/lappalainenj/projects/flyvision/data/results/opticflow/000)
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span><span class="o">.</span><span class="n">cluster_indices</span><span class="p">(</span><span class="s2">&quot;C3&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+    {0: array([ 1,  6,  5,  9, 23, 12, 37, 33, 29, 14, 32, 42, 45, 11, 15, 39, 48]),
+     1: array([24, 10, 22,  4, 35, 30, 27, 16, 38, 20,  7, 18, 31, 34, 28, 47, 44,
+            43]),
+     2: array([ 0,  2,  3,  8, 26, 25, 13, 21, 19, 17, 36, 40, 41, 46, 49])}
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">flyvision.plots.plots</span> <span class="kn">import</span> <span class="n">hex_scatter</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">flyvision</span>
+
+<span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">hex_utils</span><span class="o">.</span><span class="n">get_hex_coords</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">300</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">hex_scatter</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">midpoint</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+![png](Untitled_files/Untitled_66_0.png)
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">torch</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+</code></pre></div>
+
+
+
+
+    torch.Tensor
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span>
+</code></pre></div>
+
+
+
+
+    False
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+</code></pre></div>
+
+    [autoreload of flyvision.utils.df_utils failed: Traceback (most recent call last):
+      File "/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py", line 257, in check
+        superreload(m, reload, self.old_objects)
+      File "/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py", line 455, in superreload
+        module = reload(module)
+      File "/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/importlib/__init__.py", line 169, in reload
+        _bootstrap._exec(spec, module)
+      File "<frozen importlib._bootstrap>", line 613, in _exec
+      File "<frozen importlib._bootstrap_external>", line 846, in exec_module
+      File "<frozen importlib._bootstrap_external>", line 983, in get_code
+      File "<frozen importlib._bootstrap_external>", line 913, in source_to_code
+      File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+      File "/Users/lappalainenj/projects/flyvision/flyvision/utils/df_utils.py", line 8
+        ) -> DataFrame:
+        ^
+    SyntaxError: non-default argument follows default argument
+    ]
+    [autoreload of flyvision.connectome failed: Traceback (most recent call last):
+      File "/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py", line 257, in check
+        superreload(m, reload, self.old_objects)
+      File "/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/IPython/extensions/autoreload.py", line 455, in superreload
+        module = reload(module)
+      File "/Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/importlib/__init__.py", line 169, in reload
+        _bootstrap._exec(spec, module)
+      File "<frozen importlib._bootstrap>", line 613, in _exec
+      File "<frozen importlib._bootstrap_external>", line 846, in exec_module
+      File "<frozen importlib._bootstrap_external>", line 983, in get_code
+      File "<frozen importlib._bootstrap_external>", line 913, in source_to_code
+      File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+      File "/Users/lappalainenj/projects/flyvision/flyvision/connectome.py", line 506
+        df_utils.filter_df_by_list(edges, column="source_type", cell_types),
+                                                                          ^
+    SyntaxError: positional argument follows keyword argument
+    ]
+
+
+
+<div class="highlight"><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">D</span><span class="p">:</span>
+    <span class="n">a</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">b</span><span class="p">:</span> <span class="nb">int</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">d</span><span class="o">=</span> <span class="n">D</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">d</span>
+</code></pre></div>
+
+
+
+
+    D(a=2, b=1)
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">flyvision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">nodes_edges_utils</span><span class="o">.</span><span class="n">layout</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="s2">&quot;1&quot;</span> <span class="o">&gt;</span> <span class="mi">1</span>
+</code></pre></div>
+
+
+    ---------------------------------------------------------------------------
+
+    TypeError                                 Traceback (most recent call last)
+
+    Input In [10], in <cell line: 1>()
+    ----> 1 "1" > 1
+
+
+    TypeError: '>' not supported between instances of 'str' and 'int'
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="nb">type</span><span class="p">(</span><span class="n">img</span><span class="p">)</span> <span class="o">==</span> <span class="n">NDArray</span>
+</code></pre></div>
+
+
+
+
+    False
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="nb">isinstance</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+    True
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code>
+</code></pre></div>
+
+
+
+
+    'module://matplotlib_inline.backend_inline'
+
+
+
+
+<div class="highlight"><pre><span></span><code>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">get_backend</span><span class="p">()</span>
+</code></pre></div>
+
+
+
+
+    'module://matplotlib_inline.backend_inline'
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="o">%</span><span class="n">matplotlib</span> <span class="o">--</span><span class="nb">list</span>
+</code></pre></div>
+
+    Available matplotlib backends: ['tk', 'gtk', 'gtk3', 'gtk4', 'wx', 'qt4', 'qt5', 'qt6', 'qt', 'osx', 'nbagg', 'notebook', 'agg', 'svg', 'pdf', 'ps', 'inline', 'ipympl', 'widget']
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">switch_backend</span><span class="p">(</span><span class="s2">&quot;nbagg&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">current_backend</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">get_backend</span><span class="p">()</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">switch_backend</span><span class="p">(</span><span class="s1">&#39;nbagg&#39;</span><span class="p">)</span>
+        <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">matplotlib_backend</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="s1">&#39;nbagg&#39;</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">current_backend</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">get_backend</span><span class="p">()</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">switch_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span>
+        <span class="k">yield</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">()</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">switch_backend</span><span class="p">(</span><span class="n">current_backend</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">def</span> <span class="nf">plot</span><span class="p">():</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">switch_backend</span><span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+
+    ---------------------------------------------------------------------------
+
+    ModuleNotFoundError                       Traceback (most recent call last)
+
+    Input In [2], in <cell line: 1>()
+    ----> 1 matplotlib.pyplot.switch_backend("abc")
+
+
+    File ~/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages/matplotlib/pyplot.py:271, in switch_backend(newbackend)
+        268 # have to escape the switch on access logic
+        269 old_backend = dict.__getitem__(rcParams, 'backend')
+    --> 271 backend_mod = importlib.import_module(
+        272     cbook._backend_module_name(newbackend))
+        274 required_framework = _get_required_interactive_framework(backend_mod)
+        275 if required_framework is not None:
+
+
+    File ~/mambaforge-pypy3/envs/flyvision/lib/python3.9/importlib/__init__.py:127, in import_module(name, package)
+        125             break
+        126         level += 1
+    --> 127 return _bootstrap._gcd_import(name[level:], package, level)
+
+
+    File <frozen importlib._bootstrap>:1030, in _gcd_import(name, package, level)
+
+
+    File <frozen importlib._bootstrap>:1007, in _find_and_load(name, import_)
+
+
+    File <frozen importlib._bootstrap>:984, in _find_and_load_unlocked(name, import_)
+
+
+    ModuleNotFoundError: No module named 'matplotlib.backends.backend_abc'
+
+
+
+<div class="highlight"><pre><span></span><code><span class="k">with</span> <span class="n">matplotlib_backend</span><span class="p">(</span><span class="s1">&#39;nbagg&#39;</span><span class="p">):</span>
+    <span class="n">plot</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">matplotlib</span><span class="o">.</span><span class="n">get_backend</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">switch_backend</span><span class="p">(</span><span class="s1">&#39;module://matplotlib_inline.backend_inline&#39;</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">matplotlib</span><span class="o">.</span><span class="n">set_logle</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="o">%</span><span class="n">matplotlib</span> <span class="n">widget</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">anim</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">HexScatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">721</span><span class="p">]))</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">ipympl</span>
+</code></pre></div>
+
+    Requirement already satisfied: ipympl in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (0.9.3)
+    Requirement already satisfied: matplotlib<4,>=3.4.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (3.7.1)
+    Requirement already satisfied: ipython<9 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (8.4.0)
+    Requirement already satisfied: traitlets<6 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (5.9.0)
+    Requirement already satisfied: pillow in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (9.4.0)
+    Requirement already satisfied: ipython-genutils in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (0.2.0)
+    Requirement already satisfied: ipywidgets<9,>=7.6.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (8.0.5)
+    Requirement already satisfied: numpy in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (1.24.2)
+    Requirement already satisfied: pygments>=2.4.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (2.14.0)
+    Requirement already satisfied: pickleshare in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.7.5)
+    Requirement already satisfied: backcall in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.2.0)
+    Requirement already satisfied: decorator in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (5.1.1)
+    Requirement already satisfied: jedi>=0.16 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.18.2)
+    Requirement already satisfied: appnope in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.1.3)
+    Requirement already satisfied: prompt-toolkit!=3.0.0,!=3.0.1,<3.1.0,>=2.0.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (3.0.38)
+    Requirement already satisfied: pexpect>4.3 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (4.8.0)
+    Requirement already satisfied: stack-data in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.6.2)
+    Requirement already satisfied: matplotlib-inline in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.1.6)
+    Requirement already satisfied: setuptools>=18.5 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (67.6.0)
+    Requirement already satisfied: jupyterlab-widgets~=3.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipywidgets<9,>=7.6.0->ipympl) (3.0.6)
+    Requirement already satisfied: widgetsnbextension~=4.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipywidgets<9,>=7.6.0->ipympl) (4.0.6)
+    Requirement already satisfied: python-dateutil>=2.7 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (2.8.2)
+    Requirement already satisfied: cycler>=0.10 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (0.11.0)
+    Requirement already satisfied: fonttools>=4.22.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (4.39.2)
+    Requirement already satisfied: kiwisolver>=1.0.1 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (1.4.4)
+    Requirement already satisfied: importlib-resources>=3.2.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (5.12.0)
+    Requirement already satisfied: pyparsing>=2.3.1 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (3.0.9)
+    Requirement already satisfied: packaging>=20.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (23.0)
+    Requirement already satisfied: contourpy>=1.0.1 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (1.0.7)
+    Requirement already satisfied: zipp>=3.1.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from importlib-resources>=3.2.0->matplotlib<4,>=3.4.0->ipympl) (3.15.0)
+    Requirement already satisfied: parso<0.9.0,>=0.8.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from jedi>=0.16->ipython<9->ipympl) (0.8.3)
+    Requirement already satisfied: ptyprocess>=0.5 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from pexpect>4.3->ipython<9->ipympl) (0.7.0)
+    Requirement already satisfied: wcwidth in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from prompt-toolkit!=3.0.0,!=3.0.1,<3.1.0,>=2.0.0->ipython<9->ipympl) (0.2.6)
+    Requirement already satisfied: six>=1.5 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from python-dateutil>=2.7->matplotlib<4,>=3.4.0->ipympl) (1.16.0)
+    Requirement already satisfied: asttokens>=2.1.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from stack-data->ipython<9->ipympl) (2.2.1)
+    Requirement already satisfied: pure-eval in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from stack-data->ipython<9->ipympl) (0.2.2)
+    Requirement already satisfied: executing>=1.2.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from stack-data->ipython<9->ipympl) (1.2.0)
+
+
+
+<div class="highlight"><pre><span></span><code><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="n">ipympl</span>
+</code></pre></div>
+
+    Collecting ipympl
+      Downloading ipympl-0.9.3-py2.py3-none-any.whl (511 kB)
+    [2K     [38;2;114;156;31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m511.6/511.6 kB[0m [31m663.6 kB/s[0m eta [36m0:00:00[0m[36m0:00:01[0m[36m0:00:01[0m:01[0m
+    [?25hRequirement already satisfied: ipywidgets<9,>=7.6.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (8.0.5)
+    Requirement already satisfied: numpy in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (1.24.2)
+    Requirement already satisfied: pillow in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (9.4.0)
+    Requirement already satisfied: matplotlib<4,>=3.4.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (3.7.1)
+    Requirement already satisfied: traitlets<6 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (5.9.0)
+    Requirement already satisfied: ipython<9 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (8.4.0)
+    Requirement already satisfied: ipython-genutils in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipympl) (0.2.0)
+    Requirement already satisfied: prompt-toolkit!=3.0.0,!=3.0.1,<3.1.0,>=2.0.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (3.0.38)
+    Requirement already satisfied: stack-data in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.6.2)
+    Requirement already satisfied: setuptools>=18.5 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (67.6.0)
+    Requirement already satisfied: appnope in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.1.3)
+    Requirement already satisfied: pickleshare in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.7.5)
+    Requirement already satisfied: matplotlib-inline in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.1.6)
+    Requirement already satisfied: decorator in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (5.1.1)
+    Requirement already satisfied: pexpect>4.3 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (4.8.0)
+    Requirement already satisfied: backcall in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.2.0)
+    Requirement already satisfied: pygments>=2.4.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (2.14.0)
+    Requirement already satisfied: jedi>=0.16 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipython<9->ipympl) (0.18.2)
+    Requirement already satisfied: jupyterlab-widgets~=3.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipywidgets<9,>=7.6.0->ipympl) (3.0.6)
+    Requirement already satisfied: widgetsnbextension~=4.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from ipywidgets<9,>=7.6.0->ipympl) (4.0.6)
+    Requirement already satisfied: pyparsing>=2.3.1 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (3.0.9)
+    Requirement already satisfied: contourpy>=1.0.1 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (1.0.7)
+    Requirement already satisfied: packaging>=20.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (23.0)
+    Requirement already satisfied: importlib-resources>=3.2.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (5.12.0)
+    Requirement already satisfied: kiwisolver>=1.0.1 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (1.4.4)
+    Requirement already satisfied: cycler>=0.10 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (0.11.0)
+    Requirement already satisfied: fonttools>=4.22.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (4.39.2)
+    Requirement already satisfied: python-dateutil>=2.7 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from matplotlib<4,>=3.4.0->ipympl) (2.8.2)
+    Requirement already satisfied: zipp>=3.1.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from importlib-resources>=3.2.0->matplotlib<4,>=3.4.0->ipympl) (3.15.0)
+    Requirement already satisfied: parso<0.9.0,>=0.8.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from jedi>=0.16->ipython<9->ipympl) (0.8.3)
+    Requirement already satisfied: ptyprocess>=0.5 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from pexpect>4.3->ipython<9->ipympl) (0.7.0)
+    Requirement already satisfied: wcwidth in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from prompt-toolkit!=3.0.0,!=3.0.1,<3.1.0,>=2.0.0->ipython<9->ipympl) (0.2.6)
+    Requirement already satisfied: six>=1.5 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from python-dateutil>=2.7->matplotlib<4,>=3.4.0->ipympl) (1.16.0)
+    Requirement already satisfied: asttokens>=2.1.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from stack-data->ipython<9->ipympl) (2.2.1)
+    Requirement already satisfied: executing>=1.2.0 in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from stack-data->ipython<9->ipympl) (1.2.0)
+    Requirement already satisfied: pure-eval in /Users/lappalainenj/mambaforge-pypy3/envs/flyvision/lib/python3.9/site-packages (from stack-data->ipython<9->ipympl) (0.2.2)
+    Installing collected packages: ipympl
+    Successfully installed ipympl-0.9.3
+
+
+# explicit groupby init
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">datamate</span> <span class="kn">import</span> <span class="n">Namespace</span>
+
+<span class="kn">from</span> <span class="nn">flyvision.initialization</span> <span class="kn">import</span> <span class="n">Parameter</span>
+<span class="kn">from</span> <span class="nn">flyvision.connectome</span> <span class="kn">import</span> <span class="n">ConnectomeDir</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">connectome_file</span>
+
+<span class="o">%</span><span class="n">load_ext</span> <span class="n">autoreload</span>
+<span class="o">%</span><span class="n">autoreload</span> <span class="mi">2</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">edge_config</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">(</span>
+            <span class="n">sign</span><span class="o">=</span><span class="n">Namespace</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;SynapseSign&quot;</span><span class="p">,</span>
+                <span class="n">initial_dist</span><span class="o">=</span><span class="s2">&quot;Value&quot;</span><span class="p">,</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">groupby</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;source_type&quot;</span><span class="p">,</span> <span class="s2">&quot;target_type&quot;</span><span class="p">],</span>
+            <span class="p">),</span>
+            <span class="n">syn_count</span><span class="o">=</span><span class="n">Namespace</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;SynapseCount&quot;</span><span class="p">,</span>
+                <span class="n">initial_dist</span><span class="o">=</span><span class="s2">&quot;Lognormal&quot;</span><span class="p">,</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">groupby</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;source_type&quot;</span><span class="p">,</span> <span class="s2">&quot;target_type&quot;</span><span class="p">,</span> <span class="s2">&quot;dv&quot;</span><span class="p">,</span> <span class="s2">&quot;du&quot;</span><span class="p">],</span>
+            <span class="p">),</span>
+            <span class="n">syn_strength</span><span class="o">=</span><span class="n">Namespace</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;SynapseCountScaling&quot;</span><span class="p">,</span>
+                <span class="n">initial_dist</span><span class="o">=</span><span class="s2">&quot;Value&quot;</span><span class="p">,</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">scale_elec</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                <span class="n">scale_chem</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                <span class="n">clamp</span><span class="o">=</span><span class="s2">&quot;non_negative&quot;</span><span class="p">,</span>
+                <span class="n">groupby</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;source_type&quot;</span><span class="p">,</span> <span class="s2">&quot;target_type&quot;</span><span class="p">],</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">connectome</span> <span class="o">=</span> <span class="n">ConnectomeDir</span><span class="p">(</span><span class="n">Namespace</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">connectome_file</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">n_syn_fill</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">param</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">edge_config</span><span class="o">.</span><span class="n">sign</span><span class="p">,</span> <span class="n">connectome</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">param</span><span class="o">.</span><span class="n">indices</span>
+</code></pre></div>
+
+
+
+
+    tensor([  0,   0,   0,  ..., 603, 603, 603])
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">from</span> <span class="nn">datamate</span> <span class="kn">import</span> <span class="n">Directory</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">gather_indices_dir</span> <span class="o">=</span> <span class="n">Directory</span><span class="p">(</span><span class="n">flyvision</span><span class="o">.</span><span class="n">root_dir</span><span class="p">)</span><span class="o">.</span><span class="n">gather_indices</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">edge_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">param</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">connectome</span><span class="p">)</span>
+
+<span class="n">edge_config</span>
+</code></pre></div>
+
+
+
+
+    Namespace(
+      sign = Namespace(
+        type = 'SynapseSign',
+        initial_dist = 'Value',
+        requires_grad = False,
+        groupby = ['source_type', 'target_type']
+      ),
+      syn_count = Namespace(
+        type = 'SynapseCount',
+        initial_dist = 'Lognormal',
+        mode = 'mean',
+        requires_grad = False,
+        std = 1.0,
+        groupby = ['source_type', 'target_type', 'dv', 'du']
+      ),
+      syn_strength = Namespace(
+        type = 'SynapseCountScaling',
+        initial_dist = 'Value',
+        requires_grad = True,
+        scale_elec = 0.01,
+        scale_chem = 0.01,
+        clamp = 'non_negative',
+        groupby = ['source_type', 'target_type']
+      )
+    )
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">gather_indices_dir</span>
+</code></pre></div>
+
+
+
+
+    gather_indices/ - Last modified: April 04, 2023 15:12:47
+    ├── sign/
+    │   ├── indices.h5
+    │   └── raw_values.h5
+    ├── syn_count/
+    │   ├── indices.h5
+    │   └── raw_values.h5
+    └── syn_strength/
+        ├── indices.h5
+        └── raw_values.h5
+
+    displaying: 4 directories, 6 files
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">node_config</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">(</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">Namespace</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;RestingPotential&quot;</span><span class="p">,</span>
+                <span class="n">groupby</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="n">initial_dist</span><span class="o">=</span><span class="s2">&quot;Normal&quot;</span><span class="p">,</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;sample&quot;</span><span class="p">,</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">mean</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                <span class="n">std</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+                <span class="n">penalize</span><span class="o">=</span><span class="n">Namespace</span><span class="p">(</span><span class="n">activity</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">time_const</span><span class="o">=</span><span class="n">Namespace</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;TimeConstant&quot;</span><span class="p">,</span>
+                <span class="n">groupby</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="n">initial_dist</span><span class="o">=</span><span class="s2">&quot;Value&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+<span class="n">nccopy</span> <span class="o">=</span> <span class="n">node_config</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">node_config</span>
+</code></pre></div>
+
+
+
+
+    Namespace(
+      bias = Namespace(
+        type = 'RestingPotential',
+        groupby = ['type'],
+        initial_dist = 'Normal',
+        mode = 'sample',
+        requires_grad = True,
+        mean = 0.5,
+        std = 0.05,
+        penalize = Namespace(activity=True),
+        seed = 0
+      ),
+      time_const = Namespace(
+        type = 'TimeConstant',
+        groupby = ['type'],
+        initial_dist = 'Value',
+        value = 0.05,
+        requires_grad = True
+      )
+    )
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">node_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">param</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">connectome</span><span class="p">)</span>
+
+<span class="n">node_config</span>
+</code></pre></div>
+
+
+
+
+    Namespace(
+      bias = Namespace(
+        type = 'RestingPotential',
+        groupby = ['type'],
+        initial_dist = 'Normal',
+        mode = 'sample',
+        requires_grad = True,
+        mean = 0.5,
+        std = 0.05,
+        penalize = Namespace(activity=True),
+        seed = 0
+      ),
+      time_const = Namespace(
+        type = 'TimeConstant',
+        groupby = ['type'],
+        initial_dist = 'Value',
+        value = 0.05,
+        requires_grad = True
+      )
+    )
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ncc</span> <span class="o">=</span> <span class="n">node_config</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ncc</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">node_config</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">type</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">ncc</span>
+</code></pre></div>
+
+
+
+
+    Namespace(
+      bias = Namespace(
+        type = array([  1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,
+            14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,
+            27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,
+            40,  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,
+            53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,
+            66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,
+            79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,
+            92,  93,  94,  95,  96,  97,  98,  99, 100]),
+        groupby = ['type'],
+        initial_dist = 'Normal',
+        mode = 'sample',
+        requires_grad = True,
+        mean = 0.5,
+        std = 0.05,
+        penalize = Namespace(activity=True),
+        seed = 0
+      ),
+      time_const = Namespace(
+        type = 'TimeConstant',
+        groupby = ['type'],
+        initial_dist = 'Value',
+        value = 0.05,
+        requires_grad = True
+      )
+    )
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">node_config</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ncc</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">type</span>
+</code></pre></div>
+
+
+
+
+    array([False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False, False, False, False, False, False, False, False, False,
+           False])
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">datamate.namespaces</span> <span class="kn">import</span> <span class="n">compare</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">compare</span><span class="p">(</span><span class="n">node_config</span><span class="p">,</span> <span class="n">ncc</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+    Namespace(
+      bias = Namespace(
+        type = False,
+        groupby = True,
+        initial_dist = True,
+        mode = True,
+        requires_grad = True,
+        mean = True,
+        std = True,
+        penalize = Namespace(activity=True),
+        seed = True
+      ),
+      time_const = Namespace(
+        type = True,
+        groupby = True,
+        initial_dist = True,
+        value = True,
+        requires_grad = True
+      )
+    )
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Mapping</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">ndarray</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="nb">all</span><span class="err">??</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">all_true</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">all_true</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">ndarray</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">all_true</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">item</span><span class="p">())</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">all_true</span><span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">all_true</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;all </span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="s2"> of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">all_true</span><span class="p">(</span><span class="n">node_config</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+    True
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">node_config</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">node_config</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="mi">1</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">gather_indices_dir</span>
+</code></pre></div>
+
+
+
+
+    gather_indices/ - Last modified: April 04, 2023 15:13:22
+    ├── bias/
+    │   ├── indices.h5
+    │   └── raw_values.h5
+    ├── sign/
+    │   ├── indices.h5
+    │   └── raw_values.h5
+    ├── syn_count/
+    │   ├── indices.h5
+    │   └── raw_values.h5
+    ├── syn_strength/
+    │   ├── indices.h5
+    │   └── raw_values.h5
+    └── time_const/
+        ├── indices.h5
+        └── raw_values.h5
+
+    displaying: 6 directories, 10 files
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">attributes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="s2">&quot;v&quot;</span><span class="p">]</span>
+<span class="n">groupby</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">]</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">cast</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;U&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span><span class="n">connectome</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">k</span><span class="p">][:])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">})</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">gb</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">groupby</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">gb</span><span class="o">.</span><span class="n">first</span><span class="err">??</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">gb</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">values</span><span class="p">()))]</span>
+</code></pre></div>
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>type</th>
+      <th>u</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>9619</th>
+      <td>Am</td>
+      <td>-15</td>
+    </tr>
+    <tr>
+      <th>9620</th>
+      <td>Am</td>
+      <td>-15</td>
+    </tr>
+    <tr>
+      <th>9621</th>
+      <td>Am</td>
+      <td>-15</td>
+    </tr>
+    <tr>
+      <th>9622</th>
+      <td>Am</td>
+      <td>-15</td>
+    </tr>
+    <tr>
+      <th>9623</th>
+      <td>Am</td>
+      <td>-15</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>42059</th>
+      <td>TmY9</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>42060</th>
+      <td>TmY9</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>42061</th>
+      <td>TmY9</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>42062</th>
+      <td>TmY9</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>42063</th>
+      <td>TmY9</td>
+      <td>15</td>
+    </tr>
+  </tbody>
+</table>
+<p>45669 rows × 2 columns</p>
+</div>
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">gb</span><span class="o">.</span><span class="n">index</span>
+</code></pre></div>
+
+
+
+
+    MultiIndex([(   b'R1', -15),
+                (   b'R1', -14),
+                (   b'R1', -13),
+                (   b'R1', -12),
+                (   b'R1', -11),
+                (   b'R1', -10),
+                (   b'R1',  -9),
+                (   b'R1',  -8),
+                (   b'R1',  -7),
+                (   b'R1',  -6),
+                ...
+                (b'TmY18',   6),
+                (b'TmY18',   7),
+                (b'TmY18',   8),
+                (b'TmY18',   9),
+                (b'TmY18',  10),
+                (b'TmY18',  11),
+                (b'TmY18',  12),
+                (b'TmY18',  13),
+                (b'TmY18',  14),
+                (b'TmY18',  15)],
+               names=['type', 'u'], length=1975)
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="n">param</span><span class="o">.</span><span class="n">raw_values</span>
+</code></pre></div>
+
+
+
+
+    Parameter containing:
+    tensor([0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500,
+            0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500,
+            0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500,
+            0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500,
+            0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500,
+            0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500,
+            0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500, 0.0500,
+            0.0500, 0.0500], requires_grad=True)
+
+
+
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">flyvision.initialization_2</span> <span class="kn">import</span> <span class="n">Parameter</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">edge_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">param</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">connectome</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">gather_indices_dir</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">raw_values</span><span class="p">[:]</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">raw_values</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">gather_indices_dir</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">indices</span><span class="p">[:]</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">node_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">param</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">connectome</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">gather_indices_dir</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">raw_values</span><span class="p">[:]</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">raw_values</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">gather_indices_dir</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">indices</span><span class="p">[:]</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">RestingPotential2</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize resting potentials a.k.a. biases for cell types.&quot;&quot;&quot;</span>
+
+    <span class="nd">@deepcopy_config</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_config</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">connectome</span><span class="p">:</span> <span class="n">ConnectomeDir</span><span class="p">):</span>
+        <span class="n">nodes_dir</span> <span class="o">=</span> <span class="n">connectome</span><span class="o">.</span><span class="n">nodes</span>
+
+        <span class="c1"># equals order in connectome.unique_cell_types</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">nodes_dir</span><span class="o">.</span><span class="n">type</span><span class="p">[:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)))</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span>
+
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">))</span>
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetry_masks</span> <span class="o">=</span> <span class="n">symmetry_mask_for_nodes</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;symmetric&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">nodes</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">get_scatter_indices</span><span class="p">(</span><span class="n">param_config</span><span class="p">,</span> <span class="n">nodes_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">InitialDistribution</span><span class="p">(</span><span class="n">param_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+      
+    
+  </body>
+</html>

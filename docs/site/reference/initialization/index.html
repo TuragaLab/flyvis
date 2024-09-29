@@ -1,0 +1,3175 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://flyvis.github.io/reference/initialization/">
+      
+      
+        <link rel="prev" href="../network/">
+      
+      
+        <link rel="next" href="../decoder/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
+    
+    
+      
+        <title>flyvision.initialization - Flyvis</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#flyvision.initialization" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Flyvis" class="md-header__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Flyvis
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              flyvision.initialization
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Flyvis" class="md-nav__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    Flyvis
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/01_flyvision_connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Explore the connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/02_flyvision_optic_flow_task/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Train the network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/03_flyvision_flash_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Flash responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/04_flyvision_moving_edge_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Moving edge responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/05_flyvision_umap_and_clustering_models/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ensemble clustering
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/06_flyvision_maximally_excitatory_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maximally excitatory stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/07_flyvision_providing_custom_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Custom stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../network/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    flyvision.initialization
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.initialization
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      initialization
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.InitialDistribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      InitialDistribution
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Value" class="md-nav__link">
+    <span class="md-ellipsis">
+      Value
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Normal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Normal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Lognormal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Lognormal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.RestingPotential" class="md-nav__link">
+    <span class="md-ellipsis">
+      RestingPotential
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.TimeConstant" class="md-nav__link">
+    <span class="md-ellipsis">
+      TimeConstant
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.SynapseSign" class="md-nav__link">
+    <span class="md-ellipsis">
+      SynapseSign
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.SynapseCount" class="md-nav__link">
+    <span class="md-ellipsis">
+      SynapseCount
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.SynapseCountScaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      SynapseCountScaling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.deepcopy_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      deepcopy_config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.get_scatter_indices" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_scatter_indices
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.symmetry_masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      symmetry_masks
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decoder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.decoder
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../objectives/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.objectives
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.tasks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../solver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.solver
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../network_view/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.networkview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ensemble/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.ensemble
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ensemble_view/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.ensembleview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../acknowledgements/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgements
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      initialization
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.InitialDistribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      InitialDistribution
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Value" class="md-nav__link">
+    <span class="md-ellipsis">
+      Value
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Normal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Normal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Lognormal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Lognormal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.Parameter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.RestingPotential" class="md-nav__link">
+    <span class="md-ellipsis">
+      RestingPotential
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.TimeConstant" class="md-nav__link">
+    <span class="md-ellipsis">
+      TimeConstant
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.SynapseSign" class="md-nav__link">
+    <span class="md-ellipsis">
+      SynapseSign
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.SynapseCount" class="md-nav__link">
+    <span class="md-ellipsis">
+      SynapseCount
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.SynapseCountScaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      SynapseCountScaling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.deepcopy_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      deepcopy_config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.get_scatter_indices" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_scatter_indices
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.initialization.symmetry_masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      symmetry_masks
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>flyvision.initialization</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="flyvision.initialization"></a>
+    <div class="doc doc-contents first">
+
+        <p>The parameters that the networks can be initialized with. Each parameter is a
+type on its own, because different parameters are shared differently. These
+types handle the initialization of indices to perform gather and scatter opera-
+tions. Parameter types can be initialized from a range of initial distribution
+types.</p>
+
+
+<details class="note" open>
+  <summary>to maintain compatibility with old configurations, e.g. to reinitialize</summary>
+  <p>a trained network, careful when refactoring any of these types or syntax.</p>
+</details>
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.InitialDistribution" class="doc doc-heading">
+            <code>InitialDistribution</code>
+
+
+<a href="#flyvision.initialization.InitialDistribution" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>Initial distribution base class.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="flyvision.initialization.InitialDistribution.raw_values">raw_values</span></code></td>
+            <td>
+                  <code><span title="torch.Tensor">Tensor</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>initial parameters must store raw_values as attribute in
+their <strong>init</strong>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="flyvision.initialization.InitialDistribution.readers">readers</span></code></td>
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[str, <span title="torch.Tensor">Tensor</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>readers will be written by the network during initialization.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="extension-point" open>
+  <summary>to add a new initial distribution type, subclass this</summary>
+  <p>class and implement the <strong>init</strong> method. The <strong>init</strong> method
+should take the param_config as its first argument, and should store
+the attribute raw_values as a torch.nn.Parameter.</p>
+</details>
+
+<details class="an-example-of-a-viable-param_config-is" open>
+  <summary>An example of a viable param_config is</summary>
+  <p>param_config = Namespace(
+    requires_grad=True,
+    initial_dist=&rdquo;Normal&rdquo;,
+    mean=0,
+    std=1,
+    mode=&rdquo;sample&rdquo;,
+)</p>
+</details>
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">InitialDistribution</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initial distribution base class.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        raw_values: initial parameters must store raw_values as attribute in</span>
+<span class="sd">            their __init__.</span>
+<span class="sd">        readers: readers will be written by the network during initialization.</span>
+
+<span class="sd">    Extension point: to add a new initial distribution type, subclass this</span>
+<span class="sd">        class and implement the __init__ method. The __init__ method</span>
+<span class="sd">        should take the param_config as its first argument, and should store</span>
+<span class="sd">        the attribute raw_values as a torch.nn.Parameter.</span>
+
+<span class="sd">    An example of a viable param_config is:</span>
+<span class="sd">        param_config = Namespace(</span>
+<span class="sd">            requires_grad=True,</span>
+<span class="sd">            initial_dist=&quot;Normal&quot;,</span>
+<span class="sd">            mean=0,</span>
+<span class="sd">            std=1,</span>
+<span class="sd">            mode=&quot;sample&quot;,</span>
+<span class="sd">        )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">raw_values</span><span class="p">:</span> <span class="n">Tensor</span>
+    <span class="n">readers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]</span>
+
+    <span class="c1"># def __new__(cls, param_config: Namespace, *args, **kwargs):</span>
+    <span class="c1">#     return forward_subclass(cls, param_config, subclass_key=&quot;initial_dist&quot;)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">semantic_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optional reparametrization of raw values invoked for computation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_values</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> (semantic values): </span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">semantic_values</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_values</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">clamp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;To clamp the raw_values of the parameters at initialization.</span>
+
+<span class="sd">        Note, mild clash with raw_values/semantic_values reparametrization.</span>
+<span class="sd">        Parameters that use reparametrization in terms of semantic_values</span>
+<span class="sd">        should not use clamp.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;non_negative&quot;</span><span class="p">:</span>
+            <span class="n">values</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">values</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="o">*</span><span class="n">mode</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">values</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ParameterConfigError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2"> not a valid argument for clamp&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">values</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="flyvision.initialization.InitialDistribution.semantic_values" class="doc doc-heading">
+            <code class=" language-python"><span class="n">semantic_values</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#flyvision.initialization.InitialDistribution.semantic_values" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Optional reparametrization of raw values invoked for computation.</p>
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="flyvision.initialization.InitialDistribution.clamp" class="doc doc-heading">
+            <code class=" language-python"><span class="n">clamp</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span></code>
+
+<a href="#flyvision.initialization.InitialDistribution.clamp" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>To clamp the raw_values of the parameters at initialization.</p>
+<p>Note, mild clash with raw_values/semantic_values reparametrization.
+Parameters that use reparametrization in terms of semantic_values
+should not use clamp.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/initialization.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">clamp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;To clamp the raw_values of the parameters at initialization.</span>
+
+<span class="sd">    Note, mild clash with raw_values/semantic_values reparametrization.</span>
+<span class="sd">    Parameters that use reparametrization in terms of semantic_values</span>
+<span class="sd">    should not use clamp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;non_negative&quot;</span><span class="p">:</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="o">*</span><span class="n">mode</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">values</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ParameterConfigError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2"> not a valid argument for clamp&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">values</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.Value" class="doc doc-heading">
+            <code>Value</code>
+
+
+<a href="#flyvision.initialization.Value" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.InitialDistribution" href="#flyvision.initialization.InitialDistribution">InitialDistribution</a></code></p>
+
+
+        <p>Initializes parameters with a single value.</p>
+
+
+<details class="example-param_config" open>
+  <summary>Example param_config</summary>
+  <p>param_config = Namespace(
+    requires_grad=True,
+    initial_dist=&rdquo;Value&rdquo;,
+    value=0,
+)</p>
+</details>
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Value</span><span class="p">(</span><span class="n">InitialDistribution</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes parameters with a single value.</span>
+
+<span class="sd">    Example param_config:</span>
+<span class="sd">        param_config = Namespace(</span>
+<span class="sd">            requires_grad=True,</span>
+<span class="sd">            initial_dist=&quot;Value&quot;,</span>
+<span class="sd">            value=0,</span>
+<span class="sd">        )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># def __init__(self, param_config: Namespace) -&gt; None:</span>
+    <span class="c1">#     _values = torch.tensor(param_config.value).float()</span>
+    <span class="c1">#     _values = self.clamp(_values, param_config)</span>
+    <span class="c1">#     self.raw_values = nn.Parameter(</span>
+    <span class="c1">#         _values, requires_grad=param_config.requires_grad</span>
+    <span class="c1">#     )</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">requires_grad</span><span class="p">,</span> <span class="n">clamp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">_values</span><span class="p">,</span> <span class="n">clamp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_values</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">_values</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">requires_grad</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.Normal" class="doc doc-heading">
+            <code>Normal</code>
+
+
+<a href="#flyvision.initialization.Normal" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.InitialDistribution" href="#flyvision.initialization.InitialDistribution">InitialDistribution</a></code></p>
+
+
+        <p>Initializes parameters independently from normal distributions.</p>
+
+
+<details class="example-param_config" open>
+  <summary>Example param_config</summary>
+  <p>param_config = Namespace(
+    requires_grad=True,
+    initial_dist=&rdquo;Normal&rdquo;,
+    mean=0,
+    std=1,
+    mode=&rdquo;sample&rdquo;,
+)</p>
+</details>
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Normal</span><span class="p">(</span><span class="n">InitialDistribution</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes parameters independently from normal distributions.</span>
+
+<span class="sd">    Example param_config:</span>
+<span class="sd">        param_config = Namespace(</span>
+<span class="sd">            requires_grad=True,</span>
+<span class="sd">            initial_dist=&quot;Normal&quot;,</span>
+<span class="sd">            mean=0,</span>
+<span class="sd">            std=1,</span>
+<span class="sd">            mode=&quot;sample&quot;,</span>
+<span class="sd">        )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">,</span> <span class="n">requires_grad</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;sample&quot;</span><span class="p">,</span> <span class="n">clamp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+            <span class="n">_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;sample&quot;</span><span class="p">:</span>
+            <span class="c1"># set seed for reproducibility and avoid seeding the global RNG</span>
+            <span class="n">generator</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">generator</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">generator</span><span class="o">.</span><span class="n">seed</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">std</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+                    <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Failed to sample from normal with mean </span><span class="si">{</span><span class="n">mean</span><span class="si">}</span><span class="s2"> and std </span><span class="si">{</span><span class="n">std</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Mode must be either mean or sample.&quot;</span><span class="p">)</span>
+        <span class="n">_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">_values</span><span class="p">,</span> <span class="n">clamp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_values</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">_values</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">requires_grad</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.Lognormal" class="doc doc-heading">
+            <code>Lognormal</code>
+
+
+<a href="#flyvision.initialization.Lognormal" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.Normal" href="#flyvision.initialization.Normal">Normal</a></code></p>
+
+
+        <p>Initializes parameters independently from lognormal distributions.</p>
+
+
+<details class="example-param_config" open>
+  <summary>Example param_config</summary>
+  <p>param_config = Namespace(
+    requires_grad=True,
+    initial_dist=&rdquo;Lognormal&rdquo;,
+    mean=0,
+    std=1,
+    mode=&rdquo;sample&rdquo;,
+)</p>
+</details>        <p>Note, the lognormal distribution reparametrizes a normal through semantic
+values.</p>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Lognormal</span><span class="p">(</span><span class="n">Normal</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes parameters independently from lognormal distributions.</span>
+
+<span class="sd">    Example param_config:</span>
+<span class="sd">        param_config = Namespace(</span>
+<span class="sd">            requires_grad=True,</span>
+<span class="sd">            initial_dist=&quot;Lognormal&quot;,</span>
+<span class="sd">            mean=0,</span>
+<span class="sd">            std=1,</span>
+<span class="sd">            mode=&quot;sample&quot;,</span>
+<span class="sd">        )</span>
+
+<span class="sd">    Note, the lognormal distribution reparametrizes a normal through semantic</span>
+<span class="sd">    values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># __init__ = Normal.__init__</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">semantic_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;n_syn ~ self._values.exp().&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_values</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="flyvision.initialization.Lognormal.semantic_values" class="doc doc-heading">
+            <code class=" language-python"><span class="n">semantic_values</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#flyvision.initialization.Lognormal.semantic_values" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>n_syn ~ self._values.exp().</p>
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.Parameter" class="doc doc-heading">
+            <code>Parameter</code>
+
+
+<a href="#flyvision.initialization.Parameter" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>Base class for all parameters to share across nodes or edges.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>param_config</code></td>
+            <td>
+                  <code><span title="datamate.Namespace">Namespace</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Namespace containing parameter configuration.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>connectome</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="flyvision.connectome.ConnectomeDir" href="../connectome/#flyvision.connectome.ConnectomeDir">ConnectomeDir</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Connectome object.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="flyvision.initialization.Parameter.parameter">parameter</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="flyvision.initialization.InitialDistribution" href="#flyvision.initialization.InitialDistribution">InitialDistribution</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>InitialDistribution object.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="flyvision.initialization.Parameter.indices">indices</span></code></td>
+            <td>
+                  <code><span title="torch.Tensor">Tensor</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Indices for parameter sharing.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="flyvision.initialization.Parameter.keys">keys</span></code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Keys to access individual parameter values associated with
+certain identifiers.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="flyvision.initialization.Parameter.symmetry_masks">symmetry_masks</span></code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="torch.Tensor">Tensor</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Symmetry masks that can be configured optionally to
+apply further symmetry constraints to the parameter values.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="extension-point" open>
+  <summary>Extension point</summary>
+  <p>subclasses must implement <strong>init</strong>(self, param_config, connectome_dir).
+<strong>init</strong> must configure the above attributes.
+<strong>init</strong> should be decorated with @deepcopy_config when <strong>init</strong> updates
+param_config to ensure param_config is not mutated in the outer scope, .
+<strong>init</strong> udpates param_config to contain key value pairs informed by
+connectome and matching the desired InitialDistribution.
+<strong>init</strong> stores <code>parameter</code> from InitialDistribution(param_config), which
+constructs and holds the nn.Parameter.
+<strong>init</strong> stores <code>indices</code> for parameter sharing through
+<code>get_scatter_indices(dataframe, grouped_dataframe, groupby)</code>.
+<strong>init</strong> stores <code>keys</code> to access individual
+parameter values associated with certain identifiers.
+<strong>init</strong> stores <code>symmetry_masks</code> that can be configured optionally
+to apply further symmetry constraints to the parameter values.</p>
+<p>Example:
+    class MyParameter(Parameter):
+        def <strong>init</strong>(self, param_config, connectome_dir):
+            nodes_dir = connectome.nodes</p>
+<div class="codehilite"><pre><span></span><code>        nodes = pd.DataFrame(
+            {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}
+        )
+        grouped_nodes = nodes.groupby(
+            param_config.groupby, as_index=False, sort=False
+        ).first()
+
+        param_config[&quot;type&quot;] = grouped_nodes[&quot;type&quot;].values
+        param_config[&quot;mean&quot;] = np.repeat(param_config[&quot;mean&quot;],
+                                         len(grouped_nodes))
+        param_config[&quot;std&quot;] = np.repeat(param_config[&quot;std&quot;],
+                                        len(grouped_nodes))
+
+        self.parameter = InitialDistribution(param_config)
+        self.indices = get_scatter_indices(nodes,
+                                           grouped_nodes,
+                                           param_config.groupby)
+        self.keys = param_config[&quot;type&quot;].tolist()
+        self.symmetry_masks = symmetry_masks(
+            param_config.get(&quot;symmetric&quot;, []), self.keys
+        )
+param_config = Namespace(
+        type=&quot;MyParameter&quot;,
+        mean=0,
+        std=1,
+        groupby=[&quot;type&quot;],
+        requires_grad=True
+    )
+param = Parameter(param_config, connectome)
+type(param) == MyParameter
+</code></pre></div>
+</details>
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Parameter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for all parameters to share across nodes or edges.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        param_config: Namespace containing parameter configuration.</span>
+<span class="sd">        connectome: Connectome object.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        parameter: InitialDistribution object.</span>
+<span class="sd">        indices: Indices for parameter sharing.</span>
+<span class="sd">        keys: Keys to access individual parameter values associated with</span>
+<span class="sd">            certain identifiers.</span>
+<span class="sd">        symmetry_masks: Symmetry masks that can be configured optionally to</span>
+<span class="sd">            apply further symmetry constraints to the parameter values.</span>
+
+<span class="sd">    Extension point:</span>
+<span class="sd">        subclasses must implement __init__(self, param_config, connectome_dir).</span>
+<span class="sd">        __init__ must configure the above attributes.</span>
+<span class="sd">        __init__ should be decorated with @deepcopy_config when __init__ updates</span>
+<span class="sd">        param_config to ensure param_config is not mutated in the outer scope, .</span>
+<span class="sd">        __init__ udpates param_config to contain key value pairs informed by</span>
+<span class="sd">        connectome and matching the desired InitialDistribution.</span>
+<span class="sd">        __init__ stores `parameter` from InitialDistribution(param_config), which</span>
+<span class="sd">        constructs and holds the nn.Parameter.</span>
+<span class="sd">        __init__ stores `indices` for parameter sharing through</span>
+<span class="sd">        `get_scatter_indices(dataframe, grouped_dataframe, groupby)`.</span>
+<span class="sd">        __init__ stores `keys` to access individual</span>
+<span class="sd">        parameter values associated with certain identifiers.</span>
+<span class="sd">        __init__ stores `symmetry_masks` that can be configured optionally</span>
+<span class="sd">        to apply further symmetry constraints to the parameter values.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            class MyParameter(Parameter):</span>
+<span class="sd">                def __init__(self, param_config, connectome_dir):</span>
+<span class="sd">                    nodes_dir = connectome.nodes</span>
+
+<span class="sd">                    nodes = pd.DataFrame(</span>
+<span class="sd">                        {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}</span>
+<span class="sd">                    )</span>
+<span class="sd">                    grouped_nodes = nodes.groupby(</span>
+<span class="sd">                        param_config.groupby, as_index=False, sort=False</span>
+<span class="sd">                    ).first()</span>
+
+<span class="sd">                    param_config[&quot;type&quot;] = grouped_nodes[&quot;type&quot;].values</span>
+<span class="sd">                    param_config[&quot;mean&quot;] = np.repeat(param_config[&quot;mean&quot;],</span>
+<span class="sd">                                                     len(grouped_nodes))</span>
+<span class="sd">                    param_config[&quot;std&quot;] = np.repeat(param_config[&quot;std&quot;],</span>
+<span class="sd">                                                    len(grouped_nodes))</span>
+
+<span class="sd">                    self.parameter = InitialDistribution(param_config)</span>
+<span class="sd">                    self.indices = get_scatter_indices(nodes,</span>
+<span class="sd">                                                       grouped_nodes,</span>
+<span class="sd">                                                       param_config.groupby)</span>
+<span class="sd">                    self.keys = param_config[&quot;type&quot;].tolist()</span>
+<span class="sd">                    self.symmetry_masks = symmetry_masks(</span>
+<span class="sd">                        param_config.get(&quot;symmetric&quot;, []), self.keys</span>
+<span class="sd">                    )</span>
+<span class="sd">            param_config = Namespace(</span>
+<span class="sd">                    type=&quot;MyParameter&quot;,</span>
+<span class="sd">                    mean=0,</span>
+<span class="sd">                    std=1,</span>
+<span class="sd">                    groupby=[&quot;type&quot;],</span>
+<span class="sd">                    requires_grad=True</span>
+<span class="sd">                )</span>
+<span class="sd">            param = Parameter(param_config, connectome)</span>
+<span class="sd">            type(param) == MyParameter</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">parameter</span><span class="p">:</span> <span class="n">InitialDistribution</span>
+    <span class="n">indices</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">symmetry_masks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+    <span class="n">keys</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+
+    <span class="nd">@deepcopy_config</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_config</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">connectome</span><span class="p">:</span> <span class="n">ConnectomeDir</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">init_arg_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__annotations__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">dir_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">[</span><span class="n">init_arg_names</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">dir_type</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">raw_values</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">raw_values</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">raw_values</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_values</span><span class="p">)</span>
+
+    <span class="c1"># -- InitialDistribution API</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">raw_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">raw_values</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">semantic_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">semantic_values</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">readers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">readers</span>
+
+    <span class="nd">@readers</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">readers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">readers</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_symmetry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return symmetry constraints from symmetry masks for debugging.&quot;&quot;&quot;</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">keys</span><span class="p">[</span><span class="n">mask</span><span class="o">.</span><span class="n">cpu</span><span class="p">()]</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry_masks</span><span class="p">]</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.RestingPotential" class="doc doc-heading">
+            <code>RestingPotential</code>
+
+
+<a href="#flyvision.initialization.RestingPotential" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.Parameter" href="#flyvision.initialization.Parameter">Parameter</a></code></p>
+
+
+        <p>Initialize resting potentials a.k.a. biases for cell types.</p>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span>
+<span class="normal">337</span>
+<span class="normal">338</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span>
+<span class="normal">343</span>
+<span class="normal">344</span>
+<span class="normal">345</span>
+<span class="normal">346</span>
+<span class="normal">347</span>
+<span class="normal">348</span>
+<span class="normal">349</span>
+<span class="normal">350</span>
+<span class="normal">351</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">RestingPotential</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize resting potentials a.k.a. biases for cell types.&quot;&quot;&quot;</span>
+
+    <span class="nd">@deepcopy_config</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_config</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">connectome</span><span class="p">:</span> <span class="n">ConnectomeDir</span><span class="p">):</span>
+        <span class="n">nodes_dir</span> <span class="o">=</span> <span class="n">connectome</span><span class="o">.</span><span class="n">nodes</span>
+
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">byte_to_str</span><span class="p">(</span><span class="n">nodes_dir</span><span class="p">[</span><span class="n">k</span><span class="p">][:])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span>
+        <span class="p">})</span>
+        <span class="n">grouped_nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grouped_nodes</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">grouped_nodes</span><span class="p">))</span>
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">grouped_nodes</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">forward_subclass</span><span class="p">(</span>
+            <span class="n">InitialDistribution</span><span class="p">,</span> <span class="n">param_config</span><span class="p">,</span> <span class="n">subclass_key</span><span class="o">=</span><span class="s2">&quot;initial_dist&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">get_scatter_indices</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">grouped_nodes</span><span class="p">,</span> <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetry_masks</span> <span class="o">=</span> <span class="n">symmetry_masks</span><span class="p">(</span><span class="n">param_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;symmetric&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.TimeConstant" class="doc doc-heading">
+            <code>TimeConstant</code>
+
+
+<a href="#flyvision.initialization.TimeConstant" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.Parameter" href="#flyvision.initialization.Parameter">Parameter</a></code></p>
+
+
+        <p>Initialize time constants for cell types.</p>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">354</span>
+<span class="normal">355</span>
+<span class="normal">356</span>
+<span class="normal">357</span>
+<span class="normal">358</span>
+<span class="normal">359</span>
+<span class="normal">360</span>
+<span class="normal">361</span>
+<span class="normal">362</span>
+<span class="normal">363</span>
+<span class="normal">364</span>
+<span class="normal">365</span>
+<span class="normal">366</span>
+<span class="normal">367</span>
+<span class="normal">368</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">TimeConstant</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize time constants for cell types.&quot;&quot;&quot;</span>
+
+    <span class="nd">@deepcopy_config</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_config</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">connectome</span><span class="p">:</span> <span class="n">ConnectomeDir</span><span class="p">):</span>
+        <span class="n">nodes_dir</span> <span class="o">=</span> <span class="n">connectome</span><span class="o">.</span><span class="n">nodes</span>
+
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">byte_to_str</span><span class="p">(</span><span class="n">nodes_dir</span><span class="p">[</span><span class="n">k</span><span class="p">][:])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span>
+        <span class="p">})</span>
+        <span class="n">grouped_nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grouped_nodes</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">grouped_nodes</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">get_scatter_indices</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">grouped_nodes</span><span class="p">,</span> <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">forward_subclass</span><span class="p">(</span>
+            <span class="n">InitialDistribution</span><span class="p">,</span> <span class="n">param_config</span><span class="p">,</span> <span class="n">subclass_key</span><span class="o">=</span><span class="s2">&quot;initial_dist&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="n">param_config</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetry_masks</span> <span class="o">=</span> <span class="n">symmetry_masks</span><span class="p">(</span><span class="n">param_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;symmetric&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.SynapseSign" class="doc doc-heading">
+            <code>SynapseSign</code>
+
+
+<a href="#flyvision.initialization.SynapseSign" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.Parameter" href="#flyvision.initialization.Parameter">Parameter</a></code></p>
+
+
+        <p>Initialize synapse signs for edge types.</p>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">382</span>
+<span class="normal">383</span>
+<span class="normal">384</span>
+<span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span>
+<span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span>
+<span class="normal">391</span>
+<span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SynapseSign</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize synapse signs for edge types.&quot;&quot;&quot;</span>
+
+    <span class="nd">@deepcopy_config</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_config</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">connectome</span><span class="p">:</span> <span class="n">ConnectomeDir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">edges_dir</span> <span class="o">=</span> <span class="n">connectome</span><span class="o">.</span><span class="n">edges</span>
+
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">byte_to_str</span><span class="p">(</span><span class="n">edges_dir</span><span class="p">[</span><span class="n">k</span><span class="p">][:])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="o">*</span><span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="s2">&quot;sign&quot;</span><span class="p">]</span>
+        <span class="p">})</span>
+        <span class="n">grouped_edges</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="n">param_config</span><span class="o">.</span><span class="n">source_type</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">source_type</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">target_type</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">target_type</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">sign</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">get_scatter_indices</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">grouped_edges</span><span class="p">,</span> <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">forward_subclass</span><span class="p">(</span>
+            <span class="n">InitialDistribution</span><span class="p">,</span> <span class="n">param_config</span><span class="p">,</span> <span class="n">subclass_key</span><span class="o">=</span><span class="s2">&quot;initial_dist&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">source_type</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">target_type</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetry_masks</span> <span class="o">=</span> <span class="n">symmetry_masks</span><span class="p">(</span><span class="n">param_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;symmetric&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.SynapseCount" class="doc doc-heading">
+            <code>SynapseCount</code>
+
+
+<a href="#flyvision.initialization.SynapseCount" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.Parameter" href="#flyvision.initialization.Parameter">Parameter</a></code></p>
+
+
+        <p>Initialize synapse counts for edge types.</p>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span>
+<span class="normal">429</span>
+<span class="normal">430</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SynapseCount</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize synapse counts for edge types.&quot;&quot;&quot;</span>
+
+    <span class="nd">@deepcopy_config</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_config</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">connectome</span><span class="p">:</span> <span class="n">ConnectomeDir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">param_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SynapseCount does not implement </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">. Implement &quot;</span>
+                <span class="s2">&quot;a custom Parameter subclass.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">edges_dir</span> <span class="o">=</span> <span class="n">connectome</span><span class="o">.</span><span class="n">edges</span>
+
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">byte_to_str</span><span class="p">(</span><span class="n">edges_dir</span><span class="p">[</span><span class="n">k</span><span class="p">][:])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="o">*</span><span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="s2">&quot;n_syn&quot;</span><span class="p">]</span>
+        <span class="p">})</span>
+        <span class="n">grouped_edges</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="n">param_config</span><span class="o">.</span><span class="n">source_type</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">source_type</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">target_type</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">target_type</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">du</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">du</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">dv</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">dv</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="n">param_config</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">grouped_edges</span><span class="o">.</span><span class="n">n_syn</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">get_scatter_indices</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">grouped_edges</span><span class="p">,</span> <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">forward_subclass</span><span class="p">(</span>
+            <span class="n">InitialDistribution</span><span class="p">,</span> <span class="n">param_config</span><span class="p">,</span> <span class="n">subclass_key</span><span class="o">=</span><span class="s2">&quot;initial_dist&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">source_type</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">target_type</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">du</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">dv</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetry_masks</span> <span class="o">=</span> <span class="n">symmetry_masks</span><span class="p">(</span><span class="n">param_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;symmetric&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.initialization.SynapseCountScaling" class="doc doc-heading">
+            <code>SynapseCountScaling</code>
+
+
+<a href="#flyvision.initialization.SynapseCountScaling" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="flyvision.initialization.Parameter" href="#flyvision.initialization.Parameter">Parameter</a></code></p>
+
+
+        <p>Initialize synapse count scaling for edge types.</p>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/initialization.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SynapseCountScaling</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize synapse count scaling for edge types.&quot;&quot;&quot;</span>
+
+    <span class="nd">@deepcopy_config</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_config</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">connectome</span><span class="p">:</span> <span class="n">ConnectomeDir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">edges_dir</span> <span class="o">=</span> <span class="n">connectome</span><span class="o">.</span><span class="n">edges</span>
+
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">byte_to_str</span><span class="p">(</span><span class="n">edges_dir</span><span class="p">[</span><span class="n">k</span><span class="p">][:])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="o">*</span><span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="s2">&quot;n_syn&quot;</span><span class="p">]</span>
+        <span class="p">})</span>
+        <span class="n">grouped_edges</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># to initialize synapse strengths with 1/&lt;N&gt;_rf</span>
+        <span class="n">syn_strength</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">n_syn</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># 1/&lt;N&gt;_rf</span>
+
+        <span class="c1"># scale synapse strengths of chemical and electrical synapses</span>
+        <span class="c1"># individually</span>
+        <span class="n">syn_strength</span><span class="p">[</span><span class="n">grouped_edges</span><span class="p">[</span><span class="n">grouped_edges</span><span class="o">.</span><span class="n">edge_type</span> <span class="o">==</span> <span class="s2">&quot;chem&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="o">*=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="p">,</span> <span class="s2">&quot;scale_chem&quot;</span><span class="p">,</span> <span class="mf">0.01</span>
+        <span class="p">)</span>
+        <span class="n">syn_strength</span><span class="p">[</span><span class="n">grouped_edges</span><span class="p">[</span><span class="n">grouped_edges</span><span class="o">.</span><span class="n">edge_type</span> <span class="o">==</span> <span class="s2">&quot;elec&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="o">*=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">param_config</span><span class="p">,</span> <span class="s2">&quot;scale_elec&quot;</span><span class="p">,</span> <span class="mf">0.01</span>
+        <span class="p">)</span>
+
+        <span class="n">param_config</span><span class="o">.</span><span class="n">target_type</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">target_type</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">source_type</span> <span class="o">=</span> <span class="n">grouped_edges</span><span class="o">.</span><span class="n">source_type</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">param_config</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">syn_strength</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">get_scatter_indices</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">grouped_edges</span><span class="p">,</span> <span class="n">param_config</span><span class="o">.</span><span class="n">groupby</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">forward_subclass</span><span class="p">(</span>
+            <span class="n">InitialDistribution</span><span class="p">,</span> <span class="n">param_config</span><span class="p">,</span> <span class="n">subclass_key</span><span class="o">=</span><span class="s2">&quot;initial_dist&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">source_type</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                <span class="n">param_config</span><span class="o">.</span><span class="n">target_type</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetry_masks</span> <span class="o">=</span> <span class="n">symmetry_masks</span><span class="p">(</span><span class="n">param_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;symmetric&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="flyvision.initialization.deepcopy_config" class="doc doc-heading">
+            <code class=" language-python"><span class="n">deepcopy_config</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></code>
+
+<a href="#flyvision.initialization.deepcopy_config" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Decorator to deepcopy the parameter configuration.</p>
+<p>Note, this is necessary because the parameter configuration is updated
+in the <strong>init</strong> method of the parameter classes and prevents mutation of the
+param_config in the outer scope.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/initialization.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">deepcopy_config</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator to deepcopy the parameter configuration.</span>
+
+<span class="sd">    Note, this is necessary because the parameter configuration is updated</span>
+<span class="sd">    in the __init__ method of the parameter classes and prevents mutation of the</span>
+<span class="sd">    param_config in the outer scope.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_config</span><span class="p">,</span> <span class="n">connectome</span><span class="p">):</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">param_config</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">param_config</span><span class="p">),</span> <span class="n">connectome</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wrapper</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="flyvision.initialization.get_scatter_indices" class="doc doc-heading">
+            <code class=" language-python"><span class="n">get_scatter_indices</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">grouped_dataframe</span><span class="p">,</span> <span class="n">groupby</span><span class="p">)</span></code>
+
+<a href="#flyvision.initialization.get_scatter_indices" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Indices for scattering operations to share parameters.</p>
+<p>Maps each node/edge from the complete computational graph to a parameter
+index.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>dataframe</code></td>
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>dataframe of nodes or edges of the graph.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>grouped_dataframe</code></td>
+            <td>
+                  <code>list</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>aggregated version of the same dataframe.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>groupby</code></td>
+            <td>
+                  <code>list</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the same columns from which the grouped_dataframe was
+constructed.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>For N elements that are grouped into M groups, this function
+returns N indices from 0 to M-1 that can be used to scatter the
+parameters of the M groups to the N elements.</p>
+<p>To illustrate, consider the following simplified example:
+    elements = [&ldquo;A&rdquo;, &ldquo;A&rdquo;, &ldquo;A&rdquo;, &ldquo;B&rdquo;, &ldquo;B&rdquo;, &ldquo;C&rdquo;, &ldquo;D&rdquo;, &ldquo;D&rdquo;, &ldquo;E&rdquo;]
+    groups = [&ldquo;A&rdquo;, &ldquo;B&rdquo;, &ldquo;C&rdquo;, &ldquo;D&rdquo;, &ldquo;E&rdquo;]
+    parameter = [1, 2, 3, 4, 5]
+    # get_scatter_indices would return
+    scatter_indices = [0, 0, 0, 1, 1, 2, 3, 3, 4]
+    scattered_parameters = [parameter[idx] for idx in scatter_indices]
+    scattered_parameters == [1, 1, 1, 2, 2, 3, 4, 4, 5]</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/initialization.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_scatter_indices</span><span class="p">(</span>
+    <span class="n">dataframe</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">grouped_dataframe</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">groupby</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Indices for scattering operations to share parameters.</span>
+
+<span class="sd">    Maps each node/edge from the complete computational graph to a parameter</span>
+<span class="sd">    index.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataframe (pd.DataFrame): dataframe of nodes or edges of the graph.</span>
+<span class="sd">        grouped_dataframe (list): aggregated version of the same dataframe.</span>
+<span class="sd">        groupby (list): the same columns from which the grouped_dataframe was</span>
+<span class="sd">            constructed.</span>
+
+<span class="sd">    For N elements that are grouped into M groups, this function</span>
+<span class="sd">    returns N indices from 0 to M-1 that can be used to scatter the</span>
+<span class="sd">    parameters of the M groups to the N elements.</span>
+
+<span class="sd">    To illustrate, consider the following simplified example:</span>
+<span class="sd">        elements = [&quot;A&quot;, &quot;A&quot;, &quot;A&quot;, &quot;B&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;D&quot;, &quot;E&quot;]</span>
+<span class="sd">        groups = [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;E&quot;]</span>
+<span class="sd">        parameter = [1, 2, 3, 4, 5]</span>
+<span class="sd">        # get_scatter_indices would return</span>
+<span class="sd">        scatter_indices = [0, 0, 0, 1, 1, 2, 3, 3, 4]</span>
+<span class="sd">        scattered_parameters = [parameter[idx] for idx in scatter_indices]</span>
+<span class="sd">        scattered_parameters == [1, 1, 1, 2, 2, 3, 4, 4, 5]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ungrouped_elements</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">dataframe</span><span class="p">[</span><span class="n">k</span><span class="p">][:]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">])</span>
+    <span class="n">grouped_elements</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">grouped_dataframe</span><span class="p">[</span><span class="n">k</span><span class="p">][:]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">])</span>
+    <span class="n">to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grouped_elements</span><span class="p">)}</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">to_index</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ungrouped_elements</span><span class="p">])</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="flyvision.initialization.symmetry_masks" class="doc doc-heading">
+            <code class=" language-python"><span class="n">symmetry_masks</span><span class="p">(</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">as_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+<a href="#flyvision.initialization.symmetry_masks" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Masks subsets of parameters for joint constraints e.g. to their mean.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>symmetric</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>contains subsets of keys that point to the subsets
+of parameters to be indexed.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>keys</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list of keys that point to individual parameter values.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>as_mask</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if True, returns a boolean mask, otherwise integer indices.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="torch.Tensor">Tensor</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list of masks List[torch.BoolTensor]</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Note: this is experimental for configuration-based fine-grained shared
+parameter optimization, e.g. for models includig multi-compartment cells
+or gap junctions.
+Example 1:
+for node type parameters with individual node types as keys
+    symmetric = [[&ldquo;T4a&rdquo;, &ldquo;T4b&rdquo;, &ldquo;T4c&rdquo;, &ldquo;T4d&rdquo;],
+                 [&ldquo;T5a&rdquo;, &ldquo;T5b&rdquo;, &ldquo;T5c&rdquo;, &ldquo;T5d&rdquo;]]
+would be used to constrain the parameter values of all T4 subtypes to
+their joint mean and the parameter values of all T5 subtypes to their
+joint mean.
+Exaple 2:
+for edge type parameters with individual edge types as keys
+    symmetric = [[(&ldquo;CT1(M10)&rdquo;, &ldquo;CT1(Lo1)&rdquo;), (&ldquo;CT1(Lo1)&rdquo;, &ldquo;CT1(M10)&rdquo;)]]
+would be used to constrain the edge parameter of the directed edge from
+CT1(M10) to CT1(Lo1) and the directed edge from CT1(Lo1) to CT1(M10) to
+their joint mean.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/initialization.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">symmetry_masks</span><span class="p">(</span>
+    <span class="n">symmetric</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">keys</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">as_mask</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Masks subsets of parameters for joint constraints e.g. to their mean.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symmetric: contains subsets of keys that point to the subsets</span>
+<span class="sd">            of parameters to be indexed.</span>
+<span class="sd">        keys: list of keys that point to individual parameter values.</span>
+<span class="sd">        as_mask: if True, returns a boolean mask, otherwise integer indices.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list of masks List[torch.BoolTensor]</span>
+
+<span class="sd">    Note: this is experimental for configuration-based fine-grained shared</span>
+<span class="sd">    parameter optimization, e.g. for models includig multi-compartment cells</span>
+<span class="sd">    or gap junctions.</span>
+<span class="sd">    Example 1:</span>
+<span class="sd">    for node type parameters with individual node types as keys</span>
+<span class="sd">        symmetric = [[&quot;T4a&quot;, &quot;T4b&quot;, &quot;T4c&quot;, &quot;T4d&quot;],</span>
+<span class="sd">                     [&quot;T5a&quot;, &quot;T5b&quot;, &quot;T5c&quot;, &quot;T5d&quot;]]</span>
+<span class="sd">    would be used to constrain the parameter values of all T4 subtypes to</span>
+<span class="sd">    their joint mean and the parameter values of all T5 subtypes to their</span>
+<span class="sd">    joint mean.</span>
+<span class="sd">    Exaple 2:</span>
+<span class="sd">    for edge type parameters with individual edge types as keys</span>
+<span class="sd">        symmetric = [[(&quot;CT1(M10)&quot;, &quot;CT1(Lo1)&quot;), (&quot;CT1(Lo1)&quot;, &quot;CT1(M10)&quot;)]]</span>
+<span class="sd">    would be used to constrain the edge parameter of the directed edge from</span>
+<span class="sd">    CT1(M10) to CT1(Lo1) and the directed edge from CT1(Lo1) to CT1(M10) to</span>
+<span class="sd">    their joint mean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="n">symmetry_masks</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[torch.Tensor]</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="n">atleast_column_vector</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">identifiers</span> <span class="ow">in</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="n">identifiers</span> <span class="o">=</span> <span class="n">atleast_column_vector</span><span class="p">(</span><span class="n">identifiers</span><span class="p">)</span>
+        <span class="c1"># to allow identifiers like [None, &quot;A&quot;, None, 0]</span>
+        <span class="c1"># for parameters that have tuples as keys</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">identifiers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">identifiers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">symmetry_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="n">where_equal_rows</span><span class="p">(</span>
+                        <span class="n">identifiers</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">],</span> <span class="n">keys</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">],</span> <span class="n">as_mask</span><span class="o">=</span><span class="n">as_mask</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">identifiers</span><span class="si">}</span><span class="s2"> cannot be a symmetry constraint&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; for parameter with keys </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+    <span class="k">return</span> <span class="n">symmetry_masks</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+      
+    
+  </body>
+</html>

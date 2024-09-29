@@ -1,12 +1,39 @@
-site_name: Jaxley
-site_url: "https://jaxleyverse.github.io/jaxley"
+site_name: Flyvis
+site_url: "https://flyvis.github.io/"
 
 nav:
   - Home: index.md
   - Installation: install.md
-
-repo_name: 'jaxleyverse/jaxley'
-repo_url: http://github.com/jaxleyverse/jaxley
+  - Tutorials:
+    - Explore the connectome: examples/01_flyvision_connectome.md
+    - Train the network: examples/02_flyvision_optic_flow_task.md
+    - Flash responses: examples/03_flyvision_flash_responses.md
+    - Moving edge responses: examples/04_flyvision_moving_edge_responses.md
+    - Ensemble clustering: examples/05_flyvision_umap_and_clustering_models.md
+    - Maximally excitatory stimuli: examples/06_flyvision_maximally_excitatory_stimuli.md
+    - Custom stimuli: examples/07_flyvision_providing_custom_stimuli.md
+  - Contributing: contribute.md
+  - API Reference:
+    # - "flyvision": reference/flyvision.md
+    - "flyvision.connectome": reference/connectome.md
+    - "flyvision.network.Network": reference/network.md
+    - "flyvision.network.NetworkView": reference/network_view.md
+    - "flyvision.initialization": reference/initialization.md
+    - "flyvision.decoder": reference/decoder.md
+    - "flyvision.objectives": reference/objectives.md
+    - "flyvision.tasks": reference/tasks.md
+    - "flyvision.solver": reference/solver.md
+    - "flyvision.ensemble": reference/ensemble.md
+    - "flyvision.ensembleview": reference/ensemble_view.md
+    - "flyvision.datasets": reference/datasets.md
+    - "flyvision.utils": reference/utils.md
+    - "flyvision.rendering": reference/rendering.md
+    - "flyvision.augmentation": reference/augmentation.md
+    - "flyvision.plots": reference/plots.md
+    - "flyvision.animations": reference/animations.md
+    - "flyvision.analysis": reference/analysis.md
+  - FAQ: faq.md
+  - Acknowledgements: acknowledgements.md
 
 theme:
   name: 'material'
@@ -15,9 +42,12 @@ theme:
   palette:
     primary: 'indigo'
     accent: 'indigo'
-  logo: logo_white.png
-  collapse_navigation: False
+  logo: images/logo_hexagon.jpg
+  collapse_navigation: false
 
+  extra:
+  version:
+    provider: mike
 
 markdown_extensions:
   - extra
@@ -52,6 +82,7 @@ markdown_extensions:
 
 plugins:
   - search
+  - mike
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -59,7 +90,8 @@ plugins:
           options:
             show_source: true
             heading_level: 3
-          paths: [..]
+            members_order: source
 
 watch:
   - ../flyvision
+

@@ -726,7 +726,8 @@ class Network(nn.Module):
             default_stim_key: key of the stimulus in the dataset if it returns
                 a dictionary.
 
-        Note: per default, applies a grey-scale stimulus for 1 second, no
+        Note:
+            per default, applies a grey-scale stimulus for 1 second, no
             fade-in stimulus.
 
         Returns:
@@ -897,15 +898,14 @@ class CheckpointedNetwork:
         return self.recover_fn(self.network, checkpoint or self.checkpoint)
 
     def __hash__(self):
-        """Hashable elements that uniquely determine the Network."""
         return hash((
             self.network_class,
             make_hashable(self.config),
             self.checkpoint,
         ))
 
+    # Equality check based on hashable elements.
     def __eq__(self, other):
-        """Equality check based on hashable elements."""
         if not isinstance(other, CheckpointedNetwork):
             return False
         return (
@@ -914,18 +914,15 @@ class CheckpointedNetwork:
             and self.checkpoint == other.checkpoint
         )
 
+    # Custom reduce method to make the object compatible with joblib's pickling.
+    # This ensures the 'network' attribute is never pickled.
+    # Return a tuple containing:
+    # 1. A callable that will recreate the object (here, the class itself)
+    # 2. The arguments required to recreate the object (excluding the network)
+    # 3. The state, excluding the 'network' attribute
     def __reduce__(self):
-        """
-        Custom reduce method to make the object compatible with joblib's pickling.
-        This ensures the 'network' attribute is never pickled.
-        """
-        # Return a tuple containing:
-        # 1. A callable that will recreate the object (here, the class itself)
-        # 2. The arguments required to recreate the object (excluding the network)
-        # 3. The state, excluding the 'network' attribute
-
         state = self.__dict__.copy()
-        state['network'] = None  # Exclude the complex network from being pickled
+        state["network"] = None  # Exclude the complex network from being pickled
 
         return (
             self.__class__,  # The callable (class itself)
@@ -939,10 +936,8 @@ class CheckpointedNetwork:
             state,  # State without the 'network' attribute
         )
 
+    # Restore the object's state, but do not load the network from the state.
     def __setstate__(self, state):
-        """
-        Restore the object's state, but do not load the network from the state.
-        """
         self.__dict__.update(state)
         self.network = (
             None  # The network will need to be reinitialized manually or via `init()`
@@ -1008,7 +1003,7 @@ class NetworkView:
         try:
             return object.__getattribute__(self, attr)
         except AttributeError:
-            connectome_view = object.__getattribute__(self, 'connectome_view')
+            connectome_view = object.__getattribute__(self, "connectome_view")
             try:
                 return getattr(connectome_view, attr)
             except AttributeError:

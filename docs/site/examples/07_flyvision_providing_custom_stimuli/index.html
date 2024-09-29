@@ -1,0 +1,1826 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://flyvis.github.io/examples/07_flyvision_providing_custom_stimuli/">
+      
+      
+        <link rel="prev" href="../06_flyvision_maximally_excitatory_stimuli/">
+      
+      
+        <link rel="next" href="../../contribute/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
+    
+    
+      
+        <title>Custom stimuli - Flyvis</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#providing-custom-stimuli" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Flyvis" class="md-header__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Flyvis
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Custom stimuli
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Flyvis" class="md-nav__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    Flyvis
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_flyvision_connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Explore the connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_flyvision_optic_flow_task/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Train the network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_flyvision_flash_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Flash responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_flyvision_moving_edge_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Moving edge responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_flyvision_umap_and_clustering_models/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ensemble clustering
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_flyvision_maximally_excitatory_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maximally excitatory stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Custom stimuli
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Custom stimuli
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example dataset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boxeye-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      BoxEye rendering
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BoxEye rendering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#render-a-single-frame" class="md-nav__link">
+    <span class="md-ellipsis">
+      Render a single frame
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#render-a-whole-dataset-to-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      Render a whole dataset to disk
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-a-sequence-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create a sequence dataset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compute-model-responses-to-custom-stimuli" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute model responses to custom stimuli
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compute-responses-over-the-whole-ensemble" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute responses over the whole ensemble
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/network/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/initialization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.initialization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decoder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.decoder
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/objectives/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.objectives
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/tasks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.tasks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/solver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.solver
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/network_view/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.networkview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ensemble/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.ensemble
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ensemble_view/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    flyvision.ensembleview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../acknowledgements/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgements
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example dataset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boxeye-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      BoxEye rendering
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BoxEye rendering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#render-a-single-frame" class="md-nav__link">
+    <span class="md-ellipsis">
+      Render a single frame
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#render-a-whole-dataset-to-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      Render a whole dataset to disk
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-a-sequence-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create a sequence dataset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compute-model-responses-to-custom-stimuli" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute model responses to custom stimuli
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compute-responses-over-the-whole-ensemble" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compute responses over the whole ensemble
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="providing-custom-stimuli">Providing custom stimuli<a class="headerlink" href="#providing-custom-stimuli" title="Permanent link">&para;</a></h1>
+<p>Follow this notebook to learn how to use our models for generating hypothesis about neural computations with custom stimuli.</p>
+<p><strong>Select GPU runtime</strong></p>
+<p>To run the notebook on a GPU select Menu -&gt; Runtime -&gt; Change runtime type -&gt; GPU.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># @markdown **Check access to GPU**</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">google.colab</span>
+
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">if</span> <span class="n">IN_COLAB</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">torch</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cuda_name</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_name</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Name of the assigned GPU / CUDA device: </span><span class="si">{</span><span class="n">cuda_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">warnings</span>
+
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;You have not selected Runtime Type: &#39;GPU&#39; or Google could not assign you one. Please revisit the settings as described above or proceed on CPU (slow).&quot;</span>
+        <span class="p">)</span>
+</code></pre></div>
+<p><strong>Install Flyvis</strong></p>
+<p>The notebook requires installing our package <code>flyvis</code>. You may need to restart your session after running the code block below with Menu -&gt; Runtime -&gt; Restart session. Then, imports from <code>flyvis</code> should succeed without issue.</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">IN_COLAB</span><span class="p">:</span>
+    <span class="c1">#@markdown **Install Flyvis**</span>
+    <span class="o">%%</span><span class="n">capture</span>
+    <span class="err">!</span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">flyvis</span><span class="o">/</span><span class="n">flyvis</span><span class="o">-</span><span class="n">dev</span><span class="o">.</span><span class="n">git</span>
+    <span class="o">%</span><span class="n">cd</span> <span class="o">/</span><span class="n">content</span><span class="o">/</span><span class="n">flyvis</span><span class="o">-</span><span class="n">dev</span>
+    <span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+</code></pre></div>
+<h2 id="example-dataset">Example dataset<a class="headerlink" href="#example-dataset" title="Permanent link">&para;</a></h2>
+<p>We take the public <a href="https://www.cs.toronto.edu/~nitish/unsupervised_video/">Moving MNIST</a> sequence dataset as an example for a custom stimulus dataset.
+Moving MNIST consists of short grey-scale videos of numbers from 1-10 which move in arbitrary directions. The dataset entails 10,000 sequences of 20 frames each. Individual frames are 64x64 pixels in height and width.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.dataset_utils</span> <span class="kn">import</span> <span class="n">load_moving_mnist</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">sequences</span> <span class="o">=</span> <span class="n">load_moving_mnist</span><span class="p">()</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># the whole dataset has dims (n_sequences, n_frames, height, width)</span>
+<span class="n">sequences</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>(10000, 20, 64, 64)
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">animation</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">Imshow</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">binary_r</span><span class="p">)</span>
+<span class="n">animation</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_9_0.png" /></p>
+<p>Alternative: for an alternative dataset that is generated at runtime and does not require a download try <code>random_walk_of_blocks</code>. As a simple drop-in replacement, this requires to replace <code>load_moving_mnist</code> with <code>random_walk_of_blocks</code> across the notebook.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">flyvision.utils.dataset_utils</span> <span class="kn">import</span> <span class="n">random_walk_of_blocks</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">sequences</span> <span class="o">=</span> <span class="n">random_walk_of_blocks</span><span class="p">()</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">animation</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">Imshow</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">binary_r</span><span class="p">)</span>
+<span class="n">animation</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_13_0.png" /></p>
+<h2 id="boxeye-rendering">BoxEye rendering<a class="headerlink" href="#boxeye-rendering" title="Permanent link">&para;</a></h2>
+<h5 id="rendering-cartesian-images-to-hexagonal-lattice">Rendering cartesian images to hexagonal lattice<a class="headerlink" href="#rendering-cartesian-images-to-hexagonal-lattice" title="Permanent link">&para;</a></h5>
+<p>We translate cartesian frames into receptor activations by placing simulated photoreceptors in a two-dimensional hexagonal array in pixel space (blue dots below), 31 columns across resulting in 721 columns in total, spaced 13 pixels apart. The transduced luminance at each photoreceptor is the greyscale mean value in the 13×13-pixel region surrounding it (black boxes).</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">flyvision</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">receptors</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">rendering</span><span class="o">.</span><span class="n">BoxEye</span><span class="p">(</span><span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">fig</span> <span class="o">=</span> <span class="n">receptors</span><span class="o">.</span><span class="n">illustrate</span><span class="p">()</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_17_0.png" /></p>
+<h3 id="render-a-single-frame">Render a single frame<a class="headerlink" href="#render-a-single-frame" title="Permanent link">&para;</a></h3>
+<p>To illustrate, this is what rendering a single frame looks like.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.dataset_utils</span> <span class="kn">import</span> <span class="n">load_moving_mnist</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">sequences</span> <span class="o">=</span> <span class="n">load_moving_mnist</span><span class="p">()</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">single_frame</span> <span class="o">=</span> <span class="n">sequences</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">plt_utils</span><span class="o">.</span><span class="n">init_plot</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">plt_utils</span><span class="o">.</span><span class="n">rm_spines</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">single_frame</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">binary_r</span><span class="p">)</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;example frame&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_22_0.png" /></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># the rendering uses pytorch native Conv2d module so it can be executed on GPU and fast</span>
+<span class="c1"># we first move the frame to GPU</span>
+<span class="n">single_frame</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">single_frame</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># because the inputs to the receptors instance must have four dimensions (samples, frames, height, width),</span>
+<span class="c1"># we create two empty dimensions for samples and frames</span>
+<span class="n">single_frame</span> <span class="o">=</span> <span class="n">single_frame</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">single_frame</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>torch.Size([1, 1, 64, 64])
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1"># to render the single frame we simply call the instance</span>
+<span class="c1"># this automatically rescales the frame to match the receptor layout as illustrated above</span>
+<span class="c1"># and then places the average pixel value of the 13x13 boxes at the receptor positions</span>
+<span class="n">receptors</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">rendering</span><span class="o">.</span><span class="n">BoxEye</span><span class="p">()</span>
+<span class="n">rendered</span> <span class="o">=</span> <span class="n">receptors</span><span class="p">(</span><span class="n">single_frame</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>/home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/torch/utils/_device.py:62: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  return func(*args, **kwargs)
+/home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/torchvision/transforms/functional.py:1603: UserWarning: The default value of the antialias parameter of all the resizing transforms (Resize(), RandomResizedCrop(), etc.) will change from None to True in v0.17, in order to be consistent across the PIL and Tensor backends. To suppress this warning, directly pass antialias=True (recommended, future default), antialias=None (current default, which means False for Tensors and True for PIL), or antialias=False (only works on Tensors - PIL will still use antialiasing). This also applies if you are using the inference transforms from the models weights: update the call to weights.transforms(antialias=True).
+  warnings.warn(
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1"># the 721 receptor coordinates are implicitly given in the last dimension</span>
+<span class="c1"># they correspond to sorted hexagonal coordinates (u-coordinate, v-coordinate, value)</span>
+<span class="n">rendered</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>torch.Size([1, 1, 1, 721])
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1"># the rendered frame is a slightly blurred version of the example</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">quick_hex_scatter</span><span class="p">(</span>
+    <span class="n">rendered</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cbar_x_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span>
+<span class="p">)</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;example frame rendered&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_28_0.png" /></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Disclaimer: thinking in hex coordinates can be unfamiliar.</span>
+<span class="c1"># Therefore, we circumvent dealing with them explicitly.</span>
+<span class="c1"># Still - to understand how the above plot infers the pixel-plane coordinates </span>
+<span class="c1"># from the implicit hexagonal coordinates, you can inspect the following code.</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># # we can explicitly create sorted hex-coordinates from the integer radius of the hexagonal grid</span>
+<span class="c1"># # for a regular hexagonal lattice, the radius is uniquely determined from the number of hexagons</span>
+
+<span class="c1"># radius = flyvision.utils.hex_utils.get_hextent(rendered.shape[-1])</span>
+
+<span class="c1"># # here we create integer u, v coordinates, and we stick to the same function and convention </span>
+<span class="c1"># # everywhere in the code</span>
+<span class="c1"># u, v = flyvision.utils.hex_utils.get_hex_coords(radius)</span>
+
+<span class="c1"># # we transform them to pixel coordinates using our convention</span>
+<span class="c1"># x, y = flyvision.utils.hex_utils.hex_to_pixel(u, v)</span>
+
+<span class="c1"># # and can just scatter them to be back at the photoreceptor layout</span>
+<span class="c1"># fig, ax = flyvision.plots.plt_utils.init_plot(figsize=[2, 2], fontsize=5)</span>
+<span class="c1"># ax.scatter(x, y, s=0.5)</span>
+</code></pre></div>
+<h2 id="render-a-whole-dataset-to-disk">Render a whole dataset to disk<a class="headerlink" href="#render-a-whole-dataset-to-disk" title="Permanent link">&para;</a></h2>
+<p>We save rendered sequences to disk to retrieve them faster at runtime.</p>
+<p>We will use our library datamate here because it provides a powerful interface for writing and reading arrayfiles.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">datamate</span> <span class="kn">import</span> <span class="n">root</span><span class="p">,</span> <span class="n">Directory</span>
+
+<span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.dataset_utils</span> <span class="kn">import</span> <span class="n">load_moving_mnist</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># the Directory class is a smart pointer to a specific directory</span>
+<span class="c1"># on the filesystem</span>
+
+<span class="c1"># directory to store the rendered stimuli</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">renderings_dir</span>
+
+
+<span class="c1"># root tells where the Directory-tree starts</span>
+<span class="nd">@root</span><span class="p">(</span><span class="n">renderings_dir</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RenderedData</span><span class="p">(</span><span class="n">Directory</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Config</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+        <span class="n">extent</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># radius, in number of receptors of the hexagonal array.</span>
+        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># photon collection radius, in pixels.</span>
+        <span class="n">subset_idx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>  <span class="c1"># if specified, subset of sequences to render</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Config</span><span class="p">):</span>
+        <span class="c1"># here comes the preprocessing and rendering as above or similar -- depending on the dataset etc.</span>
+        <span class="c1"># this code will be executed automatically once for each unique configuration to store preprocessed</span>
+        <span class="c1"># data on disk and later simply provide a reference to it.</span>
+        <span class="n">sequences</span> <span class="o">=</span> <span class="n">load_moving_mnist</span><span class="p">()</span>
+
+        <span class="c1"># we use the configuration to control the settings under which we render the stimuli</span>
+        <span class="n">receptors</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">rendering</span><span class="o">.</span><span class="n">BoxEye</span><span class="p">(</span>
+            <span class="n">extent</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">extent</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># for memory-friendly rendering we can loop over individual sequences</span>
+        <span class="c1"># and subsets of the dataset</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">subset_idx</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;subset_idx&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">subset_idx</span><span class="p">))</span> <span class="k">as</span> <span class="n">pbar</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">subset_idx</span><span class="p">:</span>
+                <span class="n">rendered_sequences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">receptors</span><span class="p">(</span><span class="n">sequences</span><span class="p">[[</span><span class="n">index</span><span class="p">]])</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+        <span class="c1"># to join individual sequences along their first dimension</span>
+        <span class="c1"># to obtain (n_sequences, n_frames, 1, receptors.hexals)</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">rendered_sequences</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># the __setattr__ method of the Directory class saves sequences to self.path/&quot;sequences.h5&quot;</span>
+        <span class="c1"># that can be later retrieved using self.sequences[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span> <span class="o">=</span> <span class="n">rendered_sequences</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument </span>
+<span class="n">moving_mnist_rendered</span> <span class="o">=</span> <span class="n">RenderedData</span><span class="p">(</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">subset_idx</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># this is how we can retrieve the sequences from the disk into memory</span>
+<span class="n">rendered_sequences</span> <span class="o">=</span> <span class="n">moving_mnist_rendered</span><span class="o">.</span><span class="n">sequences</span><span class="p">[:]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">rendered_sequences</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>(4, 20, 1, 721)
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">animation</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">HexScatter</span><span class="p">(</span><span class="n">rendered_sequences</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">animation</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">()</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_37_0.png" /></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Note, to delete a Directory, e.g. to change the __init__ and reinstantiate,</span>
+<span class="c1"># run moving_mnist_rendered.rmtree(&quot;y&quot;).</span>
+</code></pre></div>
+<h2 id="create-a-sequence-dataset">Create a sequence dataset<a class="headerlink" href="#create-a-sequence-dataset" title="Permanent link">&para;</a></h2>
+<p>Next we create a Pytorch dataset for loading the sequences.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">datamate</span> <span class="kn">import</span> <span class="n">root</span><span class="p">,</span> <span class="n">Directory</span>
+
+<span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.dataset_utils</span> <span class="kn">import</span> <span class="n">load_moving_mnist</span>
+<span class="kn">from</span> <span class="nn">flyvision.datasets.datasets</span> <span class="kn">import</span> <span class="n">SequenceDataset</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># the Directory class is a smart pointer to a specific directory</span>
+<span class="c1"># on the filesystem</span>
+
+<span class="c1"># directory to store the rendered stimuli</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">renderings_dir</span>
+
+
+<span class="c1"># root tells where the Directory-tree starts</span>
+<span class="nd">@root</span><span class="p">(</span><span class="n">renderings_dir</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RenderedData</span><span class="p">(</span><span class="n">Directory</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Config</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+        <span class="n">extent</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># radius, in number of receptors of the hexagonal array.</span>
+        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># photon collection radius, in pixels.</span>
+        <span class="n">subset_idx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>  <span class="c1"># if specified, subset of sequences to render</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Config</span><span class="p">):</span>
+        <span class="c1"># here comes the preprocessing and rendering as above or similar -- depending on the dataset etc.</span>
+        <span class="c1"># this code will be executed automatically once for each unique configuration to store preprocessed</span>
+        <span class="c1"># data on disk and later simply provide a reference to it.</span>
+        <span class="n">sequences</span> <span class="o">=</span> <span class="n">load_moving_mnist</span><span class="p">()</span>
+
+        <span class="c1"># we use the configuration to control the settings under which we render the stimuli</span>
+        <span class="n">receptors</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">rendering</span><span class="o">.</span><span class="n">BoxEye</span><span class="p">(</span>
+            <span class="n">extent</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">extent</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># for memory-friendly rendering we can loop over individual sequences</span>
+        <span class="c1"># and subsets of the dataset</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">subset_idx</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;subset_idx&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">subset_idx</span><span class="p">))</span> <span class="k">as</span> <span class="n">pbar</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">subset_idx</span><span class="p">:</span>
+                <span class="n">rendered_sequences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">receptors</span><span class="p">(</span><span class="n">sequences</span><span class="p">[[</span><span class="n">index</span><span class="p">]])</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+        <span class="c1"># to join individual sequences along their first dimension</span>
+        <span class="c1"># to obtain (n_sequences, n_frames, 1, receptors.hexals)</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">rendered_sequences</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># the __setattr__ method of the Directory class saves sequences to self.path/&quot;sequences.h5&quot;</span>
+        <span class="c1"># that can be later retrieved using self.sequences[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span> <span class="o">=</span> <span class="n">rendered_sequences</span>
+</code></pre></div>
+<h5 id="create-a-custom-dataset">Create a custom dataset<a class="headerlink" href="#create-a-custom-dataset" title="Permanent link">&para;</a></h5>
+<p>We create a generic interface for custom datasets to make dataloading consistent&mdash;this interface can tell the sampler what the framerate, the integration time steps, durations for pre-, and post grey-scale stimulation, and the number of sequences are.</p>
+<p>In this case, we inherit a SequenceDataset, that also obeys (and extends) the interface of Pytorch&rsquo;s Dataset.</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CustomStimuli</span><span class="p">(</span><span class="n">SequenceDataset</span><span class="p">):</span>
+
+    <span class="c1"># implementing the SequenceDataset interface </span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">100</span>
+    <span class="n">framerate</span> <span class="o">=</span> <span class="mi">24</span>
+    <span class="n">t_pre</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">t_post</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">n_sequences</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">augment</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rendered_data_config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">RenderedData</span><span class="p">(</span><span class="n">rendered_data_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">sequences</span><span class="p">[:])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_sequences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="c1"># to match the framerate to the integration time dt, we can resample frames</span>
+        <span class="c1"># from these indices. note, when dt = 1/framerate, this will return the exact sequence</span>
+        <span class="n">resample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_temporal_sample_indices</span><span class="p">(</span><span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">sequence</span><span class="p">[</span><span class="n">resample</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument </span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">CustomStimuli</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">subset_idx</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>torch.Size([84, 1, 721])
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">animation</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">HexScatter</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="kc">None</span><span class="p">],</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">animation</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">()</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_46_0.png" /></p>
+<h2 id="compute-model-responses-to-custom-stimuli">Compute model responses to custom stimuli<a class="headerlink" href="#compute-model-responses-to-custom-stimuli" title="Permanent link">&para;</a></h2>
+<p>Now, we can compute model responses across individual models or the whole ensemble to our custom stimulus.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">datamate</span> <span class="kn">import</span> <span class="n">root</span><span class="p">,</span> <span class="n">Directory</span>
+
+<span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.dataset_utils</span> <span class="kn">import</span> <span class="n">load_moving_mnist</span>
+<span class="kn">from</span> <span class="nn">flyvision.datasets.datasets</span> <span class="kn">import</span> <span class="n">SequenceDataset</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.activity_utils</span> <span class="kn">import</span> <span class="n">LayerActivity</span>
+<span class="kn">from</span> <span class="nn">flyvision.animations</span> <span class="kn">import</span> <span class="n">StimulusResponse</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># the Directory class is a smart pointer to a specific directory</span>
+<span class="c1"># on the filesystem</span>
+
+<span class="c1"># directory to store the rendered stimuli</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">renderings_dir</span>
+
+
+<span class="c1"># root tells where the Directory-tree starts</span>
+<span class="nd">@root</span><span class="p">(</span><span class="n">renderings_dir</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RenderedData</span><span class="p">(</span><span class="n">Directory</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Config</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+        <span class="n">extent</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># radius, in number of receptors of the hexagonal array.</span>
+        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># photon collection radius, in pixels.</span>
+        <span class="n">subset_idx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>  <span class="c1"># if specified, subset of sequences to render</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Config</span><span class="p">):</span>
+        <span class="c1"># here comes the preprocessing and rendering as above or similar -- depending on the dataset etc.</span>
+        <span class="c1"># this code will be executed automatically once for each unique configuration to store preprocessed</span>
+        <span class="c1"># data on disk and later simply provide a reference to it.</span>
+        <span class="n">sequences</span> <span class="o">=</span> <span class="n">load_moving_mnist</span><span class="p">()</span>
+
+        <span class="c1"># we use the configuration to control the settings under which we render the stimuli</span>
+        <span class="n">receptors</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">rendering</span><span class="o">.</span><span class="n">BoxEye</span><span class="p">(</span>
+            <span class="n">extent</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">extent</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># for memory-friendly rendering we can loop over individual sequences</span>
+        <span class="c1"># and subsets of the dataset</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">subset_idx</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;subset_idx&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">subset_idx</span><span class="p">))</span> <span class="k">as</span> <span class="n">pbar</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">subset_idx</span><span class="p">:</span>
+                <span class="n">rendered_sequences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">receptors</span><span class="p">(</span><span class="n">sequences</span><span class="p">[[</span><span class="n">index</span><span class="p">]])</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+        <span class="c1"># to join individual sequences along their first dimension</span>
+        <span class="c1"># to obtain (n_sequences, n_frames, 1, receptors.hexals)</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">rendered_sequences</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># the __setattr__ method of the Directory class saves sequences to self.path/&quot;sequences.h5&quot;</span>
+        <span class="c1"># that can be later retrieved using self.sequences[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span> <span class="o">=</span> <span class="n">rendered_sequences</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CustomStimuli</span><span class="p">(</span><span class="n">SequenceDataset</span><span class="p">):</span>
+
+    <span class="c1"># implementing the SequenceDataset interface </span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">100</span>
+    <span class="n">framerate</span> <span class="o">=</span> <span class="mi">24</span>
+    <span class="n">t_pre</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">t_post</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">n_sequences</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">augment</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rendered_data_config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">RenderedData</span><span class="p">(</span><span class="n">rendered_data_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">sequences</span><span class="p">[:])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_sequences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="c1"># to match the framerate to the integration time dt, we can resample frames</span>
+        <span class="c1"># from these indices. note, when dt = 1/framerate, this will return the exact sequence</span>
+        <span class="n">resample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_temporal_sample_indices</span><span class="p">(</span><span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">sequence</span><span class="p">[</span><span class="n">resample</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument </span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">CustomStimuli</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">subset_idx</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+</code></pre></div>
+<h5 id="select-a-pretrained-network">Select a pretrained network<a class="headerlink" href="#select-a-pretrained-network" title="Permanent link">&para;</a></h5>
+<p>To select a network from the ensemble of 50 pretrained networks, let&rsquo;s see what our options are.</p>
+<p>Paths to pretrained models from the ensemble end with four digit numbers which are sorted by task error (0-49 from best to worst).</p>
+<div class="highlight"><pre><span></span><code><span class="nb">sorted</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">flyvision</span><span class="o">.</span><span class="n">results_dir</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">flyvision</span><span class="o">.</span><span class="n">results_dir</span> <span class="o">/</span> <span class="s2">&quot;flow/0000&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">()</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[PosixPath(&#39;flow/0000/000&#39;),
+ PosixPath(&#39;flow/0000/001&#39;),
+ PosixPath(&#39;flow/0000/002&#39;),
+ PosixPath(&#39;flow/0000/003&#39;),
+ PosixPath(&#39;flow/0000/004&#39;),
+ PosixPath(&#39;flow/0000/005&#39;),
+ PosixPath(&#39;flow/0000/006&#39;),
+ PosixPath(&#39;flow/0000/007&#39;),
+ PosixPath(&#39;flow/0000/008&#39;),
+ PosixPath(&#39;flow/0000/009&#39;),
+ PosixPath(&#39;flow/0000/010&#39;),
+ PosixPath(&#39;flow/0000/011&#39;),
+ PosixPath(&#39;flow/0000/012&#39;),
+ PosixPath(&#39;flow/0000/013&#39;),
+ PosixPath(&#39;flow/0000/014&#39;),
+ PosixPath(&#39;flow/0000/015&#39;),
+ PosixPath(&#39;flow/0000/016&#39;),
+ PosixPath(&#39;flow/0000/017&#39;),
+ PosixPath(&#39;flow/0000/018&#39;),
+ PosixPath(&#39;flow/0000/019&#39;),
+ PosixPath(&#39;flow/0000/020&#39;),
+ PosixPath(&#39;flow/0000/021&#39;),
+ PosixPath(&#39;flow/0000/022&#39;),
+ PosixPath(&#39;flow/0000/023&#39;),
+ PosixPath(&#39;flow/0000/024&#39;),
+ PosixPath(&#39;flow/0000/025&#39;),
+ PosixPath(&#39;flow/0000/026&#39;),
+ PosixPath(&#39;flow/0000/027&#39;),
+ PosixPath(&#39;flow/0000/028&#39;),
+ PosixPath(&#39;flow/0000/029&#39;),
+ PosixPath(&#39;flow/0000/030&#39;),
+ PosixPath(&#39;flow/0000/031&#39;),
+ PosixPath(&#39;flow/0000/032&#39;),
+ PosixPath(&#39;flow/0000/033&#39;),
+ PosixPath(&#39;flow/0000/034&#39;),
+ PosixPath(&#39;flow/0000/035&#39;),
+ PosixPath(&#39;flow/0000/036&#39;),
+ PosixPath(&#39;flow/0000/037&#39;),
+ PosixPath(&#39;flow/0000/038&#39;),
+ PosixPath(&#39;flow/0000/039&#39;),
+ PosixPath(&#39;flow/0000/040&#39;),
+ PosixPath(&#39;flow/0000/041&#39;),
+ PosixPath(&#39;flow/0000/042&#39;),
+ PosixPath(&#39;flow/0000/043&#39;),
+ PosixPath(&#39;flow/0000/044&#39;),
+ PosixPath(&#39;flow/0000/045&#39;),
+ PosixPath(&#39;flow/0000/046&#39;),
+ PosixPath(&#39;flow/0000/047&#39;),
+ PosixPath(&#39;flow/0000/048&#39;),
+ PosixPath(&#39;flow/0000/049&#39;)]
+</code></pre></div>
+
+<p>We use the <code>NetworkView</code> class to point to a model. This object can implement plots plus methods to initialize network, stimuli etc. </p>
+<div class="highlight"><pre><span></span><code><span class="n">network_view</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">NetworkView</span><span class="p">(</span><span class="n">flyvision</span><span class="o">.</span><span class="n">results_dir</span> <span class="o">/</span> <span class="s2">&quot;flow/0000/000&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[2024-09-28 03:47:48] network:1005 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1"># to load the Pytorch module with pretrained parameters</span>
+<span class="n">network</span> <span class="o">=</span> <span class="n">network_view</span><span class="o">.</span><span class="n">init_network</span><span class="p">()</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[2024-09-28 03:47:58] network:252 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+[2024-09-28 03:47:58] chkpt_utils:72 Recovered network state.
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="n">movie_input</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">movie_input</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>torch.Size([84, 1, 721])
+</code></pre></div>
+
+<h5 id="compute-a-stationary-state">Compute a stationary state<a class="headerlink" href="#compute-a-stationary-state" title="Permanent link">&para;</a></h5>
+<p>We initialize the network at a stationary state, to remove transient responses due to stimulus onset from functional stimulus responses like motion detection. The network provides two methods for stationary state computation <code>network.fade_in_state</code> and <code>network.steady_state</code>. We use <code>fade_in_state</code> here, which slowly ramps up
+the intensity of the first frame in the sequence to compute a stationary state that minimizes the transient response. The method <code>steady_state</code> computes a sequence-independent stationary state by providing a whole-field grey-scale stimulus at medium intensity (but it does not get rid of a transient response).</p>
+<div class="highlight"><pre><span></span><code><span class="n">stationary_state</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">fade_in_state</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">movie_input</span><span class="p">[[</span><span class="mi">0</span><span class="p">]])</span>
+</code></pre></div>
+<h5 id="obtain-network-responses">Obtain network responses<a class="headerlink" href="#obtain-network-responses" title="Permanent link">&para;</a></h5>
+<p>A convenient way to obtain network responses is to call <code>network.simulate</code>
+which calls the forward function of the Pytorch module without tracking gradients
+(plus it provides a simpler interface than <code>network.forward</code> because it already maps stimulus to receptors using the <code>network.stimulus</code> attribute).</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># For analysis, we move the returned tensor to cpu.</span>
+<span class="n">responses</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">movie_input</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">initial_state</span><span class="o">=</span><span class="n">stationary_state</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">responses</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>torch.Size([1, 84, 45669])
+</code></pre></div>
+
+<h5 id="visualize-responses-of-specific-cells">Visualize responses of specific cells<a class="headerlink" href="#visualize-responses-of-specific-cells" title="Permanent link">&para;</a></h5>
+<p><code>LayerActivity</code> is an interface to the response tensor of 45k cells that allows dict- and attribute-style access to the responses of individual cell types and to the responses of their central cells.</p>
+<div class="highlight"><pre><span></span><code><span class="n">responses</span> <span class="o">=</span> <span class="n">LayerActivity</span><span class="p">(</span><span class="n">responses</span><span class="p">,</span> <span class="n">network</span><span class="o">.</span><span class="n">connectome</span><span class="p">,</span> <span class="n">keepref</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">cell_type</span> <span class="o">=</span> <span class="s2">&quot;T4c&quot;</span>
+</code></pre></div>
+<p>The stimulus on the left, and the response on the right described by passive point neuron voltage dynamics. Cells depolarize (red) and hyperpolarize (blue) in response to the stimulus. A single &ldquo;hexal&rdquo; corresponds to one neuron of the cell type.</p>
+<div class="highlight"><pre><span></span><code><span class="n">anim</span> <span class="o">=</span> <span class="n">StimulusResponse</span><span class="p">(</span>
+    <span class="n">movie_input</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span>
+    <span class="n">responses</span><span class="p">[</span><span class="n">cell_type</span><span class="p">][:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">(</span><span class="n">frames</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">anim</span><span class="o">.</span><span class="n">frames</span><span class="p">)[::</span><span class="mi">2</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_69_0.png" /></p>
+<p>Often, we are interested in a canonical response of a specific cell type to a specific stimulus to generate hypotheses for their role in a computation. In our model, we can take the central cell as a proxy for all cells of the given type, because cells share their parameters and in- and output connections. I.e. the responses of all cells of a given type would be the same (not taking boundary effects into account) when the same stimulus would cross their identical but spatially offset receptive field in the same way.</p>
+<div class="highlight"><pre><span></span><code><span class="n">n_frames</span> <span class="o">=</span> <span class="n">movie_input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_frames</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">plt_utils</span><span class="o">.</span><span class="n">init_plot</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">responses</span><span class="o">.</span><span class="n">central</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;time in s&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;central response (a.u.)&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>Text(0, 0.5, &#39;central response (a.u.)&#39;)
+</code></pre></div>
+
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_72_1.png" /></p>
+<h2 id="compute-responses-over-the-whole-ensemble">Compute responses over the whole ensemble<a class="headerlink" href="#compute-responses-over-the-whole-ensemble" title="Permanent link">&para;</a></h2>
+<p>In addition to looking at individual models, we next compute responses across the whole ensemble at once to look at them jointly.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.dpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">datamate</span> <span class="kn">import</span> <span class="n">root</span><span class="p">,</span> <span class="n">Directory</span>
+
+<span class="kn">import</span> <span class="nn">flyvision</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.dataset_utils</span> <span class="kn">import</span> <span class="n">load_moving_mnist</span>
+<span class="kn">from</span> <span class="nn">flyvision.datasets.datasets</span> <span class="kn">import</span> <span class="n">SequenceDataset</span>
+<span class="kn">from</span> <span class="nn">flyvision.utils.activity_utils</span> <span class="kn">import</span> <span class="n">LayerActivity</span>
+<span class="kn">from</span> <span class="nn">flyvision.animations</span> <span class="kn">import</span> <span class="n">StimulusResponse</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">EnsembleView</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># the Directory class is a smart pointer to a specific directory</span>
+<span class="c1"># on the filesystem</span>
+
+<span class="c1"># directory to store the rendered stimuli</span>
+<span class="kn">from</span> <span class="nn">flyvision</span> <span class="kn">import</span> <span class="n">renderings_dir</span>
+
+
+<span class="c1"># root tells where the Directory-tree starts</span>
+<span class="nd">@root</span><span class="p">(</span><span class="n">renderings_dir</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RenderedData</span><span class="p">(</span><span class="n">Directory</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Config</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+        <span class="n">extent</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># radius, in number of receptors of the hexagonal array.</span>
+        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># photon collection radius, in pixels.</span>
+        <span class="n">subset_idx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>  <span class="c1"># if specified, subset of sequences to render</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Config</span><span class="p">):</span>
+        <span class="c1"># here comes the preprocessing and rendering as above or similar -- depending on the dataset etc.</span>
+        <span class="c1"># this code will be executed automatically once for each unique configuration to store preprocessed</span>
+        <span class="c1"># data on disk and later simply provide a reference to it.</span>
+        <span class="n">sequences</span> <span class="o">=</span> <span class="n">load_moving_mnist</span><span class="p">()</span>
+
+        <span class="c1"># we use the configuration to control the settings under which we render the stimuli</span>
+        <span class="n">receptors</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">rendering</span><span class="o">.</span><span class="n">BoxEye</span><span class="p">(</span>
+            <span class="n">extent</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">extent</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># for memory-friendly rendering we can loop over individual sequences</span>
+        <span class="c1"># and subsets of the dataset</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">subset_idx</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;subset_idx&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">subset_idx</span><span class="p">))</span> <span class="k">as</span> <span class="n">pbar</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">subset_idx</span><span class="p">:</span>
+                <span class="n">rendered_sequences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">receptors</span><span class="p">(</span><span class="n">sequences</span><span class="p">[[</span><span class="n">index</span><span class="p">]])</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+        <span class="c1"># to join individual sequences along their first dimension</span>
+        <span class="c1"># to obtain (n_sequences, n_frames, 1, receptors.hexals)</span>
+        <span class="n">rendered_sequences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">rendered_sequences</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># the __setattr__ method of the Directory class saves sequences to self.path/&quot;sequences.h5&quot;</span>
+        <span class="c1"># that can be later retrieved using self.sequences[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span> <span class="o">=</span> <span class="n">rendered_sequences</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CustomStimuli</span><span class="p">(</span><span class="n">SequenceDataset</span><span class="p">):</span>
+
+    <span class="c1"># implementing the SequenceDataset interface </span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">100</span>
+    <span class="n">framerate</span> <span class="o">=</span> <span class="mi">24</span>
+    <span class="n">t_pre</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">t_post</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">n_sequences</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">augment</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rendered_data_config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">RenderedData</span><span class="p">(</span><span class="n">rendered_data_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">sequences</span><span class="p">[:])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_sequences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequences</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="c1"># to match the framerate to the integration time dt, we can resample frames</span>
+        <span class="c1"># from these indices. note, when dt = 1/framerate, this will return the exact sequence</span>
+        <span class="n">resample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_temporal_sample_indices</span><span class="p">(</span><span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">sequence</span><span class="p">[</span><span class="n">resample</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument </span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">CustomStimuli</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">subset_idx</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+</code></pre></div>
+<h5 id="select-the-pretrained-ensemble">Select the pretrained ensemble<a class="headerlink" href="#select-the-pretrained-ensemble" title="Permanent link">&para;</a></h5>
+<p>Similar to the <code>NetworkView</code> object, the <code>EnsembleView</code> object points to an ensemble and implements plots plus methods to initialize networks, stimuli etc. This object provides dict- and attribute-style access to individual <code>NetworkView</code> instances.</p>
+<div class="highlight"><pre><span></span><code><span class="n">ensemble</span> <span class="o">=</span> <span class="n">EnsembleView</span><span class="p">(</span><span class="n">flyvision</span><span class="o">.</span><span class="n">results_dir</span> <span class="o">/</span> <span class="s2">&quot;flow/0000&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>Loading ensemble:   0%|          | 0/50 [00:00&lt;?, ?it/s]
+
+
+[2024-09-28 03:49:18] ensemble:138 Loaded 50 networks.
+</code></pre></div>
+
+<h5 id="simulate-responses-for-each-network">Simulate responses for each network<a class="headerlink" href="#simulate-responses-for-each-network" title="Permanent link">&para;</a></h5>
+<div class="highlight"><pre><span></span><code><span class="n">movie_input</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
+<p><code>ensemble.simulate</code> provides an efficient method to return responses of all networks within the ensemble.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># ensemble.simulate returns an iterator over `network.simulate` for each network.</span>
+<span class="c1"># we exhaust it and stack responses from all models in the first dimension</span>
+<span class="n">responses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ensemble</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">movie_input</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">fade_in</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>Simulating network:   0%|          | 0/50 [00:00&lt;?, ?it/s]
+
+
+[2024-09-28 03:49:27] network:252 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+[2024-09-28 03:49:27] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:27] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:38] chkpt_utils:72 Recovered network state.
+[2024-09-28 03:49:38] chkpt_utils:72 Recovered network state.
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1"># dims are (n_models, n_sequences, n_frames, n_cells)</span>
+<span class="n">responses</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>(50, 1, 84, 45669)
+</code></pre></div>
+
+<h5 id="visualize-responses-of-specific-cells-across-the-ensemble">Visualize responses of specific cells across the ensemble<a class="headerlink" href="#visualize-responses-of-specific-cells-across-the-ensemble" title="Permanent link">&para;</a></h5>
+<div class="highlight"><pre><span></span><code><span class="n">responses</span> <span class="o">=</span> <span class="n">LayerActivity</span><span class="p">(</span><span class="n">responses</span><span class="p">,</span> <span class="n">ensemble</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">connectome</span><span class="p">,</span> <span class="n">keepref</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<p>We look at responses of all cells of a specific cell-type in the hexagonal lattice.</p>
+<div class="highlight"><pre><span></span><code><span class="n">cell_type</span> <span class="o">=</span> <span class="s2">&quot;T4c&quot;</span>
+
+<span class="c1"># (n_models, n_sequences, n_frames, n_hexals)</span>
+<span class="n">responses</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>(50, 1, 84, 721)
+</code></pre></div>
+
+<p>We can look at all model responses in succession to see how the stimulus causes depolarization and hyperpolarization in the cells. To speed this up a bit, we specify <code>frames</code> to look at every tenth frame.</p>
+<div class="highlight"><pre><span></span><code><span class="n">anim</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">activations</span><span class="o">.</span><span class="n">StimulusResponse</span><span class="p">(</span>
+    <span class="n">movie_input</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">responses</span><span class="p">[</span><span class="n">cell_type</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="c1"># these are now just the first 5 models for illustration</span>
+<span class="n">model_index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">(</span>
+    <span class="n">samples</span><span class="o">=</span><span class="n">model_index</span><span class="p">,</span>  
+    <span class="n">frames</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">anim</span><span class="o">.</span><span class="n">frames</span><span class="p">)[::</span><span class="mi">10</span><span class="p">]</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_91_0.png" /></p>
+<p>Or look at responses in multiple models jointly. 
+Disclaimer: including more axes slows down the animation.</p>
+<div class="highlight"><pre><span></span><code><span class="n">cell_type_responses</span> <span class="o">=</span> <span class="n">responses</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span>
+<span class="n">model_idx</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+<span class="n">anim</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">activations</span><span class="o">.</span><span class="n">StimulusResponse</span><span class="p">(</span>
+    <span class="n">movie_input</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span>
+    <span class="p">[</span><span class="n">cell_type_responses</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">model_idx</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">(</span><span class="n">frames</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">anim</span><span class="o">.</span><span class="n">frames</span><span class="p">)[::</span><span class="mi">10</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_93_0.png" /></p>
+<p>Let&rsquo;s look at how the whole ensemble characterizes the central cell responses.</p>
+<div class="highlight"><pre><span></span><code><span class="n">central_responses</span> <span class="o">=</span> <span class="n">responses</span><span class="o">.</span><span class="n">central</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">n_frames</span> <span class="o">=</span> <span class="n">movie_input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_frames</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">colors</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">task_error</span><span class="p">()</span><span class="o">.</span><span class="n">colors</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">plt_utils</span><span class="o">.</span><span class="n">init_plot</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">model_id</span><span class="p">,</span> <span class="n">response</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">central_responses</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]):</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">c</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">model_id</span><span class="p">],</span> <span class="n">zorder</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)</span> <span class="o">-</span> <span class="n">model_id</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;time in s&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;response (a.u.)&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cell_type</span><span class="si">}</span><span class="s2"> responses across the ensemble&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>Text(0.5, 1.0, &#39;T4c responses across the ensemble&#39;)
+</code></pre></div>
+
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_1.png" /></p>
+<p>From the above plot it seems like different models generate different predictions for the cell type function and its hard to tell them apart. Therefore, we clustered the models such that we can separate the above responses by functional cluster for a specific cell type. Note, clusters are stored as dictionaries in which the key is the cluster identity and their values are the indices to the corresponding models.</p>
+<div class="highlight"><pre><span></span><code><span class="n">cluster_indices</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">cluster_indices</span><span class="p">(</span><span class="n">cell_type</span><span class="p">)</span>
+</code></pre></div>
+<div class="codehilite"><pre><span></span><code>[2024-09-28 03:50:59] clustering:640 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering.
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">cluster_id</span><span class="p">,</span> <span class="n">model_idx</span> <span class="ow">in</span> <span class="n">cluster_indices</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">plt_utils</span><span class="o">.</span><span class="n">init_plot</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">model_id</span> <span class="ow">in</span> <span class="n">model_idx</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">responses</span><span class="o">.</span><span class="n">central</span><span class="p">[</span><span class="n">cell_type</span><span class="p">][</span><span class="n">model_id</span><span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">c</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">model_id</span><span class="p">],</span> <span class="n">zorder</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)</span> <span class="o">-</span> <span class="n">model_id</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;time in s&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;response (a.u.)&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cell_type</span><span class="si">}</span><span class="s2"> responses across cluster </span><span class="si">{</span><span class="n">cluster_id</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_101_0.png" /></p>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_101_1.png" /></p>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_101_2.png" /></p>
+<p>For T4c, we know that the first set of models is upwards tuning and the second is downwards tuning (Fig.4c) &ndash; lets try to observe differences in their responses.</p>
+<p>We choose the best upwards tuning model and the best downwards tuning model to compare.</p>
+<p>We can notice that the spatial location of hyperpolarization and depolarization is switched vertically between both models. </p>
+<div class="highlight"><pre><span></span><code><span class="n">cell_type</span> <span class="o">=</span> <span class="s2">&quot;T4c&quot;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">cluster_indices</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">cluster_indices</span><span class="p">(</span><span class="n">cell_type</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">anim</span> <span class="o">=</span> <span class="n">flyvision</span><span class="o">.</span><span class="n">animations</span><span class="o">.</span><span class="n">activations</span><span class="o">.</span><span class="n">StimulusResponse</span><span class="p">(</span>
+    <span class="n">movie_input</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span>
+    <span class="p">[</span><span class="n">responses</span><span class="p">[</span><span class="n">cell_type</span><span class="p">][[</span><span class="n">cluster_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]],</span> <span class="mi">0</span><span class="p">][:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> 
+     <span class="n">responses</span><span class="p">[</span><span class="n">cell_type</span><span class="p">][[</span><span class="n">cluster_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]],</span> <span class="mi">0</span><span class="p">][:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]]</span>
+<span class="p">)</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">animate_in_notebook</span><span class="p">(</span><span class="n">frames</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">anim</span><span class="o">.</span><span class="n">frames</span><span class="p">)[::</span><span class="mi">5</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="png" src="../07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_105_0.png" /></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+      
+    
+  </body>
+</html>

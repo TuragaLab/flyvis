@@ -1,1 +1,1 @@
-{!CONTRIBUTING.md!}
+# Contributing
