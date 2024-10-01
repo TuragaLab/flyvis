@@ -6,10 +6,11 @@ import pandas as pd
 import torch
 from datamate import Namespace
 
-from flyvision.datasets.datasets import StimulusDataset
-from flyvision.rendering.utils import pad, resample
 from flyvision.utils import hex_utils
-from flyvision.utils.hex_utils import HexLattice, Hexal
+from flyvision.utils.hex_utils import Hexal, HexLattice
+
+from .datasets import StimulusDataset
+from .rendering.utils import pad, resample
 
 
 class Dots(StimulusDataset):

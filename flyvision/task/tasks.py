@@ -87,10 +87,10 @@ class Task:
         self.overfit_data = DataLoader(self.dataset, sampler=IndexSampler([0]))
 
     def init_decoder(self, connectome):
-        return _init_decoder(self.decoder, connectome)
+        return init_decoder(self.decoder, connectome)
 
 
-def _init_decoder(config: Dict, connectome: ConnectomeDir) -> Dict[str, ActivityDecoder]:
+def init_decoder(config: Dict, connectome: ConnectomeDir) -> Dict[str, ActivityDecoder]:
     """Initialize decoders.
 
     Returns:

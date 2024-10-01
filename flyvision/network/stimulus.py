@@ -9,6 +9,8 @@ from torch import Tensor
 
 from flyvision.connectome import ConnectomeDir
 
+__all__ = ["Stimulus"]
+
 
 class Stimulus:
     """Interface to control the cell-specific stimulus for the network.

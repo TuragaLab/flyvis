@@ -32,9 +32,6 @@ from flyvision.analysis.clustering import (
     get_cluster_to_indices,
 )
 from flyvision.connectome import flyvision_connectome
-from flyvision.directories import EnsembleDir
-from flyvision.initialization import Parameter
-from flyvision.network import Network, NetworkDir, NetworkView
 from flyvision.utils.cache_utils import context_aware_cache
 from flyvision.utils.chkpt_utils import (
     best_checkpoint_default_fn,
@@ -45,7 +42,13 @@ from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.logging_utils import all_logging_disabled
 from flyvision.utils.nn_utils import simulation
 
+from .directories import EnsembleDir, NetworkDir
+from .initialization import Parameter
+from .network import Network, NetworkView
+
 logging = logging.getLogger(__name__)
+
+__all__ = ["Ensemble"]
 
 
 class Ensemble(dict):

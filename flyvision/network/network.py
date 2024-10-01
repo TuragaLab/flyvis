@@ -29,11 +29,7 @@ import flyvision
 from flyvision.analysis import stimulus_responses
 from flyvision.connectome import ConnectomeDir, flyvision_connectome
 from flyvision.datasets.datasets import SequenceDataset
-from flyvision.directories import NetworkDir
-from flyvision.dynamics import NetworkDynamics
-from flyvision.initialization import Parameter
-from flyvision.stimulus import Stimulus
-from flyvision.tasks import _init_decoder
+from flyvision.tasks import init_decoder
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.cache_utils import context_aware_cache, make_hashable
 from flyvision.utils.chkpt_utils import (
@@ -47,9 +43,14 @@ from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
+from .directories import NetworkDir
+from .dynamics import NetworkDynamics
+from .initialization import Parameter
+from .stimulus import Stimulus
+
 logging = logging.getLogger(__name__)
 
-__all__ = ["Network", "NetworkView"]
+__all__ = ["Network", "NetworkView", "CheckpointedNetwork"]
 
 
 class Network(nn.Module):
@@ -1075,7 +1076,7 @@ class NetworkView:
             and decoder is None
         ):
             return self.decoder
-        self.decoder = decoder or _init_decoder(
+        self.decoder = decoder or init_decoder(
             self.dir.config.task.decoder, self.connectome
         )
         recover_decoder(self.decoder, checkpointed_network.checkpoint)

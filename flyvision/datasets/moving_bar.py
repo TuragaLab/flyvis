@@ -12,11 +12,12 @@ from matplotlib.patches import RegularPolygon
 from tqdm.auto import tqdm
 
 from flyvision import renderings_dir
+from flyvision.analysis.visualization.plots import quick_hex_scatter
+from flyvision.analysis.visualization.plt_utils import init_plot
 from flyvision.datasets.datasets import StimulusDataset
-from flyvision.plots.plots import quick_hex_scatter
-from flyvision.plots.plt_utils import init_plot
-from flyvision.rendering import HexEye
-from flyvision.rendering.utils import pad, resample, shuffle
+
+from .rendering import HexEye
+from .rendering.utils import pad, resample, shuffle
 
 logging = logging.getLogger()
 

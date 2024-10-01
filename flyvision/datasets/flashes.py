@@ -10,10 +10,11 @@ from datamate import Directory, root
 from tqdm import tqdm
 
 from flyvision import renderings_dir
-from flyvision.datasets.datasets import SequenceDataset
-from flyvision.rendering import BoxEye
-from flyvision.rendering.utils import resample
 from flyvision.utils.hex_utils import Hexal, HexLattice
+
+from .datasets import SequenceDataset
+from .rendering import BoxEye
+from .rendering.utils import resample
 
 logging = logging.getLogger()
 

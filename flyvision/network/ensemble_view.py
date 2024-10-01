@@ -12,21 +12,23 @@ from matplotlib import colormaps as cm
 from torch import nn
 
 import flyvision
-from flyvision import plots
-from flyvision.analysis import views
 from flyvision.analysis.flash_responses import flash_response_index, plot_fris
 from flyvision.analysis.moving_bar_responses import direction_selectivity_index, plot_dsis
+from flyvision.analysis.visualization import plots, views
 from flyvision.connectome import flyvision_connectome
-from flyvision.directories import EnsembleDir
-from flyvision.ensemble import Ensemble
-from flyvision.network import Network
 from flyvision.utils.chkpt_utils import (
     best_checkpoint_default_fn,
     recover_network,
     resolve_checkpoints,
 )
 
+from .directories import EnsembleDir
+from .ensemble import Ensemble
+from .network import Network
+
 logging = logging.getLogger(__name__)
+
+__all__ = ["EnsembleView"]
 
 
 class EnsembleView(Ensemble):

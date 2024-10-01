@@ -22,7 +22,7 @@ from flyvision.plots.figsize_utils import figsize_from_n_items
 from flyvision.plots.network import WholeNetworkFigure
 from flyvision.utils import df_utils, hex_utils, nodes_edges_utils
 
-__all__ = ["ConnectomeDir", "ConnectomeView"]
+__all__ = ["ConnectomeDir", "ConnectomeView", "flyvision_connectome"]
 
 
 # -- `Connectome` --------------------------------------------------------------

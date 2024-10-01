@@ -11,6 +11,8 @@ from datamate import Directory, root
 
 import flyvision
 
+__all__ = ["NetworkDir", "EnsembleDir"]
+
 
 @root(flyvision.results_dir)
 class NetworkDir(Directory):

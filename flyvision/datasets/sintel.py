@@ -14,21 +14,22 @@ from PIL import Image
 from tqdm import tqdm
 
 from flyvision import renderings_dir
-from flyvision.augmentation.hex import (
+from flyvision.utils.dataset_utils import download_sintel
+
+from .augmentation.hex import (
     ContrastBrightness,
     GammaCorrection,
     HexFlip,
     HexRotate,
     PixelNoise,
 )
-from flyvision.augmentation.temporal import (
+from .augmentation.temporal import (
     CropFrames,
     Interpolate,
 )
-from flyvision.datasets.datasets import MultiTaskDataset
-from flyvision.rendering import BoxEye
-from flyvision.rendering.utils import split
-from flyvision.utils.dataset_utils import download_sintel
+from .datasets import MultiTaskDataset
+from .rendering import BoxEye
+from .rendering.utils import split
 
 logging = logging.getLogger(__name__)
 

@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from flyvision.augmentation import temporal
 from flyvision.utils.dataset_utils import get_random_data_split
+
+from .augmentation import temporal
 
 __all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
 

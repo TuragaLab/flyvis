@@ -58,4 +58,5 @@ script_dir = Path(__file__).parent.parent / "scripts"
 datamate.set_root_dir(root_dir)
 del datamate
 
-from flyvision._api import *
+# from flyvision._api import *
+from .network import *
