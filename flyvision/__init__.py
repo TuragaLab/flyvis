@@ -59,4 +59,10 @@ datamate.set_root_dir(root_dir)
 del datamate
 
 # from flyvision._api import *
+from .utils import *
+from .connectome import *
+from .datasets import *
 from .network import *
+from .task import *
+from .analysis import *
+from .solver import *

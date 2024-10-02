@@ -10,15 +10,18 @@ from matplotlib.colors import hex2color
 from matplotlib.lines import Line2D
 from toolz import valfilter, valmap
 
-from flyvision.analysis.moving_bar_responses import adapt_color_alpha
 from flyvision.connectome import ReceptiveFields
-from flyvision.plots import plots, plt_utils
-from flyvision.plots.figsize_utils import cm_to_inch, figsize_from_n_items
-from flyvision.utils.activity_utils import StimulusResponseIndexer
-from flyvision.utils.color_utils import ND, PD
+from flyvision.utils.color_utils import ND, PD, adapt_color_alpha
+from flyvision.utils.df_utils import where_dataframe
 from flyvision.utils.nodes_edges_utils import CellTypeArray
 
-get_stimulus_index = StimulusResponseIndexer.where_stim_args_index_static
+from .visualization import plots, plt_utils
+from .visualization.figsize_utils import (
+    cm_to_inch,
+    figsize_from_n_items,
+)
+
+get_stimulus_index = where_dataframe
 
 
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
@@ -408,11 +411,11 @@ class MovingEdgeCurrentView:
         max_extent=None,
         **kwargs,
     ):
-        current_view = kwargs.get("current_view", None) or (
+        current_view = kwargs.get("current_view") or (
             self.between_seconds(t_start, t_end)  # .at_contrast(contrast).at_angle(angle)
         )
 
-        vmin = kwargs.get("vmin", None) or (
+        vmin = kwargs.get("vmin") or (
             np.floor(
                 min(
                     0,
@@ -426,7 +429,7 @@ class MovingEdgeCurrentView:
             / 100
         )
 
-        vmax = kwargs.get("vmax", None) or (
+        vmax = kwargs.get("vmax") or (
             np.ceil(
                 max(
                     0,

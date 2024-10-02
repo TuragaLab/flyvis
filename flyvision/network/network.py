@@ -29,7 +29,7 @@ import flyvision
 from flyvision.analysis import stimulus_responses
 from flyvision.connectome import ConnectomeDir, flyvision_connectome
 from flyvision.datasets.datasets import SequenceDataset
-from flyvision.tasks import init_decoder
+from flyvision.task.decoder import init_decoder
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.cache_utils import context_aware_cache, make_hashable
 from flyvision.utils.chkpt_utils import (

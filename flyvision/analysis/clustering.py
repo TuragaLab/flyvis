@@ -18,10 +18,13 @@ from umap.umap_ import UMAP
 from umap.utils import disconnected_vertices
 
 import flyvision
-from flyvision.analysis.stimulus_responses import naturalistic_stimuli_responses
-from flyvision.plots import plt_utils
-from flyvision.plots.plt_utils import check_markers
 from flyvision.utils.activity_utils import CentralActivity
+
+from .stimulus_responses import naturalistic_stimuli_responses
+from .visualization import plt_utils
+from .visualization.plt_utils import check_markers
+
+__all__ = ["Embedding", "Clustering", "GaussianMixtureClustering", "EmbeddingPlot"]
 
 INVALID_INT = -99999
 
@@ -606,7 +609,7 @@ def get_cluster_to_indices(mask, labels, task_error=None):
 
 
 def compute_umap_and_clustering(
-    ensemble: "flyvision.EnsembleView",
+    ensemble: "flyvision.network.EnsembleView",
     cell_type: str,
     embedding_kwargs=None,
     gm_kwargs=None,
@@ -663,7 +666,7 @@ def compute_umap_and_clustering(
 
 
 @wraps(compute_umap_and_clustering)
-def umap_and_clustering_generator(ensemble: "flyvision.EnsembleView", **kwargs):
+def umap_and_clustering_generator(ensemble: "flyvision.network.EnsembleView", **kwargs):
     """UMAP and clustering of all cell types."""
     for cell_type in ensemble[0].connectome_view.cell_types_sorted:
         yield cell_type, compute_umap_and_clustering(ensemble, cell_type, **kwargs)
@@ -672,6 +675,6 @@ def umap_and_clustering_generator(ensemble: "flyvision.EnsembleView", **kwargs):
 if __name__ == "__main__":
     import flyvision
 
-    ensemble = flyvision.EnsembleView("flow/0000")
+    ensemble = flyvision.network.EnsembleView("flow/0000")
     clustering = ensemble.clustering("T4c")
     print(clustering)

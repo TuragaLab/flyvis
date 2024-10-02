@@ -17,6 +17,8 @@ from flyvision.utils.nn_utils import n_params
 
 logging = logging.getLogger(__name__)
 
+__all__ = ["ActivityDecoder", "DecoderGAVP", "init_decoder"]
+
 
 class ActivityDecoder(nn.Module):
     dvs_channels: Dict[str, torch.Tensor]

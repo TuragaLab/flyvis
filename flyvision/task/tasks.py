@@ -5,12 +5,13 @@ from datamate import Namespace
 from toolz import valmap
 from torch.utils.data import DataLoader, sampler
 
-from flyvision import objectives
 from flyvision.connectome import ConnectomeDir
 from flyvision.datasets.datasets import MultiTaskDataset
-from flyvision.decoder import ActivityDecoder
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.dataset_utils import IndexSampler
+
+from . import objectives
+from .decoder import ActivityDecoder
 
 
 class Task:

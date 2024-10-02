@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-import flyvision
+from . import plt_utils
 
 
 def figsize_from_n_items(
@@ -59,7 +59,7 @@ class FigsizeCM:
         alpha=1,
         unmask_n=None,
     ):
-        fig, axes, _ = flyvision.plots.plt_utils.get_axis_grid(
+        fig, axes, _ = plt_utils.get_axis_grid(
             gridwidth=self.n_columns,
             gridheight=self.n_rows,
             figsize=self.inches_wh,

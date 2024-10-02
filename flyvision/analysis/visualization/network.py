@@ -10,7 +10,7 @@ import networkx as nx
 import numpy as np
 from toolz import valfilter
 
-from flyvision.plots import plt_utils
+from . import plt_utils
 
 
 class WholeNetworkFigure:

@@ -24,13 +24,13 @@ from torch import nn
 from tqdm.auto import tqdm
 
 import flyvision
-from flyvision import plots
 from flyvision.analysis import stimulus_responses
 from flyvision.analysis.clustering import (
     GaussianMixtureClustering,
     compute_umap_and_clustering,
     get_cluster_to_indices,
 )
+from flyvision.analysis.visualization import plots
 from flyvision.connectome import flyvision_connectome
 from flyvision.utils.cache_utils import context_aware_cache
 from flyvision.utils.chkpt_utils import (

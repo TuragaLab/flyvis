@@ -17,12 +17,18 @@ from pandas import DataFrame
 from toolz import groupby, valmap
 
 import flyvision
-from flyvision.plots import plots, plt_utils
-from flyvision.plots.figsize_utils import figsize_from_n_items
-from flyvision.plots.network import WholeNetworkFigure
+from flyvision.analysis.visualization import plots, plt_utils
+from flyvision.analysis.visualization.figsize_utils import figsize_from_n_items
+from flyvision.analysis.visualization.network import WholeNetworkFigure
 from flyvision.utils import df_utils, hex_utils, nodes_edges_utils
 
-__all__ = ["ConnectomeDir", "ConnectomeView", "flyvision_connectome"]
+__all__ = [
+    "ConnectomeDir",
+    "ConnectomeView",
+    "ReceptiveFields",
+    "ProjectiveFields",
+    "flyvision_connectome",
+]
 
 
 # -- `Connectome` --------------------------------------------------------------

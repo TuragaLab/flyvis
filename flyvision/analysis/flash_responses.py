@@ -2,10 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from flyvision.plots import plt_utils
-from flyvision.plots.plots import violin_groups
 from flyvision.utils import groundtruth_utils, nodes_edges_utils
 from flyvision.utils.color_utils import OFF_FR, ON_FR
+
+from .visualization import plt_utils
+from .visualization.plots import violin_groups
+
+__all__ = ["flash_response_index", "fri_correlation_to_known", "plot_fris"]
 
 # -- FRI computation ------------
 

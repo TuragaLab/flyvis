@@ -14,7 +14,7 @@ from torch import nn
 import flyvision
 from flyvision.analysis.flash_responses import flash_response_index, plot_fris
 from flyvision.analysis.moving_bar_responses import direction_selectivity_index, plot_dsis
-from flyvision.analysis.visualization import plots, views
+from flyvision.analysis.visualization import plots
 from flyvision.connectome import flyvision_connectome
 from flyvision.utils.chkpt_utils import (
     best_checkpoint_default_fn,
@@ -64,11 +64,11 @@ class EnsembleView(Ensemble):
             init_args = path._init_args
         super().__init__(**init_args)
 
-    @wraps(views.loss_curves)
+    @wraps(plots.loss_curves)
     def training_loss(self, **kwargs):
         task_error = self.task_error()
         losses = np.array([nv.dir.loss[:] for nv in self.values()])
-        return views.loss_curves(
+        return plots.loss_curves(
             losses,
             cbar=True,
             colors=task_error.colors,
@@ -79,11 +79,11 @@ class EnsembleView(Ensemble):
             **kwargs,
         )
 
-    @wraps(views.loss_curves)
+    @wraps(plots.loss_curves)
     def validation_loss(self, validation_subdir=None, loss_file_name=None, **kwargs):
         task_error = self.task_error()
         losses = self.validation_losses(validation_subdir, loss_file_name)
-        return views.loss_curves(
+        return plots.loss_curves(
             losses,
             cbar=True,
             colors=task_error.colors,
@@ -94,24 +94,24 @@ class EnsembleView(Ensemble):
             **kwargs,
         )
 
-    @wraps(views.histogram)
+    @wraps(plots.histogram)
     def task_error_histogram(self, **kwargs):
         """Plot a histogram of the validation losses of the ensemble."""
         losses = self.min_validation_losses()
-        return views.histogram(
+        return plots.histogram(
             losses, xlabel="task error", ylabel="number models", **kwargs
         )
 
-    @wraps(views.violins)
+    @wraps(plots.violins)
     def node_parameters(self, key, max_per_ax=34, **kwargs):
         """Return the node parameters of the ensemble."""
         parameters = self.parameters()[f"nodes_{key}"]
         parameter_keys = self.parameter_keys()[f"nodes_{key}"]
-        return views.violins(
+        return plots.violins(
             parameter_keys, parameters, ylabel=key, max_per_ax=max_per_ax, **kwargs
         )
 
-    @wraps(views.violins)
+    @wraps(plots.violins)
     def edge_parameters(self, key, max_per_ax=120, **kwargs):
         """Return the edge parameters of the ensemble."""
         parameters = self.parameters()[f"edges_{key}"]
@@ -119,7 +119,7 @@ class EnsembleView(Ensemble):
         variable_names = np.array([
             f"{source}->{target}" for source, target in parameter_keys
         ])
-        return views.violins(
+        return plots.violins(
             variable_names,
             variable_values=parameters,
             ylabel=key,
@@ -127,12 +127,12 @@ class EnsembleView(Ensemble):
             **kwargs,
         )
 
-    @wraps(plots.plots.heatmap)
+    @wraps(plots.heatmap)
     def dead_or_alive(self, **kwargs):
         """Return the number of dead cells in the ensemble."""
         responses = self.naturalistic_stimuli_responses()
         dead_count = (responses['responses'].values < 0).all(axis=(1, 2))
-        return plots.plots.heatmap(
+        return plots.heatmap(
             dead_count,
             ylabels=np.arange(len(self)),
             xlabels=responses.cell_type.values,

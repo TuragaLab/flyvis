@@ -8,10 +8,10 @@ import numpy as np
 import torch
 
 import flyvision
+from flyvision.analysis.visualization import plots, plt_utils
 from flyvision.datasets.datasets import StimulusDataset
 from flyvision.datasets.sintel import AugmentedSintel
-from flyvision.plots import plots, plt_utils
-from flyvision.stimulus import Stimulus
+from flyvision.network.stimulus import Stimulus
 from flyvision.utils import hex_utils, tensor_utils
 from flyvision.utils.activity_utils import LayerActivity
 

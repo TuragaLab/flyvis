@@ -6,7 +6,7 @@ from matplotlib.colors import (
     to_rgba,
 )
 
-from flyvision.plots.plt_utils import color_labels
+from flyvision.analysis.visualization.plt_utils import color_labels
 from flyvision.utils.groundtruth_utils import polarity
 
 ON = "#af0019"  # red

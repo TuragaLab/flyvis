@@ -11,8 +11,8 @@ from datamate import Directory, Namespace
 from toolz import valfilter, valmap
 from torch import nn
 
-from flyvision.network import Network, NetworkDir
-from flyvision.tasks import Task
+from flyvision.network.network import Network, NetworkDir
+from flyvision.task.tasks import Task
 from flyvision.utils.activity_utils import asymmetric_weighting
 from flyvision.utils.chkpt_utils import (
     recover_decoder,
@@ -23,6 +23,8 @@ from flyvision.utils.chkpt_utils import (
 )
 
 logging = logging.getLogger(__name__)
+
+__all__ = ["MultiTaskSolver", "Penalty", "HyperParamScheduler"]
 
 
 class SolverProtocol(Protocol):

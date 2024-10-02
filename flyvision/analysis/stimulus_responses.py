@@ -9,18 +9,19 @@ import torch
 import xarray as xr
 
 import flyvision
-from flyvision.analysis import optimal_stimuli
 from flyvision.datasets.datasets import StimulusDataset
 from flyvision.datasets.dots import CentralImpulses, SpatialImpulses
 from flyvision.datasets.flashes import Flashes
 from flyvision.datasets.moving_bar import MovingBar, MovingEdge
 from flyvision.datasets.sintel import AugmentedSintel
 
+from . import optimal_stimuli
+
 # --------------------- Helper Function ---------------------
 
 
 def compute_responses(
-    network: "flyvision.CheckpointedNetwork",
+    network: "flyvision.network.CheckpointedNetwork",
     dataset_class: type,
     dataset_config: Dict,
     batch_size: int,
@@ -97,7 +98,9 @@ def compute_responses(
 
 
 def generic_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset,
     dataset_config: Dict,
     default_dataset_cls: type,
@@ -108,7 +111,7 @@ def generic_responses(
 ) -> xr.Dataset:
     """Return responses for a given dataset as an xarray Dataset."""
     # Handle both single and multiple NetworkViews
-    if isinstance(network_view_or_ensemble, flyvision.NetworkView):
+    if isinstance(network_view_or_ensemble, flyvision.network.NetworkView):
         network_views = [network_view_or_ensemble]
     else:
         network_views = list(network_view_or_ensemble.values())
@@ -242,7 +245,9 @@ def generic_responses(
 
 # TODO: with network_view pickable, could mem cache this directly.
 def flash_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset: Optional[Flashes] = None,
     radius=(-1, 6),
     dt=1 / 200,
@@ -271,7 +276,9 @@ def flash_responses(
 
 
 def moving_edge_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset: Optional[MovingEdge] = None,
     speeds=(2.4, 4.8, 9.7, 13, 19, 25),
     offsets=(-10, 11),
@@ -304,7 +311,9 @@ def moving_edge_responses(
 
 
 def moving_bar_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset: Optional[MovingBar] = None,
     dt=1 / 200,
     batch_size=4,
@@ -336,7 +345,9 @@ def moving_bar_responses(
 
 
 def naturalistic_stimuli_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset: Optional[AugmentedSintel] = None,
     dt=1 / 100,
     batch_size=4,
@@ -363,7 +374,9 @@ def naturalistic_stimuli_responses(
 
 
 def central_impulses_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset: Optional[CentralImpulses] = None,
     intensity=1,
     bg_intensity=0.5,
@@ -399,7 +412,9 @@ def central_impulses_responses(
 
 
 def spatial_impulses_responses(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset: Optional[SpatialImpulses] = None,
     intensity=1,
     bg_intensity=0.5,
@@ -447,7 +462,7 @@ def compute_optimal_stimulus_responses(
     This function is compatible with joblib caching.
     """
     # Create a dummy NetworkView for FindOptimalStimuli
-    network_view = flyvision.NetworkView(network_dir=network.name)
+    network_view = flyvision.network.NetworkView(network_dir=network.name)
 
     # Prepare dataset configuration
     stimuli_dataset = dataset_class(**dataset_config)
@@ -458,7 +473,7 @@ def compute_optimal_stimulus_responses(
 
 
 def optimal_stimulus_responses(
-    network_view: "flyvision.NetworkView",
+    network_view: "flyvision.network.NetworkView",
     cell_type: str,
     dataset: Optional[StimulusDataset] = AugmentedSintel,
     dt=1 / 100,
@@ -487,7 +502,7 @@ if __name__ == '__main__':
     # Example usage
     import time
 
-    nv = flyvision.NetworkView("flow/0000/000")
+    nv = flyvision.network.NetworkView("flow/0000/000")
     start = time.time()
     # ds = nv.naturalistic_stimuli_responses()
     # print(ds)

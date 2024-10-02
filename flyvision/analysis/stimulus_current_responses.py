@@ -26,7 +26,7 @@ class ExperimentData:
 
 
 def compute_currents(
-    network: "flyvision.CheckpointedNetwork",
+    network: "flyvision.network.CheckpointedNetwork",
     dataset_class: type,
     dataset_config: Dict,
     t_pre: float = 2.0,
@@ -93,7 +93,9 @@ def compute_currents(
 
 
 def generic_currents(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset,
     dataset_config: Dict,
     default_dataset_cls: type,
@@ -103,7 +105,7 @@ def generic_currents(
 ) -> xr.Dataset:
     """Return responses for a given dataset as an xarray Dataset."""
     # Handle both single and multiple NetworkViews
-    if isinstance(network_view_or_ensemble, flyvision.NetworkView):
+    if isinstance(network_view_or_ensemble, flyvision.network.NetworkView):
         network_views = [network_view_or_ensemble]
     else:
         network_views = list(network_view_or_ensemble.values())
@@ -171,7 +173,9 @@ def generic_currents(
 
 
 def moving_edge_currents(
-    network_view_or_ensemble: Union["flyvision.NetworkView", "flyvision.Ensemble"],
+    network_view_or_ensemble: Union[
+        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+    ],
     dataset: Optional[MovingEdge] = None,
 ) -> xr.Dataset:
     default_dataset_config = dict(

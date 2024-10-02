@@ -9,8 +9,9 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as ttf
 from torch import nn
 
-from flyvision.plots.plt_utils import init_plot, rm_spines
-from flyvision.rendering.utils import (
+from flyvision.analysis.visualization.plt_utils import init_plot, rm_spines
+
+from .utils import (
     cartesian_bars,
     cartesian_gratings,
     hex_center_coordinates,
