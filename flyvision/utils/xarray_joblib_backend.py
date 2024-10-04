@@ -537,7 +537,7 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
             try:
                 # Ensure the directory exists
                 self.create_location(os.path.dirname(nc_path))
-                logging.info("Store item", nc_path)
+                logging.info("Store item %s", nc_path)
 
                 # Save the Dataset to NetCDF
                 item.to_netcdf(nc_path, mode='w')

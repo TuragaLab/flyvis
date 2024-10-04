@@ -12,26 +12,30 @@ nav:
     - Ensemble clustering: examples/05_flyvision_umap_and_clustering_models.md
     - Maximally excitatory stimuli: examples/06_flyvision_maximally_excitatory_stimuli.md
     - Custom stimuli: examples/07_flyvision_providing_custom_stimuli.md
+  - Main results:
+    - Figure 1: examples/figure_01_fly_visual_system.ipynb
+    - Figure 2: examples/figure_02_simple_stimuli_responses.ipynb
+    - Figure 3: examples/figure_03_naturalistic_stimuli_responses.ipynb
+    - Figure 4: examples/figure_04_mechanisms.ipynb
   - Contributing: contribute.md
   - API Reference:
-    # - "flyvision": reference/flyvision.md
-    - "flyvision.connectome": reference/connectome.md
-    - "flyvision.network.Network": reference/network.md
-    - "flyvision.network.NetworkView": reference/network_view.md
-    - "flyvision.initialization": reference/initialization.md
-    - "flyvision.decoder": reference/decoder.md
-    - "flyvision.objectives": reference/objectives.md
-    - "flyvision.tasks": reference/tasks.md
-    - "flyvision.solver": reference/solver.md
-    - "flyvision.ensemble": reference/ensemble.md
-    - "flyvision.ensembleview": reference/ensemble_view.md
-    - "flyvision.datasets": reference/datasets.md
-    - "flyvision.utils": reference/utils.md
-    - "flyvision.rendering": reference/rendering.md
-    - "flyvision.augmentation": reference/augmentation.md
-    - "flyvision.plots": reference/plots.md
-    - "flyvision.animations": reference/animations.md
-    - "flyvision.analysis": reference/analysis.md
+    - "Connectome": reference/connectome.md
+    - "Network": reference/network.md
+    - "Sintel": reference/sintel.md
+    - "Task": reference/tasks.md
+    - "Training": reference/solver.md
+    - "Flash Responses": reference/flash_responses.md
+    - "Moving Stimulus Responses": reference/moving_stimulus_responses.md
+    - "Ensemble Clustering": reference/ensemble_clustering.md
+    - "Optimal Stimuli": reference/optimal_stimuli.md
+    - "Scripts": reference/scripts.md
+    - Miscelleanous:
+      - "Rendering": reference/rendering.md
+      - "Augmentation": reference/augmentation.md
+      - "Datasets": reference/datasets.md
+      - "Utils": reference/utils.md
+      - "Visualizations": reference/visualizations.md
+      - "Animations": reference/animations.md
   - FAQ: faq.md
   - Acknowledgements: acknowledgements.md
 
@@ -89,9 +93,15 @@ plugins:
         python:
           options:
             show_source: true
-            heading_level: 3
+            heading_level: 2
             members_order: source
+            show_root_heading: true
+            show_root_toc_entry: true
+            show_symbol_type_toc: true
+            show_root_full_path: false
+            show_root_heading: true
 
 watch:
   - ../flyvision
+  - ../scripts
 

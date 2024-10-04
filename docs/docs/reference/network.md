@@ -1,6 +1,15 @@
-# Network (nn.Module)
+# Network
+
+## Differentiable Pytorch Module
+
 ::: flyvision.network.Network
-    options:
-        show_source: true
-        heading_level: 1
-        <!-- members_order: source -->
+
+## Initialization
+
+::: flyvision.network.initialization
+
+## Analysis
+
+::: flyvision.network.NetworkView
+
+::: flyvision.network.EnsembleView

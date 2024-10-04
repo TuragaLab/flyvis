@@ -11,6 +11,7 @@ from datamate import Directory, Namespace, root
 from matplotlib.patches import RegularPolygon
 from tqdm.auto import tqdm
 
+import flyvision
 from flyvision import renderings_dir
 from flyvision.analysis.visualization.plots import quick_hex_scatter
 from flyvision.analysis.visualization.plt_utils import init_plot
@@ -20,6 +21,8 @@ from .rendering import HexEye
 from .rendering.utils import pad, resample, shuffle
 
 logging = logging.getLogger()
+
+__all__ = ["RenderedOffsets", "MovingBar", "MovingEdge"]
 
 
 @root(renderings_dir)
@@ -124,7 +127,7 @@ class MovingBar(StimulusDataset):
         height=9,  # in 1 * radians(2.25) led size
         dt=1 / 200,
         subdir="movingbar",
-        device="cuda",
+        device=flyvision.device,
         bar_loc_horizontal=np.radians(90),
         post_pad_mode="value",
         t_pre=1.0,
@@ -635,7 +638,7 @@ class MovingEdge(MovingBar):
         height=9,  # in 1 * radians(2.25) led size
         dt=1 / 200,
         subdir="movingbar",
-        device="cuda",
+        device=flyvision.device,
         post_pad_mode="continue",
         t_pre=1.0,
         t_post=1.0,

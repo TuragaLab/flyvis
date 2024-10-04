@@ -33,6 +33,8 @@ from .rendering.utils import split
 
 logging = logging.getLogger(__name__)
 
+__all__ = ["RenderedSintel", "MultiTaskSintel", "AugmentedSintel"]
+
 
 @root(renderings_dir)
 class RenderedSintel(Directory):

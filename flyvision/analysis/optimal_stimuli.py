@@ -212,7 +212,7 @@ class GenerateOptimalStimuli:
 
         # Initialize maximally excitatory tensors per time bin.
         torch.manual_seed(random_seed)
-        art_opt_stim = torch.rand(1, n_frames, 1, n_hexals, device="cuda")
+        art_opt_stim = torch.rand(1, n_frames, 1, n_hexals, device=flyvision.device)
 
         art_opt_stim.data.clamp_(0, 1)
         art_opt_stim.requires_grad = True

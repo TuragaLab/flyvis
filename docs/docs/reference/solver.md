@@ -1,1 +1,3 @@
-::: flyvision.solver.MultiTaskSolver
+# Training
+
+::: flyvision.solver

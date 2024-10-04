@@ -18,6 +18,8 @@ from .rendering.utils import resample
 
 logging = logging.getLogger()
 
+__all__ = ["RenderedFlashes", "Flashes", "render_flash"]
+
 
 @root(renderings_dir)
 class RenderedFlashes(Directory):
@@ -57,7 +59,7 @@ class RenderedFlashes(Directory):
         sequence = []  # samples, #frames, width, height
         for (baseline, intensity), rad in tqdm(values, desc="Flashes"):
             sequence.append(
-                get_flash(
+                render_flash(
                     n_ommatidia,
                     intensity,
                     baseline,
@@ -72,7 +74,9 @@ class RenderedFlashes(Directory):
         self.flashes = np.array(sequence)
 
 
-def get_flash(n_ommatidia, intensity, baseline, t_stim, t_pre, dt, alternations, radius):
+def render_flash(
+    n_ommatidia, intensity, baseline, t_stim, t_pre, dt, alternations, radius
+):
     """Generate a sequence of flashes on a hexagonal lattice.
 
     Args:

@@ -1,0 +1,2297 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://flyvis.github.io/reference/flash_responses/">
+      
+      
+        <link rel="prev" href="../solver/">
+      
+      
+        <link rel="next" href="../moving_stimulus_responses/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
+    
+    
+      
+        <title>Flash Responses - Flyvis</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#flash-responses" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Flyvis" class="md-header__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Flyvis
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Flash Responses
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Flyvis" class="md-nav__button md-logo" aria-label="Flyvis" data-md-component="logo">
+      
+  <img src="../../images/logo_hexagon.jpg" alt="logo">
+
+    </a>
+    Flyvis
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/01_flyvision_connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Explore the connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/02_flyvision_optic_flow_task/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Train the network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/03_flyvision_flash_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Flash responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/04_flyvision_moving_edge_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Moving edge responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/05_flyvision_umap_and_clustering_models/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ensemble clustering
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/06_flyvision_maximally_excitatory_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maximally excitatory stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/07_flyvision_providing_custom_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Custom stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../connectome/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connectome
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../network/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sintel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sintel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Task
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../solver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Task Training
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Flash Responses
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Flash Responses
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Datasets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;flashes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" flashes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes.RenderedFlashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;RenderedFlashes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes.Flashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Flashes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes.render_flash" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;render_flash
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arg" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arg
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.datasets.dots" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;dots
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Analysis
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;flash_responses
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" flash_responses">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses.flash_response_index" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;flash_response_index
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses.fri_correlation_to_known" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;fri_correlation_to_known
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses.plot_fris" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;plot_fris
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../moving_stimulus_responses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Moving Stimulus Responses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ensemble_clustering/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ensemble Clustering
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../optimal_stimuli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Optimal Stimuli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../acknowledgements/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Acknowledgements
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Datasets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;flashes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" flashes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes.RenderedFlashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;RenderedFlashes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes.Flashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Flashes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.datasets.flashes.render_flash" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;render_flash
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arg" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arg
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.datasets.dots" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;dots
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Analysis
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;flash_responses
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" flash_responses">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses.flash_response_index" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;flash_response_index
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses.fri_correlation_to_known" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;fri_correlation_to_known
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyvision.analysis.flash_responses.plot_fris" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;plot_fris
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="flash-responses">Flash responses<a class="headerlink" href="#flash-responses" title="Permanent link">&para;</a></h1>
+<h2 id="datasets">Datasets<a class="headerlink" href="#datasets" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="flyvision.datasets.flashes" class="doc doc-heading">
+            <code>flashes</code>
+
+
+<a href="#flyvision.datasets.flashes" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Rendering of circular flash sequences on a hexagonal lattice.</p>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.datasets.flashes.RenderedFlashes" class="doc doc-heading">
+            <code>RenderedFlashes</code>
+
+
+<a href="#flyvision.datasets.flashes.RenderedFlashes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="datamate.Directory">Directory</span></code></p>
+
+
+        <p>Render a directory with flashes for the Flashes dataset.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>boxfilter</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>parameters for the BoxEye filter.</p>
+              </div>
+            </td>
+            <td>
+                  <code>dict(extent=15, kernel_size=13)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>dynamic_range</code></td>
+            <td>
+                  <code>list</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>range of intensities. E.g. [0, 1] renders flashes
+with decrement 0.5-&gt;0 and increment 0.5-&gt;1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>[0, 1]</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>t_stim</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>duration of the stimulus.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>t_pre</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>duration of the grey stimulus.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>dt</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>timesteps.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1 / 200</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>radius</code></td>
+            <td>
+                  <code>list</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>radius of the stimulus.</p>
+              </div>
+            </td>
+            <td>
+                  <code>[-1, 6]</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>alternations</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>sequence of alternations between lower or upper intensity and
+baseline of the dynamic range.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(0, 1, 0)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/datasets/flashes.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@root</span><span class="p">(</span><span class="n">renderings_dir</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RenderedFlashes</span><span class="p">(</span><span class="n">Directory</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render a directory with flashes for the Flashes dataset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        boxfilter: parameters for the BoxEye filter.</span>
+<span class="sd">        dynamic_range: range of intensities. E.g. [0, 1] renders flashes</span>
+<span class="sd">            with decrement 0.5-&gt;0 and increment 0.5-&gt;1.</span>
+<span class="sd">        t_stim: duration of the stimulus.</span>
+<span class="sd">        t_pre: duration of the grey stimulus.</span>
+<span class="sd">        dt: timesteps.</span>
+<span class="sd">        radius: radius of the stimulus.</span>
+<span class="sd">        alternations: sequence of alternations between lower or upper intensity and</span>
+<span class="sd">            baseline of the dynamic range.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">boxfilter</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">13</span><span class="p">),</span>
+        <span class="n">dynamic_range</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">t_stim</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">t_pre</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">dt</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="n">radius</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+        <span class="n">alternations</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="n">boxfilter</span> <span class="o">=</span> <span class="n">BoxEye</span><span class="p">(</span><span class="o">**</span><span class="n">boxfilter</span><span class="p">)</span>
+        <span class="n">n_ommatidia</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxfilter</span><span class="o">.</span><span class="n">receptor_centers</span><span class="p">)</span>
+        <span class="n">dynamic_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dynamic_range</span><span class="p">)</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">dynamic_range</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,)</span>
+
+        <span class="n">intensity</span> <span class="o">=</span> <span class="n">dynamic_range</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">baseline</span><span class="p">,</span> <span class="n">intensity</span><span class="p">)))</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="n">values</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">radius</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">samples</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># samples, #frames, width, height</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">baseline</span><span class="p">,</span> <span class="n">intensity</span><span class="p">),</span> <span class="n">rad</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Flashes&quot;</span><span class="p">):</span>
+            <span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">render_flash</span><span class="p">(</span>
+                    <span class="n">n_ommatidia</span><span class="p">,</span>
+                    <span class="n">intensity</span><span class="p">,</span>
+                    <span class="n">baseline</span><span class="p">,</span>
+                    <span class="n">t_stim</span><span class="p">,</span>
+                    <span class="n">t_pre</span><span class="p">,</span>
+                    <span class="n">dt</span><span class="p">,</span>
+                    <span class="n">alternations</span><span class="p">,</span>
+                    <span class="n">rad</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">flashes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="flyvision.datasets.flashes.Flashes" class="doc doc-heading">
+            <code>Flashes</code>
+
+
+<a href="#flyvision.datasets.flashes.Flashes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="flyvision.datasets.datasets.SequenceDataset">SequenceDataset</span></code></p>
+
+
+        <p>Flashes dataset.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>boxfilter</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>parameters for the BoxEye filter.</p>
+              </div>
+            </td>
+            <td>
+                  <code>dict(extent=15, kernel_size=13)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>dynamic_range</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>range of intensities. E.g. [0, 1] renders flashes
+with decrement 0.5-&gt;0 and increment 0.5-&gt;1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>[0, 1]</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>t_stim</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>duration of the stimulus.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>t_pre</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>duration of the grey stimulus.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>dt</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>timesteps.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1 / 200</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>radius</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>radius of the stimulus.</p>
+              </div>
+            </td>
+            <td>
+                  <code>[-1, 6]</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>alternations</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>sequence of alternations between lower or upper intensity and
+baseline of the dynamic range.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(0, 1, 0)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+              <details class="quote">
+                <summary>Source code in <code>flyvision/datasets/flashes.py</code></summary>
+                <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Flashes</span><span class="p">(</span><span class="n">SequenceDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Flashes dataset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        boxfilter: parameters for the BoxEye filter.</span>
+<span class="sd">        dynamic_range: range of intensities. E.g. [0, 1] renders flashes</span>
+<span class="sd">            with decrement 0.5-&gt;0 and increment 0.5-&gt;1.</span>
+<span class="sd">        t_stim: duration of the stimulus.</span>
+<span class="sd">        t_pre: duration of the grey stimulus.</span>
+<span class="sd">        dt: timesteps.</span>
+<span class="sd">        radius: radius of the stimulus.</span>
+<span class="sd">        alternations: sequence of alternations between lower or upper intensity and</span>
+<span class="sd">            baseline of the dynamic range.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">augment</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">n_sequences</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">framerate</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">t_post</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">boxfilter</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">extent</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">13</span><span class="p">),</span>
+        <span class="n">dynamic_range</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">t_stim</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">t_pre</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">dt</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="n">radius</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+        <span class="n">alternations</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">alternations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;First alternation must be 0.&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flashes_dir</span> <span class="o">=</span> <span class="n">RenderedFlashes</span><span class="p">(</span>
+            <span class="n">boxfilter</span><span class="o">=</span><span class="n">boxfilter</span><span class="p">,</span>
+            <span class="n">dynamic_range</span><span class="o">=</span><span class="n">dynamic_range</span><span class="p">,</span>
+            <span class="n">t_stim</span><span class="o">=</span><span class="n">t_stim</span><span class="p">,</span>
+            <span class="n">t_pre</span><span class="o">=</span><span class="n">t_pre</span><span class="p">,</span>
+            <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+            <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
+            <span class="n">alternations</span><span class="o">=</span><span class="n">alternations</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flashes_dir</span><span class="o">.</span><span class="n">config</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">dynamic_range</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,)</span>
+        <span class="n">intensity</span> <span class="o">=</span> <span class="n">dynamic_range</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">baseline</span><span class="p">,</span> <span class="n">intensity</span><span class="p">),</span> <span class="n">radius</span><span class="p">))</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">baseline</span> <span class="o">=</span> <span class="n">baseline</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arg_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;baseline&quot;</span><span class="p">,</span> <span class="s2">&quot;intensity&quot;</span><span class="p">,</span> <span class="s2">&quot;radius&quot;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">t_pre</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">t_pre</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">t_stim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">t_stim</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arg_df</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Indexing the dataset.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flashes_dir</span><span class="o">.</span><span class="n">flashes</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Flashes dataset. Parametrization: </span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">arg_df</span><span class="si">}</span><span class="s2">&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="flyvision.datasets.flashes.Flashes.get_item" class="doc doc-heading">
+            <code class=" language-python"><span class="n">get_item</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></code>
+
+<a href="#flyvision.datasets.flashes.Flashes.get_item" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Indexing the dataset.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/datasets/flashes.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Indexing the dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flashes_dir</span><span class="o">.</span><span class="n">flashes</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="flyvision.datasets.flashes.render_flash" class="doc doc-heading">
+            <code class=" language-python"><span class="n">render_flash</span><span class="p">(</span><span class="n">n_ommatidia</span><span class="p">,</span> <span class="n">intensity</span><span class="p">,</span> <span class="n">baseline</span><span class="p">,</span> <span class="n">t_stim</span><span class="p">,</span> <span class="n">t_pre</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">alternations</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span></code>
+
+<a href="#flyvision.datasets.flashes.render_flash" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate a sequence of flashes on a hexagonal lattice.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>n_ommatidia</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>number of ommatidia.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>intensity</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>intensity of the flash.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>baseline</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>intensity of the baseline.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>t_stim</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>duration of the stimulus.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>t_pre</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>duration of the grey stimulus.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>dt</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>timesteps.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>alternations</code></td>
+            <td>
+                  <code>list</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>sequence of alternations between lower or upper intensity
+and baseline of the dynamic range.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>radius</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>radius of the stimulus.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/datasets/flashes.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">render_flash</span><span class="p">(</span>
+    <span class="n">n_ommatidia</span><span class="p">,</span> <span class="n">intensity</span><span class="p">,</span> <span class="n">baseline</span><span class="p">,</span> <span class="n">t_stim</span><span class="p">,</span> <span class="n">t_pre</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">alternations</span><span class="p">,</span> <span class="n">radius</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a sequence of flashes on a hexagonal lattice.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        n_ommatidia (int): number of ommatidia.</span>
+<span class="sd">        intensity (float): intensity of the flash.</span>
+<span class="sd">        baseline (float): intensity of the baseline.</span>
+<span class="sd">        t_stim (float): duration of the stimulus.</span>
+<span class="sd">        t_pre (float): duration of the grey stimulus.</span>
+<span class="sd">        dt (float): timesteps.</span>
+<span class="sd">        alternations (list): sequence of alternations between lower or upper intensity</span>
+<span class="sd">            and baseline of the dynamic range.</span>
+<span class="sd">        radius (int): radius of the stimulus.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stimulus</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_ommatidia</span><span class="p">)[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">baseline</span>
+
+    <span class="k">if</span> <span class="n">radius</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">ring</span> <span class="o">=</span> <span class="n">HexLattice</span><span class="o">.</span><span class="n">filled_circle</span><span class="p">(</span>
+            <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="n">Hexal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">as_lattice</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">coordinate_index</span> <span class="o">=</span> <span class="n">ring</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">coordinate_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_ommatidia</span><span class="p">)</span>
+
+    <span class="n">stimulus</span><span class="p">[:,</span> <span class="n">coordinate_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">intensity</span>
+
+    <span class="n">on</span> <span class="o">=</span> <span class="n">resample</span><span class="p">(</span><span class="n">stimulus</span><span class="p">,</span> <span class="n">t_stim</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="n">off</span> <span class="o">=</span> <span class="n">resample</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_ommatidia</span><span class="p">)[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">baseline</span><span class="p">,</span> <span class="n">t_pre</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+
+    <span class="n">whole_stimulus</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">switch</span> <span class="ow">in</span> <span class="n">alternations</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">switch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">whole_stimulus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">off</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">switch</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">whole_stimulus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">on</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">whole_stimulus</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="arg">Arg<a class="headerlink" href="#arg" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="flyvision.datasets.dots" class="doc doc-heading">
+            <code>dots</code>
+
+
+<a href="#flyvision.datasets.dots" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="analysis">Analysis<a class="headerlink" href="#analysis" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="flyvision.analysis.flash_responses" class="doc doc-heading">
+            <code>flash_responses</code>
+
+
+<a href="#flyvision.analysis.flash_responses" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="flyvision.analysis.flash_responses.flash_response_index" class="doc doc-heading">
+            <code class=" language-python"><span class="n">flash_response_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">on_intensity</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">off_intensity</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">nonnegative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#flyvision.analysis.flash_responses.flash_response_index" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the Flash Response Index (FRI) using xarray methods.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/analysis/flash_responses.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">flash_response_index</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span>
+    <span class="n">radius</span><span class="p">,</span>
+    <span class="n">on_intensity</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">off_intensity</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">nonnegative</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the Flash Response Index (FRI) using xarray methods.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Ensure that the stimulus configuration is correct for FRI computation</span>
+    <span class="k">assert</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">][</span><span class="s1">&#39;alternations&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">responses</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;responses&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Select the time window for the stimulus response using query</span>
+    <span class="n">time_query</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">][</span><span class="s1">&#39;dt&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> &lt;= time &lt;= </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">][</span><span class="s1">&#39;t_stim&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+    <span class="n">stim_response</span> <span class="o">=</span> <span class="n">responses</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">frame</span><span class="o">=</span><span class="n">time_query</span><span class="p">)</span>
+
+    <span class="c1"># Select the data for the given radius</span>
+    <span class="n">stim_response</span> <span class="o">=</span> <span class="n">stim_response</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sample</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;radius==</span><span class="si">{</span><span class="n">radius</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Apply nonnegative constraint if required</span>
+    <span class="k">if</span> <span class="n">nonnegative</span><span class="p">:</span>
+        <span class="n">minimum</span> <span class="o">=</span> <span class="n">stim_response</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">,</span> <span class="s1">&#39;sample&#39;</span><span class="p">])</span>
+        <span class="n">stim_response</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">minimum</span><span class="p">)</span>
+
+    <span class="c1"># Select the response data for on and off intensities</span>
+    <span class="n">r_on</span> <span class="o">=</span> <span class="n">stim_response</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sample</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;intensity==</span><span class="si">{</span><span class="n">on_intensity</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">r_off</span> <span class="o">=</span> <span class="n">stim_response</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sample</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;intensity==</span><span class="si">{</span><span class="n">off_intensity</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Compute the peak responses by finding the maximum along the &#39;frame&#39; dimension</span>
+    <span class="n">on_peak</span> <span class="o">=</span> <span class="n">r_on</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;frame&#39;</span><span class="p">)</span>
+    <span class="n">off_peak</span> <span class="o">=</span> <span class="n">r_off</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;frame&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Drop the &#39;sample&#39; coordinate to avoid broadcasting issues</span>
+    <span class="n">on_peak</span> <span class="o">=</span> <span class="n">on_peak</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;sample&#39;</span><span class="p">)</span>
+    <span class="n">off_peak</span> <span class="o">=</span> <span class="n">off_peak</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;sample&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Compute the Flash Response Index (FRI)</span>
+    <span class="n">fri</span> <span class="o">=</span> <span class="n">on_peak</span> <span class="o">-</span> <span class="n">off_peak</span>
+    <span class="n">fri</span> <span class="o">/=</span> <span class="n">on_peak</span> <span class="o">+</span> <span class="n">off_peak</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1e-16</span><span class="p">])</span>
+
+    <span class="c1"># Optionally, you can drop NaN values after computation</span>
+    <span class="k">return</span> <span class="n">fri</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;sample&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;any&#39;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="flyvision.analysis.flash_responses.fri_correlation_to_known" class="doc doc-heading">
+            <code class=" language-python"><span class="n">fri_correlation_to_known</span><span class="p">(</span><span class="n">fris</span><span class="p">)</span></code>
+
+<a href="#flyvision.analysis.flash_responses.fri_correlation_to_known" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the correlation of the FRI to known cell type tunings.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/analysis/flash_responses.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">fri_correlation_to_known</span><span class="p">(</span><span class="n">fris</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the correlation of the FRI to known cell type tunings.&quot;&quot;&quot;</span>
+    <span class="n">known_preferred_contrasts</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">groundtruth_utils</span><span class="o">.</span><span class="n">polarity</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="p">}</span>
+    <span class="n">known_cell_types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">known_preferred_contrasts</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">groundtruth</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">known_preferred_contrasts</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">nt</span> <span class="o">==</span> <span class="n">fris</span><span class="o">.</span><span class="n">cell_type</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">nt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">known_cell_types</span><span class="p">)</span>
+    <span class="p">])</span>
+    <span class="n">fris</span> <span class="o">=</span> <span class="n">fris</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">neuron</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">groundtruth</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">groundtruth</span><span class="p">,</span>
+        <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;neuron&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">fris</span><span class="p">,</span> <span class="n">groundtruth</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="s2">&quot;neuron&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="flyvision.analysis.flash_responses.plot_fris" class="doc doc-heading">
+            <code class=" language-python"><span class="n">plot_fris</span><span class="p">(</span><span class="n">fris</span><span class="p">,</span> <span class="n">cell_types</span><span class="p">,</span> <span class="n">scatter_best</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">scatter_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bold_output_type_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">output_cell_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">known_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sorted_type_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys_r</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">color_known_types</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#flyvision.analysis.flash_responses.plot_fris" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Plot flash response indices (FRIs) for the given cell types with violins.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>flyvision/analysis/flash_responses.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot_fris</span><span class="p">(</span>
+    <span class="n">fris</span><span class="p">,</span>  <span class="c1"># fris.responses[:]</span>
+    <span class="n">cell_types</span><span class="p">,</span>  <span class="c1"># fris.responses.cell_types</span>
+    <span class="n">scatter_best</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">scatter_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">bold_output_type_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">output_cell_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">known_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">sorted_type_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Greys_r</span><span class="p">,</span>
+    <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="n">color_known_types</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot flash response indices (FRIs) for the given cell types with violins.&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">fris</span> <span class="o">=</span> <span class="n">fri_violins</span><span class="p">(</span>
+        <span class="n">fris</span><span class="o">=</span><span class="n">fris</span><span class="p">,</span>
+        <span class="n">cell_types</span><span class="o">=</span><span class="n">cell_types</span><span class="p">,</span>
+        <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
+        <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">,</span>
+        <span class="n">sorted_type_list</span><span class="o">=</span><span class="n">sorted_type_list</span><span class="p">,</span>
+        <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span>
+        <span class="n">scatter_best</span><span class="o">=</span><span class="n">scatter_best</span><span class="p">,</span>
+        <span class="n">scatter_all</span><span class="o">=</span><span class="n">scatter_all</span><span class="p">,</span>
+        <span class="n">known_first</span><span class="o">=</span><span class="n">known_first</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">bold_output_type_labels</span> <span class="ow">and</span> <span class="n">output_cell_types</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt_utils</span><span class="o">.</span><span class="n">boldify_labels</span><span class="p">(</span><span class="n">output_cell_types</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">*</span><span class="n">ylim</span><span class="p">)</span>
+    <span class="n">plt_utils</span><span class="o">.</span><span class="n">trim_axis</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+    <span class="n">plt_utils</span><span class="o">.</span><span class="n">set_spine_tick_params</span><span class="p">(</span>
+        <span class="n">ax</span><span class="p">,</span>
+        <span class="n">tickwidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">ticklength</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">ticklabelpad</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">spinewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">color_known_types</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">flash_response_color_labels</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">hlines</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="nb">min</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xticks</span><span class="p">()),</span>
+        <span class="nb">max</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xticks</span><span class="p">()),</span>
+        <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+        <span class="c1"># linestyles=&quot;dashed&quot;,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span>
+        <span class="n">zorder</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+      
+    
+  </body>
+</html>

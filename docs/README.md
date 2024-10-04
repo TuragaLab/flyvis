@@ -1,6 +1,6 @@
 # Documentation
 
-The documentation is available at: <https://flyvis.github.io/flyvis/>
+The documentation is available at: <https://turagalab.github.io/flyvis/>
 
 ## Building the Documentation
 

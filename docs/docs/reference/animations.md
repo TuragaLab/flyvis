@@ -1,0 +1,3 @@
+# Animations
+
+::: flyvision.analysis.animations

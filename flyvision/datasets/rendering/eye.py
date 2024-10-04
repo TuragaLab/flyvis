@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as ttf
 from torch import nn
 
+import flyvision
 from flyvision.analysis.visualization.plt_utils import init_plot, rm_spines
 
 from .utils import (
@@ -114,10 +115,12 @@ class BoxEye:
         """
         samples, frames, height, width = sequence.shape
 
-        if not isinstance(sequence, torch.cuda.FloatTensor):
+        if not isinstance(sequence, torch.Tensor):
             # auto-moving to GPU in case default tensor is cuda but passed
-            # sequence is not for convenience
-            sequence = torch.tensor(sequence, dtype=torch.float32)
+            # sequence is not, for convenience
+            sequence = torch.tensor(
+                sequence, dtype=torch.float32, device=flyvision.device
+            )
 
         if (self.min_frame_size > torch.tensor([height, width])).any():
             # to rescale to the minimum frame size
@@ -143,11 +146,11 @@ class BoxEye:
             raise ValueError("ftype must be 'sum', 'mean', or 'median." f"Is {ftype}.")
 
         if hex_sample is True:
-            return self.hex_sample(out).reshape(samples, frames, 1, -1)
+            return self.hex_render(out).reshape(samples, frames, 1, -1)
 
         return out.reshape(samples, frames, height, width)
 
-    def hex_sample(self, sequence: torch.Tensor) -> torch.Tensor:
+    def hex_render(self, sequence: torch.Tensor) -> torch.Tensor:
         """Sample receptor locations from a sequence of cartesian frames.
 
         Args:
@@ -166,24 +169,6 @@ class BoxEye:
         c = self.receptor_centers + torch.tensor([h // 2, w // 2])
         out = sequence[:, :, c[:, 0], c[:, 1]]
         return out.view(*sequence.shape[:2], 1, -1)
-
-    def sample(self, img, ftype="mean") -> torch.Tensor:
-        """Sample individual frames.
-
-        Args:
-            img: a single frame of shape (height, width).
-            ftype: filter type, 'mean', 'sum' or 'median'.
-
-        Returns:
-            tensor of shape (hexals,)
-        """
-        _type = np.asarray if isinstance(img, np.ndarray) else torch.Tensor
-        _device = "cpu" if not isinstance(img, torch.cuda.FloatTensor) else "cuda"
-        return _type(
-            self(img[None, None, :, :], ftype=ftype, hex_sample=True)
-            .squeeze()
-            .to(_device)
-        )
 
     def illustrate(
         self,
@@ -242,7 +227,7 @@ class HexEye:
         ppo=25,
         monitor_height_px=None,
         monitor_width_px=None,
-        device="cuda",
+        device=flyvision.device,
         dtype=torch.float16,
     ):
         n_hex_circfer = 2 * (-1 / 2 + np.sqrt(1 / 4 - ((1 - n_ommatidia) / 3))) + 1

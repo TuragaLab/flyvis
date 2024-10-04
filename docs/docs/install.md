@@ -1,19 +1,13 @@
-## Install the most recent stable version
-`Jaxley` is available on [`PyPI`](https://pypi.org/project/jaxley/):
-```sh
-pip install jaxley
-```
-This will install `Jaxley` with CPU support. If you want GPU support, follow the instructions on the [`JAX` github repository](https://github.com/google/jax) to install `JAX` with GPU support (in addition to installing `Jaxley`). For example, for NVIDIA GPUs, run
-```sh
-pip install -U "jax[cuda12]"
-```
+# Install
 
-## Install from source
-You can also install `Jaxley` from source:
-```sh
-git clone https://github.com/jaxleyverse/jaxley.git
-cd jaxley
-pip install -e .
-```
+## Local installation
 
-Note that `pip>=21.3` is required to install the editable version with `pyproject.toml` see [pip docs](https://pip.pypa.io/en/latest/reference/build-system/pyproject-toml/#editable-installation). 
+1. create a new conda environment `conda create --name flyvision -y`
+2. activate the new conda environment `conda activate flyvision`
+3. install python `conda install "python>=3.7.11,<3.10.0"`
+4. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
+5. navigate to the repo `cd flyvis` and install in developer mode `pip install -e .`
+
+## Download pretrained models
+
+1. run `python scripts/download_pretrained_models.py` from active conda environment

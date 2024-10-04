@@ -5,6 +5,8 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
+import flyvision
+
 # ----- Supporting definitions -------------------------------------------------
 
 
@@ -194,7 +196,7 @@ def is_inside_hex(
     y_centers,
     dist_to_edge,
     tilt,
-    device="cuda",
+    device=flyvision.device,
     dtype=torch.float16,
 ):
     """Finds whether the given points are inside the given hexagons.
@@ -385,7 +387,7 @@ def rotate_image(img, angle=0):
     ]
 
 
-def resample(stims, t_stim, dt, dim=0, device="cuda", return_indices=False):
+def resample(stims, t_stim, dt, dim=0, device=flyvision.device, return_indices=False):
     """Resamples set of stims for given stimulus duration and dt.
 
     Args:

@@ -169,7 +169,7 @@ def generic_currents(
     for idx, network_view in enumerate(network_views[1:], 1):
         network = handle_network(idx, network_view, network)
 
-    return results
+    return results, checkpoints
 
 
 def moving_edge_currents(
@@ -177,20 +177,24 @@ def moving_edge_currents(
         "flyvision.network.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset: Optional[MovingEdge] = None,
+    speeds=(19,),
+    offsets=(-10, 11),
+    angles=(0, 45, 90, 180, 225, 270),
+    dt=1 / 200,
 ) -> xr.Dataset:
     default_dataset_config = dict(
         widths=[80],
-        offsets=[-10, 11],
+        offsets=offsets,
         intensities=[0, 1],
-        speeds=[19],
+        speeds=speeds,
         height=80,
         bar_loc_horizontal=0.0,
         shuffle_offsets=False,
         post_pad_mode="continue",
         t_pre=1.0,
         t_post=1.0,
-        dt=1 / 200,
-        angles=[0, 45, 90, 180, 225, 270],
+        dt=dt,
+        angles=angles,
     )
     return generic_currents(
         network_view_or_ensemble,
@@ -199,5 +203,12 @@ def moving_edge_currents(
         MovingEdge,
         t_pre=1.0,
         t_fade_in=0.0,
-        dt=1 / 200,
+        dt=dt,
     )
+
+
+if __name__ == "__main__":
+    from flyvision import NetworkView
+
+    nv = NetworkView("flow/0000/000")
+    moving_edge_currents(nv)

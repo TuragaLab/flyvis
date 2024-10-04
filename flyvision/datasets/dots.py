@@ -6,14 +6,19 @@ import pandas as pd
 import torch
 from datamate import Namespace
 
+import flyvision
 from flyvision.utils import hex_utils
 from flyvision.utils.hex_utils import Hexal, HexLattice
 
 from .datasets import StimulusDataset
 from .rendering.utils import pad, resample
 
+__all__ = ["Dots", "CentralImpulses", "SpatialImpulses"]
+
 
 class Dots(StimulusDataset):
+    """Rendering flashes per ommatidia and without Eye-model (transduction from monitor to receptors)."""
+
     augment = False
     dt = None
     framerate = None
@@ -33,7 +38,7 @@ class Dots(StimulusDataset):
         t_post=0,
         intensity=1,
         mode="sustained",
-        device="cuda",
+        device=flyvision.device,
     ):
         if dot_column_radius > max_extent:
             raise ValueError("dot_column_radius must be smaller than max_extent")
@@ -214,6 +219,8 @@ class Dots(StimulusDataset):
 
 
 class CentralImpulses(StimulusDataset):
+    """Flashes at the center of the visual field for temporal receptive field mapping."""
+
     arg_df = None
     augment = False
     dt = None
@@ -232,7 +239,7 @@ class CentralImpulses(StimulusDataset):
         t_post=0,
         intensity=1,
         mode="impulse",
-        device="cuda",
+        device=flyvision.device,
     ):
         self.dots = Dots(
             dot_column_radius=dot_column_radius,
@@ -293,6 +300,8 @@ class CentralImpulses(StimulusDataset):
 
 
 class SpatialImpulses(StimulusDataset):
+    """Spatial flashes for spatial receptive field mapping."""
+
     arg_df = None
     augment = False
     dt = None
@@ -312,7 +321,7 @@ class SpatialImpulses(StimulusDataset):
         t_post=0,
         intensity=1,
         mode="impulse",
-        device="cuda",
+        device=flyvision.device,
     ):
         self.dots = Dots(
             dot_column_radius=dot_column_radius,
