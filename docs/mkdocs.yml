@@ -71,6 +71,7 @@ theme:
       scheme: default
       primary: white
       accent: purple
+      background: "#ffffff"
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
