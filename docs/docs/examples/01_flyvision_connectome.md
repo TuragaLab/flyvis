@@ -1,4 +1,4 @@
-```python
+```
 import flyvision
 from flyvision import connectome_file
 from flyvision import ConnectomeDir, ConnectomeView
@@ -13,7 +13,7 @@ scaffold of the network.
 To run the notebook on a GPU select Menu -> Runtime -> Change runtime type -> GPU.
 
 
-```python
+```
 # @markdown **Check access to GPU**
 
 try:
@@ -42,9 +42,9 @@ if IN_COLAB:
 The notebook requires installing our package `flyvis`. You may need to restart your session after running the code block below with Menu -> Runtime -> Restart session. Then, imports from `flyvis` should succeed without issue.
 
 
-```python
+```
 if IN_COLAB:
-    #@markdown **Install Flyvis**
+    # @markdown **Install Flyvis**
     %%capture
     !git clone https://github.com/flyvis/flyvis-dev.git
     %cd /content/flyvis-dev
@@ -52,17 +52,17 @@ if IN_COLAB:
 ```
 
 
-```python
+```
 # The ConnectomeDir class compiles the network graph from `data/connectome/fib25-fib19_v2.2.json`.
-# This json-file includes a list of cell types (`nodes`) and average convolutional filters 
-# (anatomical receptive fields) (`edges`) that are scattered across a regular hexagonal lattice 
+# This json-file includes a list of cell types (`nodes`) and average convolutional filters
+# (anatomical receptive fields) (`edges`) that are scattered across a regular hexagonal lattice
 # of 15 column extent and stored on the hierarchical filesystem as h5-files.
 config = dict(file=connectome_file, extent=15, n_syn_fill=1)
 connectome = ConnectomeDir(config)
 ```
 
 
-```python
+```
 # our network models 45,669 cells represented in this table of nodes
 connectome.nodes.to_df()
 ```
@@ -180,7 +180,7 @@ connectome.nodes.to_df()
 
 
 
-```python
+```
 # our network models 1,513,231 synapses represented in this table of edges
 connectome.edges.to_df()
 ```
@@ -422,48 +422,48 @@ connectome.edges.to_df()
 Identified connectivity between 64 cell types, represented by total number of input synapses from all neurons of a given presynaptic cell type to a single postsynaptic of a given cell type. Blue color indicates putative hyperpolarizing inputs, red putative depolarizing inputs as inferred from neurotransmitter and receptor profiling. Size of squares indicates number of input synapses.
 
 
-```python
+```
 # the ConnectomeView class provides visualizations of the connectome data
 connectome_view = ConnectomeView(connectome)
 ```
 
 
-```python
+```
 fig = connectome_view.connectivity_matrix("n_syn")
 ```
 
 
-    
+
 ![png](01_flyvision_connectome_files/01_flyvision_connectome_11_0.png)
-    
+
 
 
 ## Example receptive fields
 Example of convolutional filter, representing inputs onto cells of the target cell type. Values represent the average number of synapses projecting from presynaptic cells in columns with indicated offset onto the postsynaptic dendrite. Values indicate connection strength derived from electron microscopy data.
 
 
-```python
+```
 fig = connectome_view.receptive_fields_grid("T4c")
 ```
 
 
-    
+
 ![png](01_flyvision_connectome_files/01_flyvision_connectome_13_0.png)
-    
+
 
 
 ## Example projective fields
 Example of projective fields, representing outputs of a source cell type onto target cells. Values represent the average number of synapses projecting from the presynaptic cell onto postsynaptic dendrites in columns with indicated offset. Values indicate connection strength derived from electron microscopy data.
 
 
-```python
+```
 fig = connectome_view.projective_fields_grid("T4c")
 ```
 
 
-    
+
 ![png](01_flyvision_connectome_files/01_flyvision_connectome_15_0.png)
-    
+
 
 
 ## Network layout
@@ -471,14 +471,12 @@ fig = connectome_view.projective_fields_grid("T4c")
 Our retinotopic hexagonal lattice network organizes cells of each cell type into visual columns corresponding to photoreceptor locations to capture the crystalline, hexagonal structure of the fly eye. Some cell types are non-columnar, i.e. their cells occur only in every other column---here Lawf1 and Lawf2 cell types---as estimated by our connectome construction algorithm. The edges represent pairs of connected cell types. For the task, we decoded from T-shaped and transmedullary cells (within the black box).
 
 
-```python
+```
 # cause the layout is spatially periodic it suffices to visualize a few columns
 # to get the gist of the layout which can be controlled using max_extent
 fig = connectome_view.network_layout(max_extent=6)
 ```
 
 
-    
-![png](01_flyvision_connectome_files/01_flyvision_connectome_18_0.png)
-    
 
+![png](01_flyvision_connectome_files/01_flyvision_connectome_18_0.png)

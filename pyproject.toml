@@ -72,6 +72,7 @@ docs = [
   "mkdocstrings[python] >= 0.18",
   "jupyter",
   "nbconvert",
+  "mike",
 ]
 example = [
   # Examples

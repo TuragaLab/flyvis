@@ -38,7 +38,7 @@ The notebook requires installing our package `flyvis`. You may need to restart y
 
 ```python
 if IN_COLAB:
-    #@markdown **Install Flyvis**
+    # @markdown **Install Flyvis**
     %%capture
     !git clone https://github.com/flyvis/flyvis-dev.git
     %cd /content/flyvis-dev
@@ -54,12 +54,15 @@ Moving MNIST consists of short grey-scale videos of numbers from 1-10 which move
 ```python
 import torch
 import numpy as np
+
 np.random.seed(42)
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.dpi'] = 200
 
 import flyvision
 from flyvision.utils.dataset_utils import load_moving_mnist
+from flyvision.analysis import animations
 ```
 
 
@@ -82,14 +85,14 @@ sequences.shape
 
 
 ```python
-animation = flyvision.animations.Imshow(sequences, cmap=plt.cm.binary_r)
+animation = animations.Imshow(sequences, cmap=plt.cm.binary_r)
 animation.animate_in_notebook(samples=[0, 1, 2])
 ```
 
 
-    
+
 ![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_9_0.png)
-    
+
 
 
 Alternative: for an alternative dataset that is generated at runtime and does not require a download try `random_walk_of_blocks`. As a simple drop-in replacement, this requires to replace `load_moving_mnist` with `random_walk_of_blocks` across the notebook.
@@ -106,14 +109,14 @@ sequences = random_walk_of_blocks()
 
 
 ```python
-animation = flyvision.animations.Imshow(sequences, cmap=plt.cm.binary_r)
+animation = animations.Imshow(sequences, cmap=plt.cm.binary_r)
 animation.animate_in_notebook(samples=[0, 1, 2])
 ```
 
 
-    
+
 ![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_13_0.png)
-    
+
 
 
 ## BoxEye rendering
@@ -125,11 +128,12 @@ We translate cartesian frames into receptor activations by placing simulated pho
 
 ```python
 import flyvision
+from flyvision.datasets.rendering import BoxEye
 ```
 
 
 ```python
-receptors = flyvision.rendering.BoxEye(extent=15, kernel_size=13)
+receptors = BoxEye(extent=15, kernel_size=13)
 ```
 
 
@@ -138,9 +142,9 @@ fig = receptors.illustrate()
 ```
 
 
-    
+
 ![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_17_0.png)
-    
+
 
 
 ### Render a single frame
@@ -151,12 +155,15 @@ To illustrate, this is what rendering a single frame looks like.
 ```python
 import torch
 import numpy as np
+
 np.random.seed(42)
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.dpi'] = 200
 
 import flyvision
 from flyvision.utils.dataset_utils import load_moving_mnist
+from flyvision.analysis.visualization import plt_utils, plots
 ```
 
 
@@ -166,32 +173,26 @@ sequences = load_moving_mnist()
 
 
 ```python
-single_frame = sequences[0, 0]
-```
-
-
-```python
-fig, ax = flyvision.plots.plt_utils.init_plot(figsize=[1, 1], fontsize=5)
-ax = flyvision.plots.plt_utils.rm_spines(ax)
-ax.imshow(single_frame, cmap=plt.cm.binary_r)
+fig, ax = plt_utils.init_plot(figsize=[1, 1], fontsize=5)
+ax = plt_utils.rm_spines(ax)
+ax.imshow(sequences[0, 0], cmap=plt.cm.binary_r)
 _ = ax.set_title('example frame', fontsize=5)
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_22_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_21_0.png)
+
 
 
 
 ```python
+single_frame = sequences[0, 0]
+
 # the rendering uses pytorch native Conv2d module so it can be executed on GPU and fast
 # we first move the frame to GPU
-single_frame = torch.tensor(single_frame)
-```
+single_frame = torch.tensor(single_frame, device=flyvision.device).float()
 
-
-```python
 # because the inputs to the receptors instance must have four dimensions (samples, frames, height, width),
 # we create two empty dimensions for samples and frames
 single_frame = single_frame[None, None]
@@ -199,27 +200,13 @@ single_frame = single_frame[None, None]
 
 
 ```python
-single_frame.shape
-```
-
-
-
-
-    torch.Size([1, 1, 64, 64])
-
-
-
-
-```python
 # to render the single frame we simply call the instance
 # this automatically rescales the frame to match the receptor layout as illustrated above
 # and then places the average pixel value of the 13x13 boxes at the receptor positions
-receptors = flyvision.rendering.BoxEye()
+receptors = BoxEye()
 rendered = receptors(single_frame)
 ```
 
-    /home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/torch/utils/_device.py:62: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
-      return func(*args, **kwargs)
     /home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/torchvision/transforms/functional.py:1603: UserWarning: The default value of the antialias parameter of all the resizing transforms (Resize(), RandomResizedCrop(), etc.) will change from None to True in v0.17, in order to be consistent across the PIL and Tensor backends. To suppress this warning, directly pass antialias=True (recommended, future default), antialias=None (current default, which means False for Tensors and True for PIL), or antialias=False (only works on Tensors - PIL will still use antialiasing). This also applies if you are using the inference transforms from the models weights: update the call to weights.transforms(antialias=True).
       warnings.warn(
 
@@ -241,23 +228,23 @@ rendered.shape
 
 ```python
 # the rendered frame is a slightly blurred version of the example
-fig, ax, _ = flyvision.plots.plots.quick_hex_scatter(
+fig, ax, _ = plots.quick_hex_scatter(
     rendered.squeeze(), vmin=0, vmax=1, cbar_x_offset=0, fontsize=5
 )
 _ = ax.set_title("example frame rendered", fontsize=5)
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_28_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_25_0.png)
+
 
 
 
 ```python
 # Disclaimer: thinking in hex coordinates can be unfamiliar.
 # Therefore, we circumvent dealing with them explicitly.
-# Still - to understand how the above plot infers the pixel-plane coordinates 
+# Still - to understand how the above plot infers the pixel-plane coordinates
 # from the implicit hexagonal coordinates, you can inspect the following code.
 ```
 
@@ -268,7 +255,7 @@ _ = ax.set_title("example frame rendered", fontsize=5)
 
 # radius = flyvision.utils.hex_utils.get_hextent(rendered.shape[-1])
 
-# # here we create integer u, v coordinates, and we stick to the same function and convention 
+# # here we create integer u, v coordinates, and we stick to the same function and convention
 # # everywhere in the code
 # u, v = flyvision.utils.hex_utils.get_hex_coords(radius)
 
@@ -276,7 +263,7 @@ _ = ax.set_title("example frame rendered", fontsize=5)
 # x, y = flyvision.utils.hex_utils.hex_to_pixel(u, v)
 
 # # and can just scatter them to be back at the photoreceptor layout
-# fig, ax = flyvision.plots.plt_utils.init_plot(figsize=[2, 2], fontsize=5)
+# fig, ax = plt_utils.init_plot(figsize=[2, 2], fontsize=5)
 # ax.scatter(x, y, s=0.5)
 ```
 
@@ -292,8 +279,10 @@ from typing import List
 from tqdm import tqdm
 import torch
 import numpy as np
+
 np.random.seed(42)
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.dpi'] = 200
 
 from pathlib import Path
@@ -327,16 +316,12 @@ class RenderedData(Directory):
         sequences = load_moving_mnist()
 
         # we use the configuration to control the settings under which we render the stimuli
-        receptors = flyvision.rendering.BoxEye(
-            extent=config.extent, kernel_size=config.kernel_size
-        )
+        receptors = BoxEye(extent=config.extent, kernel_size=config.kernel_size)
 
         # for memory-friendly rendering we can loop over individual sequences
         # and subsets of the dataset
         rendered_sequences = []
-        subset_idx = getattr(config, "subset_idx", []) or list(
-            range(sequences.shape[0])
-        )
+        subset_idx = getattr(config, "subset_idx", []) or list(range(sequences.shape[0]))
         with tqdm(total=len(subset_idx)) as pbar:
             for index in subset_idx:
                 rendered_sequences.append(receptors(sequences[[index]]).cpu().numpy())
@@ -353,7 +338,7 @@ class RenderedData(Directory):
 
 
 ```python
-# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument 
+# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument
 moving_mnist_rendered = RenderedData(
     dict(extent=15, kernel_size=13, subset_idx=[0, 1, 2, 3])
 )
@@ -379,14 +364,14 @@ rendered_sequences.shape
 
 
 ```python
-animation = flyvision.animations.HexScatter(rendered_sequences, vmin=0, vmax=1)
+animation = animations.HexScatter(rendered_sequences, vmin=0, vmax=1)
 animation.animate_in_notebook()
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_37_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_34_0.png)
+
 
 
 
@@ -405,8 +390,10 @@ from typing import List
 from tqdm import tqdm
 import torch
 import numpy as np
+
 np.random.seed(42)
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.dpi'] = 200
 
 from pathlib import Path
@@ -415,6 +402,7 @@ from datamate import root, Directory
 import flyvision
 from flyvision.utils.dataset_utils import load_moving_mnist
 from flyvision.datasets.datasets import SequenceDataset
+from flyvision.analysis import animations
 ```
 
 
@@ -441,16 +429,12 @@ class RenderedData(Directory):
         sequences = load_moving_mnist()
 
         # we use the configuration to control the settings under which we render the stimuli
-        receptors = flyvision.rendering.BoxEye(
-            extent=config.extent, kernel_size=config.kernel_size
-        )
+        receptors = BoxEye(extent=config.extent, kernel_size=config.kernel_size)
 
         # for memory-friendly rendering we can loop over individual sequences
         # and subsets of the dataset
         rendered_sequences = []
-        subset_idx = getattr(config, "subset_idx", []) or list(
-            range(sequences.shape[0])
-        )
+        subset_idx = getattr(config, "subset_idx", []) or list(range(sequences.shape[0]))
         with tqdm(total=len(subset_idx)) as pbar:
             for index in subset_idx:
                 rendered_sequences.append(receptors(sequences[[index]]).cpu().numpy())
@@ -473,15 +457,14 @@ In this case, we inherit a SequenceDataset, that also obeys (and extends) the in
 
 ```python
 class CustomStimuli(SequenceDataset):
-    
-    # implementing the SequenceDataset interface 
-    dt = 1/100
+    # implementing the SequenceDataset interface
+    dt = 1 / 100
     framerate = 24
     t_pre = 0.5
     t_post = 0.5
     n_sequences = None
     augment = False
-    
+
     def __init__(self, rendered_data_config: dict):
         self.dir = RenderedData(rendered_data_config)
         self.sequences = torch.tensor(self.dir.sequences[:])
@@ -497,7 +480,7 @@ class CustomStimuli(SequenceDataset):
 
 
 ```python
-# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument 
+# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument
 data = CustomStimuli(dict(extent=15, kernel_size=13, subset_idx=[0, 1, 2, 3]))
 ```
 
@@ -515,14 +498,14 @@ data[0].shape
 
 
 ```python
-animation = flyvision.animations.HexScatter(data[0][None], vmin=0, vmax=1)
+animation = animations.HexScatter(data[0][None], vmin=0, vmax=1)
 animation.animate_in_notebook()
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_46_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_43_0.png)
+
 
 
 ## Compute model responses to custom stimuli
@@ -535,8 +518,10 @@ from typing import List
 from tqdm import tqdm
 import torch
 import numpy as np
+
 np.random.seed(42)
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.dpi'] = 200
 
 from pathlib import Path
@@ -546,7 +531,6 @@ import flyvision
 from flyvision.utils.dataset_utils import load_moving_mnist
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision.utils.activity_utils import LayerActivity
-from flyvision.animations import StimulusResponse
 ```
 
 
@@ -573,16 +557,12 @@ class RenderedData(Directory):
         sequences = load_moving_mnist()
 
         # we use the configuration to control the settings under which we render the stimuli
-        receptors = flyvision.rendering.BoxEye(
-            extent=config.extent, kernel_size=config.kernel_size
-        )
+        receptors = BoxEye(extent=config.extent, kernel_size=config.kernel_size)
 
         # for memory-friendly rendering we can loop over individual sequences
         # and subsets of the dataset
         rendered_sequences = []
-        subset_idx = getattr(config, "subset_idx", []) or list(
-            range(sequences.shape[0])
-        )
+        subset_idx = getattr(config, "subset_idx", []) or list(range(sequences.shape[0]))
         with tqdm(total=len(subset_idx)) as pbar:
             for index in subset_idx:
                 rendered_sequences.append(receptors(sequences[[index]]).cpu().numpy())
@@ -600,15 +580,14 @@ class RenderedData(Directory):
 
 ```python
 class CustomStimuli(SequenceDataset):
-    
-    # implementing the SequenceDataset interface 
-    dt = 1/100
+    # implementing the SequenceDataset interface
+    dt = 1 / 100
     framerate = 24
     t_pre = 0.5
     t_post = 0.5
     n_sequences = None
     augment = False
-    
+
     def __init__(self, rendered_data_config: dict):
         self.dir = RenderedData(rendered_data_config)
         self.sequences = torch.tensor(self.dir.sequences[:])
@@ -624,7 +603,7 @@ class CustomStimuli(SequenceDataset):
 
 
 ```python
-# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument 
+# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument
 data = CustomStimuli(dict(extent=15, kernel_size=13, subset_idx=[0, 1, 2, 3]))
 ```
 
@@ -636,13 +615,11 @@ Paths to pretrained models from the ensemble end with four digit numbers which a
 
 
 ```python
-sorted(
-    [
-        p.relative_to(flyvision.results_dir)
-        for p in (flyvision.results_dir / "flow/0000").iterdir()
-        if p.name.isnumeric()
-    ]
-)
+sorted([
+    p.relative_to(flyvision.results_dir)
+    for p in (flyvision.results_dir / "flow/0000").iterdir()
+    if p.name.isnumeric()
+])
 ```
 
 
@@ -701,14 +678,14 @@ sorted(
 
 
 
-We use the `NetworkView` class to point to a model. This object can implement plots plus methods to initialize network, stimuli etc. 
+We use the `NetworkView` class to point to a model. This object can implement plots plus methods to initialize network, stimuli etc.
 
 
 ```python
 network_view = flyvision.network.NetworkView(flyvision.results_dir / "flow/0000/000")
 ```
 
-    [2024-09-28 03:47:48] network:1005 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
+    [2024-10-04 16:51:36] network:1001 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
 
 
 
@@ -717,8 +694,8 @@ network_view = flyvision.network.NetworkView(flyvision.results_dir / "flow/0000/
 network = network_view.init_network()
 ```
 
-    [2024-09-28 03:47:58] network:252 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-09-28 03:47:58] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:51:46] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-04 16:51:46] chkpt_utils:72 Recovered network state.
 
 
 
@@ -757,7 +734,9 @@ which calls the forward function of the Pytorch module without tracking gradient
 
 ```python
 # For analysis, we move the returned tensor to cpu.
-responses = network.simulate(movie_input[None], data.dt, initial_state=stationary_state).cpu()
+responses = network.simulate(
+    movie_input[None], data.dt, initial_state=stationary_state
+).cpu()
 ```
 
 
@@ -790,17 +769,14 @@ The stimulus on the left, and the response on the right described by passive poi
 
 
 ```python
-anim = StimulusResponse(
-    movie_input[None],
-    responses[cell_type][:, :, None]
-)
+anim = animations.StimulusResponse(movie_input[None], responses[cell_type][:, :, None])
 anim.animate_in_notebook(frames=np.arange(anim.frames)[::2])
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_69_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_66_0.png)
+
 
 
 Often, we are interested in a canonical response of a specific cell type to a specific stimulus to generate hypotheses for their role in a computation. In our model, we can take the central cell as a proxy for all cells of the given type, because cells share their parameters and in- and output connections. I.e. the responses of all cells of a given type would be the same (not taking boundary effects into account) when the same stimulus would cross their identical but spatially offset receptive field in the same way.
@@ -813,7 +789,7 @@ time = np.arange(0, n_frames * data.dt, data.dt)
 
 
 ```python
-fig, ax = flyvision.plots.plt_utils.init_plot([2, 2], fontsize=5)
+fig, ax = plt_utils.init_plot([2, 2], fontsize=5)
 ax.plot(time, responses.central[cell_type].squeeze())
 ax.set_xlabel("time in s", fontsize=5)
 ax.set_ylabel("central response (a.u.)", fontsize=5)
@@ -827,9 +803,9 @@ ax.set_ylabel("central response (a.u.)", fontsize=5)
 
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_72_1.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_69_1.png)
+
 
 
 ## Compute responses over the whole ensemble
@@ -842,8 +818,10 @@ from typing import List
 from tqdm import tqdm
 import torch
 import numpy as np
+
 np.random.seed(42)
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.dpi'] = 200
 
 from pathlib import Path
@@ -853,7 +831,6 @@ import flyvision
 from flyvision.utils.dataset_utils import load_moving_mnist
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision.utils.activity_utils import LayerActivity
-from flyvision.animations import StimulusResponse
 from flyvision import EnsembleView
 ```
 
@@ -881,16 +858,12 @@ class RenderedData(Directory):
         sequences = load_moving_mnist()
 
         # we use the configuration to control the settings under which we render the stimuli
-        receptors = flyvision.rendering.BoxEye(
-            extent=config.extent, kernel_size=config.kernel_size
-        )
+        receptors = BoxEye(extent=config.extent, kernel_size=config.kernel_size)
 
         # for memory-friendly rendering we can loop over individual sequences
         # and subsets of the dataset
         rendered_sequences = []
-        subset_idx = getattr(config, "subset_idx", []) or list(
-            range(sequences.shape[0])
-        )
+        subset_idx = getattr(config, "subset_idx", []) or list(range(sequences.shape[0]))
         with tqdm(total=len(subset_idx)) as pbar:
             for index in subset_idx:
                 rendered_sequences.append(receptors(sequences[[index]]).cpu().numpy())
@@ -908,15 +881,14 @@ class RenderedData(Directory):
 
 ```python
 class CustomStimuli(SequenceDataset):
-    
-    # implementing the SequenceDataset interface 
-    dt = 1/100
+    # implementing the SequenceDataset interface
+    dt = 1 / 100
     framerate = 24
     t_pre = 0.5
     t_post = 0.5
     n_sequences = None
     augment = False
-    
+
     def __init__(self, rendered_data_config: dict):
         self.dir = RenderedData(rendered_data_config)
         self.sequences = torch.tensor(self.dir.sequences[:])
@@ -932,7 +904,7 @@ class CustomStimuli(SequenceDataset):
 
 
 ```python
-# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument 
+# note, to render the whole dataset provide an empty list for `subset_idx` or delete the key word argument
 data = CustomStimuli(dict(extent=15, kernel_size=13, subset_idx=[0, 1, 2, 3]))
 ```
 
@@ -949,7 +921,7 @@ ensemble = EnsembleView(flyvision.results_dir / "flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-09-28 03:49:18] ensemble:138 Loaded 50 networks.
+    [2024-10-04 16:52:11] ensemble:141 Loaded 50 networks.
 
 
 ##### Simulate responses for each network
@@ -972,57 +944,57 @@ responses = np.array(list(ensemble.simulate(movie_input[None], data.dt, fade_in=
     Simulating network:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-09-28 03:49:27] network:252 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-09-28 03:49:27] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:27] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:28] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:29] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:30] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:31] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:32] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:33] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:34] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:35] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:36] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:37] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:38] chkpt_utils:72 Recovered network state.
-    [2024-09-28 03:49:38] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:20] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-04 16:52:20] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:20] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:30] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:52:30] chkpt_utils:72 Recovered network state.
 
 
 
@@ -1066,41 +1038,35 @@ We can look at all model responses in succession to see how the stimulus causes 
 
 
 ```python
-anim = flyvision.animations.activations.StimulusResponse(
-    movie_input[None], responses[cell_type][:, 0, :, None]
-)
+anim = animations.StimulusResponse(movie_input[None], responses[cell_type][:, 0, :, None])
 # these are now just the first 5 models for illustration
 model_index = [0, 1, 2, 3, 4]
-anim.animate_in_notebook(
-    samples=model_index,  
-    frames=np.arange(anim.frames)[::10]
-)
+anim.animate_in_notebook(samples=model_index, frames=np.arange(anim.frames)[::10])
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_91_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_88_0.png)
 
 
-Or look at responses in multiple models jointly. 
+
+Or look at responses in multiple models jointly.
 Disclaimer: including more axes slows down the animation.
 
 
 ```python
 cell_type_responses = responses[cell_type]
 model_idx = [0, 1, 2, 3, 4]
-anim = flyvision.animations.activations.StimulusResponse(
-    movie_input[None],
-    [cell_type_responses[i][None, 0, :, None] for i in model_idx]
+anim = animations.StimulusResponse(
+    movie_input[None], [cell_type_responses[i][None, 0, :, None] for i in model_idx]
 )
 anim.animate_in_notebook(frames=np.arange(anim.frames)[::10])
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_93_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_90_0.png)
+
 
 
 Let's look at how the whole ensemble characterizes the central cell responses.
@@ -1123,7 +1089,7 @@ colors = ensemble.task_error().colors
 
 
 ```python
-fig, ax = flyvision.plots.plt_utils.init_plot([2, 2], fontsize=5)
+fig, ax = plt_utils.init_plot([2, 2], fontsize=5)
 for model_id, response in enumerate(central_responses[cell_type]):
     ax.plot(time, response.squeeze(), c=colors[model_id], zorder=len(ensemble) - model_id)
 ax.set_xlabel("time in s", fontsize=5)
@@ -1139,9 +1105,9 @@ ax.set_title(f"{cell_type} responses across the ensemble", fontsize=5)
 
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_1.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_95_1.png)
+
 
 
 From the above plot it seems like different models generate different predictions for the cell type function and its hard to tell them apart. Therefore, we clustered the models such that we can separate the above responses by functional cluster for a specific cell type. Note, clusters are stored as dictionaries in which the key is the cluster identity and their values are the indices to the corresponding models.
@@ -1151,45 +1117,47 @@ From the above plot it seems like different models generate different prediction
 cluster_indices = ensemble.cluster_indices(cell_type)
 ```
 
-    [2024-09-28 03:50:59] clustering:640 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering.
+    [2024-10-04 16:52:49] clustering:643 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering.
 
 
 
 ```python
 for cluster_id, model_idx in cluster_indices.items():
-    fig, ax = flyvision.plots.plt_utils.init_plot([2, 2], fontsize=5)
+    fig, ax = plt_utils.init_plot([2, 2], fontsize=5)
     for model_id in model_idx:
         response = responses.central[cell_type][model_id]
-        ax.plot(time, response.squeeze(), c=colors[model_id], zorder=len(ensemble) - model_id)
+        ax.plot(
+            time, response.squeeze(), c=colors[model_id], zorder=len(ensemble) - model_id
+        )
     ax.set_xlabel("time in s", fontsize=5)
     ax.set_ylabel("response (a.u.)", fontsize=5)
-    ax.set_title(f"{cell_type} responses across cluster {cluster_id+1}", fontsize=5)
+    ax.set_title(f"{cell_type} responses across cluster {cluster_id + 1}", fontsize=5)
     plt.show()
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_101_0.png)
-    
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_0.png)
 
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_101_1.png)
-    
+
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_1.png)
 
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_101_2.png)
-    
+
+
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_2.png)
+
 
 
 For T4c, we know that the first set of models is upwards tuning and the second is downwards tuning (Fig.4c) -- lets try to observe differences in their responses.
 
 We choose the best upwards tuning model and the best downwards tuning model to compare.
 
-We can notice that the spatial location of hyperpolarization and depolarization is switched vertically between both models. 
+We can notice that the spatial location of hyperpolarization and depolarization is switched vertically between both models.
 
 
 ```python
@@ -1203,16 +1171,16 @@ cluster_indices = ensemble.cluster_indices(cell_type)
 
 
 ```python
-anim = flyvision.animations.activations.StimulusResponse(
+anim = animations.StimulusResponse(
     movie_input[None],
-    [responses[cell_type][[cluster_indices[0][0]], 0][:, :, None], 
-     responses[cell_type][[cluster_indices[1][0]], 0][:, :, None]]
+    [
+        responses[cell_type][[cluster_indices[0][0]], 0][:, :, None],
+        responses[cell_type][[cluster_indices[1][0]], 0][:, :, None],
+    ],
 )
-anim.animate_in_notebook(frames = np.arange(anim.frames)[::5])
+anim.animate_in_notebook(frames=np.arange(anim.frames)[::5])
 ```
 
 
-    
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_105_0.png)
-    
 
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_102_0.png)

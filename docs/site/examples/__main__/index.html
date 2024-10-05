@@ -18,7 +18,7 @@
 
 
 
-        <title>main - Flyvis</title>
+        <title>main - flyvis docs</title>
 
 
 
@@ -46,6 +46,8 @@
 
       <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
 
+      <link rel="stylesheet" href="../../style.css">
+
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
 
 
@@ -61,7 +63,9 @@
 
 
 
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+
+
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="purple">
 
 
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -84,11 +88,12 @@
 
 
 
+
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Flyvis" class="md-header__button md-logo" aria-label="Flyvis" data-md-component="logo">
+    <a href="../.." title="flyvis docs" class="md-header__button md-logo" aria-label="flyvis docs" data-md-component="logo">
 
-  <img src="../../images/logo_hexagon.jpg" alt="logo">
+  <img src="../../images/flyvis_logo_light@150 ppi.webp" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -99,7 +104,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            Flyvis
+            flyvis docs
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -113,7 +118,43 @@
     </div>
 
 
+        <form class="md-header__option" data-md-component="palette">
 
+
+
+
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+
+
+
+
+
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+
+
+
+
+
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="purple"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+
+
+</form>
+
+
+
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
 
 
 
@@ -159,6 +200,7 @@
 
 </header>
 
+
     <div class="md-container" data-md-component="container">
 
 
@@ -180,12 +222,12 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Flyvis" class="md-nav__button md-logo" aria-label="Flyvis" data-md-component="logo">
+    <a href="../.." title="flyvis docs" class="md-nav__button md-logo" aria-label="flyvis docs" data-md-component="logo">
 
-  <img src="../../images/logo_hexagon.jpg" alt="logo">
+  <img src="../../images/flyvis_logo_light@150 ppi.webp" alt="logo">
 
     </a>
-    Flyvis
+    flyvis docs
   </label>
 
   <ul class="md-nav__list" data-md-scrollfix>
@@ -425,16 +467,122 @@
 
 
 
-    <li class="md-nav__item">
-      <a href="../../contribute/" class="md-nav__link">
+
+
+
+
+    <li class="md-nav__item md-nav__item--nested">
+
+
+
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+
+
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
 
 
   <span class="md-ellipsis">
-    Contributing
+    Main results
+  </span>
+
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Main results
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../figure_01_fly_visual_system/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Figure 1
   </span>
 
 
       </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../figure_02_simple_stimuli_responses/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Figure 2
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../figure_03_naturalistic_stimuli_responses/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Figure 3
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../figure_04_mechanisms/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Figure 4
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+          </ul>
+        </nav>
+
     </li>
 
 
@@ -569,7 +717,7 @@
 
 
   <span class="md-ellipsis">
-    Task Training
+    Training
   </span>
 
 
@@ -663,9 +811,219 @@
 
 
 
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../reference/scripts/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Scripts
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item md-nav__item--nested">
+
+
+
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_11" >
+
+
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+
+
+  <span class="md-ellipsis">
+    Miscelleanous
+  </span>
+
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            Miscelleanous
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../reference/rendering/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Rendering
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../reference/augmentation/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Augmentation
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../reference/datasets/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Datasets
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../reference/utils/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Utils
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../reference/visualizations/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Visualizations
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../reference/animations/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Animations
+  </span>
+
+
+      </a>
+    </li>
+
+
+
+
           </ul>
         </nav>
 
+    </li>
+
+
+
+
+          </ul>
+        </nav>
+
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../../contribute/" class="md-nav__link">
+
+
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+
+
+      </a>
     </li>
 
 
@@ -770,6 +1128,30 @@
     </span>
   </a>
 
+    <nav class="md-nav" aria-label="Contrast selectivity and flash response indices (FRI)">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#20-best-task-performing-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      20% best task-performing models
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#100-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      100% models
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
 </li>
 
         <li class="md-nav__item">
@@ -779,6 +1161,30 @@
     </span>
   </a>
 
+    <nav class="md-nav" aria-label="Motion selectivity and direction selectivity index (DSI)">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#20-best-task-performing-models_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      20% best task-performing models
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#100-models_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      100% models
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
 </li>
 
         <li class="md-nav__item">
@@ -787,6 +1193,21 @@
       Clustering of models based on responses to naturalistic stimuli
     </span>
   </a>
+
+    <nav class="md-nav" aria-label="Clustering of models based on responses to naturalistic stimuli">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#t4c" class="md-nav__link">
+    <span class="md-ellipsis">
+      T4c
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
 
 </li>
 
@@ -807,8 +1228,8 @@
 
 <p>Main notebook containing relevant diagnostics and important figures for the manuscript. </p>
 <p>It is automatically copied from __main__.ipynb and executed for newly trained ensembles using papermill.</p>
-<p>This can also be updated and then triggered again by using the script `execute_ensemble_notebook.py&rsquo;.</p>
-<div class="highlight"><pre><span></span><code>from pathlib import Path
+<p>This can also be updated and then triggered again by using the script `execute_ensemble_notebook.py'.</p>
+<pre><code>from pathlib import Path
 import torch
 from torch import nn
 from torch.nn import functional as nnf
@@ -829,57 +1250,54 @@ mpl.rcParams[&quot;figure.dpi&quot;] = 300
 
 %load_ext autoreload
 %autoreload 2
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>The autoreload extension is already loaded. To reload it, use:
+</code></pre>
+<pre><code>The autoreload extension is already loaded. To reload it, use:
   %reload_ext autoreload
-</code></pre></div>
-
-<div class="highlight"><pre><span></span><code>ensemble_name = &quot;flow/9997&quot;  # type: str
-</code></pre></div>
-<div class="highlight"><pre><span></span><code>validation_subdir = &quot;validation&quot;
+</code></pre>
+<pre><code>ensemble_name = &quot;flow/9997&quot;  # type: str
+</code></pre>
+<pre><code>validation_subdir = &quot;validation&quot;
 loss_file_name = &quot;loss&quot;
-</code></pre></div>
-<div class="highlight"><pre><span></span><code>ensemble = EnsembleView(ensemble_name,
+</code></pre>
+<pre><code>ensemble = EnsembleView(ensemble_name,
                         best_checkpoint_fn_kwargs=
                         {
                                                    &quot;validation_subdir&quot;: validation_subdir,
                                                    &quot;loss_file_name&quot;: loss_file_name
                                                    }
                         )
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>Loading ensemble:   0%|          | 0/50 [00:00&lt;?, ?it/s]
-</code></pre></div>
-
-<div class="highlight"><pre><span></span><code>print(f&quot;Description of experiment: {ensemble[0].dir.config.description}&quot;)
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>Description of experiment: test
-</code></pre></div>
-
-<h1 id="task-performance">Task performance<a class="headerlink" href="#task-performance" title="Permanent link">&para;</a></h1>
-<h2 id="training-and-validation-losses">Training and validation losses<a class="headerlink" href="#training-and-validation-losses" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>fig, ax = ensemble.training_loss()
-</code></pre></div>
+</code></pre>
+<pre><code>Loading ensemble:   0%|          | 0/50 [00:00&lt;?, ?it/s]
+</code></pre>
+<pre><code>print(f&quot;Description of experiment: {ensemble[0].dir.config.description}&quot;)
+</code></pre>
+<pre><code>Description of experiment: test
+</code></pre>
+<h1 id="task-performance">Task performance</h1>
+<h2 id="training-and-validation-losses">Training and validation losses</h2>
+<pre><code>fig, ax = ensemble.training_loss()
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___8_0.png" /></p>
-<div class="highlight"><pre><span></span><code>fig, ax = ensemble.validation_loss()
-</code></pre></div>
+<pre><code>fig, ax = ensemble.validation_loss()
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___9_0.png" /></p>
-<div class="highlight"><pre><span></span><code>fig, ax = ensemble.task_error_histogram()
-</code></pre></div>
+<pre><code>fig, ax = ensemble.task_error_histogram()
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___10_0.png" /></p>
-<h2 id="learned-parameter-marginals">Learned parameter marginals<a class="headerlink" href="#learned-parameter-marginals" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>fig, axes = ensemble.node_parameters(&quot;bias&quot;)
-</code></pre></div>
+<h2 id="learned-parameter-marginals">Learned parameter marginals</h2>
+<pre><code>fig, axes = ensemble.node_parameters(&quot;bias&quot;)
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___12_0.png" /></p>
-<div class="highlight"><pre><span></span><code>fig, axes = ensemble.node_parameters(&quot;time_const&quot;)
-</code></pre></div>
+<pre><code>fig, axes = ensemble.node_parameters(&quot;time_const&quot;)
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___13_0.png" /></p>
-<div class="highlight"><pre><span></span><code>fig, axes = ensemble.edge_parameters(&quot;syn_strength&quot;)
-</code></pre></div>
+<pre><code>fig, axes = ensemble.edge_parameters(&quot;syn_strength&quot;)
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___14_0.png" /></p>
-<h2 id="dead-or-alive">Dead or alive<a class="headerlink" href="#dead-or-alive" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>fig, ax, cbar, matrix = ensemble.dead_or_alive()
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
+<h2 id="dead-or-alive">Dead or alive</h2>
+<pre><code>fig, ax, cbar, matrix = ensemble.dead_or_alive()
+</code></pre>
+<pre><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
@@ -929,15 +1347,14 @@ ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-</code></pre></div>
-
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___16_1.png" /></p>
-<h2 id="contrast-selectivity-and-flash-response-indices-fri">Contrast selectivity and flash response indices (FRI)<a class="headerlink" href="#contrast-selectivity-and-flash-response-indices-fri" title="Permanent link">&para;</a></h2>
-<h4 id="20-best-task-performing-models">20% best task-performing models<a class="headerlink" href="#20-best-task-performing-models" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>with ensemble.ratio(best=0.2):
+<h2 id="contrast-selectivity-and-flash-response-indices-fri">Contrast selectivity and flash response indices (FRI)</h2>
+<h4 id="20-best-task-performing-models">20% best task-performing models</h4>
+<pre><code>with ensemble.ratio(best=0.2):
     ensemble.flash_response_index()
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
+</code></pre>
+<pre><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
@@ -947,13 +1364,12 @@ ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-</code></pre></div>
-
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___19_1.png" /></p>
-<h4 id="100-models">100% models<a class="headerlink" href="#100-models" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>fig, ax = ensemble.flash_response_index()
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
+<h4 id="100-models">100% models</h4>
+<pre><code>fig, ax = ensemble.flash_response_index()
+</code></pre>
+<pre><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
@@ -1003,15 +1419,14 @@ ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-</code></pre></div>
-
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___21_1.png" /></p>
-<h2 id="motion-selectivity-and-direction-selectivity-index-dsi">Motion selectivity and direction selectivity index (DSI)<a class="headerlink" href="#motion-selectivity-and-direction-selectivity-index-dsi" title="Permanent link">&para;</a></h2>
-<h4 id="20-best-task-performing-models_1">20% best task-performing models<a class="headerlink" href="#20-best-task-performing-models_1" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>with ensemble.ratio(best=0.2):
+<h2 id="motion-selectivity-and-direction-selectivity-index-dsi">Motion selectivity and direction selectivity index (DSI)</h2>
+<h4 id="20-best-task-performing-models_1">20% best task-performing models</h4>
+<pre><code>with ensemble.ratio(best=0.2):
     ensemble.direction_selectivity_index()
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
+</code></pre>
+<pre><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
@@ -1021,13 +1436,12 @@ ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-</code></pre></div>
-
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___24_1.png" /></p>
-<h4 id="100-models_1">100% models<a class="headerlink" href="#100-models_1" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>ensemble.direction_selectivity_index()
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
+<h4 id="100-models_1">100% models</h4>
+<pre><code>ensemble.direction_selectivity_index()
+</code></pre>
+<pre><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
@@ -1083,16 +1497,15 @@ ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 
 
 (&lt;Figure size 3000x360 with 2 Axes&gt;, (&lt;Axes: &gt;, &lt;Axes: &gt;))
-</code></pre></div>
-
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___26_2.png" /></p>
-<h2 id="clustering-of-models-based-on-responses-to-naturalistic-stimuli">Clustering of models based on responses to naturalistic stimuli<a class="headerlink" href="#clustering-of-models-based-on-responses-to-naturalistic-stimuli" title="Permanent link">&para;</a></h2>
-<h4 id="t4c">T4c<a class="headerlink" href="#t4c" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>task_error = ensemble.task_error()
+<h2 id="clustering-of-models-based-on-responses-to-naturalistic-stimuli">Clustering of models based on responses to naturalistic stimuli</h2>
+<h4 id="t4c">T4c</h4>
+<pre><code>task_error = ensemble.task_error()
 embeddingplot = ensemble.clustering(&quot;T4c&quot;).plot(task_error=task_error.values,
                                                 colors=task_error.colors)
-</code></pre></div>
-<div class="codehilite"><pre><span></span><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
+</code></pre>
+<pre><code>___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 ___________________________________compute_responses cache loaded - 0.0s, 0.0min
@@ -1146,16 +1559,15 @@ ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 
 /home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/umap/umap_.py:1356: RuntimeWarning: divide by zero encountered in power
   return 1.0 / (1.0 + a * x ** (2 * b))
-</code></pre></div>
-
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___29_2.png" /></p>
-<div class="highlight"><pre><span></span><code>r = ensemble.moving_edge_responses()
-</code></pre></div>
-<div class="highlight"><pre><span></span><code>cluster_indices = ensemble.cluster_indices(&quot;T4c&quot;)
-</code></pre></div>
-<div class="highlight"><pre><span></span><code>colors = ensemble.task_error().colors
-</code></pre></div>
-<div class="highlight"><pre><span></span><code>fig, axes = plt.subplots(
+<pre><code>r = ensemble.moving_edge_responses()
+</code></pre>
+<pre><code>cluster_indices = ensemble.cluster_indices(&quot;T4c&quot;)
+</code></pre>
+<pre><code>colors = ensemble.task_error().colors
+</code></pre>
+<pre><code>fig, axes = plt.subplots(
     1, len(cluster_indices), subplot_kw={&quot;projection&quot;: &quot;polar&quot;}, figsize=[2, 1]
 )
 for cluster_id, indices in cluster_indices.items():
@@ -1170,10 +1582,10 @@ for cluster_id, indices in cluster_indices.items():
         ax=axes[cluster_id],
     )
     add_cluster_marker(fig, axes[cluster_id], marker=get_marker(cluster_id))
-</code></pre></div>
+</code></pre>
 <p><img alt="png" src="../__main___files/__main___33_0.png" /></p>
-<div class="highlight"><pre><span></span><code>
-</code></pre></div>
+<pre><code>
+</code></pre>
 
 
 
@@ -1224,6 +1636,8 @@ for cluster_id, indices in cluster_indices.items():
 
 
       <script src="../../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+
+        <script src="../../javascripts/switch-logo.js"></script>
 
 
   </body>

@@ -19,7 +19,7 @@ ensemble = EnsembleView("flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-09-28 04:06:51] ensemble:138 Loaded 50 networks.
+    [2024-10-04 16:51:55] ensemble:141 Loaded 50 networks.
 
 
 
@@ -28,25 +28,36 @@ fig, ax, cbar, matrix = ensemble[0].connectivity_matrix()
 ```
 
 
-    
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_4_0.png)
-    
+
 
 
 ## e
 
 
 ```python
-fig = ensemble[0].receptive_field(source="Mi9", target="T4d", annotate=True,
-                    annotate_coords=False, trained=False,
-                    n_syn=True, cbar=False, fontsize=6, vmax=14,
-                    figsize=[2, 2], title="", max_extent=2, edgewidth=0.2)
+fig = ensemble[0].receptive_field(
+    source="Mi9",
+    target="T4d",
+    annotate=True,
+    annotate_coords=False,
+    trained=False,
+    n_syn=True,
+    cbar=False,
+    fontsize=6,
+    vmax=14,
+    figsize=[2, 2],
+    title="",
+    max_extent=2,
+    edgewidth=0.2,
+)
 ```
 
 
-    
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_6_0.png)
-    
+
 
 
 ## g
@@ -56,13 +67,13 @@ fig = ensemble[0].receptive_field(source="Mi9", target="T4d", annotate=True,
 import matplotlib.pyplot as plt
 
 from flyvision.datasets.sintel import MultiTaskSintel
-from flyvision.plots.plots import hex_scatter, quick_hex_scatter
-from flyvision.plots.plt_utils import rm_spines
+from flyvision.analysis.visualization.plots import hex_scatter, quick_hex_scatter
+from flyvision.analysis.visualization.plt_utils import rm_spines
 ```
 
 
 ```python
-dataset = MultiTaskSintel(dt=1/24)
+dataset = MultiTaskSintel(dt=1 / 24)
 sequence = dataset.cartesian_sequence(0, outwidth=436)
 ```
 
@@ -77,26 +88,26 @@ for frame in [0, 1, 18]:
 ```
 
 
-    
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_11_0.png)
-    
 
 
 
-    
+
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_11_1.png)
-    
 
 
 
-    
+
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_11_2.png)
-    
+
 
 
 
 ```python
-dataset.augment=False
+dataset.augment = False
 ```
 
 
@@ -114,21 +125,21 @@ for frame in [0, 1, -1]:
 ```
 
 
-    
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_15_0.png)
-    
 
 
 
-    
+
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_15_1.png)
-    
 
 
 
-    
+
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_15_2.png)
-    
+
 
 
 activations
@@ -140,6 +151,21 @@ from flyvision.plots import plt_utils
 from flyvision.plots.network import WholeNetworkFigure
 from flyvision.utils.color_utils import cell_type_colors
 ```
+
+
+    ---------------------------------------------------------------------------
+
+    ModuleNotFoundError                       Traceback (most recent call last)
+
+    Input In [12], in <cell line: 2>()
+          1 from flyvision.connectome import ConnectomeDir
+    ----> 2 from flyvision.plots import plt_utils
+          3 from flyvision.plots.network import WholeNetworkFigure
+          4 from flyvision.utils.color_utils import cell_type_colors
+
+
+    ModuleNotFoundError: No module named 'flyvision.plots'
+
 
 
 ```python
@@ -158,7 +184,11 @@ nodes = ctome.nodes.to_df()
 
 
 ```python
-responses = ensemble[0].init_network().simulate(sequence["lum"][None], dt=1/50, as_layer_activity=True)
+responses = (
+    ensemble[0]
+    .init_network()
+    .simulate(sequence["lum"][None], dt=1 / 50, as_layer_activity=True)
+)
 ```
 
     [2024-09-28 04:15:47] chkpt_utils:72 Recovered network state.
@@ -175,15 +205,17 @@ wnf.init_figure(
     fontsize=5,
     add_graph_kwargs={
         "constant_edge_width": 0.2,
-        "edge_width": 0.15, # this scales edges relative to each other
+        "edge_width": 0.15,  # this scales edges relative to each other
         "constant_edge_color": "k",
         "edge_alpha": 0.1,
-        "nx_kwargs": {"min_source_margin": 0,
-                      "min_target_margin": 5,
-                      "selfloop_x0": 0,
-                      "selfloop_y0": 0,
-                      "selfloop_h_shift": 0.025,
-                      "selfloop_v_shift": 0.1275},
+        "nx_kwargs": {
+            "min_source_margin": 0,
+            "min_target_margin": 5,
+            "selfloop_x0": 0,
+            "selfloop_y0": 0,
+            "selfloop_h_shift": 0.025,
+            "selfloop_v_shift": 0.1275,
+        },
     },
     network_layout_axes_kwargs={
         "types_per_column": 4,
@@ -208,7 +240,7 @@ for i, cell_type in enumerate(wnf.layout.keys()):
         cbar=False,
         fontsize=5,
         fill=True,
-        labelxy="auto"
+        labelxy="auto",
     )
     (xmin, ymin, xmax, ymax) = ax.dataLim.extents
     ax.set_xlim(plt_utils.get_lims((xmin, xmax), 0.01))
@@ -216,16 +248,16 @@ for i, cell_type in enumerate(wnf.layout.keys()):
 ```
 
 
-    
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_22_0.png)
-    
+
 
 
 optic flow
 
 
 ```python
-from flyvision.plots.plots import quick_hex_flow
+from flyvision.analysis.visualization.plots import quick_hex_flow
 ```
 
 
@@ -236,7 +268,7 @@ sequence = dataset[1]
 
 ```python
 for frame in [0, 1, -1]:
-   quick_hex_flow(
+    quick_hex_flow(
         sequence["flow"][frame],
         cwheel=False,
         cwheelradius=0.2,
@@ -246,19 +278,17 @@ for frame in [0, 1, -1]:
 ```
 
 
-    
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_26_0.png)
-    
 
 
 
-    
+
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_26_1.png)
-    
 
 
 
-    
+
+
 ![png](figure_01_fly_visual_system_files/figure_01_fly_visual_system_26_2.png)
-    
-

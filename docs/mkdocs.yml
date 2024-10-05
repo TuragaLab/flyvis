@@ -1,23 +1,23 @@
-site_name: Flyvis
-site_url: "https://flyvis.github.io/"
+site_name: Flyvis Documentation
+site_url: http://turagas-ws4:8010/
+# site_url: "https://flyvis.github.io/"
 
 nav:
   - Home: index.md
   - Installation: install.md
   - Tutorials:
-    - Explore the connectome: examples/01_flyvision_connectome.md
-    - Train the network: examples/02_flyvision_optic_flow_task.md
-    - Flash responses: examples/03_flyvision_flash_responses.md
-    - Moving edge responses: examples/04_flyvision_moving_edge_responses.md
-    - Ensemble clustering: examples/05_flyvision_umap_and_clustering_models.md
-    - Maximally excitatory stimuli: examples/06_flyvision_maximally_excitatory_stimuli.md
-    - Custom stimuli: examples/07_flyvision_providing_custom_stimuli.md
-  - Main results:
-    - Figure 1: examples/figure_01_fly_visual_system.ipynb
-    - Figure 2: examples/figure_02_simple_stimuli_responses.ipynb
-    - Figure 3: examples/figure_03_naturalistic_stimuli_responses.ipynb
-    - Figure 4: examples/figure_04_mechanisms.ipynb
-  - Contributing: contribute.md
+    - Explore the Connectome: examples/01_flyvision_connectome.md
+    - Train the Network: examples/02_flyvision_optic_flow_task.md
+    - Flash Responses: examples/03_flyvision_flash_responses.md
+    - Moving Edge Responses: examples/04_flyvision_moving_edge_responses.md
+    - Ensemble Clustering: examples/05_flyvision_umap_and_clustering_models.md
+    - Maximally Excitatory Stimuli: examples/06_flyvision_maximally_excitatory_stimuli.md
+    - Custom Stimuli: examples/07_flyvision_providing_custom_stimuli.md
+  - Main Results:
+    - Figure 1: examples/figure_01_fly_visual_system.md
+    - Figure 2: examples/figure_02_simple_stimuli_responses.md
+    - Figure 3: examples/figure_03_naturalistic_stimuli_responses.md
+    - Figure 4: examples/figure_04_mechanisms.md
   - API Reference:
     - "Connectome": reference/connectome.md
     - "Network": reference/network.md
@@ -36,18 +36,54 @@ nav:
       - "Utils": reference/utils.md
       - "Visualizations": reference/visualizations.md
       - "Animations": reference/animations.md
+  - Contributing: contribute.md
   - FAQ: faq.md
   - Acknowledgements: acknowledgements.md
 
 theme:
-  name: 'material'
-  features:
-  - content.code.copy
-  palette:
-    primary: 'indigo'
-    accent: 'indigo'
-  logo: images/logo_hexagon.jpg
+  name: material
+  logo: 'images/flyvis_logo_light@150ppi.webp'
+  logo_dark: 'images/flyvis_logo_dark@150ppi.webp'
+  logo_light: 'images/flyvis_logo_light@150ppi.webp'
   collapse_navigation: false
+  custom_dir: overrides
+
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+
+  palette:
+
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: white
+      accent: purple
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: purple
+      background: "#000000"
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to system preference
 
   extra:
   version:
@@ -99,9 +135,24 @@ plugins:
             show_root_toc_entry: true
             show_symbol_type_toc: true
             show_root_full_path: false
-            show_root_heading: true
 
 watch:
   - ../flyvision
   - ../scripts
 
+# extra_javascript:
+#   - javascripts/switch-logo.js
+
+extra_css:
+  - custom.css
+
+
+copyright: Janne Kristian Lappalainen &copy 2024
+extra:
+  social:
+    - icon: fontawesome/solid/envelope
+      link: mailto:lappalainenjk@gmail.com,jakob.macke@uni-tuebingen.de,turagas@janelia.hhmi.org
+    - icon: fontawesome/brands/github
+      link: https://github.com/turagalab/flyvis
+    - icon: fontawesome/solid/newspaper
+      link: https://www.nature.com/articles/s41586-024-07939-3

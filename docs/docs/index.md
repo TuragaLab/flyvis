@@ -1,4 +1,10 @@
-# Flyvis
+<h1>
+<p style="text-align:left;">
+    <img id="flyvis-logo-light-content" src="images/flyvis_logo_light@150ppi.webp" width="50%" class="center">
+    <img id="flyvis-logo-dark-content" src="images/flyvis_logo_dark@150ppi.webp" width="50%" class="center">
+</p>
+</h1>
+
 
 A connectome constrained deep mechanistic network (DMN) model of the fruit fly visual system in Pytorch as discovery tool for generating
 and testing hypotheses about neural computations with connectomes.
@@ -38,13 +44,14 @@ Try the models and code inside our Google Colab notebooks for a quickstart.
 How useful is a connectome? We show that you can predict quite a bit about the neural activity of a circuit from just measurements of its connectivity.
 
 <p style="text-align:center;">
-<img src="images/tweet_1_intro.png"  width="60%" height="30%">
+<img src="images/tweet_1_intro.png"  width="50%" height="30%">
 </p>
 
 We built a convolutional recurrent network of the fly visual system--on a hexagonal grid, matching the columnar structure of the optic lobe. Weights (connections + filter weights) come from the connectome: A deep neural network which precisely maps onto a real brain circuit!
 
 <p style="text-align:center;">
-<img src="images/tweet_4_network.gif"  width="60%" height="30%" class="center">
+  <video src="images/tweet_4_network.webm" width="50%" class="center" loop muted
+    onmouseover="this.play()" onmouseout="this.pause(); this.currentTime=0;"></video>
 </p>
 
 Our connectome-constrained “deep mechanistic network” (DMN) has 64 identified cell-types, 44K neurons + over 1 Mio. connections.
@@ -52,7 +59,8 @@ We trained its free parameters (single-cell + synapse dynamics) on optic flow
 computation from naturalistic movie inputs.
 
 <p style="text-align:center;">
-<img src="images/tweet_5_training_light.gif"  width="60%" height="30%" class="center">
+  <video src="images/tweet_5_training_light.webm" width="50%" class="center" loop muted
+    onmouseover="this.play()" onmouseout="this.pause(); this.currentTime=0;"></video>
 </p>
 
 ## Citation

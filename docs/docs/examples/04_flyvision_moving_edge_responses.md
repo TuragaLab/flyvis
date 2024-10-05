@@ -43,7 +43,7 @@ The notebook requires installing our package `flyvis`. You may need to restart y
 
 ```python
 if IN_COLAB:
-    #@markdown **Install Flyvis**
+    # @markdown **Install Flyvis**
     %%capture
     !git clone https://github.com/flyvis/flyvis-dev.git
     %cd /content/flyvis-dev
@@ -68,7 +68,7 @@ To elicit moving edge responses and characterise the motion selectivity of neuro
 ```python
 # import dataset and visualization helper
 from flyvision.datasets.moving_bar import MovingEdge
-from flyvision.animations.hexscatter import HexScatter
+from flyvision.analysis.animations.hexscatter import HexScatter
 ```
 
 
@@ -352,40 +352,13 @@ from flyvision.network import NetworkView
 network_view = NetworkView(results_dir / "flow/0000/000")
 ```
 
-    [2024-09-25 15:35:49] network:1005 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
+    [2024-10-04 16:31:35] network:1001 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
 
 
 
 ```python
 stims_and_resps = network_view.moving_edge_responses(dataset)
 ```
-
-    [2024-09-25 15:35:49] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/000', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 3b098d8fe94f37eebf7369247554b311)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:35:49] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/__cache__/flyvision/analysis/stimulus_responses/compute_responses/3b098d8fe94f37eebf7369247554b311/output.h5
-
-
-    ___________________________________compute_responses cache loaded - 0.1s, 0.0min
-
 
 We've now computed network moving edge responses for all cells in the network.
 
@@ -443,7 +416,7 @@ For the T4c cell plotted before, we can see that it preferentially responds to O
 
 
 ```python
-from flyvision.analysis import direction_selectivity_index
+from flyvision.analysis.moving_bar_responses import direction_selectivity_index
 ```
 
 
@@ -460,7 +433,7 @@ We compute the preferred direction of the cell with `flyvision.analysis.preferre
 
 
 ```python
-from flyvision.analysis import preferred_direction
+from flyvision.analysis.moving_bar_responses import preferred_direction
 ```
 
 
@@ -480,7 +453,7 @@ Here we see clearly how the cell is tuned to stimuli moving at a 60 degree angle
 
 
 ```python
-from flyvision.analysis import plot_angular_tuning
+from flyvision.analysis.moving_bar_responses import plot_angular_tuning
 ```
 
 
@@ -507,14 +480,12 @@ With the `dsi()` function we can also compute DSIs for every cell type at once. 
 
 
 ```python
-from flyvision.analysis import dsi_correlation_to_known
+from flyvision.analysis.moving_bar_responses import dsi_correlation_to_known
 ```
 
 
 ```python
-dsi_corr = dsi_correlation_to_known(
-    direction_selectivity_index(stims_and_resps)
-).median()
+dsi_corr = dsi_correlation_to_known(direction_selectivity_index(stims_and_resps)).median()
 ```
 
 
@@ -522,14 +493,14 @@ dsi_corr = dsi_correlation_to_known(
 print(f"DSI correlation = {dsi_corr.item(): .2f}")
 ```
 
-    DSI correlation =  0.65
+    DSI correlation =  0.89
 
 
 Further, for certain cell types, their actual tuning curves have also been measured experimentally, so we can correlate our model cell's tuning to the true values. For T4c, the cell is known to tune to stimuli moving at 90 degrees, so the correlation should be relatively high.
 
 
 ```python
-from flyvision.analysis import correlation_to_known_tuning_curves
+from flyvision.analysis.moving_bar_responses import correlation_to_known_tuning_curves
 ```
 
 
@@ -563,7 +534,7 @@ print(
 ```
 
     T4 tuning curve correlations: ['T4a' 'T4b' 'T4c' 'T4d']
-    [0.93699976 0.71944943 0.53721794 0.85661069]
+    [0.93699974 0.7194494  0.53721795 0.85661067]
 
 
 
@@ -574,7 +545,7 @@ print(
 ```
 
     T5 tuning curve correlations: ['T5a' 'T5b' 'T5c' 'T5d']
-    [0.84125435 0.90320946 0.94956466 0.90100504]
+    [0.8412543  0.90320944 0.94956462 0.90100514]
 
 
 So, the model yields accurate predictions for all T4 and T5 cell types.
@@ -596,14 +567,14 @@ ensemble = ensemble[ensemble.argsort()[:10]]
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-09-25 15:36:10] ensemble:138 Loaded 50 networks.
+    [2024-10-04 16:31:52] ensemble:141 Loaded 50 networks.
 
 
 
     Loading ensemble:   0%|          | 0/10 [00:00<?, ?it/s]
 
 
-    [2024-09-25 15:36:15] ensemble:138 Loaded 10 networks.
+    [2024-10-04 16:31:56] ensemble:141 Loaded 10 networks.
 
 
 
@@ -612,226 +583,10 @@ ensemble = ensemble[ensemble.argsort()[:10]]
 stims_and_resps = ensemble.moving_edge_responses(dataset=dataset)
 ```
 
-    [2024-09-25 15:36:16] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/000', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 3b098d8fe94f37eebf7369247554b311)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:16] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/__cache__/flyvision/analysis/stimulus_responses/compute_responses/3b098d8fe94f37eebf7369247554b311/output.h5
-    [2024-09-25 15:36:16] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/001/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/001', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/001/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 325e88a715551d0a149b5dae673c8f83)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/001/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:16] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/001/__cache__/flyvision/analysis/stimulus_responses/compute_responses/325e88a715551d0a149b5dae673c8f83/output.h5
-    [2024-09-25 15:36:16] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/002/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/002', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/002/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 8912ba93ac77a2d8a372a9aedbce0d4b)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/002/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:16] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/002/__cache__/flyvision/analysis/stimulus_responses/compute_responses/8912ba93ac77a2d8a372a9aedbce0d4b/output.h5
-    [2024-09-25 15:36:16] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/003/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/003', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/003/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 34abd51c78f6409009acc6ec30fb6e54)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/003/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:16] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/003/__cache__/flyvision/analysis/stimulus_responses/compute_responses/34abd51c78f6409009acc6ec30fb6e54/output.h5
-    [2024-09-25 15:36:16] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/004/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/004', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/004/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 757735e00ab721a6bcd14c8ac50f65c9)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/004/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:16] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/004/__cache__/flyvision/analysis/stimulus_responses/compute_responses/757735e00ab721a6bcd14c8ac50f65c9/output.h5
-    [2024-09-25 15:36:16] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/005/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/005', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/005/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 761b503cb11d83b87ccca4437485a05c)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/005/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:16] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/005/__cache__/flyvision/analysis/stimulus_responses/compute_responses/761b503cb11d83b87ccca4437485a05c/output.h5
-    [2024-09-25 15:36:17] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/006/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/006', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/006/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 2ef227637edf3421104836b79b8dd061)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/006/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:17] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/006/__cache__/flyvision/analysis/stimulus_responses/compute_responses/2ef227637edf3421104836b79b8dd061/output.h5
-    [2024-09-25 15:36:17] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/007/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/007', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/007/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash e2e8db05a1a5046ed0ec8793ea1bf1ec)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/007/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:17] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/007/__cache__/flyvision/analysis/stimulus_responses/compute_responses/e2e8db05a1a5046ed0ec8793ea1bf1ec/output.h5
-    [2024-09-25 15:36:17] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/008/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/008', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/008/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash 93e70ecb95c60d98cdc493ee50ba177b)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/008/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:17] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/008/__cache__/flyvision/analysis/stimulus_responses/compute_responses/93e70ecb95c60d98cdc493ee50ba177b/output.h5
-    [2024-09-25 15:36:17] logger:83 [MemorizedFunc(func=<function compute_responses at 0x7f3082758790>, location=/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/009/__cache__)]:
-                            Querying compute_responses with signature
-                            compute_responses(CheckpointedNetwork(network_class=<class 'flyvision.network.Network'>, config={'connectome': {'type': 'ConnectomeDir', 'file': 'fib25-fib19_v2.2.json', 'extent': 15, 'n_syn_fill': 1}, 'dynamics': {'type': 'PPNeuronIGRSynapses', 'activation': {'type': 'relu'}}, 'node_config': {'bias': {'type': 'RestingPotential', 'groupby': ['type'], 'initial_dist': 'Normal', 'mode': 'sample', 'requires_grad': True, 'mean': 0.5, 'std': 0.05, 'penalize': {'activity': True}, 'seed': 0}, 'time_const': {'type': 'TimeConstant', 'groupby': ['type'], 'initial_dist': 'Value', 'value': 0.05, 'requires_grad': True}}, 'edge_config': {'sign': {'type': 'SynapseSign', 'initial_dist': 'Value', 'requires_grad': False, 'groupby': ['source_type', 'target_type']}, 'syn_count': {'type': 'SynapseCount', 'initial_dist': 'Lognormal', 'mode': 'mean', 'requires_grad': False, 'std': 1.0, 'groupby': ['source_type', 'target_type', 'du', 'dv']}, 'syn_strength': {'type': 'SynapseCountScaling', 'initial_dist': 'Value', 'requires_grad': True, 'scale_elec': 0.01, 'scale_chem': 0.01, 'clamp': 'non_negative', 'groupby': ['source_type', 'target_type', 'edge_type']}}}, name='flow/0000/009', checkpoint=PosixPath('/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/009/chkpts/chkpt_00000'), recover_fn=<function recover_network at 0x7f30798ac430>, network=None),
-    <class 'flyvision.datasets.moving_bar.MovingEdge'>, { 'angles': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-      'bar_loc_horizontal': 0.0,
-      'dt': 0.005,
-      'height': 80,
-      'intensities': [0, 1],
-      'offsets': [-10, 11],
-      'post_pad_mode': 'continue',
-      'shuffle_offsets': False,
-      'speeds': [19],
-      't_post': 1.0,
-      't_pre': 1.0,
-      'widths': [80]},
-    4, 1.0, 0.0).
-
-                            (argument hash bf2f8033eea3ff6c92e1e5f355f18096)
-
-                            The store location is /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/009/__cache__/flyvision/analysis/stimulus_responses/compute_responses.
-
-    [2024-09-25 15:36:17] xarray_joblib_backend:582 Loading Dataset from NetCDF at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/009/__cache__/flyvision/analysis/stimulus_responses/compute_responses/bf2f8033eea3ff6c92e1e5f355f18096/output.h5
+    [2024-10-04 16:32:05] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-04 16:32:05] chkpt_utils:72 Recovered network state.
+    [2024-10-04 16:32:05] network:751 Computing 24 stimulus responses.
+    [2024-10-04 16:32:10] xarray_joblib_backend:540 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/003/__cache__/flyvision/analysis/stimulus_responses/compute_responses/97a3d5ae41b64897bf8ef7f0064c1e4f/output.h5
 
 
 ### Response traces
@@ -945,9 +700,7 @@ Lastly, we look at the correlations to ground-truth DSIs and tuning curves acros
 
 
 ```python
-dsi_corr = dsi_correlation_to_known(
-    direction_selectivity_index(stims_and_resps)
-).median("intensity")
+dsi_corr = dsi_correlation_to_known(direction_selectivity_index(stims_and_resps))
 ```
 
 
@@ -957,8 +710,16 @@ tuning_corrs = correlation_to_known_tuning_curves(stims_and_resps)
 
 
 ```python
-t4_corrs = tuning_corrs.custom.where(cell_type=["T4a", "T4b", "T4c", "T4d"], intensity=1).median("neuron").squeeze()
-t5_corrs = tuning_corrs.custom.where(cell_type=["T5a", "T5b", "T5c", "T5d"], intensity=0).median("neuron").squeeze()
+t4_corrs = (
+    tuning_corrs.custom.where(cell_type=["T4a", "T4b", "T4c", "T4d"], intensity=1)
+    .median("neuron")
+    .squeeze()
+)
+t5_corrs = (
+    tuning_corrs.custom.where(cell_type=["T5a", "T5b", "T5c", "T5d"], intensity=0)
+    .median("neuron")
+    .squeeze()
+)
 ```
 
 
@@ -975,7 +736,7 @@ dsi_corr.shape, t4_corrs.shape, t5_corrs.shape
 
 
 ```python
-from flyvision.plots.plots import violin_groups
+from flyvision.analysis.visualization.plots import violin_groups
 
 fig, ax, *_ = violin_groups(
     np.stack([dsi_corr.values, t4_corrs.values, t5_corrs.values], axis=0)[:, None, :],

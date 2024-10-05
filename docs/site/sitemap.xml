@@ -2,154 +2,178 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://flyvis.github.io/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/acknowledgements/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/contribute/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/faq/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/install/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/01_flyvision_connectome/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/02_flyvision_optic_flow_task/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/03_flyvision_flash_responses/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/04_flyvision_moving_edge_responses/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/05_flyvision_umap_and_clustering_models/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/06_flyvision_maximally_excitatory_stimuli/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/07_flyvision_providing_custom_stimuli/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/Untitled/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/Untitled1/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/__main__/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/figure_01_fly_visual_system/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/figure_02_simple_stimuli_responses/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/figure_03_naturalistic_stimuli_responses/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/figure_04_mechanisms/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/init/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/examples/xarrayjoblib/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
+    </url>
+    <url>
+         <loc>https://flyvis.github.io/reference/animations/</loc>
+         <lastmod>2024-10-05</lastmod>
+    </url>
+    <url>
+         <loc>https://flyvis.github.io/reference/augmentation/</loc>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/connectome/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/datasets/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/decoder/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/ensemble/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/ensemble_clustering/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/ensemble_view/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/flash_responses/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/flyvision/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/initialization/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/moving_stimulus_responses/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/network/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/network_view/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/objectives/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/optimal_stimuli/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
+    </url>
+    <url>
+         <loc>https://flyvis.github.io/reference/rendering/</loc>
+         <lastmod>2024-10-05</lastmod>
+    </url>
+    <url>
+         <loc>https://flyvis.github.io/reference/scripts/</loc>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/sintel/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/solver/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
     </url>
     <url>
          <loc>https://flyvis.github.io/reference/tasks/</loc>
-         <lastmod>2024-10-02</lastmod>
+         <lastmod>2024-10-05</lastmod>
+    </url>
+    <url>
+         <loc>https://flyvis.github.io/reference/utils/</loc>
+         <lastmod>2024-10-05</lastmod>
+    </url>
+    <url>
+         <loc>https://flyvis.github.io/reference/visualizations/</loc>
+         <lastmod>2024-10-05</lastmod>
     </url>
 </urlset>
