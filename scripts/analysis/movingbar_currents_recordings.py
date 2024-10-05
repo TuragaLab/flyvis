@@ -79,7 +79,9 @@ def main():
         },
     )
 
-    subdir = f"movingedge_responses/{network_view.checkpoints.current_chkpt_key}/currents"
+    subdir = (
+        f"moving_edge_responses/{network_view.checkpoints.current_chkpt_key}/currents"
+    )
     network = network_view.init_network()
 
     dataset = MovingEdge(

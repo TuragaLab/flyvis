@@ -120,7 +120,7 @@ select = ["E", "F", "W", "B", "SIM", "I"]
 # known-first-party = ["flyvision", "tests", "examples", "scripts"]
 
 [tool.ruff.format]
-exclude = ["*.ipynb"]
+# exclude = ["*.ipynb"]
 preview = true
 quote-style = "preserve"
 

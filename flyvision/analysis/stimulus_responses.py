@@ -16,7 +16,17 @@ from flyvision.datasets.sintel import AugmentedSintel
 
 from . import optimal_stimuli
 
-# --------------------- Helper Function ---------------------
+__all__ = [
+    "compute_responses",
+    "generic_responses",
+    "flash_responses",
+    "moving_edge_responses",
+    "moving_bar_responses",
+    "naturalistic_stimuli_responses",
+    "central_impulses_responses",
+    "spatial_impulses_responses",
+    "optimal_stimulus_responses",
+]
 
 
 def compute_responses(
@@ -229,6 +239,11 @@ def generic_responses(
         'v': ('neuron', v_coords),
         'u_in': ('hex_pixel', u_in),
         'v_in': ('hex_pixel', v_in),
+        'network_id': ('network_id', np.arange(len(checkpoints))),
+        'network_name': (
+            'network_id',
+            [network_view.name for network_view in network_views],
+        ),
         'checkpoints': ('network_id', checkpoints),
     })
     results.attrs.update({
@@ -455,7 +470,7 @@ def compute_optimal_stimulus_responses(
     cell_type: str,
     dataset_config: Dict,
     dataset_class: type = AugmentedSintel,
-) -> xr.Dataset:
+) -> optimal_stimuli.RegularizedOptimalStimulus:
     """Compute optimal stimuli responses and return as xarray Dataset.
 
     This function is compatible with joblib caching.
@@ -476,7 +491,7 @@ def optimal_stimulus_responses(
     cell_type: str,
     dataset: Optional[StimulusDataset] = AugmentedSintel,
     dt=1 / 100,
-) -> xr.Dataset:
+) -> optimal_stimuli.RegularizedOptimalStimulus:
     """Return optimal stimuli responses as xarray Dataset."""
 
     # Prepare dataset configuration
@@ -489,7 +504,9 @@ def optimal_stimulus_responses(
     }
 
     # Call the cached helper function
-    return network_view.memory.cache(compute_optimal_stimulus_responses)(
+    # type: optimal_stimuli.RegularizedOptimalStimulus
+    cached_fn = network_view.memory.cache(compute_optimal_stimulus_responses)
+    return cached_fn(
         network_view.network(checkpoint="best", lazy=True),
         cell_type,
         default_dataset_config,

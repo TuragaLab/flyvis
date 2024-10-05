@@ -4,15 +4,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from datamate import Namespace
-from matplotlib import colors
 from matplotlib.axes import Axes
 from matplotlib.colors import hex2color
 from matplotlib.lines import Line2D
 from toolz import valfilter, valmap
 
 from flyvision.connectome import ReceptiveFields
-from flyvision.utils.color_utils import ND, PD, adapt_color_alpha
-from flyvision.utils.df_utils import where_dataframe
+from flyvision.datasets.moving_bar import MovingEdge
+from flyvision.utils.color_utils import (
+    ND,
+    PD,
+    adapt_color_alpha,
+    cmap_iter,
+    truncate_colormap,
+)
+from flyvision.utils.df_utils import where_dataframe as get_stimulus_index
 from flyvision.utils.nodes_edges_utils import CellTypeArray
 
 from .visualization import plots, plt_utils
@@ -21,71 +27,17 @@ from .visualization.figsize_utils import (
     figsize_from_n_items,
 )
 
-get_stimulus_index = where_dataframe
+__all__ = ["MovingEdgeCurrentView"]
 
 
-def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-    new_cmap = colors.LinearSegmentedColormap.from_list(
-        "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
-        cmap(np.linspace(minval, maxval, max(n, 2))),
-    )
-    return new_cmap.resampled(max(n, 2))
-
-
-class cmap_iter:
-    def __init__(self, cmap):
-        self.i = 0
-        self.cmap = cmap
-        self.stop = cmap.N
-
-    def __next__(self):
-        if self.i < self.stop:
-            self.i += 1
-            return self.cmap(self.i - 1)
-
-    def _repr_html_(self):
-        return self.cmap._repr_html_()
-
-
-def reset_index(rfs, inplace=False):
-    if inplace:
-        for source_type in rfs.source_types:
-            edges = rfs[source_type]
-            if isinstance(edges, pd.DataFrame):
-                rfs[source_type] = edges.reset_index(drop=True)
-        return rfs
-    else:
-        new = rfs.deepcopy()
-        return reset_index(new, inplace=True)
-
-
-def at_position(rfs, u=None, v=None, central=True, inplace=False):
-    if inplace:
-        for source_type in rfs.source_types:
-            edges = rfs[source_type]
-            if isinstance(edges, pd.DataFrame):
-                if central:
-                    rfs[source_type] = edges.iloc[
-                        [np.argmin(np.abs(edges.source_u) + np.abs(edges.source_v))]
-                    ]
-                else:
-                    rfs[source_type] = edges[
-                        (edges.source_u == u) & (edges.source_v == v)
-                    ]
-        return rfs
-    else:
-        new = rfs.deepcopy()
-        return at_position(new, u, v, inplace=True)
-
-
-# TODO: update as xarray dataset
+# TODO: update to functions on xarray dataset
 class MovingEdgeCurrentView:
     def __init__(
         self,
         ensemble,
         target_type,
-        current_dir,
-        arg_df,
+        exp_data,
+        arg_df=None,
         currents=None,
         rfs=None,
         time=None,
@@ -93,12 +45,15 @@ class MovingEdgeCurrentView:
     ):
         self.target_type = target_type
         self.ensemble = ensemble
-        self.current_dir = current_dir
-        self.config = ensemble[0].dir[current_dir].config
-        self.arg_df = arg_df
+        self.config = exp_data[0].config
+        if arg_df is None:
+            self.arg_df = MovingEdge(**exp_data[0].config).arg_df
+        else:
+            self.arg_df = arg_df
         self.rfs = rfs or reset_index(
             ReceptiveFields(target_type, ensemble[0].connectome.edges.to_df())
         )
+        self.exp_data = exp_data
         self.source_types = self.rfs.source_types
         self.time = time
         self.init_currents(currents)
@@ -114,8 +69,8 @@ class MovingEdgeCurrentView:
             # (on/off, n_models, n_angles, n_timesteps, n_input_cells)
             self.currents[source_type] = np.array(
                 [
-                    nnv.dir[self.current_dir][self.target_type][source_type][:]
-                    for nnv in self.ensemble.values()
+                    np.array(exp.target_data[self.target_type].source_data[source_type])
+                    for exp in self.exp_data
                 ],
             )
 
@@ -126,8 +81,8 @@ class MovingEdgeCurrentView:
         # (on/off, n_models, n_angles, n_timesteps)
         self.responses = np.array(
             [
-                nnv.dir[self.current_dir][self.target_type]["activity_central"][:]
-                for nnv in self.ensemble.values()
+                np.array(exp.target_data[self.target_type].activity_central)
+                for exp in self.exp_data
             ],
         )
 
@@ -271,7 +226,6 @@ class MovingEdgeCurrentView:
             f"{self.__class__.__name__}(\n"
             f"    ensemble={self.ensemble.name},\n"
             f"    target_type={self.target_type},\n"
-            f"    current_dir={self.current_dir},\n"
             f"    currents={{\n        {formatted_cv}\n    }},\n"
             f"    rfs={self.rfs}\n"
             f")"
@@ -795,7 +749,7 @@ class MovingEdgeCurrentView:
         return MovingEdgeCurrentView(
             self.ensemble,
             self.target_type,
-            self.current_dir,
+            self.exp_data,
             arg_df,
             currents,
             rfs if rfs is not None else self.rfs,
@@ -876,7 +830,7 @@ class MovingEdgeCurrentView:
 
         for _, (cell_type, sign) in enumerate(signs_reversed.items()):
             if sign == -1:
-                # take the first half of the RdBu colormap, i.e. red
+                # take the second half of the RdBu colormap, i.e. blue
                 colors_pd[cell_type] = next(inh_cmap_pd)
                 colors_nd[cell_type] = next(inh_cmap_nd)
         self.colors_pd = colors_pd
@@ -1975,3 +1929,34 @@ class MovingEdgeCurrentView:
             )
 
         return r_pd, r_nd, self.between_seconds(t_start, t_end).time
+
+
+def reset_index(rfs, inplace=False):
+    if inplace:
+        for source_type in rfs.source_types:
+            edges = rfs[source_type]
+            if isinstance(edges, pd.DataFrame):
+                rfs[source_type] = edges.reset_index(drop=True)
+        return rfs
+    else:
+        new = rfs.deepcopy()
+        return reset_index(new, inplace=True)
+
+
+def at_position(rfs, u=None, v=None, central=True, inplace=False):
+    if inplace:
+        for source_type in rfs.source_types:
+            edges = rfs[source_type]
+            if isinstance(edges, pd.DataFrame):
+                if central:
+                    rfs[source_type] = edges.iloc[
+                        [np.argmin(np.abs(edges.source_u) + np.abs(edges.source_v))]
+                    ]
+                else:
+                    rfs[source_type] = edges[
+                        (edges.source_u == u) & (edges.source_v == v)
+                    ]
+        return rfs
+    else:
+        new = rfs.deepcopy()
+        return at_position(new, u, v, inplace=True)

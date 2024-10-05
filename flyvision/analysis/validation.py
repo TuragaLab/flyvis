@@ -14,6 +14,8 @@ from flyvision.utils.class_utils import forward_subclass
 
 logging = logging.getLogger(__name__)
 
+__all__ = ["validate", "validate_all_checkpoints"]
+
 
 @torch.no_grad()
 def validate(

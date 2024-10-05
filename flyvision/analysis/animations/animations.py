@@ -1,21 +1,21 @@
-"""Base class for animations.""" ""
-import itertools
 import logging
 import os
-import re
-import shutil
-import weakref
+import tempfile
+from pathlib import Path
 from time import sleep
 from typing import Iterable
 
 import ffmpeg
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 from IPython import display
-from datamate import get_root_dir
 
-colab = False
-if os.getenv("COLAB_RELEASE_TAG"):
-    colab = True
+__all__ = ["Animation", "AnimationCollector", "convert", "TestAnimation"]
+
+TESTING = os.getenv("TESTING", "False").lower() == "true"
+COLAB = bool(os.getenv("COLAB_RELEASE_TAG"))
+ANIMATION_DIR = os.getenv("ANIMATION_DIR", "animations")
 
 
 class Animation:
@@ -34,37 +34,36 @@ class Animation:
             'animations/{}', which is formatted with the class name.
     """
 
-    fig = None
+    fig: matplotlib.figure.Figure = None
     update = True
     batch_sample = 0
     frames = 0
     n_samples = 0
-    _finalize = []
 
-    def __init__(self, path=None, fig=None, suffix="animations/{}"):
-        path = get_root_dir() if path is None else path
-        self.path = path / suffix.format(self.__class__.__name__)
+    def __init__(self, path=None, fig=None, suffix="{}"):
+        self.path = Path(ANIMATION_DIR if path is None else path) / suffix.format(
+            self.__class__.__name__
+        )
         self.fig = fig
 
-    def _cleanup(self):
-        if self.path.exists():
-            for p in sorted(self.path.iterdir()):
-                if re.match(r"\.\d{4}$", p.name):
-                    shutil.rmtree(p)
-
     def init(self, frame=0):
-        return NotImplemented
+        raise NotImplementedError("Subclasses should implement this method.")
 
     def animate(self, frame):
-        return NotImplemented
+        raise NotImplementedError("Subclasses should implement this method.")
 
-    def update_figure(self):
-        """Updates the figure canvas."""
+    def update_figure(self, clear_output=True):
+        """Updates the figure canvas.
+
+        Args:
+            clear_output (bool): Whether to clear the previous output.
+        """
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
-        if matplotlib.get_backend().lower() != "nbagg" or colab:
+        if matplotlib.get_backend().lower() != "nbagg" or COLAB:
             display.display(self.fig)
-            display.clear_output(wait=True)
+            if clear_output:
+                display.clear_output(wait=True)
 
     def animate_save(self, frame, dpi=100):
         """Updates the figure to the given frame and saves it."""
@@ -79,60 +78,72 @@ class Animation:
         )
 
     def _get_indices(self, key, input):
-        _indices = set(range(self.__getattribute__(key)))
-        if isinstance(input, str) and input == "all":
+        total = getattr(self, key)
+        _indices = set(range(total))
+        if input == "all":
             indices = _indices
         elif isinstance(input, Iterable):
             indices = _indices.intersection(set(input))
         else:
-            raise ValueError(key, input)
-        return indices
+            raise ValueError(f"Invalid input for {key}: {input}")
+        return sorted(indices)
 
     def animate_in_notebook(self, frames="all", samples="all", repeat=1):
-        """Play animation within a jupyter notebook.
+        """Play animation within a Jupyter notebook.
 
-        Requires to set the backend to `notebook`, i.e. `%matplotlib notebook`.
+        Ensures proper backend setup and allows for repeating the animation.
         """
+        # self._verify_backend()
+        frames_list, samples_list = self._initialize_animation(frames, samples)
+
+        if TESTING:
+            # Only plot one frame from one sample
+            frames_list = frames_list[:1]
+            samples_list = samples_list[:1]
+            repeat = 1
+
+        try:
+            for _ in range(repeat):
+                for sample in samples_list:
+                    self.batch_sample = sample
+                    for frame in frames_list:
+                        self.animate(frame)
+                        sleep(0.1)  # Pause between frames
+        except KeyboardInterrupt:
+            print("Animation interrupted. Displaying last frame.")
+            # Display the last frame without clearing the output
+            self.update_figure(clear_output=False)
+            # Exit the function to prevent further clearing
+            return
+
+    def _verify_backend(self):
+        """Ensure the notebook backend is set correctly."""
+        backend = matplotlib.get_backend().lower()
+        if backend != "nbagg" and not COLAB:
+            raise RuntimeError(
+                "Matplotlib backend is not set to notebook. Use '%matplotlib notebook'."
+            )
+
+    def _initialize_animation(self, frames, samples):
+        """Initialize the animation state."""
         self.update = True
         self.init()
-        frames = self._get_indices("frames", frames)
-        samples = self._get_indices("n_samples", samples)
-        _break = False
-        while repeat:
-            for sample in sorted(samples):
-                self.batch_sample = sample
-                for frame in sorted(frames):
-                    try:
-                        self.animate(frame)
-                        sleep(0.1)
-                    except KeyboardInterrupt:
-                        self.animate(frame)
-                        sleep(0.1)
-                        _break = True
-                        break
-                if _break is True:
-                    repeat = 1
-                    break
-            repeat -= 1
+        frames_list = self._get_indices("frames", frames)
+        samples_list = self._get_indices("n_samples", samples)
+        return frames_list, samples_list
 
     def plot(self, sample, frame):
-        _sample = self.batch_sample
+        previous_sample = self.batch_sample
         self.update = True
         self.init()
         self.batch_sample = sample
         self.animate(frame)
-        self.batch_sample = _sample
+        self.batch_sample = previous_sample
 
-    def _mk_dest(self, path=None):
-        """Creates a temporary subdir as destination for the images."""
-        for i in itertools.count():
-            self._path = (path or self.path) / f".{i:04}"
-            try:
-                self._path.mkdir(parents=True, exist_ok=False)
-                break
-            except FileExistsError:
-                pass
-        self._finalize.append(weakref.finalize(self, shutil.rmtree, self._path))
+    def _create_temp_dir(self, path=None):
+        """Creates a temporary directory as destination for the images."""
+        self._temp_dir = tempfile.TemporaryDirectory()
+        self._path = Path(self._temp_dir.name)
 
     def to_vid(
         self,
@@ -146,31 +157,33 @@ class Animation:
         dest_path=None,
         type="webm",
     ):
-        """Animates, saves individual frames, and converts to mp4 using ffmpeg."""
-        self._mk_dest(path=source_path)
-        # Once self is garbage-collected, the temporary dir is rm'd.
+        """Animates, saves individual frames, and converts to video using ffmpeg."""
+        self._create_temp_dir(path=source_path)
         self.update = True
         self.init()
-        frames = self._get_indices("frames", frames)
-        samples = self._get_indices("n_samples", samples)
+        frames_list = self._get_indices("frames", frames)
+        samples_list = self._get_indices("n_samples", samples)
+
         try:
-            for sample in sorted(samples):
+            for sample in samples_list:
                 self.batch_sample = sample
-                for frame in sorted(frames):
+                for frame in frames_list:
                     self.animate_save(frame, dpi=dpi)
         except Exception as e:
-            try:
-                self.convert(fname + "_bak", delete_if_exists, framerate, type=type)
-            except Exception as ee:
-                raise Exception([e, ee]) from None
+            logging.error(f"Error during animation: {e}")
+            raise
+
         self.convert(
             fname,
-            delete_if_exists,
-            framerate,
+            delete_if_exists=delete_if_exists,
+            framerate=framerate,
             source_path=source_path,
             dest_path=dest_path,
             type=type,
         )
+
+        # Cleanup temporary directory
+        self._temp_dir.cleanup()
 
     def convert(
         self,
@@ -181,13 +194,12 @@ class Animation:
         dest_path=None,
         type="mp4",
     ):
-        """Converts png files in the animations dir to mp4."""
-        dest_path = dest_path or self.path
-        if not dest_path.exists():
-            dest_path.mkdir(parents=True, exist_ok=True)
+        """Converts png files in the animations dir to video."""
+        dest_path = Path(dest_path or self.path)
+        dest_path.mkdir(parents=True, exist_ok=True)
         convert(
             source_path or self._path,
-            (dest_path / f"{fname}").with_suffix(f".{type}"),
+            dest_path / f"{fname}.{type}",
             framerate,
             delete_if_exists,
             type=type,
@@ -196,7 +208,7 @@ class Animation:
 
 def convert(dir, dest, framerate, delete_if_exists, type="mp4"):
     """Converts png files in dir to mp4 or webm."""
-    video = dest.with_suffix(f".{type}")
+    video = Path(dest)
 
     if type == "mp4":
         kwargs = dict(
@@ -207,7 +219,6 @@ def convert(dir, dest, framerate, delete_if_exists, type="mp4"):
             pix_fmt="yuv420p",
             crf=18,
         )
-    # for full transparency support and better compression but takes very long
     elif type == "webm":
         kwargs = dict(
             vcodec="libvpx-vp9",
@@ -217,14 +228,13 @@ def convert(dir, dest, framerate, delete_if_exists, type="mp4"):
             threads=4,
         )
     else:
-        raise ValueError(f"{type}")
+        raise ValueError(f"Unsupported video type: {type}")
 
-    if video.exists() and not delete_if_exists:
-        raise FileExistsError
-    elif video.exists() and delete_if_exists:
-        video.unlink()
-    else:
-        pass
+    if video.exists():
+        if delete_if_exists:
+            video.unlink()
+        else:
+            raise FileExistsError(f"File {video} already exists.")
 
     try:
         (
@@ -239,11 +249,12 @@ def convert(dir, dest, framerate, delete_if_exists, type="mp4"):
         )
     except FileNotFoundError as e:
         if "ffmpeg" in str(e):
-            logging.warning("Check ffmpeg installation: {}.".format(e))
+            logging.warning(f"Check ffmpeg installation: {e}")
             return
+        else:
+            raise
     except ffmpeg.Error as e:
-        logging.info(f"stdout: {e.stdout.decode('utf8')}")
-        logging.info(f"stderr:, {e.stderr.decode('utf8')}")
+        logging.error(f"ffmpeg error: {e.stderr.decode('utf8')}")
         raise e
 
     logging.info(f"Created {video}")
@@ -254,11 +265,6 @@ class AnimationCollector(Animation):
 
     Subclasses must populate the `animations` attribute with Animation objects
     and adhere to the Animation interface.
-
-    Args:
-        ...
-        animations (list): list of Animation objects.
-        ...
     """
 
     animations = []
@@ -266,8 +272,7 @@ class AnimationCollector(Animation):
     def init(self, frame=0):
         for animation in self.animations:
             animation.init(frame)
-            # disable update of figure for individual animations to update
-            # all axes at once in animate
+            # Disable individual updates to update all axes at once
             animation.update = False
 
     def animate(self, frame):
@@ -277,8 +282,61 @@ class AnimationCollector(Animation):
             self.update_figure()
 
     def __setattr__(self, key, val):
-        """Set the batch_sample for all Animation objects at once."""
+        """Set attributes for all Animation objects at once."""
         if key == "batch_sample" and hasattr(self, "animations"):
             for animation in self.animations:
-                animation.__setattr__(key, val)
-        object.__setattr__(self, key, val)
+                setattr(animation, key, val)
+        super().__setattr__(key, val)
+
+
+class TestAnimation(Animation):
+    """A test subclass of Animation that displays random data using imshow."""
+
+    def __init__(self, path=None, fig=None, suffix="animations/{}", data=None):
+        super().__init__(path=path, fig=fig, suffix=suffix)
+        # Generate random data if not provided
+        self.data = data if data is not None else np.random.rand(10, 10, 20)
+        self.frames = self.data.shape[2]
+        self.n_samples = 1
+        self.batch_sample = 0
+
+    def init(self, frame=0):
+        if self.fig is None:
+            self.fig, self.ax = plt.subplots()
+        else:
+            self.ax = self.fig.axes[0]
+        self.im = self.ax.imshow(self.data[:, :, frame], animated=True)
+        self.fig.show()
+
+    def animate(self, frame):
+        self.im.set_array(self.data[:, :, frame])
+        if self.update:
+            self.update_figure()
+
+
+# Minimal test with random data
+if __name__ == "__main__":
+    import os
+
+    # Set the TESTING environment variable to 'True'
+    os.environ["TESTING"] = "True"
+
+    # Re-evaluate TESTING after setting the environment variable
+    TESTING = os.getenv("TESTING", "False").lower() == "true"
+
+    # Ensure the matplotlib backend is set to 'notebook' for Jupyter
+    # Uncomment the following line when running in a Jupyter notebook
+    # %matplotlib notebook
+
+    # Create random data for testing
+    data = np.random.rand(10, 10, 20)
+
+    # Create an instance of TestAnimation
+    anim = TestAnimation(data=data)
+
+    # Set the number of frames and samples
+    anim.frames = 20  # Number of frames in the data
+    anim.n_samples = 1  # Only one sample for testing
+
+    # Run the animation in the notebook
+    anim.animate_in_notebook()

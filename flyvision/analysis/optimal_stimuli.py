@@ -15,6 +15,8 @@ from flyvision.network.stimulus import Stimulus
 from flyvision.utils import hex_utils, tensor_utils
 from flyvision.utils.activity_utils import LayerActivity
 
+__all__ = ["FindOptimalStimuli", "GenerateOptimalStimuli", "plot_stim_response"]
+
 
 class FindOptimalStimuli:
     """Methods to derive optimal stimuli for cells from stimuli dataset.
@@ -86,7 +88,7 @@ class FindOptimalStimuli:
         n_iters=100,
         dt=1 / 100,
         indices=None,
-    ):
+    ) -> RegularizedOptimalStimulus:
         """Regularizes the optimal stimulus such that the central node activity of the
         given type remains but the mean square of the input pixels is minimized.
 

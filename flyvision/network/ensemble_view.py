@@ -164,7 +164,7 @@ class EnsembleView(Ensemble):
     @wraps(plot_dsis)
     def direction_selectivity_index(self, **kwargs):
         """Plot the direction selectivity indices of the ensemble."""
-        responses = self.movingedge_responses()
+        responses = self.moving_edge_responses()
         dsis = direction_selectivity_index(responses)
         task_error = self.task_error()
         best_index = np.argmin(task_error.values)

@@ -5,6 +5,7 @@ python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=000
 python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=9998/000
 --functions spatial_impulses_responses central_impulses_responses
 """
+# pyright: reportCallIssue=false
 
 import logging
 
@@ -39,8 +40,9 @@ if __name__ == "__main__":
     parser.add_argument("--delete_recordings", action="store_true")
     default_functions = [
         "flash_responses",
-        "movingedge_responses",
-        "movingbar_responses",
+        "moving_edge_responses",
+        "moving_edge_responses_currents",
+        "moving_bar_responses",
         "naturalistic_stimuli_responses",
         # "optimal_stimulus_responses",
         "spatial_impulses_responses",
@@ -71,12 +73,28 @@ if __name__ == "__main__":
         network_view.flash_responses(batch_size=args.batch_size)
         logging.info("Stored flash responses.")
 
-    if "movingedge_responses" in args.functions:
-        network_view.movingedge_responses(batch_size=args.batch_size)
+    if "moving_edge_responses" in args.functions:
+        network_view.moving_edge_responses(batch_size=args.batch_size)
         logging.info("Stored moving edge responses.")
 
-    if "movingbar_responses" in args.functions:
-        network_view.movingbar_responses(batch_size=args.batch_size)
+    if "moving_edge_responses_currents" in args.functions:
+        network_view.moving_edge_currents(
+            target_cell_types=[
+                "T4a",
+                "T4b",
+                "T4c",
+                "T4d",
+                "T5a",
+                "T5b",
+                "T5c",
+                "T5d",
+                "TmY3",
+            ]
+        )
+        logging.info("Stored moving edge currents.")
+
+    if "moving_bar_responses" in args.functions:
+        network_view.moving_bar_responses(batch_size=args.batch_size)
         logging.info("Stored moving bar responses.")
 
     if "naturalistic_stimuli_responses" in args.functions:

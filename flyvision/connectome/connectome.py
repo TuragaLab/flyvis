@@ -653,7 +653,7 @@ class ConnectomeView:
             )
         return fig
 
-    def get_uv(self, cell_type) -> Tuple[NDArray]:
+    def get_uv(self, cell_type) -> Tuple[NDArray, NDArray]:
         """Hex-coordinates of a particular cell type to pass to hex_scatter plot."""
         nodes = self.nodes.to_df()
         nodes = nodes[nodes.type == cell_type]
@@ -859,7 +859,6 @@ class ConnectomeView:
         axes=None,
         figsize=[20, 20],
         ax_titles="{source} →: {target}",
-        min_axes=-1,
         max_figure_height_cm=22,
         panel_height_cm=3,
         max_figure_width_cm=18,

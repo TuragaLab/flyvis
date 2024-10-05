@@ -3,8 +3,11 @@
 from matplotlib import colormaps as cm
 
 from flyvision import utils
-from flyvision.animations.animations import Animation
-from flyvision.plots import plots, plt_utils
+
+from ..visualization import plots, plt_utils
+from .animations import Animation
+
+__all__ = ["HexScatter"]
 
 
 class HexScatter(Animation):

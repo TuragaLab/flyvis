@@ -14,6 +14,22 @@ from flyvision.utils.color_utils import OFF, ON
 from .visualization import plt_utils
 from .visualization.plots import polar, violin_groups
 
+__all__ = [
+    "dsi_correlation_to_known",
+    "plot_dsis",
+    "dsi_violins",
+    "peak_responses",
+    "peak_responses_angular",
+    "direction_selectivity_index",
+    "preferred_direction",
+    "plot_angular_tuning",
+    "plot_T4_tuning",
+    "plot_T5_tuning",
+    "get_groundtruth_tuning_curves",
+    "correlation_to_known_tuning_curves",
+    "angular_distance_to_known",
+]
+
 # class MovingBarResponseView(StimulusResponseIndexer):
 #     def __init__(
 #         self,
@@ -495,7 +511,9 @@ from .visualization.plots import polar, violin_groups
 #     return corr_dsi
 
 
-def dsi_correlation_to_known(dsis: xr.DataArray) -> xr.DataArray:
+def dsi_correlation_to_known(
+    dsis: xr.DataArray, max_aggregate_dims=("intensity",)
+) -> xr.DataArray:
     """
     Computes the correlation between predicted DSIs and known DSIs.
 
@@ -503,9 +521,12 @@ def dsi_correlation_to_known(dsis: xr.DataArray) -> xr.DataArray:
         dsis (xarray.DataArray): DataArray containing the DSIs for
             ON and OFF intensities, with dimensions including 'intensity' and 'neuron',
             and a coordinate 'cell_type'.
+        aggregate_dims (Iterable): Dimensions along which to max-aggregate the
+            dsi before computing the correlation. Default is ('intensity',).
 
-    Note: known DSIs are binary, either 0 or 1, depending on whether the cell type
-    is known to be motion-tuned or not.
+    Note: Known DSIs
+        Binary, either 0 or 1, depending on whether the cell type
+        is known to be motion-tuned or not.
     """
     # Ensure the 'intensity' dimension has length 2
     assert dsis.sizes['intensity'] == 2, "Dimension 'intensity' should have length 2"
@@ -515,7 +536,9 @@ def dsi_correlation_to_known(dsis: xr.DataArray) -> xr.DataArray:
     known_dsi_types = groundtruth_utils.known_dsi_types
 
     # Select dsis for known cell types
-    dsis_for_known = dsis.where(dsis['cell_type'].isin(known_dsi_types), drop=True)
+    dsis_for_known = dsis.where(dsis['cell_type'].isin(known_dsi_types), drop=True).max(
+        dim=max_aggregate_dims
+    )
 
     # Construct ground truth motion tuning array
     groundtruth_mt = xr.DataArray(
@@ -1198,8 +1221,8 @@ def simple_angle_distance(a, b, upper=np.pi):
     # a = np.radians(a)
     # b = np.radians(b)
     # make all angles positive between 0 and 2 * pi
-    a = a % 2 * np.pi
-    b = b % 2 * np.pi
+    a = a % (2 * np.pi)
+    b = b % (2 * np.pi)
 
     y = np.zeros_like(a)
     # subtract the smaller angle from the larger one

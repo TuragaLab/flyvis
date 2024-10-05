@@ -6,9 +6,12 @@ import numpy as np
 from matplotlib import colormaps as cm
 
 from flyvision import utils
-from flyvision.animations.animations import AnimationCollector
-from flyvision.animations.hexscatter import HexScatter
-from flyvision.plots import figsize_utils
+
+from ..visualization import figsize_utils
+from .animations import AnimationCollector
+from .hexscatter import HexScatter
+
+__all__ = ["StimulusResponse"]
 
 
 class StimulusResponse(AnimationCollector):

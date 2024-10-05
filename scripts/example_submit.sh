@@ -228,5 +228,4 @@ python train_ensemble.py \
         --q gpu_l4 \
         --ensemble_id 0000 \
         --task_name flow \
-        --functions naturalistic_stimuli_responses \
         --launch_synthetic_recordings

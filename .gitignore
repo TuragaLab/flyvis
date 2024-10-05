@@ -7,6 +7,7 @@
 *.code-workspace
 *.egg-info
 .pytest_cache
+animations
 
 *.log
 **/__pycache__
@@ -14,3 +15,4 @@
 .coverage
 flyvision/version.py
 debug
+.env.dev

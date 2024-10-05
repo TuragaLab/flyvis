@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import pprint
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
-import xarray as xr
+import numpy as np
 
 import flyvision
 from flyvision.connectome import ReceptiveFields
 from flyvision.datasets.moving_bar import MovingEdge
 from flyvision.utils.activity_utils import LayerActivity, SourceCurrentView
+
+__all__ = ["compute_currents", "generic_currents", "moving_edge_currents"]
 
 
 @dataclass
@@ -18,10 +21,19 @@ class TargetData:
     activity_central: List[Any] = field(default_factory=list)
     source_data: Dict[str, List[Any]] = field(default_factory=dict)
 
+    def __repr__(self):
+        sd = {ct: np.shape(d) for ct, d in self.source_data.items()}
+        formatted_sd = pprint.pformat(sd, indent=4)
+        return (
+            f"TargetData(activity_central={np.shape(self.activity_central)},\n"
+            f"            source_data={formatted_sd})"
+        )
+
 
 @dataclass
 class ExperimentData:
     config: Any
+    checkpoint: str = ""
     target_data: Dict[str, TargetData] = field(default_factory=dict)
 
 
@@ -29,36 +41,34 @@ def compute_currents(
     network: "flyvision.network.CheckpointedNetwork",
     dataset_class: type,
     dataset_config: Dict,
+    target_cell_types: Optional[List[str]] = None,
     t_pre: float = 2.0,
     t_fade_in: float = 0.0,
     dt: float = 1 / 200,
-):
-    print("running experiment")
-
+) -> ExperimentData:
     # Reconstruct the network
     network.recover()
-    network = network.network  # type: flyvision.Network
+    checkpoint = network.checkpoint
+    network = network.network  # type: flyvision.network.Network
 
     # Initialize dataset
     dataset = dataset_class(**dataset_config)
 
-    cell_index = network.connectome.central_cells_index[:]
-
     # Initialize the experiment data
-    experiment_data = ExperimentData(config=dataset.config)
+    experiment_data = ExperimentData(config=dataset.config, checkpoint=checkpoint)
 
     edges = network.connectome.edges.to_df()
+    target_types = target_cell_types or edges.target_type.unique()
 
     # to store the responses and currents in a structured way
     activity_indexer = LayerActivity(None, network.connectome, keepref=True)
     source_current_indexer = {
         target_type: SourceCurrentView(ReceptiveFields(target_type, edges), None)
-        for target_type in edges.target_type.unique()
+        for target_type in target_types
     }
 
     # Initialize target_data in experiment_data
-    target_cell_types = edges.target_type.unique()
-    for target_type in target_cell_types:
+    for target_type in target_types:
         experiment_data.target_data[target_type] = TargetData()
 
     for _, activity, current in network.current_response(
@@ -73,7 +83,7 @@ def compute_currents(
         # Update activity indexer
         activity_indexer.update(activity)
 
-        for target_type in target_cell_types:
+        for target_type in target_types:
             target_data = experiment_data.target_data[target_type]
 
             # Append central activity data
@@ -94,15 +104,16 @@ def compute_currents(
 
 def generic_currents(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.network.NetworkView", "flyvision.ensemble.Ensemble"
     ],
     dataset,
     dataset_config: Dict,
     default_dataset_cls: type,
+    target_cell_types: Optional[List[str]],
     t_pre: float,
     t_fade_in: float,
     dt: float,
-) -> xr.Dataset:
+) -> List[ExperimentData]:
     """Return responses for a given dataset as an xarray Dataset."""
     # Handle both single and multiple NetworkViews
     if isinstance(network_view_or_ensemble, flyvision.network.NetworkView):
@@ -119,7 +130,7 @@ def generic_currents(
 
     # Prepare list to collect datasets
     results = []
-    checkpoints = []
+    # checkpoints = []
 
     def handle_network(idx, network_view, network=None):
         # Pass initialized network over to next network view to avoid
@@ -136,6 +147,7 @@ def generic_currents(
             checkpointed_network,
             dataset_class,
             dataset_config,
+            target_cell_types,
             t_pre,
             t_fade_in,
             dt,
@@ -157,11 +169,12 @@ def generic_currents(
                 checkpointed_network,
                 dataset_class,
                 dataset_config,
+                target_cell_types,
                 t_pre,
                 t_fade_in,
-            )  # type: xr.Dataset
+            )  # type: ExperimentData
         )
-        checkpoints.append(checkpointed_network.checkpoint)
+        # checkpoints.append(checkpointed_network.checkpoint)
         return checkpointed_network.network
 
     network = handle_network(0, network_views[0], None)
@@ -169,19 +182,30 @@ def generic_currents(
     for idx, network_view in enumerate(network_views[1:], 1):
         network = handle_network(idx, network_view, network)
 
-    return results, checkpoints
+    return results
 
 
 def moving_edge_currents(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.network.NetworkView", "flyvision.ensemble.Ensemble"
+    ],
+    target_cell_types: Optional[List[str]] = [
+        "T4a",
+        "T4b",
+        "T4c",
+        "T4d",
+        "T5a",
+        "T5b",
+        "T5c",
+        "T5d",
+        "TmY3",
     ],
     dataset: Optional[MovingEdge] = None,
     speeds=(19,),
     offsets=(-10, 11),
     angles=(0, 45, 90, 180, 225, 270),
     dt=1 / 200,
-) -> xr.Dataset:
+) -> List[ExperimentData]:
     default_dataset_config = dict(
         widths=[80],
         offsets=offsets,
@@ -201,6 +225,7 @@ def moving_edge_currents(
         dataset,
         default_dataset_config,
         MovingEdge,
+        target_cell_types,
         t_pre=1.0,
         t_fade_in=0.0,
         dt=dt,

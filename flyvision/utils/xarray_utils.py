@@ -216,6 +216,9 @@ def plot_traces(
         )
 
     original_legend_labels = [col for col in arg_df.columns if col != 'sample']
+    if x in original_legend_labels:
+        # cannot set legend for x-axis values
+        original_legend_labels = []
 
     stacked_legend_labels = list(stack_dims)
 
@@ -223,16 +226,21 @@ def plot_traces(
         legend_labels
         or stacked_legend_labels + extra_legend_coords + original_legend_labels
     )
+    legend_table = [np.atleast_1d(traces[col].data) for col in legend_labels]
 
-    legend_coords = np.array([np.atleast_1d(traces[col].data) for col in legend_labels]).T
-
-    # return legend_coords, traces, legend_labels
+    # Confirm all elements are 1D arrays of equal length
+    try:
+        legend_table = np.column_stack(legend_table)
+    except ValueError as e:
+        raise ValueError(
+            "All elements in legend_coords must be 1D arrays of equal length. "
+            "Specify legend_labels to use only a subset of the coordinates."
+        ) from e
 
     legend_info = np.array([
         ", ".join([f"{col}: {value}" for col, value in zip(legend_labels, row)])
-        for row in legend_coords
+        for row in legend_table
     ])
-
     traces = traces.assign_coords(legend_info=("traces", legend_info))
 
     traces.plot.line(x=x, hue="legend_info", **plot_kwargs)
@@ -268,7 +276,7 @@ class CustomAccessor:
         __doc__ = (
             plot_traces.__doc__
             + """
-        Example:
+        Example: Overlay stimulus and response traces.
         -------
         fig, ax = plt.subplots()
         r.custom.plot_traces(key='stimulus',
@@ -290,6 +298,22 @@ class CustomAccessor:
                             network_id=0,
                             plot_kwargs=dict(ax=ax),
                             time='>0,<1.0'
+        )
+
+        Example: Polar plot.
+        -------
+        prs = peak_responses(stims_and_resps_moving_edges).custom.where(
+            cell_type="T4c",
+            intensity=1,
+            speed=19,
+        )
+        # Convert angle to radians if necessary
+        prs['angle'] = np.radians(prs.angle)
+        ax = plt.subplots(subplot_kw={"projection": "polar"})[1]
+        prs.custom.plot_traces(
+            x="angle",
+            legend_labels=["network_id"],
+            plot_kwargs={"add_legend": False, "ax": ax, "color": "b"},
         )
         """
         )

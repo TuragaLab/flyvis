@@ -6,12 +6,13 @@ Deep mechanistic network module.
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import wraps
 from os import PathLike
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Union
 
 import numpy as np
 import torch
@@ -26,8 +27,12 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 import flyvision
-from flyvision.analysis import stimulus_responses
-from flyvision.connectome import ConnectomeDir, flyvision_connectome
+from flyvision.analysis import (
+    optimal_stimuli,
+    stimulus_responses,
+    stimulus_responses_currents,
+)
+from flyvision.connectome import ConnectomeDir, ConnectomeView, flyvision_connectome
 from flyvision.datasets.datasets import SequenceDataset
 from flyvision.task.decoder import init_decoder
 from flyvision.utils.activity_utils import LayerActivity
@@ -487,10 +492,10 @@ class Network(nn.Module):
         self,
         movie_input: torch.Tensor,
         dt: float,
-        initial_state: Union[AutoDeref, None] = "auto",
+        initial_state: Union[AutoDeref, None, Literal["auto"]] = "auto",
         as_states: bool = False,
         as_layer_activity: bool = False,
-    ) -> Union[torch.Tensor, AutoDeref]:
+    ) -> Union[torch.Tensor, AutoDeref, LayerActivity]:
         """Simulate the network activity from movie input.
 
         Args:
@@ -505,7 +510,9 @@ class Network(nn.Module):
                 a tensor. Defaults to False.
 
         Returns:
-            activity tensor of shape (batch_size, n_frames, #neurons)
+            activity tensor of shape (batch_size, n_frames, #neurons),
+            or AutoDeref dictionary if `as_states` is True,
+            or LayerActivity object if `as_layer_activity` is True.
 
         Raises:
             ValueError if the movie_input is not four-dimensional.
@@ -796,7 +803,7 @@ class Network(nn.Module):
         self,
         stim_dataset: SequenceDataset,
         dt: float,
-        indices: Iterable[int] = None,
+        indices: Iterable[int] | None = None,
         t_pre: float = 1.0,
         t_fade_in: float = 0,
         default_stim_key: Any = "lum",
@@ -883,7 +890,7 @@ class CheckpointedNetwork:
     name: str  # Name of the network
     checkpoint: PathLike  # Checkpoint path
     recover_fn: Any = recover_network  # Function to recover the network
-    network: Optional[Any] = None  # Network instance to avoid reinitialization
+    network: Optional[Network] = None  # Network instance to avoid reinitialization
 
     def init(self, eval: bool = True):
         if self.network is None:
@@ -978,7 +985,7 @@ class NetworkView:
         self.root_dir = root_dir
         self.connectome_getter = connectome_getter
         self.checkpoint_mapper = checkpoint_mapper
-        self.connectome_view = connectome_getter(self.dir)
+        self.connectome_view: ConnectomeView = connectome_getter(self.dir)
         self.connectome = self.connectome_view.dir
         self.checkpoints = checkpoint_mapper(self.dir)
         self.memory = Memory(
@@ -1000,23 +1007,75 @@ class NetworkView:
         self.cache = FIFOCache(maxsize=3)
         logging.info(f"Initialized network view at {str(self.dir.path)}.")
 
-    def __getattribute__(self, attr):
-        try:
-            return object.__getattribute__(self, attr)
-        except AttributeError:
-            connectome_view = object.__getattribute__(self, "connectome_view")
-            try:
-                return getattr(connectome_view, attr)
-            except AttributeError:
-                raise AttributeError(  # noqa: B904
-                    f"'{self.__class__.__name__}' object has no attribute '{attr}'"
-                )
-
     def _clear_cache(self):
         self.cache = self.cache.__class__(maxsize=self.cache.maxsize)
 
     def _clear_memory(self):
         self.memory.clear()
+
+    # --- ConnectomeView API for static code analysis
+
+    @wraps(ConnectomeView.connectivity_matrix)
+    def connectivity_matrix(self, *args, **kwargs):
+        return self.connectome_view.connectivity_matrix(*args, **kwargs)
+
+    @wraps(ConnectomeView.network_layout)
+    def network_layout(self, *args, **kwargs):
+        return self.connectome_view.network_layout(*args, **kwargs)
+
+    @wraps(ConnectomeView.hex_layout)
+    def hex_layout(self, *args, **kwargs):
+        return self.connectome_view.hex_layout(*args, **kwargs)
+
+    @wraps(ConnectomeView.hex_layout_all)
+    def hex_layout_all(self, *args, **kwargs):
+        return self.connectome_view.hex_layout_all(*args, **kwargs)
+
+    @wraps(ConnectomeView.get_uv)
+    def get_uv(self, *args, **kwargs):
+        return self.connectome_view.get_uv(*args, **kwargs)
+
+    @wraps(ConnectomeView.sources_list)
+    def sources_list(self, *args, **kwargs):
+        return self.connectome_view.sources_list(*args, **kwargs)
+
+    @wraps(ConnectomeView.targets_list)
+    def targets_list(self, *args, **kwargs):
+        return self.connectome_view.targets_list(*args, **kwargs)
+
+    @wraps(ConnectomeView.receptive_field)
+    def receptive_field(self, *args, **kwargs):
+        return self.connectome_view.receptive_field(*args, **kwargs)
+
+    @wraps(ConnectomeView.receptive_fields_grid)
+    def receptive_fields_grid(self, *args, **kwargs):
+        return self.connectome_view.receptive_fields_grid(*args, **kwargs)
+
+    @wraps(ConnectomeView.projective_field)
+    def projective_field(self, *args, **kwargs):
+        return self.connectome_view.projective_field(*args, **kwargs)
+
+    @wraps(ConnectomeView.projective_fields_grid)
+    def projective_fields_grid(self, *args, **kwargs):
+        return self.connectome_view.projective_fields_grid(*args, **kwargs)
+
+    @wraps(ConnectomeView.receptive_fields_df)
+    def receptive_fields_df(self, *args, **kwargs):
+        return self.connectome_view.receptive_fields_df(*args, **kwargs)
+
+    @wraps(ConnectomeView.receptive_fields_sum)
+    def receptive_fields_sum(self, *args, **kwargs):
+        return self.connectome_view.receptive_fields_sum(*args, **kwargs)
+
+    @wraps(ConnectomeView.projective_fields_df)
+    def projective_fields_df(self, *args, **kwargs):
+        return self.connectome_view.projective_fields_df(*args, **kwargs)
+
+    @wraps(ConnectomeView.projective_fields_sum)
+    def projective_fields_sum(self, *args, **kwargs):
+        return self.connectome_view.projective_fields_sum(*args, **kwargs)
+
+    # --- own API
 
     def get_checkpoint(self, checkpoint="best"):
         """Return the best checkpoint index."""
@@ -1092,8 +1151,10 @@ class NetworkView:
                 f"Expected NetworkDir, found {network_dir.config.type} "
                 f"at {network_dir.path}."
             )
-        name = str(network_dir.path).replace(str(root_dir) + "/", "")
+        name = os.path.sep.join(network_dir.path.parts[-3:])
         return network_dir, name
+
+    # --- stimulus responses
 
     @wraps(stimulus_responses.flash_responses)
     @context_aware_cache
@@ -1103,13 +1164,21 @@ class NetworkView:
 
     @wraps(stimulus_responses.moving_edge_responses)
     @context_aware_cache
-    def movingedge_responses(self, *args, **kwargs) -> xr.Dataset:
+    def moving_edge_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving edge responses."""
         return stimulus_responses.moving_edge_responses(self, *args, **kwargs)
 
+    @wraps(stimulus_responses_currents.moving_edge_currents)
+    @context_aware_cache
+    def moving_edge_currents(
+        self, *args, **kwargs
+    ) -> List[stimulus_responses_currents.ExperimentData]:
+        """Generate moving edge currents."""
+        return stimulus_responses_currents.moving_edge_currents(self, *args, **kwargs)
+
     @wraps(stimulus_responses.moving_bar_responses)
     @context_aware_cache
-    def movingbar_responses(self, *args, **kwargs) -> xr.Dataset:
+    def moving_bar_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving bar responses."""
         return stimulus_responses.moving_bar_responses(self, *args, **kwargs)
 
@@ -1133,7 +1202,9 @@ class NetworkView:
 
     @wraps(stimulus_responses.optimal_stimulus_responses)
     @context_aware_cache
-    def optimal_stimulus_responses(self, cell_type, *args, **kwargs) -> xr.Dataset:
+    def optimal_stimulus_responses(
+        self, cell_type, *args, **kwargs
+    ) -> optimal_stimuli.RegularizedOptimalStimulus:
         """Generate optimal stimuli responses."""
         return stimulus_responses.optimal_stimulus_responses(
             self, cell_type, *args, **kwargs

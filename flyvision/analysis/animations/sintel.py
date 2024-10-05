@@ -3,10 +3,11 @@
 from matplotlib import colormaps
 
 from flyvision import utils
-from flyvision.animations.animations import AnimationCollector
-from flyvision.animations.hexflow import HexFlow
-from flyvision.animations.hexscatter import HexScatter
-from flyvision.plots import figsize_utils
+
+from ..visualization import figsize_utils
+from .animations import AnimationCollector
+from .hexflow import HexFlow
+from .hexscatter import HexScatter
 
 
 class SintelSample(AnimationCollector):

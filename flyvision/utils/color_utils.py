@@ -169,3 +169,26 @@ cell_type_colors = {
     "TmY15": "#a454a0",
     "TmY18": "#a454a0",
 }
+
+
+def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    new_cmap = LinearSegmentedColormap.from_list(
+        "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, max(n, 2))),
+    )
+    return new_cmap.resampled(max(n, 2))
+
+
+class cmap_iter:
+    def __init__(self, cmap):
+        self.i = 0
+        self.cmap = cmap
+        self.stop = cmap.N
+
+    def __next__(self):
+        if self.i < self.stop:
+            self.i += 1
+            return self.cmap(self.i - 1)
+
+    def _repr_html_(self):
+        return self.cmap._repr_html_()

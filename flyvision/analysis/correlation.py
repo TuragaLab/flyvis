@@ -1,5 +1,7 @@
 import numpy as np
 
+__all__ = ["correlation", "quick_correlation_one_to_many"]
+
 
 def add_noise_to_constant_rows(x, epsilon=1e-15):
     """Adds noise to rows that are constant to avoid division by zero.

@@ -33,7 +33,7 @@ ensemble = EnsembleView("flow/0000")
 
 
 ```python
-stims_and_resps = ensemble.movingedge_responses()
+stims_and_resps = ensemble.moving_edge_responses()
 ```
 
 
@@ -136,9 +136,9 @@ for i, cell_type in enumerate(["T4a", "T4b", "T4c", "T4d"]):
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_8_0.png)
-    
+
 
 
 
@@ -167,9 +167,9 @@ for i, cell_type in enumerate(["T5a", "T5b", "T5c", "T5d"]):
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_9_0.png)
-    
+
 
 
 ## b
@@ -208,7 +208,7 @@ dataset = MovingEdge(
 
 ```python
 cell_type = "T4c"
-subdir = f"movingedge_responses/{ensemble[0].checkpoints.current_chkpt_key}/currents"
+subdir = f"moving_edge_responses/{ensemble[0].checkpoints.current_chkpt_key}/currents"
 ```
 
 
@@ -218,7 +218,7 @@ subdir = f"movingedge_responses/{ensemble[0].checkpoints.current_chkpt_key}/curr
 
     Input In [25], in <cell line: 2>()
           1 cell_type = "T4c"
-    ----> 2 subdir = f"movingedge_responses/{ensemble[0].checkpoints.current_chkpt_key}/currents"
+    ----> 2 subdir = f"moving_edge_responses/{ensemble[0].checkpoints.current_chkpt_key}/currents"
 
 
     AttributeError: 'Checkpoints' object has no attribute 'current_chkpt_key'
@@ -231,7 +231,7 @@ current_views = {}
 
 
 ```python
-norm = CellTypeArray(ensemble.responses_norm(rectified=False), 
+norm = CellTypeArray(ensemble.responses_norm(rectified=False),
                      ensemble[0].connectome)
 ```
 
@@ -352,9 +352,9 @@ ax.set_xlabel("time (s)", fontsize=5)
 
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_25_1.png)
-    
+
 
 
 
@@ -388,15 +388,15 @@ ax.set_ylabel("current (a.u.)", fontsize=5)
 
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_26_1.png)
-    
 
 
 
-    
+
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_26_2.png)
-    
+
 
 
 
@@ -410,9 +410,9 @@ fig, ax, _ = current_view.model_selection(
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_27_0.png)
-    
+
 
 
 ## d
@@ -476,9 +476,9 @@ cell_types = ensemble[0].connectome.unique_cell_types[:].astype(str)
 
 
 ```python
-strf_view = StimulusResponseIndexer(arg_df, 
-                                    CellTypeArray(None, cell_types=cell_types), 
-                                    dataset.dt, 
+strf_view = StimulusResponseIndexer(arg_df,
+                                    CellTypeArray(None, cell_types=cell_types),
+                                    dataset.dt,
                                     0,
                                     stim_sample_dim=1,
                                     temporal_dim=2)
@@ -514,10 +514,10 @@ stop_index = temporal_index.max()
 
 
 ```python
-strf_responses  = ensemble.stored_responses("spatial_impulses_responses", 
-                                            central=True, 
-                                            slice=(stim_arg_index, 
-                                                   slice(start_index, 
+strf_responses  = ensemble.stored_responses("spatial_impulses_responses",
+                                            central=True,
+                                            slice=(stim_arg_index,
+                                                   slice(start_index,
                                                          stop_index)))
 ```
 
@@ -535,9 +535,9 @@ norm = ensemble.responses_norm()
 
 ```python
 # update ir view
-strf_view = StimulusResponseIndexer(arg_df, 
-                                    CellTypeArray(strf_responses, cell_types=cell_types), 
-                                    dataset.dt, 
+strf_view = StimulusResponseIndexer(arg_df,
+                                    CellTypeArray(strf_responses, cell_types=cell_types),
+                                    dataset.dt,
                                     0,
                                     stim_sample_dim=1,
                                     temporal_dim=2,
@@ -634,9 +634,9 @@ for ax in axes.flatten():
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_47_0.png)
-    
+
 
 
 ## e
@@ -648,9 +648,9 @@ from flyvision.datasets.dots import CentralImpulses
 
 
 ```python
-config = Namespace(intensity=1, 
-                   impulse_durations=[5e-3, 20e-3, 50e-3, 100e-3, 200e-3, 300e-3], 
-                   dt=1 / 200, 
+config = Namespace(intensity=1,
+                   impulse_durations=[5e-3, 20e-3, 50e-3, 100e-3, 200e-3, 300e-3],
+                   dt=1 / 200,
                    dot_column_radius=0,
                    t_stim=2,
                    n_ommatidia=721,
@@ -789,9 +789,9 @@ for ax in axes.flatten():
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_58_0.png)
-    
+
 
 
 stimulus
@@ -889,9 +889,9 @@ ax.set_ylim(ylim)
 
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_62_1.png)
-    
+
 
 
 
@@ -939,9 +939,9 @@ ax.set_ylim(ylim)
 
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_63_1.png)
-    
+
 
 
 ## Extended Data Fig. 9
@@ -967,9 +967,9 @@ fig, axes = plot_strf(strfs.time, x)
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_68_0.png)
-    
+
 
 
 ### T5c
@@ -993,9 +993,9 @@ fig, axes = plot_strf(strfs.time, x)
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_72_0.png)
-    
+
 
 
 ## f
@@ -1049,9 +1049,9 @@ stim_resp_plot = plot_stim_response(
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_78_0.png)
-    
+
 
 
 
@@ -1073,9 +1073,9 @@ stim_resp_plot = plot_stim_response(
 ```
 
 
-    
+
 ![png](figure_04_mechanisms_files/figure_04_mechanisms_80_0.png)
-    
+
 
 
 

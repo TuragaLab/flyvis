@@ -1,11 +1,14 @@
 import matplotlib.pyplot as plt
 
-from flyvision.animations.animations import Animation
-from flyvision.animations.hexflow import HexFlow
-from flyvision.animations.hexscatter import HexScatter
-from flyvision.animations.imshow import Imshow
-from flyvision.plots.network import WholeNetworkFigure
 from flyvision.utils.activity_utils import LayerActivity
+
+from ..visualization.network import WholeNetworkFigure
+from .animations import Animation
+from .hexflow import HexFlow
+from .hexscatter import HexScatter
+from .imshow import Imshow
+
+__all__ = ["WholeNetworkAnimation"]
 
 
 class WholeNetworkAnimation(Animation):

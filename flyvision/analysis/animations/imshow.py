@@ -2,8 +2,8 @@
 
 from time import sleep
 
-from flyvision.animations.animations import Animation
-from flyvision.plots import plt_utils
+from ..visualization import plt_utils
+from .animations import Animation
 
 
 class Imshow(Animation):

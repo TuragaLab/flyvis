@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import pickle
 from contextlib import contextmanager
 from copy import deepcopy
@@ -24,7 +25,7 @@ from torch import nn
 from tqdm.auto import tqdm
 
 import flyvision
-from flyvision.analysis import stimulus_responses
+from flyvision.analysis import stimulus_responses, stimulus_responses_currents
 from flyvision.analysis.clustering import (
     GaussianMixtureClustering,
     compute_umap_and_clustering,
@@ -111,7 +112,7 @@ class Ensemble(dict):
             self.model_paths, self.path = model_paths_from_names_or_paths(path, root_dir)
             self.dir = EnsembleDir(self.path)
 
-        self.names, self.name = model_path_names(self.model_paths, root_dir)
+        self.names, self.name = model_path_names(self.model_paths)
         self.in_context = False
 
         self._names = []
@@ -569,13 +570,13 @@ class Ensemble(dict):
 
     @wraps(stimulus_responses.moving_edge_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def movingedge_responses(self, *args, **kwargs) -> xr.Dataset:
+    def moving_edge_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving edge responses."""
         return stimulus_responses.moving_edge_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.moving_bar_responses)
     @context_aware_cache(context=lambda self: (self.names))
-    def movingbar_responses(self, *args, **kwargs) -> xr.Dataset:
+    def moving_bar_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving bar responses."""
         return stimulus_responses.moving_bar_responses(self, *args, **kwargs)
 
@@ -596,6 +597,14 @@ class Ensemble(dict):
     def spatial_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate spatial ommatidium impulses responses."""
         return stimulus_responses.spatial_impulses_responses(self, *args, **kwargs)
+
+    @wraps(stimulus_responses_currents.moving_edge_currents)
+    @context_aware_cache(context=lambda self: (self.names))
+    def moving_edge_currents(
+        self, *args, **kwargs
+    ) -> List[stimulus_responses_currents.ExperimentData]:
+        """Generate moving edge currents."""
+        return stimulus_responses_currents.moving_edge_currents(self, *args, **kwargs)
 
     @context_aware_cache
     def clustering(self, cell_type) -> GaussianMixtureClustering:
@@ -679,6 +688,17 @@ class Ensemble(dict):
         )
 
 
+def model_path_names(model_paths):
+    """Return a list of model names and an ensemble name from a list of model paths."""
+    model_names = [os.path.sep.join(path.parts[-3:]) for path in model_paths]
+    ensemble_name = ", ".join(
+        np.unique([
+            os.path.sep.join(n.split(os.path.sep)[:2]) for n in model_names
+        ]).tolist()
+    )
+    return model_names, ensemble_name
+
+
 def model_paths_from_parent(path):
     """Return a list of model paths from a parent path."""
     model_paths = sorted(
@@ -690,31 +710,32 @@ def model_paths_from_parent(path):
     return model_paths, path
 
 
-def model_path_names(model_paths, root_dir: Path):
-    """Return a list of model names and an ensemble name from a list of model paths."""
-    model_names = [str(path).replace(str(root_dir) + "/", "") for path in model_paths]
-    ensemble_name = ", ".join(np.unique([n[:-4] for n in model_names]).tolist())
-    return model_names, ensemble_name
-
-
 def model_paths_from_names_or_paths(
-    paths: List[str | Path], root_dir: Path
+    paths: List[Union[str, Path]], root_dir: Path
 ) -> Tuple[List[Path], Path]:
     """Return model paths and ensemble path from model names or paths."""
     model_paths = []
     _ensemble_paths = []
     for path in paths:
         if isinstance(path, str):
+            path_obj = Path(path)
+            path_parts = path_obj.parts
             # assuming task/ensemble_id/model_id
-            if len(path.split("/")) == 3:
-                model_paths.append(root_dir / path)
+            if len(path_parts) == 3:
+                model_paths.append(root_dir / path_obj)
             # assuming task/ensemble_id
-            elif len(path.split("/")) == 2:
-                model_paths.extend(model_paths_from_parent(path)[0])
-        elif isinstance(path, PathLike):
+            elif len(path_parts) == 2:
+                model_paths.extend(model_paths_from_parent(path_obj)[0])
+        elif isinstance(path, Path):
             model_paths.append(path)
+        else:
+            raise ValueError(f"Invalid path type: {path}")
         _ensemble_paths.append(model_paths[-1].parent)
-    ensemble_path = np.unique(_ensemble_paths)[0]
+    # Ensure all ensemble paths are the same
+    ensemble_paths_set = set(_ensemble_paths)
+    if len(ensemble_paths_set) != 1:
+        raise NotImplementedError("Multiple ensemble paths found")
+    ensemble_path = _ensemble_paths[0]
     return model_paths, ensemble_path
 
 
