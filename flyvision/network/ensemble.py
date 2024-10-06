@@ -11,7 +11,17 @@ from dataclasses import dataclass
 from functools import wraps
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Dict, Generator, Iterable, Iterator, List, Tuple, Union
+from typing import (
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -56,29 +66,40 @@ class Ensemble(dict):
     """Dictionary to a collection of trained networks.
 
     Args:
-        path: Path to ensemble directory or list of paths to model directories. Can be
-            a single string, then assumes the path is the root directory as configured
-            by datamate.
-        checkpoint: Checkpoint to load from each network.
-        validation_subdir: Subdirectory to look for validation files.
-        loss_file_name: Name of the loss file.
+        path: Path to ensemble directory or list of paths to model directories.
+            Can be a single string, then assumes the path is the root directory
+            as configured by datamate.
+        network_class: Class to use for initializing networks.
+        root_dir: Root directory for model paths.
+        connectome_getter: Function to get the connectome.
+        checkpoint_mapper: Function to map checkpoints.
+        best_checkpoint_fn: Function to determine best checkpoint.
+        best_checkpoint_fn_kwargs: Kwargs for best_checkpoint_fn.
+        recover_fn: Function to recover network.
         try_sort: Whether to try to sort the ensemble by validation error.
 
     Attributes:
-        names: List of model names.
-        name: Ensemble name.
-        path: Path to ensemble directory.
-        model_paths: List of paths to model directories.
-        dir: Directory object for ensemble directory.
+        names (List[str]): List of model names.
+        name (str): Ensemble name.
+        path (Path): Path to ensemble directory.
+        model_paths (List[Path]): List of paths to model directories.
+        dir (EnsembleDir): Directory object for ensemble directory.
 
-    Note: the ensemble is a dynamic dictionary, so you can access the networks
-    in the ensemble by name or index. For example, to access the first network
-    simply do:
+    Note:
+        The ensemble is a dynamic dictionary, so you can access the networks
+        in the ensemble by name or index. For example, to access the first network
+        simply do:
+        ```python
         ensemble[0]
-    or
-        ensemble['opticflow/000/0000'].
-    To create a subset of the ensemble, you can use the same syntax:
+        ```
+        or
+        ```python
+        ensemble['opticflow/000/0000']
+        ```
+        Slice to create a subset of the ensemble:
+        ```python
         ensemble[0:2]
+        ```
     """
 
     def __init__(
@@ -94,7 +115,7 @@ class Ensemble(dict):
             "loss_file_name": "loss",
         },
         recover_fn: Callable = recover_network,
-        try_sort=False,
+        try_sort: bool = False,
     ):
         # self.model_paths, self.path = model_paths_from_parent(path)
 
@@ -111,6 +132,11 @@ class Ensemble(dict):
         elif isinstance(path, Iterable):
             self.model_paths, self.path = model_paths_from_names_or_paths(path, root_dir)
             self.dir = EnsembleDir(self.path)
+        else:
+            raise TypeError(
+                f"Unsupported path type: {type(path)}. "
+                "Expected EnsembleDir, str, PathLike, or Iterable."
+            )
 
         self.names, self.name = model_path_names(self.model_paths)
         self.in_context = False
@@ -161,6 +187,18 @@ class Ensemble(dict):
     def __getitem__(
         self, key: Union[str, int, slice, NDArray, list]
     ) -> Union[NetworkView, "Ensemble"]:
+        """Get item from the ensemble.
+
+        Args:
+            key: Key to access the ensemble.
+                Can be a string, int, slice, NDArray, or list.
+
+        Returns:
+            NetworkView or Ensemble: The requested item or subset of the ensemble.
+
+        Raises:
+            ValueError: If the key is invalid.
+        """
         if isinstance(key, (int, np.integer)):
             return dict.__getitem__(self, self.names[key])
         elif isinstance(key, slice):
@@ -172,76 +210,100 @@ class Ensemble(dict):
         else:
             raise ValueError(f"{key}")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the Ensemble."""
         return f"{self.__class__.__name__}({self.path})"
 
-    def __dir__(self):
+    def __dir__(self) -> List[str]:
+        """Return a list of attributes for the Ensemble."""
         return list({*dict.__dir__(self), *dict.__iter__(self)})
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of networks in the Ensemble."""
         return len(self.names)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over the names of the networks in the Ensemble."""
         yield from self.names
 
     def items(self) -> Iterator[Tuple[str, NetworkView]]:
+        """Return an iterator over the (name, NetworkView) pairs in the Ensemble."""
         return iter((k, self[k]) for k in self)
 
     def keys(self) -> List[str]:
+        """Return a list of network names in the Ensemble."""
         return list(self)
 
     def values(self) -> List[NetworkView]:
+        """Return a list of NetworkViews in the Ensemble."""
         return [self[k] for k in self]
 
-    def _clear_cache(self):
+    def _clear_cache(self) -> None:
+        """Clear the cache of the Ensemble."""
         self.cache = {}
 
-    def _clear_memory(self):
+    def _clear_memory(self) -> None:
+        """Clear the memory of all NetworkViews in the Ensemble."""
         for nv in self.values():
             nv._clear_memory()
 
-    def check_configs_match(self):
-        """Check if the configurations of the networks in the ensemble match."""
+    def check_configs_match(self) -> bool:
+        """Check if the configurations of the networks in the ensemble match.
+
+        Returns:
+            bool: True if all configurations match, False otherwise.
+        """
         config0 = self[0].dir.config
         for i in range(1, len(self)):
             diff = config0.diff(self[i].dir.config, name1="first", name2="second").first
             if diff and not (len(diff) == 1 and "network_name" in diff[0]):
                 logging.warning(
-                    f"{self[0].name} differs from {self[i].name}. Diff is {diff}."
+                    "%(first)s differs from %(second)s. Diff is %(diff)s.",
+                    {"first": self[0].name, "second": self[i].name, "diff": diff},
                 )
                 return False
         return True
 
     def yield_networks(self) -> Generator[Network, None, None]:
-        """Yield initialized networks from the ensemble."""
-        # assert self.check_configs_match(), "configurations do not match"
+        """Yield initialized networks from the ensemble.
+
+        Yields:
+            Network: Initialized network from the ensemble.
+        """
         network = self[0].init_network()
         yield network
         for network_view in self.values()[1:]:
             yield network_view.init_network(network=network)
 
-    def yield_decoders(self):
-        """Yield initialized decoders from the ensemble."""
+    def yield_decoders(self) -> Generator[nn.Module, None, None]:
+        """Yield initialized decoders from the ensemble.
+
+        Yields:
+            nn.Module: Initialized decoder from the ensemble.
+        """
         assert self.check_configs_match(), "configurations do not match"
         decoder = self[0].init_decoder()
         for network_view in self.values():
             yield network_view.init_decoder(decoder=decoder)
 
-    def simulate(self, movie_input: torch.Tensor, dt: float, fade_in: bool = True):
+    def simulate(
+        self, movie_input: torch.Tensor, dt: float, fade_in: bool = True
+    ) -> Generator[np.ndarray, None, None]:
         """Simulate the ensemble activity from movie input.
 
         Args:
-            movie_input: tensor requiring shape (batch_size, n_frames, 1, hexals)
-            dt: integration time constant. Warns if dt > 1/50.
-            fade_in: whether to use `network.fade_in_state` to compute the initial
+            movie_input: Tensor with shape (batch_size, n_frames, 1, hexals).
+            dt: Integration time constant. Warns if dt > 1/50.
+            fade_in: Whether to use `network.fade_in_state` to compute the initial
                 state. Defaults to True. If False, uses the
                 `network.steady_state` after 1s of grey input.
 
         Yields:
-            array: response of each individual network
+            np.ndarray: Response of each individual network.
 
-        Note: simulates across batch_size in parallel, i.e., easily leading to OOM for
-        large batch sizes.
+        Note:
+            Simulates across batch_size in parallel, which can easily lead to OOM for
+            large batch sizes.
         """
         for network in tqdm(
             self.yield_networks(),
@@ -271,9 +333,23 @@ class Ensemble(dict):
         t_fade_in: float = 0.0,
         default_stim_key: str = "lum",
         batch_size: int = 1,
-        central_cell_only=True,
-    ):
-        """Simulate the ensemble activity from a dataset."""
+        central_cell_only: bool = True,
+    ) -> Generator[np.ndarray, None, None]:
+        """Simulate the ensemble activity from a dataset.
+
+        Args:
+            dataset: Dataset to simulate from.
+            dt: Integration time constant.
+            indices: Indices of stimuli to simulate. Defaults to None (all stimuli).
+            t_pre: Time before stimulus onset. Defaults to 1.0.
+            t_fade_in: Fade-in time. Defaults to 0.0.
+            default_stim_key: Default stimulus key. Defaults to "lum".
+            batch_size: Batch size for simulation. Defaults to 1.
+            central_cell_only: Whether to return only central cells. Defaults to True.
+
+        Yields:
+            np.ndarray: Simulated responses for each network.
+        """
         if central_cell_only:
             central_cells_index = self[0].connectome.central_cells_index[:]
 
@@ -302,15 +378,37 @@ class Ensemble(dict):
             progress_bar.update(1)
         progress_bar.close()
 
-    def decode(self, movie_input, dt):
-        """Decode the ensemble responses with the ensemble decoders."""
+    def decode(
+        self, movie_input: torch.Tensor, dt: float
+    ) -> Generator[np.ndarray, None, None]:
+        """Decode the ensemble responses with the ensemble decoders.
+
+        Args:
+            movie_input: Input movie tensor.
+            dt: Integration time constant.
+
+        Yields:
+            np.ndarray: Decoded responses for each network.
+        """
         responses = torch.tensor(list(self.simulate(movie_input, dt)))
         for i, decoder in enumerate(self.yield_decoders()):
             with simulation(decoder):
                 yield decoder(responses[i]).cpu().numpy()
 
-    def validation_file(self, validation_subdir=None, loss_file_name=None):
-        """Return the validation file for each network in the ensemble."""
+    def validation_file(
+        self,
+        validation_subdir: Optional[str] = None,
+        loss_file_name: Optional[str] = None,
+    ) -> Tuple[str, str]:
+        """Return the validation file for each network in the ensemble.
+
+        Args:
+            validation_subdir: Subdirectory for validation files. Defaults to None.
+            loss_file_name: Name of the loss file. Defaults to None.
+
+        Returns:
+            Tuple[str, str]: Validation subdirectory and loss file name.
+        """
         network_view0 = self[0]
         if validation_subdir is None:
             validation_subdir = network_view0.best_checkpoint_fn_kwargs.get(
@@ -321,8 +419,17 @@ class Ensemble(dict):
 
         return validation_subdir, loss_file_name
 
-    def sort(self, validation_subdir=None, loss_file_name=None):
-        """Sort the ensemble by a key."""
+    def sort(
+        self,
+        validation_subdir: Optional[str] = None,
+        loss_file_name: Optional[str] = None,
+    ) -> None:
+        """Sort the ensemble by validation loss.
+
+        Args:
+            validation_subdir: Subdirectory for validation files. Defaults to None.
+            loss_file_name: Name of the loss file. Defaults to None.
+        """
         try:
             self.names = sorted(
                 self.keys(),
@@ -337,57 +444,85 @@ class Ensemble(dict):
         except Exception as e:
             logging.info(f"sorting failed: {e}")
 
-    def argsort(self, validation_subdir=None, loss_file_name=None):
-        """Return the indices that would sort the ensemble by a key."""
+    def argsort(
+        self,
+        validation_subdir: Optional[str] = None,
+        loss_file_name: Optional[str] = None,
+    ) -> np.ndarray:
+        """Return the indices that would sort the ensemble by validation loss.
+
+        Args:
+            validation_subdir: Subdirectory for validation files. Defaults to None.
+            loss_file_name: Name of the loss file. Defaults to None.
+
+        Returns:
+            np.ndarray: Indices that would sort the ensemble.
+        """
         return np.argsort(
             self.min_validation_losses(
                 *self.validation_file(validation_subdir, loss_file_name)
             )
         )
 
-    def zorder(self, validation_subdir=None, loss_file_name=None):
-        """Return the indices that would sort the ensemble by a key."""
+    def zorder(
+        self,
+        validation_subdir: Optional[str] = None,
+        loss_file_name: Optional[str] = None,
+    ) -> np.ndarray:
+        """Return the z-order of the ensemble based on validation loss.
+
+        Args:
+            validation_subdir: Subdirectory for validation files. Defaults to None.
+            loss_file_name: Name of the loss file. Defaults to None.
+
+        Returns:
+            np.ndarray: Z-order of the ensemble.
+        """
         return len(self) - self.argsort(validation_subdir, loss_file_name).argsort()
 
     @context_aware_cache(context=lambda self: (self.names))
-    def validation_losses(self, subdir: str = None, file: str = None):
-        """Return a list of validation losses for each network in the ensemble."""
+    def validation_losses(
+        self, subdir: Optional[str] = None, file: Optional[str] = None
+    ) -> np.ndarray:
+        """Return a list of validation losses for each network in the ensemble.
+
+        Args:
+            subdir: Subdirectory for validation files. Defaults to None.
+            file: Name of the loss file. Defaults to None.
+
+        Returns:
+            np.ndarray: Validation losses for each network.
+        """
         subdir, file = self.validation_file(subdir, file)
         losses = np.array([nv.dir[subdir][file][()] for nv in self.values()])
         return losses
 
-    def min_validation_losses(self, subdir: str = None, file: str = None):
-        """Return the minimum validation loss of the ensemble."""
+    def min_validation_losses(
+        self, subdir: Optional[str] = None, file: Optional[str] = None
+    ) -> np.ndarray:
+        """Return the minimum validation loss of the ensemble.
+
+        Args:
+            subdir: Subdirectory for validation files. Defaults to None.
+            file: Name of the loss file. Defaults to None.
+
+        Returns:
+            np.ndarray: Minimum validation losses for each network.
+        """
         losses = self.validation_losses(subdir, file)
         if losses.ndim == 1:
             return losses
         return np.min(losses, axis=1)
 
-    def update_checkpoints(
-        self,
-        checkpoint="best",
-        validation_subdir="validation",
-        loss_file_name="loss",
-    ):
-        """Update the checkpoints reference for the ensemble."""
-        for nv in self.values():
-            nv.update_checkpoint(checkpoint, validation_subdir, loss_file_name)
-        self._init_args = (
-            self[0].dir.path,
-            checkpoint,
-            validation_subdir,
-            loss_file_name,
-            False,
-        )
-
     @contextmanager
-    def rank_by_validation_error(self, reverse=False):
-        """
-        To temporarily sort the ensemble based on a type of task error. In
-        ascending order.
+    def rank_by_validation_error(self, reverse: bool = False):
+        """Temporarily sort the ensemble based on validation error.
 
-        This method sorts the self.names attribute temporarily, which serve as
-        references to the Directory instances of the trained Networks.
+        Args:
+            reverse: Whether to sort in descending order. Defaults to False.
+
+        Yields:
+            None
         """
         _names = deepcopy(self.names)
 
@@ -405,12 +540,18 @@ class Ensemble(dict):
             self.names = list(_names)
 
     @contextmanager
-    def ratio(self, best=None, worst=None):
-        """To sort and filter the ensemble temporarily by a ratio of models that
-        are performing best or worst based on a type of task error.
+    def ratio(self, best: Optional[float] = None, worst: Optional[float] = None):
+        """Temporarily filter the ensemble by a ratio of best or worst performing models.
 
-        The temporary subset is a view of the original ensemble, so initialized
-        attributes of its values persist in memory.
+        Args:
+            best: Ratio of best performing models to keep. Defaults to None.
+            worst: Ratio of worst performing models to keep. Defaults to None.
+
+        Yields:
+            None
+
+        Raises:
+            ValueError: If best and worst sum to more than 1.
         """
         # no-op
         if best is None and worst is None:
@@ -458,8 +599,17 @@ class Ensemble(dict):
 
     @contextmanager
     def select_items(self, indices: List[int]):
-        """To filter the ensemble temporarily by a list of items (int, slice,
-        list, array) while maintaining state of the Ensemble instance."""
+        """Temporarily filter the ensemble by a list of indices.
+
+        Args:
+            indices: List of indices to select.
+
+        Yields:
+            None
+
+        Raises:
+            ValueError: If indices are invalid.
+        """
         # no-op
         try:
             if indices is None:
@@ -493,15 +643,22 @@ class Ensemble(dict):
 
     def task_error(
         self,
-        cmap="Blues_r",
-        truncate=None,
-        vmin=None,
-        vmax=None,
+        cmap: Union[str, Colormap] = "Blues_r",
+        truncate: Optional[Dict[str, Union[float, int]]] = None,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
     ) -> "TaskError":
         """Return a TaskError object for the ensemble.
 
-        The TaskError object contains the validation losses, the colors, the
-        colormap, the norm, and the scalar mapper.
+        Args:
+            cmap: Colormap to use. Defaults to "Blues_r".
+            truncate: Dictionary to truncate the colormap. Defaults to None.
+            vmin: Minimum value for normalization. Defaults to None.
+            vmax: Maximum value for normalization. Defaults to None.
+
+        Returns:
+            TaskError: Object containing validation losses, colors, colormap, norm,
+                and scalar mapper.
         """
         error = self.min_validation_losses()
 
@@ -520,8 +677,12 @@ class Ensemble(dict):
 
         return TaskError(error, colors, cmap, norm, sm)
 
-    def parameters(self):
-        """Return the parameters of the ensemble."""
+    def parameters(self) -> Dict[str, np.ndarray]:
+        """Return the parameters of the ensemble.
+
+        Returns:
+            Dict[str, np.ndarray]: Dictionary of parameter arrays.
+        """
         network_params = {}
         for network_view in self.values():
             chkpt_params = torch.load(network_view.network('best').checkpoint)
@@ -533,8 +694,12 @@ class Ensemble(dict):
             network_params[key] = np.array(val)
         return network_params
 
-    def parameter_keys(self):
-        """Return the keys of the parameters of the ensemble."""
+    def parameter_keys(self) -> Dict[str, List[str]]:
+        """Return the keys of the parameters of the ensemble.
+
+        Returns:
+            Dict[str, List[str]]: Dictionary of parameter keys.
+        """
         self.check_configs_match()
         network_view = self[0]
         config = network_view.dir.config.network
@@ -608,8 +773,17 @@ class Ensemble(dict):
 
     @context_aware_cache
     def clustering(self, cell_type) -> GaussianMixtureClustering:
-        """Return the clustering of the ensemble for a given cell type."""
+        """Return the clustering of the ensemble for a given cell type.
 
+        Args:
+            cell_type: The cell type to cluster.
+
+        Returns:
+            GaussianMixtureClustering: Clustering object for the given cell type.
+
+        Raises:
+            ValueError: If clustering is not available in context.
+        """
         if self.in_context:
             raise ValueError("clustering is not available in context")
 
@@ -628,20 +802,23 @@ class Ensemble(dict):
     def cluster_indices(self, cell_type: str) -> Dict[int, NDArray[int]]:
         """Clusters from responses to naturalistic stimuli of the given cell type.
 
-         Args:
-             cell_type: The cell type to return the clusters for.
+        Args:
+            cell_type: The cell type to return the clusters for.
 
-         Returns: keys are the cluster ids and the values are the model indices
-             in the ensemble.
+        Returns:
+            Dict[int, NDArray[int]]: Keys are the cluster ids and the values are the
+            model indices in the ensemble.
 
-        TODO: add computing the clusters if not available.
+        Example:
+            ```python
+            ensemble = Ensemble("path/to/ensemble")
+            cluster_indices = ensemble.cluster_indices("T4a")
+            first_cluster = ensemble[cluster_indices[0]]
+            ```
 
-         Example:
-             ensemble = Ensemble("path/to/ensemble")
-             cluster_indices = ensemble.cluster_indices("T4a")
-             first_cluster = ensemble[cluster_indices[0]]
+        Raises:
+            ValueError: If stored clustering does not match ensemble.
         """
-
         clustering = self.clustering(cell_type)
         cluster_indices = get_cluster_to_indices(
             clustering.embedding.mask,
@@ -655,7 +832,15 @@ class Ensemble(dict):
 
         return cluster_indices
 
-    def responses_norm(self, rectified=False):
+    def responses_norm(self, rectified: bool = False) -> np.ndarray:
+        """Compute the norm of responses to naturalistic stimuli.
+
+        Args:
+            rectified: Whether to rectify responses before computing norm.
+
+        Returns:
+            np.ndarray: Norm of responses for each network.
+        """
         response_set = self.naturalistic_stimuli_responses()
         responses = response_set['responses'].values
 
@@ -688,8 +873,15 @@ class Ensemble(dict):
         )
 
 
-def model_path_names(model_paths):
-    """Return a list of model names and an ensemble name from a list of model paths."""
+def model_path_names(model_paths: List[Path]) -> Tuple[List[str], str]:
+    """Return a list of model names and an ensemble name from a list of model paths.
+
+    Args:
+        model_paths: List of paths to model directories.
+
+    Returns:
+        Tuple[List[str], str]: List of model names and ensemble name.
+    """
     model_names = [os.path.sep.join(path.parts[-3:]) for path in model_paths]
     ensemble_name = ", ".join(
         np.unique([
@@ -699,8 +891,15 @@ def model_path_names(model_paths):
     return model_names, ensemble_name
 
 
-def model_paths_from_parent(path):
-    """Return a list of model paths from a parent path."""
+def model_paths_from_parent(path: Path) -> Tuple[List[Path], Path]:
+    """Return a list of model paths from a parent path.
+
+    Args:
+        path: Parent path to search for model directories.
+
+    Returns:
+        Tuple[List[Path], Path]: List of model paths and parent path.
+    """
     model_paths = sorted(
         filter(
             lambda p: p.name.isnumeric() and p.is_dir(),
@@ -713,7 +912,19 @@ def model_paths_from_parent(path):
 def model_paths_from_names_or_paths(
     paths: List[Union[str, Path]], root_dir: Path
 ) -> Tuple[List[Path], Path]:
-    """Return model paths and ensemble path from model names or paths."""
+    """Return model paths and ensemble path from model names or paths.
+
+    Args:
+        paths: List of model names or paths.
+        root_dir: Root directory for model paths.
+
+    Returns:
+        Tuple[List[Path], Path]: List of model paths and ensemble path.
+
+    Raises:
+        ValueError: If an invalid path type is provided.
+        NotImplementedError: If multiple ensemble paths are found.
+    """
     model_paths = []
     _ensemble_paths = []
     for path in paths:
@@ -741,8 +952,16 @@ def model_paths_from_names_or_paths(
 
 @dataclass
 class TaskError:
-    """A dataclass that contains the validation losses, the colors,
-    the colormap, the norm, and the scalar mapper."""
+    """A dataclass that contains the validation losses, colors, colormap, norm,
+    and scalar mapper.
+
+    Attributes:
+        values (NDArray): Validation loss values.
+        colors (NDArray): Colors corresponding to validation losses.
+        cmap (Colormap): Colormap used for visualization.
+        norm (Normalize): Normalization object for the colormap.
+        scalarmappable (ScalarMappable): ScalarMappable object for the colormap.
+    """
 
     values: NDArray
     colors: NDArray

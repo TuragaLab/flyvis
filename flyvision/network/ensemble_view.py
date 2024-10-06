@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from os import PathLike
-from typing import Callable, Iterable, List, Union
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colormaps as cm
 from torch import nn
@@ -32,7 +33,24 @@ __all__ = ["EnsembleView"]
 
 
 class EnsembleView(Ensemble):
-    """A view of an ensemble of trained networks."""
+    """A view of an ensemble of trained networks.
+
+    This class extends the Ensemble class with visualization and analysis methods.
+
+    Args:
+        path: Path to the ensemble directory or an existing Ensemble object.
+        network_class: The network class to use for instantiation.
+        root_dir: Root directory for results.
+        connectome_getter: Function to get the connectome.
+        checkpoint_mapper: Function to resolve checkpoints.
+        best_checkpoint_fn: Function to select the best checkpoint.
+        best_checkpoint_fn_kwargs: Keyword arguments for best_checkpoint_fn.
+        recover_fn: Function to recover the network.
+        try_sort: Whether to try sorting the ensemble.
+
+    Attributes:
+        Inherits all attributes from the Ensemble class.
+    """
 
     def __init__(
         self,
@@ -47,7 +65,7 @@ class EnsembleView(Ensemble):
             "loss_file_name": "loss",
         },
         recover_fn: Callable = recover_network,
-        try_sort=False,
+        try_sort: bool = False,
     ):
         init_args = {
             "path": path,
@@ -65,7 +83,15 @@ class EnsembleView(Ensemble):
         super().__init__(**init_args)
 
     @wraps(plots.loss_curves)
-    def training_loss(self, **kwargs):
+    def training_loss(self, **kwargs) -> Tuple[plt.Figure, plt.Axes]:
+        """Plot training loss curves for the ensemble.
+
+        Args:
+            **kwargs: Additional keyword arguments to pass to plots.loss_curves.
+
+        Returns:
+            A tuple containing the matplotlib Figure and Axes objects.
+        """
         task_error = self.task_error()
         losses = np.array([nv.dir.loss[:] for nv in self.values()])
         return plots.loss_curves(
@@ -80,7 +106,22 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plots.loss_curves)
-    def validation_loss(self, validation_subdir=None, loss_file_name=None, **kwargs):
+    def validation_loss(
+        self,
+        validation_subdir: Optional[str] = None,
+        loss_file_name: Optional[str] = None,
+        **kwargs,
+    ) -> Tuple[plt.Figure, plt.Axes]:
+        """Plot validation loss curves for the ensemble.
+
+        Args:
+            validation_subdir: Subdirectory containing validation data.
+            loss_file_name: Name of the loss file.
+            **kwargs: Additional keyword arguments to pass to plots.loss_curves.
+
+        Returns:
+            A tuple containing the matplotlib Figure and Axes objects.
+        """
         task_error = self.task_error()
         losses = self.validation_losses(validation_subdir, loss_file_name)
         return plots.loss_curves(
@@ -95,16 +136,34 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plots.histogram)
-    def task_error_histogram(self, **kwargs):
-        """Plot a histogram of the validation losses of the ensemble."""
+    def task_error_histogram(self, **kwargs) -> Tuple[plt.Figure, plt.Axes]:
+        """Plot a histogram of the validation losses of the ensemble.
+
+        Args:
+            **kwargs: Additional keyword arguments to pass to plots.histogram.
+
+        Returns:
+            A tuple containing the matplotlib Figure and Axes objects.
+        """
         losses = self.min_validation_losses()
         return plots.histogram(
             losses, xlabel="task error", ylabel="number models", **kwargs
         )
 
     @wraps(plots.violins)
-    def node_parameters(self, key, max_per_ax=34, **kwargs):
-        """Return the node parameters of the ensemble."""
+    def node_parameters(
+        self, key: str, max_per_ax: int = 34, **kwargs
+    ) -> Tuple[plt.Figure, List[plt.Axes]]:
+        """Plot violin plots of node parameters for the ensemble.
+
+        Args:
+            key: The parameter key to plot.
+            max_per_ax: Maximum number of violins per axis.
+            **kwargs: Additional keyword arguments to pass to plots.violins.
+
+        Returns:
+            A tuple containing the matplotlib Figure and a list of Axes objects.
+        """
         parameters = self.parameters()[f"nodes_{key}"]
         parameter_keys = self.parameter_keys()[f"nodes_{key}"]
         return plots.violins(
@@ -112,8 +171,19 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plots.violins)
-    def edge_parameters(self, key, max_per_ax=120, **kwargs):
-        """Return the edge parameters of the ensemble."""
+    def edge_parameters(
+        self, key: str, max_per_ax: int = 120, **kwargs
+    ) -> Tuple[plt.Figure, List[plt.Axes]]:
+        """Plot violin plots of edge parameters for the ensemble.
+
+        Args:
+            key: The parameter key to plot.
+            max_per_ax: Maximum number of violins per axis.
+            **kwargs: Additional keyword arguments to pass to plots.violins.
+
+        Returns:
+            A tuple containing the matplotlib Figure and a list of Axes objects.
+        """
         parameters = self.parameters()[f"edges_{key}"]
         parameter_keys = self.parameter_keys()[f"edges_{key}"]
         variable_names = np.array([
@@ -128,8 +198,15 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plots.heatmap)
-    def dead_or_alive(self, **kwargs):
-        """Return the number of dead cells in the ensemble."""
+    def dead_or_alive(self, **kwargs) -> Tuple[plt.Figure, plt.Axes]:
+        """Plot a heatmap of dead cells in the ensemble.
+
+        Args:
+            **kwargs: Additional keyword arguments to pass to plots.heatmap.
+
+        Returns:
+            A tuple containing the matplotlib Figure and Axes objects.
+        """
         responses = self.naturalistic_stimuli_responses()
         dead_count = (responses['responses'].values < 0).all(axis=(1, 2))
         return plots.heatmap(
@@ -142,8 +219,18 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plot_fris)
-    def flash_response_index(self, cell_types: List[str] = None, **kwargs):
-        """Plot the flash response indices of the ensemble."""
+    def flash_response_index(
+        self, cell_types: Optional[List[str]] = None, **kwargs
+    ) -> Tuple[plt.Figure, plt.Axes]:
+        """Plot the flash response indices of the ensemble.
+
+        Args:
+            cell_types: List of cell types to include. If None, all cell types are used.
+            **kwargs: Additional keyword arguments to pass to plot_fris.
+
+        Returns:
+            A tuple containing the matplotlib Figure and Axes objects.
+        """
         responses = self.flash_responses()
         fris = flash_response_index(responses, radius=6)
         if cell_types is not None:
@@ -162,8 +249,17 @@ class EnsembleView(Ensemble):
         )
 
     @wraps(plot_dsis)
-    def direction_selectivity_index(self, **kwargs):
-        """Plot the direction selectivity indices of the ensemble."""
+    def direction_selectivity_index(
+        self, **kwargs
+    ) -> Tuple[plt.Figure, Tuple[plt.Axes, plt.Axes]]:
+        """Plot the direction selectivity indices of the ensemble.
+
+        Args:
+            **kwargs: Additional keyword arguments to pass to plot_dsis.
+
+        Returns:
+            A tuple containing the matplotlib Figure and a tuple of Axes objects.
+        """
         responses = self.moving_edge_responses()
         dsis = direction_selectivity_index(responses)
         task_error = self.task_error()
