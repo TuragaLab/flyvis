@@ -1,7 +1,7 @@
 """Modules for decoding the DMN activity."""
 
 import logging
-from typing import Dict
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
@@ -21,15 +21,24 @@ __all__ = ["ActivityDecoder", "DecoderGAVP", "init_decoder"]
 
 
 class ActivityDecoder(nn.Module):
+    """
+    Base class for decoding DMN activity.
+
+    Args:
+        connectome: Connectome directory with output_cell_types.
+
+    Attributes:
+        dvs_channels: Dictionary of DVS channels.
+        num_parameters: Number of parameters in the model.
+        u: u-coordinates of hexagonal grid.
+        v: v-coordinates of hexagonal grid.
+        H: Height of the hexagonal grid.
+        W: Width of the hexagonal grid.
+    """
+
     dvs_channels: Dict[str, torch.Tensor]
 
-    def __init__(self, connectome):
-        """ActivityDecoder.
-
-        Args:
-            connectome (Datawrap): connectome datawrap with keys
-                connectome.output_cell_types.
-        """
+    def __init__(self, connectome: ConnectomeDir):
         super().__init__()
         self.dvs_channels = LayerActivity(None, connectome, use_central=False)
         self.num_parameters = n_params(self)
@@ -39,14 +48,16 @@ class ActivityDecoder(nn.Module):
         self.v -= self.v.min()
         self.H, self.W = self.u.max() + 1, self.v.max() + 1
 
-    def forward(self, activity):
+    def forward(self, activity: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
+        Forward pass of the ActivityDecoder.
+
         Args:
-            activity (tensor): tensor of shape n_samples, n_frames, n_cells.
+            activity: Tensor of shape (n_samples, n_frames, n_cells).
 
         Returns:
-            tensor (tensor): tensor of shape
-                    n_samples, n_frames, output_cell_types, n_hexals.
+            Dictionary of tensors with shape
+            (n_samples, n_frames, output_cell_types, n_hexals).
         """
         self.dvs_channels.update(activity)
         return self.dvs_channels
@@ -61,17 +72,27 @@ class GlobalAvgPool(nn.Module):
 
 class Conv2dConstWeight(nn.Conv2d):
     """
-    Pytorch's Conv2d layer with optional constant weight initialization.
+    PyTorch's Conv2d layer with optional constant weight initialization.
+
+    Args:
+        in_channels: Number of input channels.
+        out_channels: Number of output channels.
+        kernel_size: Size of the convolutional kernel.
+        const_weight: Optional constant value for weight initialization.
+            If None, the standard PyTorch initialization is used.
+        stride: Stride of the convolution.
+        padding: Padding added to input.
+        **kwargs: Additional keyword arguments for Conv2d.
     """
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        const_weight,
-        stride=1,
-        padding=0,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        const_weight: Optional[float] = None,
+        stride: int = 1,
+        padding: int = 0,
         **kwargs,
     ):
         super().__init__(
@@ -90,24 +111,37 @@ class Conv2dConstWeight(nn.Conv2d):
 
 class Conv2dHexSpace(Conv2dConstWeight):
     """
-    Convolution with regularly, hexagonally shaped filters (in cart. map storage).
+    Convolution with regularly, hexagonally shaped filters (in cartesian map storage).
 
     Reference to map storage:
     https://www.redblobgames.com/grids/hexagons/#map-storage
 
-    Note: kernel_size must be odd!
-    """
+    Info:
+        kernel_size must be odd!
 
-    _clip = False
+    Args:
+        in_channels: Number of input channels.
+        out_channels: Number of output channels.
+        kernel_size: Size of the convolutional kernel.
+        const_weight: Optional constant value for weight initialization.
+            If None, the standard PyTorch initialization is used.
+        stride: Stride of the convolution.
+        padding: Padding added to input.
+        **kwargs: Additional keyword arguments for Conv2d.
+
+    Attributes:
+        mask: Mask for hexagonal convolution.
+        _filter_to_hex: Whether to apply hexagonal filter.
+    """
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        const_weight=1e-3,
-        stride=1,
-        padding=0,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        const_weight: Optional[float] = 1e-3,
+        stride: int = 1,
+        padding: int = 0,
         **kwargs,
     ):
         super().__init__(
@@ -135,28 +169,61 @@ class Conv2dHexSpace(Conv2dConstWeight):
             self._filter_to_hex = False
 
     def filter_to_hex(self):
+        """Apply hexagonal filter to weights."""
         self.weight.data.mul_(self.mask.to(device))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the Conv2dHexSpace layer.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Output tensor after hexagonal convolution.
+        """
         if self._filter_to_hex:
             self.filter_to_hex()
         return super().forward(x)
 
 
 class DecoderGAVP(ActivityDecoder):
-    """Fully convolutional decoder with optional global average pooling."""
+    """
+    Fully convolutional decoder with optional global average pooling.
+
+    Args:
+        connectome: Connectome directory.
+        shape: List of channel sizes for each layer.
+        kernel_size: Size of the convolutional kernel.
+        p_dropout: Dropout probability.
+        batch_norm: Whether to use batch normalization.
+        n_out_features: Number of output features.
+        const_weight: Constant value for weight initialization.
+        normalize_last: Whether to normalize the last layer.
+        activation: Activation function to use.
+
+    Attributes:
+        _out_channels: Number of output channels before reshaping.
+        out_channels: Total number of output channels.
+        n_out_features: Number of output features.
+        base: Base convolutional layers.
+        decoder: Decoder convolutional layers.
+        head: Head layers for global average pooling.
+        normalize_last: Whether to normalize the last layer.
+        num_parameters: Number of parameters in the model.
+    """
 
     def __init__(
         self,
-        connectome,
-        shape,
-        kernel_size,
-        p_dropout=0.5,
-        batch_norm=True,
-        n_out_features=None,
-        const_weight=None,
-        normalize_last=True,
-        activation="Softplus",
+        connectome: ConnectomeDir,
+        shape: List[int],
+        kernel_size: int,
+        p_dropout: float = 0.5,
+        batch_norm: bool = True,
+        n_out_features: Optional[int] = None,
+        const_weight: Optional[float] = None,
+        normalize_last: bool = True,
+        activation: str = "Softplus",
     ):
         super().__init__(connectome)
         p = int((kernel_size - 1) / 2)
@@ -215,7 +282,16 @@ class DecoderGAVP(ActivityDecoder):
         logging.info(f"Initialized decoder with {self.num_parameters} parameters.")
         logging.info(repr(self))
 
-    def forward(self, activity):
+    def forward(self, activity: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the DecoderGAVP.
+
+        Args:
+            activity: Input activity tensor.
+
+        Returns:
+            Decoded output tensor.
+        """
         self.dvs_channels.update(activity)
         # Ensure that the outputs of the dvs-model are rectified potentials.
         x = nnf.relu(self.dvs_channels.output)
@@ -257,6 +333,16 @@ class DecoderGAVP(ActivityDecoder):
 
 
 def init_decoder(decoder_config: Namespace, connectome: ConnectomeDir) -> nn.Module:
+    """
+    Initialize a decoder based on the provided configuration.
+
+    Args:
+        decoder_config: Configuration for the decoder.
+        connectome: Connectome directory.
+
+    Returns:
+        Initialized decoder module.
+    """
     decoder_config = decoder_config.deepcopy()
     _type = decoder_config.pop("type")
     decoder_type = globals()[_type]
