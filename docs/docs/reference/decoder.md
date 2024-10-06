@@ -1,1 +1,3 @@
-<!-- ::: flyvision.decoder -->
+# Decoder
+
+::: flyvision.task.decoder

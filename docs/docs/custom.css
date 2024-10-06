@@ -218,3 +218,15 @@ body[data-md-color-scheme="slate"] #flyvis-logo-dark-content {
 body[data-md-color-scheme="default"] .md-header {
     background-color: transparent;
 }
+
+[data-md-color-scheme="slate"] .md-content h1,
+[data-md-color-scheme="slate"] .md-content h2,
+[data-md-color-scheme="slate"] .md-content h3 {
+    color: #FFD2C1;
+}
+
+[data-md-color-scheme="default"] .md-content h1,
+[data-md-color-scheme="default"] .md-content h2,
+[data-md-color-scheme="default"] .md-content h3 {
+    color: #002D3E;
+}

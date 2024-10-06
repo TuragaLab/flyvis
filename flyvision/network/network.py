@@ -53,7 +53,7 @@ from .dynamics import NetworkDynamics
 from .initialization import Parameter
 from .stimulus import Stimulus
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 __all__ = ["Network", "NetworkView", "CheckpointedNetwork"]
 
@@ -62,28 +62,26 @@ class Network(nn.Module):
     """A connectome-constrained network with nodes, edges, and dynamics.
 
     Args:
-        connectome: Connectome config.
-        dynamics: Dynamics config.
-        node_config: Node config.
-        edge_config: Edge config.
+        connectome: Connectome configuration.
+        dynamics: Network dynamics configuration.
+        node_config: Node parameter configuration.
+        edge_config: Edge parameter configuration.
 
     Attributes:
-        connectome (ConnectomeDir): Connectome.
-        dynamics (NetworkDynamics): Dynamics.
-        node_params (Dict[str, Parameter]): Node parameters.
-        edge_params (Dict[str, Parameter]): Edge parameters.
+        connectome (ConnectomeDir): Connectome directory.
+        dynamics (NetworkDynamics): Network dynamics.
+        node_params (Namespace): Node parameters.
+        edge_params (Namespace): Edge parameters.
         n_nodes (int): Number of nodes.
         n_edges (int): Number of edges.
         num_parameters (int): Number of parameters.
         config (Namespace): Config namespace.
-        input_indices (np.ndarray): Input indices.
-        output_indices (np.ndarray): Output indices.
-        _source_indices (np.ndarray): Source indices.
-        _target_indices (np.ndarray): Target indices.
-        symmetry_config (Dict[str, Dict[str, Tensor]]): Symmetry config.
-        clamp_config (Dict[str, Dict[str, Tensor]]): Clamp config.
-        stimulus (Stimulus): Stimulus.
-        state_hooks (Namespace): State hook.
+        _source_indices (Tensor): Source indices.
+        _target_indices (Tensor): Target indices.
+        symmetry_config (Namespace): Symmetry config.
+        clamp_config (Namespace): Clamp config.
+        stimulus (Stimulus): Stimulus object.
+        _state_hooks (tuple): State hooks.
     """
 
     def __init__(
@@ -142,7 +140,7 @@ class Network(nn.Module):
     ):
         super().__init__()
 
-        # Call deecopy to alter passed configs without upstream effects
+        # Call deepcopy to alter passed configs without upstream effects
         connectome = namespacify(connectome).deepcopy()
         dynamics = namespacify(dynamics).deepcopy()
         node_config = namespacify(node_config).deepcopy()
@@ -157,6 +155,7 @@ class Network(nn.Module):
         ).deepcopy()
 
         # Store the connectome, dynamics, and parameters.
+        # TODO: make this type configuration based for generality
         self.connectome = ConnectomeDir(connectome)
         self.cell_types = self.connectome.unique_cell_types[:].astype(str)
         self.dynamics = forward_subclass(NetworkDynamics, dynamics)
@@ -172,7 +171,7 @@ class Network(nn.Module):
         # Optional way of parameter sharing is averaging at every call across
         # precomputed masks. This can be useful for e.g. symmetric electrical
         # compartments.
-        # Theses masks are collected from Parameters into this namespace.
+        # These masks are collected from Parameters into this namespace.
         self.symmetry_config = Namespace()  # type: Dict[str, List[torch.Tensor]]
         # Clamp configuration is collected from Parameter into this Namespace
         # for projected gradient descent.
@@ -255,7 +254,7 @@ class Network(nn.Module):
 
         self.stimulus = Stimulus(self.connectome, _init=False)
 
-        logging.info(f"Initialized network with {self.num_parameters} parameters.")
+        logger.info(f"Initialized network with {self.num_parameters} parameters.")
 
     def __repr__(self):
         return self.config.__repr__().replace("Namespace", "Network", 1)
@@ -263,9 +262,13 @@ class Network(nn.Module):
     def param_api(self) -> Dict[str, Dict[str, Tensor]]:
         """Param api for inspection.
 
-        Note, that this is not the same as the parameter api passed to the
-        dynamics. This is a convenience function to inspect the parameters,
-        but does not write derived parameters or sources and targets states.
+        Returns:
+            Parameter namespace for inspection.
+
+        Note:
+            This is not the same as the parameter api passed to the dynamics. This is a
+            convenience function to inspect the parameters, but does not write derived
+            parameters or sources and targets states.
         """
         # Construct the base parameter namespace.
         params = Namespace(
@@ -285,7 +288,11 @@ class Network(nn.Module):
         return params
 
     def _param_api(self) -> AutoDeref[str, AutoDeref[str, RefTensor]]:
-        """Returns params object passed to `dynamics`."""
+        """Returns params object passed to `dynamics`.
+
+        Returns:
+            Parameter namespace for dynamics.
+        """
         # Construct the base parameter namespace.
         params = AutoDeref(
             nodes=AutoDeref(),
@@ -312,23 +319,18 @@ class Network(nn.Module):
 
         return params
 
-    # -- Scatter/gather operations -------------------------
-
     def _source_gather(self, x: Tensor) -> RefTensor:
         """Gathers source node states across edges.
 
         Args:
-            x: abstractly node-level activation, e.g. voltages,
-                Shape is (n_nodes).
+            x: Node-level activation, e.g., voltages. Shape is (n_nodes).
 
         Returns:
-            RefTensor of edge-level representation.
-              Shape is (n_edges).
+            Edge-level representation. Shape is (n_edges).
 
-        Note, for edge-level access to target node states for elementwise
-        operations.
-
-        Called in _param_api and _state_api.
+        Note:
+            For edge-level access to target node states for elementwise operations.
+            Called in _param_api and _state_api.
         """
         return RefTensor(x, self._source_indices)
 
@@ -336,17 +338,14 @@ class Network(nn.Module):
         """Gathers target node states across edges.
 
         Args:
-            x: abstractly node-level activation, e.g. voltages.
-                Shape is (n_nodes).
+            x: Node-level activation, e.g., voltages. Shape is (n_nodes).
 
         Returns:
-            RefTensor of edge-level representation.
-              Shape is (n_edges).
+            Edge-level representation. Shape is (n_edges).
 
-         Note, for edge-level access to target node states for elementwise
-         operations.
-
-        Called in _param_api and _state_api.
+        Note:
+            For edge-level access to target node states for elementwise operations.
+            Called in _param_api and _state_api.
         """
         return RefTensor(x, self._target_indices)
 
@@ -354,13 +353,11 @@ class Network(nn.Module):
         """Scatter sum operation creating target node states from inputs.
 
         Args:
-            x: abstractly, edge inputs to targets, e.g. currents.
-                Shape is (batch_size, n_edges).
+            x: Edge inputs to targets, e.g., currents. Shape is (batch_size, n_edges).
 
         Returns:
-            RefTensor of node-level input. Shape is (batch_size, n_nodes).
+            Node-level input. Shape is (batch_size, n_nodes).
         """
-
         result = torch.zeros((*x.shape[:-1], self.n_nodes))
         # signature: tensor.scatter_add_(dim, index, other)
         result.scatter_add_(
@@ -372,19 +369,17 @@ class Network(nn.Module):
         )
         return result
 
-    # ------------------------------------------------------
-
     def _initial_state(
         self, params: AutoDeref[str, AutoDeref[str, RefTensor]], batch_size: int
     ) -> AutoDeref[str, AutoDeref[str, Union[Tensor, RefTensor]]]:
         """Compute the initial state, given the parameters and batch size.
 
         Args:
-            params: parameter namespace.
-            batch_size: batch size.
+            params: Parameter namespace.
+            batch_size: Batch size.
 
         Returns:
-            initial_state: namespace of node, edge, source, and target states.
+            Initial state namespace of node, edge, source, and target states.
         """
         # Initialize the network.
         state = AutoDeref(nodes=AutoDeref(), edges=AutoDeref())
@@ -408,15 +403,16 @@ class Network(nn.Module):
         """Compute the next state, given the current `state` and stimulus `x_t`.
 
         Args:
-            params: parameters
-            state: current state
-            x_t: stimulus at time t. Shape is (batch_size, n_nodes).
-            dt: time step.
+            params: Parameters.
+            state: Current state.
+            x_t: Stimulus at time t. Shape is (batch_size, n_nodes).
+            dt: Time step.
 
         Returns:
-            next_state: namespace of node, edge, source, and target states.
+            Next state namespace of node, edge, source, and target states.
 
-        Note: simple, elementwise Euler integration.
+        Note:
+            Uses simple, elementwise Euler integration.
         """
         vel = AutoDeref(nodes=AutoDeref(), edges=AutoDeref())
 
@@ -440,10 +436,16 @@ class Network(nn.Module):
     ) -> AutoDeref[str, AutoDeref[str, Union[Tensor, RefTensor]]]:
         """Populate sources and targets states from nodes states.
 
-        Note, optional state hooks are called here (in order of registration).
-        Note, this is returned by _initial_state and _next_state.
-        """
+        Args:
+            state: Current state.
 
+        Returns:
+            Updated state with populated sources and targets.
+
+        Note:
+            Optional state hooks are called here (in order of registration).
+            This is returned by _initial_state and _next_state.
+        """
         for hook in self._state_hooks:
             _state = hook(state)
             if _state is not None:
@@ -461,13 +463,15 @@ class Network(nn.Module):
     def register_state_hook(self, state_hook: Callable, **kwargs) -> None:
         """Register a state hook to retrieve or modify the state.
 
-        E.g. for a targeted perturbation.
-
         Args:
-            state_hook: provides the callable.
-            kwargs: keyword arguments to pass to the callable.
+            state_hook: Callable to be used as a hook.
+            **kwargs: Keyword arguments to pass to the callable.
 
-        Note: the hook is called in _state_api.
+        Raises:
+            ValueError: If state_hook is not callable.
+
+        Note:
+            The hook is called in _state_api. Useful for targeted perturbations.
         """
 
         class StateHook:
@@ -479,12 +483,16 @@ class Network(nn.Module):
                 return self.hook(state, **self.kwargs)
 
         if not isinstance(state_hook, Callable):
-            raise ValueError
+            raise ValueError("state_hook must be callable")
 
         self._state_hooks += (StateHook(state_hook, **kwargs),)
 
-    def clear_state_hooks(self, clear=True):
-        """Clear all state hooks."""
+    def clear_state_hooks(self, clear: bool = True):
+        """Clear all state hooks.
+
+        Args:
+            clear: If True, clear all state hooks.
+        """
         if clear:
             self._state_hooks = tuple()
 
@@ -499,42 +507,37 @@ class Network(nn.Module):
         """Simulate the network activity from movie input.
 
         Args:
-            movie_input: tensor requiring shape (batch_size, n_frames, 1, hexals)
-            dt: integration time constant. Warns if dt > 1/50.
-            initial_state: network activity at the beginning of the simulation.
-                Either use fade_in_state or steady_state, to compute the
-                initial state from grey input or from ramping up the contrast of
-                the first movie frame. Defaults to "auto", which uses the
-                steady_state after 1s of grey input.
-            as_states: can return the states as AutoDeref dictionary instead of
+            movie_input: Tensor of shape (batch_size, n_frames, 1, hexals).
+            dt: Integration time constant. Warns if dt > 1/50.
+            initial_state: Network activity at the beginning of the simulation.
+                Use fade_in_state or steady_state to compute the initial state from grey
+                input or from ramping up the contrast of the first movie frame.
+                Defaults to "auto", which uses the steady_state after 1s of grey input.
+            as_states: If True, return the states as AutoDeref dictionary instead of
                 a tensor. Defaults to False.
+            as_layer_activity: If True, return a LayerActivity object. Defaults to False.
 
         Returns:
-            activity tensor of shape (batch_size, n_frames, #neurons),
+            Activity tensor of shape (batch_size, n_frames, #neurons),
             or AutoDeref dictionary if `as_states` is True,
             or LayerActivity object if `as_layer_activity` is True.
 
         Raises:
-            ValueError if the movie_input is not four-dimensional.
-            ValueError if the integration time step is bigger than 1/50.
-            ValueError if the network is not in evaluation mode or any
+            ValueError: If the movie_input is not four-dimensional.
+            ValueError: If the integration time step is bigger than 1/50.
+            ValueError: If the network is not in evaluation mode or any
                 parameters require grad.
         """
-
         if len(movie_input.shape) != 4:
             raise ValueError("requires shape (sample, frame, 1, hexals)")
 
         if dt > 1 / 50:
-            with warnings.catch_warnings():
-                warnings.simplefilter("always")
-                warnings.warn(
-                    (
-                        f"dt={dt} is very large for integration."
-                        " better choose a smaller dt (<= 1/50 to avoid this warning)"
-                    ),
-                    IntegrationWarning,
-                    stacklevel=2,
-                )
+            warnings.warn(
+                f"dt={dt} is very large for integration. "
+                "Better choose a smaller dt (<= 1/50 to avoid this warning)",
+                IntegrationWarning,
+                stacklevel=2,
+            )
 
         batch_size, n_frames = movie_input.shape[:2]
         if initial_state == "auto":
@@ -559,14 +562,16 @@ class Network(nn.Module):
         """Forward pass of the network.
 
         Args:
-            x: whole-network stimulus of shape (batch_size, n_frames, n_cells).
-            dt: integration time constant.
-            state: initial state of the network. If not given,
-                computed from NetworksDynamics.write_initial_state.
-                initial_state and fade_in_state are convenience functions to
-                compute initial steady states.
-            as_states: if True, returns the states as List[AutoDeref],
-                else concatenates the activity of the nodes and returns a tensor.
+            x: Whole-network stimulus of shape (batch_size, n_frames, n_cells).
+            dt: Integration time constant.
+            state: Initial state of the network. If not given, computed from
+                NetworksDynamics.write_initial_state. initial_state and fade_in_state
+                are convenience functions to compute initial steady states.
+            as_states: If True, returns the states as List[AutoDeref], else concatenates
+                the activity of the nodes and returns a tensor.
+
+        Returns:
+            Network activity or states.
         """
         # To keep the parameters within their valid domain, they get clamped.
         self.clamp()
@@ -598,23 +603,23 @@ class Network(nn.Module):
         value: float = 0.5,
         state: Optional[AutoDeref] = None,
         grad: bool = False,
-        return_last=True,
+        return_last: bool = True,
     ) -> AutoDeref:
-        """State after grey-scale stimulus.
+        """Compute state after grey-scale stimulus.
 
         Args:
-            t_pre: time of the grey-scale stimulus.
-            dt: integration time constant.
-            batch_size: batch size.
-            value: value of the grey-scale stimulus.
-            state: initial state of the network. If not given,
-                computed from NetworksDynamics.write_initial_state.
-                initial_state and fade_in_state are convenience functions to
-                compute initial steady states.
-            grad: if True, the state is computed with gradient.
+            t_pre: Time of the grey-scale stimulus.
+            dt: Integration time constant.
+            batch_size: Batch size.
+            value: Value of the grey-scale stimulus.
+            state: Initial state of the network. If not given, computed from
+                NetworksDynamics.write_initial_state. initial_state and fade_in_state
+                are convenience functions to compute initial steady states.
+            grad: If True, the state is computed with gradient.
+            return_last: If True, return only the last state.
 
         Returns:
-            steady state of the network after a grey-scale stimulus.
+            Steady state of the network after a grey-scale stimulus.
         """
         if t_pre is None or t_pre <= 0.0:
             return state
@@ -634,24 +639,23 @@ class Network(nn.Module):
         self,
         t_fade_in: float,
         dt: float,
-        initial_frames,
-        state=None,
-        grad=False,
+        initial_frames: Tensor,
+        state: Optional[AutoDeref] = None,
+        grad: bool = False,
     ) -> AutoDeref:
-        """State after fade-in stimulus of initial_frames.
+        """Compute state after fade-in stimulus of initial_frames.
 
         Args:
-            t_fade_in: time of the fade-in stimulus.
-            dt: integration time constant.
-            initial_frames: tensor of shape (batch_size, 1, n_input_elements)
-            state: initial state of the network. If not given,
-                computed from NetworksDynamics.write_initial_state.
-                initial_state and fade_in_state are convenience functions to
-                compute initial steady states.
-            grad: if True, the state is computed with gradient.
+            t_fade_in: Time of the fade-in stimulus.
+            dt: Integration time constant.
+            initial_frames: Tensor of shape (batch_size, 1, n_input_elements).
+            state: Initial state of the network. If not given, computed from
+                NetworksDynamics.write_initial_state. initial_state and fade_in_state
+                are convenience functions to compute initial steady states.
+            grad: If True, the state is computed with gradient.
 
-
-        initial_frames of shape (batch_size, 1, n_input_elements)
+        Returns:
+            State after fade-in stimulus.
         """
         if t_fade_in is None or t_fade_in <= 0.0:
             return state
@@ -672,14 +676,14 @@ class Network(nn.Module):
             return self(self.stimulus(), dt, as_states=True, state=state)[-1]
 
     def clamp(self):
-        """Clamp free parameters to their range specifid in their config.
+        """Clamp free parameters to their range specified in their config.
 
         Valid configs are `non_negative` to clamp at zero and tuple of the form
         (min, max) to clamp to an arbitrary range.
 
-        Note, this function also enforces symmetry constraints.
+        Note:
+            This function also enforces symmetry constraints.
         """
-
         # clamp parameters
         for param_name, mode in self.clamp_config.items():
             param = getattr(self, param_name)
@@ -701,8 +705,12 @@ class Network(nn.Module):
                     param.data[symmetry] = param.data[symmetry].mean()
 
     @contextmanager
-    def enable_grad(self, grad=True):
-        """Context manager to enable or disable gradient computation."""
+    def enable_grad(self, grad: bool = True):
+        """Context manager to enable or disable gradient computation.
+
+        Args:
+            grad: If True, enable gradient computation.
+        """
         prev = torch.is_grad_enabled()
         torch.set_grad_enabled(grad)
         try:
@@ -714,7 +722,7 @@ class Network(nn.Module):
         self,
         stim_dataset: SequenceDataset,
         dt: float,
-        indices: Iterable[int] = None,
+        indices: Optional[Iterable[int]] = None,
         t_pre: float = 1.0,
         t_fade_in: float = 0.0,
         grad: bool = False,
@@ -724,23 +732,23 @@ class Network(nn.Module):
         """Compute stimulus responses for a given stimulus dataset.
 
         Args:
-            stim_dataset: stimulus dataset.
-            dt: integration time constant.
-            indices: indices of the stimuli to compute the response for.
+            stim_dataset: Stimulus dataset.
+            dt: Integration time constant.
+            indices: Indices of the stimuli to compute the response for.
                 If not given, all stimuli responses are computed.
-            t_pre: time of the grey-scale stimulus.
-            t_fade_in: time of the fade-in stimulus (slow).
-            grad: if True, the state is computed with gradient.
-            default_stim_key: key of the stimulus in the dataset if it returns
+            t_pre: Time of the grey-scale stimulus.
+            t_fade_in: Time of the fade-in stimulus (slow).
+            grad: If True, the state is computed with gradient.
+            default_stim_key: Key of the stimulus in the dataset if it returns
                 a dictionary.
+            batch_size: Batch size for processing.
 
         Note:
-            per default, applies a grey-scale stimulus for 1 second, no
+            Per default, applies a grey-scale stimulus for 1 second, no
             fade-in stimulus.
 
-        Returns:
-            iterator over stimuli and respective responses as numpy
-            arrays.
+        Yields:
+            Tuple of (stimulus, response) as numpy arrays.
         """
         stim_dataset.dt = dt
         if indices is None:
@@ -755,7 +763,7 @@ class Network(nn.Module):
         initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
 
         with self.enable_grad(grad):
-            logging.info(f"Computing {len(indices)} stimulus responses.")
+            logger.info(f"Computing {len(indices)} stimulus responses.")
             for stim in tqdm(
                 stim_loader, desc="Batch", total=len(stim_loader), leave=False
             ):
@@ -803,29 +811,28 @@ class Network(nn.Module):
         self,
         stim_dataset: SequenceDataset,
         dt: float,
-        indices: Iterable[int] | None = None,
+        indices: Optional[Iterable[int]] = None,
         t_pre: float = 1.0,
         t_fade_in: float = 0,
         default_stim_key: Any = "lum",
     ):
         """Compute stimulus currents and responses for a given stimulus dataset.
 
-        Note, requires Dynamics to implement `currents`.
+        Note:
+            Requires Dynamics to implement `currents`.
 
         Args:
-            stim_dataset: stimulus dataset.
-            dt: integration time constant.
-            indices: indices of the stimuli to compute the response for.
+            stim_dataset: Stimulus dataset.
+            dt: Integration time constant.
+            indices: Indices of the stimuli to compute the response for.
                 If not given, all stimuli responses are computed.
-            t_pre: time of the grey-scale stimulus.
-            t_fade_in: time of the fade-in stimulus (slow).
-            grad: if True, the state is computed with gradient.
-            default_stim_key: key of the stimulus in the dataset if it returns
+            t_pre: Time of the grey-scale stimulus.
+            t_fade_in: Time of the fade-in stimulus (slow).
+            default_stim_key: Key of the stimulus in the dataset if it returns
                 a dictionary.
 
-        Returns:
-            iterator over stimuli, currents and respective responses as numpy
-            arrays.
+        Yields:
+            Tuple of (stimulus, activity, currents) as numpy arrays.
         """
         self.clamp()
         # Construct the parameter API.
@@ -841,7 +848,7 @@ class Network(nn.Module):
         stimulus = self.stimulus
         initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
         with torch.no_grad():
-            logging.info(f"Computing {len(indices)} stimulus responses.")
+            logger.info(f"Computing {len(indices)} stimulus responses.")
             for stim in stim_loader:
                 if isinstance(stim, dict):
                     stim = stim[default_stim_key].squeeze(-2)
@@ -885,22 +892,51 @@ class Network(nn.Module):
 
 @dataclass
 class CheckpointedNetwork:
-    network_class: Any  # Network class (e.g., flyvision.Network)
-    config: Dict  # Configuration for the network
-    name: str  # Name of the network
-    checkpoint: PathLike  # Checkpoint path
-    recover_fn: Any = recover_network  # Function to recover the network
-    network: Optional[Network] = None  # Network instance to avoid reinitialization
+    """A network representation with checkpoint that can be pickled.
 
-    def init(self, eval: bool = True):
+    Attributes:
+        network_class: Network class (e.g., flyvision.Network).
+        config: Configuration for the network.
+        name: Name of the network.
+        checkpoint: Checkpoint path.
+        recover_fn: Function to recover the network.
+        network: Network instance to avoid reinitialization.
+    """
+
+    network_class: Any
+    config: Dict
+    name: str
+    checkpoint: PathLike
+    recover_fn: Any = recover_network
+    network: Optional[Network] = None
+
+    def init(self, eval: bool = True) -> Network:
+        """Initialize the network.
+
+        Args:
+            eval: Whether to set the network in evaluation mode.
+
+        Returns:
+            The initialized network.
+        """
         if self.network is None:
             self.network = self.network_class(**self.config)
         if eval:
             self.network.eval()
         return self.network
 
-    def recover(self, checkpoint: PathLike = None):
-        """Recover the network from the checkpoint."""
+    def recover(self, checkpoint: Optional[PathLike] = None) -> Network:
+        """Recover the network from the checkpoint.
+
+        Args:
+            checkpoint: Path to the checkpoint. If None, uses the default checkpoint.
+
+        Returns:
+            The recovered network.
+
+        Note:
+            Initializes the network if it hasn't been initialized yet.
+        """
         if self.network is None:
             self.init()
         return self.recover_fn(self.network, checkpoint or self.checkpoint)
@@ -947,23 +983,43 @@ class CheckpointedNetwork:
     # Restore the object's state, but do not load the network from the state.
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.network = (
-            None  # The network will need to be reinitialized manually or via `init()`
-        )
+        self.network = None
 
 
 class NetworkView:
     """IO interface for network.
 
     Args:
-        network_dir: directory of the network.
-        network_class: network class.
-        root_dir: root directory.
-        connectome_getter: connectome getter.
-        checkpoint_mapper: checkpoint mapper.
-        best_checkpoint_fn: best checkpoint function.
-        best_checkpoint_fn_kwargs: best checkpoint function kwargs.
-        recover_fn: recover function
+        network_dir: Directory of the network.
+        network_class: Network class. Defaults to Network.
+        root_dir: Root directory. Defaults to flyvision.results_dir.
+        connectome_getter: Function to get the connectome.
+            Defaults to flyvision_connectome.
+        checkpoint_mapper: Function to map checkpoints. Defaults to resolve_checkpoints.
+        best_checkpoint_fn: Function to get the best checkpoint. Defaults to
+            best_checkpoint_default_fn.
+        best_checkpoint_fn_kwargs: Keyword arguments for best_checkpoint_fn. Defaults to
+            {"validation_subdir": "validation", "loss_file_name": "loss"}.
+        recover_fn: Function to recover the network. Defaults to recover_network.
+
+    Attributes:
+        network_class (nn.Module): Network class.
+        dir (Directory): Network directory.
+        name (str): Network name.
+        root_dir (PathLike): Root directory.
+        connectome_getter (Callable): Function to get the connectome.
+        checkpoint_mapper (Callable): Function to map checkpoints.
+        connectome_view (ConnectomeView): Connectome view.
+        connectome (Directory): Connectome directory.
+        checkpoints: Mapped checkpoints.
+        memory (Memory): Joblib memory cache.
+        best_checkpoint_fn (Callable): Function to get the best checkpoint.
+        best_checkpoint_fn_kwargs (dict): Keyword arguments for best_checkpoint_fn.
+        recover_fn (Callable): Function to recover the network.
+        _network (CheckpointedNetwork): Checkpointed network instance.
+        decoder: Decoder instance.
+        _initialized (dict): Initialization status for network and decoder.
+        cache (FIFOCache): Cache for storing results.
     """
 
     def __init__(
@@ -1002,83 +1058,122 @@ class NetworkView:
             self.recover_fn,
             network=None,
         )
-        self._decoder = None
+        self.decoder = None
         self._initialized = {"network": None, "decoder": None}
         self.cache = FIFOCache(maxsize=3)
-        logging.info(f"Initialized network view at {str(self.dir.path)}.")
+        logging.info("Initialized network view at %s", str(self.dir.path))
 
     def _clear_cache(self):
+        """Clear the FIFO cache."""
         self.cache = self.cache.__class__(maxsize=self.cache.maxsize)
 
     def _clear_memory(self):
+        """Clear the joblib memory cache."""
         self.memory.clear()
 
     # --- ConnectomeView API for static code analysis
-
+    # pylint: disable=missing-function-docstring
     @wraps(ConnectomeView.connectivity_matrix)
     def connectivity_matrix(self, *args, **kwargs):
         return self.connectome_view.connectivity_matrix(*args, **kwargs)
+
+    connectivity_matrix.__doc__ = ConnectomeView.connectivity_matrix.__doc__
 
     @wraps(ConnectomeView.network_layout)
     def network_layout(self, *args, **kwargs):
         return self.connectome_view.network_layout(*args, **kwargs)
 
+    network_layout.__doc__ = ConnectomeView.network_layout.__doc__
+
     @wraps(ConnectomeView.hex_layout)
     def hex_layout(self, *args, **kwargs):
         return self.connectome_view.hex_layout(*args, **kwargs)
+
+    hex_layout.__doc__ = ConnectomeView.hex_layout.__doc__
 
     @wraps(ConnectomeView.hex_layout_all)
     def hex_layout_all(self, *args, **kwargs):
         return self.connectome_view.hex_layout_all(*args, **kwargs)
 
+    hex_layout_all.__doc__ = ConnectomeView.hex_layout_all.__doc__
+
     @wraps(ConnectomeView.get_uv)
     def get_uv(self, *args, **kwargs):
         return self.connectome_view.get_uv(*args, **kwargs)
+
+    get_uv.__doc__ = ConnectomeView.get_uv.__doc__
 
     @wraps(ConnectomeView.sources_list)
     def sources_list(self, *args, **kwargs):
         return self.connectome_view.sources_list(*args, **kwargs)
 
+    sources_list.__doc__ = ConnectomeView.sources_list.__doc__
+
     @wraps(ConnectomeView.targets_list)
     def targets_list(self, *args, **kwargs):
         return self.connectome_view.targets_list(*args, **kwargs)
+
+    targets_list.__doc__ = ConnectomeView.targets_list.__doc__
 
     @wraps(ConnectomeView.receptive_field)
     def receptive_field(self, *args, **kwargs):
         return self.connectome_view.receptive_field(*args, **kwargs)
 
+    receptive_field.__doc__ = ConnectomeView.receptive_field.__doc__
+
     @wraps(ConnectomeView.receptive_fields_grid)
     def receptive_fields_grid(self, *args, **kwargs):
         return self.connectome_view.receptive_fields_grid(*args, **kwargs)
+
+    receptive_fields_grid.__doc__ = ConnectomeView.receptive_fields_grid.__doc__
 
     @wraps(ConnectomeView.projective_field)
     def projective_field(self, *args, **kwargs):
         return self.connectome_view.projective_field(*args, **kwargs)
 
+    projective_field.__doc__ = ConnectomeView.projective_field.__doc__
+
     @wraps(ConnectomeView.projective_fields_grid)
     def projective_fields_grid(self, *args, **kwargs):
         return self.connectome_view.projective_fields_grid(*args, **kwargs)
+
+    projective_fields_grid.__doc__ = ConnectomeView.projective_fields_grid.__doc__
 
     @wraps(ConnectomeView.receptive_fields_df)
     def receptive_fields_df(self, *args, **kwargs):
         return self.connectome_view.receptive_fields_df(*args, **kwargs)
 
+    receptive_fields_df.__doc__ = ConnectomeView.receptive_fields_df.__doc__
+
     @wraps(ConnectomeView.receptive_fields_sum)
     def receptive_fields_sum(self, *args, **kwargs):
         return self.connectome_view.receptive_fields_sum(*args, **kwargs)
+
+    receptive_fields_sum.__doc__ = ConnectomeView.receptive_fields_sum.__doc__
 
     @wraps(ConnectomeView.projective_fields_df)
     def projective_fields_df(self, *args, **kwargs):
         return self.connectome_view.projective_fields_df(*args, **kwargs)
 
+    projective_fields_df.__doc__ = ConnectomeView.projective_fields_df.__doc__
+
     @wraps(ConnectomeView.projective_fields_sum)
     def projective_fields_sum(self, *args, **kwargs):
         return self.connectome_view.projective_fields_sum(*args, **kwargs)
 
+    projective_fields_sum.__doc__ = ConnectomeView.projective_fields_sum.__doc__
+
     # --- own API
 
     def get_checkpoint(self, checkpoint="best"):
-        """Return the best checkpoint index."""
+        """Return the best checkpoint index.
+
+        Args:
+            checkpoint: Checkpoint identifier. Defaults to "best".
+
+        Returns:
+            str: Path to the checkpoint.
+        """
         if checkpoint == "best":
             return self.best_checkpoint_fn(
                 self.dir.path,
@@ -1089,18 +1184,25 @@ class NetworkView:
     def network(
         self, checkpoint="best", network: Optional[Any] = None, lazy=False
     ) -> CheckpointedNetwork:
-        """Lazy loading of network instance."""
+        """Lazy loading of network instance.
+
+        Args:
+            checkpoint: Checkpoint identifier. Defaults to "best".
+            network: Existing network instance to use. Defaults to None.
+            lazy: If True, don't recover the network immediately. Defaults to False.
+
+        Returns:
+            CheckpointedNetwork: Checkpointed network instance.
+        """
         self._network = CheckpointedNetwork(
             self.network_class,
             self.dir.config.network.to_dict(),
             self.name,
             self.get_checkpoint(checkpoint),
             self.recover_fn,
-            # to avoid reinitialization, allow passing the network instance
             network=network or self._network.network,
         )
         if self._network.network is not None and not lazy:
-            # then the correct checkpoint needs to be set
             self._network.recover()
         return self._network
 
@@ -1108,10 +1210,11 @@ class NetworkView:
         """Initialize the network.
 
         Args:
-            network: network instance to initialize to avoid reinitialization.
+            checkpoint: Checkpoint identifier. Defaults to "best".
+            network: Existing network instance to use. Defaults to None.
 
         Returns:
-            network instance.
+            Network: Initialized network instance.
         """
         checkpointed_network = self.network(checkpoint=checkpoint, network=network)
 
@@ -1124,10 +1227,11 @@ class NetworkView:
         """Initialize the decoder.
 
         Args:
-            decoder: decoder instance to initialize.
+            checkpoint: Checkpoint identifier. Defaults to "best".
+            decoder: Existing decoder instance to use. Defaults to None.
 
         Returns:
-            decoder instance.
+            Decoder: Initialized decoder instance.
         """
         checkpointed_network = self.network(checkpoint=checkpoint)
         if (
@@ -1143,8 +1247,20 @@ class NetworkView:
         return self.decoder
 
     def _resolve_dir(self, network_dir, root_dir):
+        """Resolve the network directory.
+
+        Args:
+            network_dir: Network directory path or Directory instance.
+            root_dir: Root directory path.
+
+        Returns:
+            tuple: (Directory, str) - Network directory and name.
+
+        Raises:
+            ValueError: If the directory is not a NetworkDir.
+        """
         if isinstance(network_dir, (PathLike, str)):
-            with set_root_context(flyvision.results_dir):
+            with set_root_context(root_dir):
                 network_dir = Directory(network_dir)
         if not network_dir.config.type == "NetworkDir":
             raise ValueError(
@@ -1212,32 +1328,9 @@ class NetworkView:
 
 
 class IntegrationWarning(Warning):
+    """Warning for integration-related issues."""
+
     pass
-
-
-class FlynetPlusDecoder(nn.Module):
-    def __init__(self, network, decoder):
-        super().__init__()
-        self.network = network
-        self.stimulus = self.network.stimulus
-        self.decoder = decoder
-
-    def forward(self, x, dt, t_pre):
-        n_samples, n_frames = x.shape[:2]
-        initial_state = self.network.steady_state(
-            t_pre=t_pre,
-            dt=dt,
-            batch_size=n_samples,
-            value=0.5,
-        )
-        self.stimulus.zero(n_samples, n_frames)
-        self.stimulus.add_input(x)
-        activity = self.network(
-            self.stimulus(),
-            dt,
-            state=initial_state,
-        )
-        return {task: self.decoder[task](activity) for task in self.decoder}
 
 
 if __name__ == "__main__":

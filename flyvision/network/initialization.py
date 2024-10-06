@@ -5,8 +5,9 @@ types handle the initialization of indices to perform gather and scatter opera-
 tions. Parameter types can be initialized from a range of initial distribution
 types.
 
-Note: to maintain compatibility with old configurations, e.g. to reinitialize
-    a trained network, careful when refactoring any of these types or syntax.
+Note:
+    To maintain compatibility with old configurations, e.g. to reinitialize
+    a trained network, be careful when refactoring any of these types or syntax.
 """
 
 import functools
@@ -56,16 +57,19 @@ class InitialDistribution:
     """Initial distribution base class.
 
     Attributes:
-        raw_values: initial parameters must store raw_values as attribute in
+        raw_values (Tensor): Initial parameters must store raw_values as attribute in
             their __init__.
-        readers: readers will be written by the network during initialization.
+        readers (Dict[str, Tensor]): Readers will be written by the network during
+            initialization.
 
-    Extension point: to add a new initial distribution type, subclass this
-        class and implement the __init__ method. The __init__ method
-        should take the param_config as its first argument, and should store
-        the attribute raw_values as a torch.nn.Parameter.
+    Note:
+        To add a new initial distribution type, subclass this class and implement the
+        __init__ method. The __init__ method should take the param_config as its first
+        argument, and should store the attribute raw_values as a torch.nn.Parameter.
 
-    An example of a viable param_config is:
+    Example:
+        An example of a viable param_config is:
+        ```python
         param_config = Namespace(
             requires_grad=True,
             initial_dist="Normal",
@@ -73,6 +77,7 @@ class InitialDistribution:
             std=1,
             mode="sample",
         )
+        ```
     """
 
     raw_values: Tensor
@@ -113,12 +118,20 @@ class InitialDistribution:
 class Value(InitialDistribution):
     """Initializes parameters with a single value.
 
-    Example param_config:
+    Args:
+        value: The value to initialize the parameter with.
+        requires_grad (bool): Whether the parameter requires gradients.
+        clamp (bool, optional): Whether to clamp the values. Defaults to False.
+        **kwargs: Additional keyword arguments.
+
+    Example:
+        ```python
         param_config = Namespace(
             requires_grad=True,
             initial_dist="Value",
             value=0,
         )
+        ```
     """
 
     # def __init__(self, param_config: Namespace) -> None:
@@ -137,7 +150,17 @@ class Value(InitialDistribution):
 class Normal(InitialDistribution):
     """Initializes parameters independently from normal distributions.
 
-    Example param_config:
+    Args:
+        mean: The mean of the normal distribution.
+        std: The standard deviation of the normal distribution.
+        requires_grad (bool): Whether the parameter requires gradients.
+        mode (str, optional): The initialization mode. Defaults to "sample".
+        clamp (bool, optional): Whether to clamp the values. Defaults to False.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Example:
+        ```python
         param_config = Namespace(
             requires_grad=True,
             initial_dist="Normal",
@@ -145,6 +168,7 @@ class Normal(InitialDistribution):
             std=1,
             mode="sample",
         )
+        ```
     """
 
     def __init__(
@@ -178,7 +202,11 @@ class Normal(InitialDistribution):
 class Lognormal(Normal):
     """Initializes parameters independently from lognormal distributions.
 
-    Example param_config:
+    Note:
+        The lognormal distribution reparametrizes a normal through semantic values.
+
+    Example:
+        ```python
         param_config = Namespace(
             requires_grad=True,
             initial_dist="Lognormal",
@@ -186,9 +214,7 @@ class Lognormal(Normal):
             std=1,
             mode="sample",
         )
-
-    Note, the lognormal distribution reparametrizes a normal through semantic
-    values.
+        ```
     """
 
     # __init__ = Normal.__init__
@@ -205,9 +231,12 @@ class Lognormal(Normal):
 def deepcopy_config(f):
     """Decorator to deepcopy the parameter configuration.
 
-    Note, this is necessary because the parameter configuration is updated
-    in the __init__ method of the parameter classes and prevents mutation of the
-    param_config in the outer scope.
+    Note:
+        This decorator is necessary because the `__init__` method of parameter classes
+        often modifies the `param_config` object. By creating a deep copy, we ensure
+        that these modifications don't affect the original `param_config` object in the
+        outer scope. This prevents unintended side effects and maintains the integrity
+        of the original configuration.
     """
 
     @functools.wraps(f)
@@ -222,68 +251,51 @@ class Parameter:
     """Base class for all parameters to share across nodes or edges.
 
     Args:
-        param_config: Namespace containing parameter configuration.
-        connectome: Connectome object.
+        param_config (Namespace): Namespace containing parameter configuration.
+        connectome (ConnectomeDir): Connectome object.
 
     Attributes:
-        parameter: InitialDistribution object.
-        indices: Indices for parameter sharing.
-        keys: Keys to access individual parameter values associated with
+        parameter (InitialDistribution): InitialDistribution object.
+        indices (torch.Tensor): Indices for parameter sharing.
+        keys (List[Any]): Keys to access individual parameter values associated with
             certain identifiers.
-        symmetry_masks: Symmetry masks that can be configured optionally to
-            apply further symmetry constraints to the parameter values.
+        symmetry_masks (List[torch.Tensor]): Symmetry masks that can be configured
+            optionally to apply further symmetry constraints to the parameter values.
 
-    Extension point:
-        subclasses must implement __init__(self, param_config, connectome_dir).
-        __init__ must configure the above attributes.
-        __init__ should be decorated with @deepcopy_config when __init__ updates
-        param_config to ensure param_config is not mutated in the outer scope, .
-        __init__ udpates param_config to contain key value pairs informed by
-        connectome and matching the desired InitialDistribution.
-        __init__ stores `parameter` from InitialDistribution(param_config), which
-        constructs and holds the nn.Parameter.
-        __init__ stores `indices` for parameter sharing through
-        `get_scatter_indices(dataframe, grouped_dataframe, groupby)`.
-        __init__ stores `keys` to access individual
-        parameter values associated with certain identifiers.
-        __init__ stores `symmetry_masks` that can be configured optionally
-        to apply further symmetry constraints to the parameter values.
+    Note:
+        Subclasses must implement `__init__(self, param_config, connectome_dir)` with the
+        following requirements:
 
-        Example:
-            class MyParameter(Parameter):
-                def __init__(self, param_config, connectome_dir):
-                    nodes_dir = connectome.nodes
+        1. Configure all attributes defined in the base class.
+        2. Decorate `__init__` with `@deepcopy_config` if it updates `param_config` to
+           prevent mutations in the outer scope.
+        3. Update `param_config` with key-value pairs informed by `connectome` and
+           matching the desired `InitialDistribution`.
+        4. Store `parameter` from `InitialDistribution(param_config)`, which constructs
+           and holds the `nn.Parameter`.
+        5. Store `indices` for parameter sharing using
+           `get_scatter_indices(dataframe, grouped_dataframe, groupby)`.
+        6. Store `keys` to access individual parameter values associated with certain
+           identifiers.
+        7. Store `symmetry_masks` (optional) to apply further symmetry constraints to
+           the parameter values.
 
-                    nodes = pd.DataFrame(
-                        {k: byte_to_str(nodes_dir[k][:]) for k in param_config.groupby}
-                    )
-                    grouped_nodes = nodes.groupby(
-                        param_config.groupby, as_index=False, sort=False
-                    ).first()
+        Example implementation structure:
 
-                    param_config["type"] = grouped_nodes["type"].values
-                    param_config["mean"] = np.repeat(param_config["mean"],
-                                                     len(grouped_nodes))
-                    param_config["std"] = np.repeat(param_config["std"],
-                                                    len(grouped_nodes))
+        ```python
+        @deepcopy_config
+        def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
+            # Update param_config based on connectome data
+            # ...
 
-                    self.parameter = InitialDistribution(param_config)
-                    self.indices = get_scatter_indices(nodes,
-                                                       grouped_nodes,
-                                                       param_config.groupby)
-                    self.keys = param_config["type"].tolist()
-                    self.symmetry_masks = symmetry_masks(
-                        param_config.get("symmetric", []), self.keys
-                    )
-            param_config = Namespace(
-                    type="MyParameter",
-                    mean=0,
-                    std=1,
-                    groupby=["type"],
-                    requires_grad=True
-                )
-            param = Parameter(param_config, connectome)
-            type(param) == MyParameter
+            # Initialize parameter
+            self.parameter = InitialDistribution(param_config)
+
+            # Set up indices, keys, and symmetry masks
+            self.indices = get_scatter_indices(...)
+            self.keys = ...
+            self.symmetry_masks = symmetry_masks(...)
+        ```
     """
 
     parameter: InitialDistribution
@@ -296,11 +308,13 @@ class Parameter:
         pass
 
     def __repr__(self):
+        """Return a string representation of the Parameter object."""
         init_arg_names = list(self.__init__.__annotations__.keys())
         dir_type = self.__init__.__annotations__[init_arg_names[1]].__name__
         return f"{self.__class__.__name__}({self.config}, {dir_type})"
 
     def __getitem__(self, key):
+        """Get parameter value for a given key."""
         if key in self.keys:
             if self.parameter.raw_values.dim() == 0:
                 return self.parameter.raw_values
@@ -309,24 +323,27 @@ class Parameter:
             raise ValueError(key)
 
     def __len__(self):
+        """Return the length of raw_values."""
         return len(self.raw_values)
-
-    # -- InitialDistribution API
 
     @property
     def raw_values(self) -> torch.Tensor:
+        """Get raw parameter values."""
         return self.parameter.raw_values
 
     @property
     def semantic_values(self) -> torch.Tensor:
+        """Get semantic parameter values."""
         return self.parameter.semantic_values
 
     @property
     def readers(self) -> Dict[str, torch.Tensor]:
+        """Get parameter readers."""
         return self.parameter.readers
 
     @readers.setter
     def readers(self, value) -> None:
+        """Set parameter readers."""
         self.parameter.readers = value
 
     def _symmetry(self):
@@ -468,7 +485,24 @@ class SynapseCount(Parameter):
 
 
 class SynapseCountScaling(Parameter):
-    """Initialize synapse count scaling for edge types."""
+    """Initialize synapse count scaling for edge types.
+
+    This class initializes synapse strengths based on the average synapse count for each
+    edge type, scaling them differently for chemical and electrical synapses.
+
+    The initialization follows this equation:
+
+    $$\\alpha_{t_it_j} =\\frac{\\rho}{\\langle N \\rangle_{t_it_j}}$$
+
+    where:
+
+    1. $\\alpha_{t_it_j}$ is the synapse strength between neurons $i$ and $j$.
+    2. $\\langle N \\rangle_{t_it_j}$ is the average synapse count for the edge type
+        across columnar offsets $u_i-u_j$ and $v_i-v_j$
+    3. $\\rho_{\\text{chem}}$ and $\\rho_{\\text{elec}}$ are scaling factors for chemical
+       and electrical synapses, respectively (default: 0.01)
+
+    """
 
     @deepcopy_config
     def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
@@ -513,22 +547,25 @@ class SynapseCountScaling(Parameter):
 def get_scatter_indices(
     dataframe: pd.DataFrame, grouped_dataframe: pd.DataFrame, groupby: List[str]
 ) -> Tensor:
-    """Indices for scattering operations to share parameters.
+    """Get indices for scattering operations to share parameters.
 
-    Maps each node/edge from the complete computational graph to a parameter
-    index.
+    Maps each node/edge from the complete computational graph to a parameter index.
 
     Args:
-        dataframe (pd.DataFrame): dataframe of nodes or edges of the graph.
-        grouped_dataframe (list): aggregated version of the same dataframe.
-        groupby (list): the same columns from which the grouped_dataframe was
-            constructed.
+        dataframe: Dataframe of nodes or edges of the graph.
+        grouped_dataframe: Aggregated version of the same dataframe.
+        groupby: The same columns from which the grouped_dataframe was constructed.
 
-    For N elements that are grouped into M groups, this function
-    returns N indices from 0 to M-1 that can be used to scatter the
-    parameters of the M groups to the N elements.
+    Returns:
+        Tensor of indices for scattering operations.
 
-    To illustrate, consider the following simplified example:
+    Note:
+        For N elements that are grouped into M groups, this function returns N indices
+        from 0 to M-1 that can be used to scatter the parameters of the M groups to the
+        N elements.
+
+    Example:
+        ```python
         elements = ["A", "A", "A", "B", "B", "C", "D", "D", "E"]
         groups = ["A", "B", "C", "D", "E"]
         parameter = [1, 2, 3, 4, 5]
@@ -536,6 +573,7 @@ def get_scatter_indices(
         scatter_indices = [0, 0, 0, 1, 1, 2, 3, 3, 4]
         scattered_parameters = [parameter[idx] for idx in scatter_indices]
         scattered_parameters == [1, 1, 1, 2, 2, 3, 4, 4, 5]
+        ```
     """
     ungrouped_elements = zip(*[dataframe[k][:] for k in groupby])
     grouped_elements = zip(*[grouped_dataframe[k][:] for k in groupby])
@@ -546,33 +584,34 @@ def get_scatter_indices(
 def symmetry_masks(
     symmetric: List[Any], keys: List[Any], as_mask: bool = False
 ) -> List[torch.Tensor]:
-    """Masks subsets of parameters for joint constraints e.g. to their mean.
+    """Create masks for subsets of parameters for joint constraints.
 
     Args:
-        symmetric: contains subsets of keys that point to the subsets
-            of parameters to be indexed.
-        keys: list of keys that point to individual parameter values.
-        as_mask: if True, returns a boolean mask, otherwise integer indices.
+        symmetric: Contains subsets of keys that point to the subsets of parameters
+            to be indexed.
+        keys: List of keys that point to individual parameter values.
+        as_mask: If True, returns a boolean mask, otherwise integer indices.
 
     Returns:
-        list of masks List[torch.BoolTensor]
+        List of masks (List[torch.BoolTensor]).
 
-    Note: this is experimental for configuration-based fine-grained shared
-    parameter optimization, e.g. for models includig multi-compartment cells
-    or gap junctions.
-    Example 1:
-    for node type parameters with individual node types as keys
-        symmetric = [["T4a", "T4b", "T4c", "T4d"],
-                     ["T5a", "T5b", "T5c", "T5d"]]
-    would be used to constrain the parameter values of all T4 subtypes to
-    their joint mean and the parameter values of all T5 subtypes to their
-    joint mean.
-    Exaple 2:
-    for edge type parameters with individual edge types as keys
+    Note:
+        This is experimental for configuration-based fine-grained shared parameter
+        optimization, e.g. for models including multi-compartment cells or gap
+        junctions.
+
+    Example:
+        ```python
+        # For node type parameters with individual node types as keys:
+        symmetric = [["T4a", "T4b", "T4c", "T4d"], ["T5a", "T5b", "T5c", "T5d"]]
+        # This would constrain the parameter values of all T4 subtypes to their joint
+        # mean and the parameter values of all T5 subtypes to their joint mean.
+
+        # For edge type parameters with individual edge types as keys:
         symmetric = [[("CT1(M10)", "CT1(Lo1)"), ("CT1(Lo1)", "CT1(M10)")]]
-    would be used to constrain the edge parameter of the directed edge from
-    CT1(M10) to CT1(Lo1) and the directed edge from CT1(Lo1) to CT1(M10) to
-    their joint mean.
+        # This would constrain the edge parameter of the directed edge from CT1(M10) to
+        # CT1(Lo1) and the directed edge from CT1(Lo1) to CT1(M10) to their joint mean.
+        ```
     """
     if not symmetric:
         return []
@@ -595,7 +634,7 @@ def symmetry_masks(
             )
         except Exception as e:
             raise ValueError(
-                f"{identifiers} cannot be a symmetry constraint"
-                f" for parameter with keys {keys}: {e}"
+                f"{identifiers} cannot be a symmetry constraint "
+                f"for parameter with keys {keys}: {e}"
             ) from e
     return symmetry_masks

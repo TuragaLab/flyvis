@@ -1,8 +1,5 @@
 # Sintel dataset
 
 ::: flyvision.datasets.sintel
-    options:
-      members:
-        - MultiTaskSintel
-        - RenderedSintel
-        - AugmentedSintel
+
+::: flyvision.datasets.sintel_utils

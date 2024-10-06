@@ -21,8 +21,11 @@ nav:
   - API Reference:
     - "Connectome": reference/connectome.md
     - "Network": reference/network.md
+    - "NetworkView": reference/network_view.md
+    - "EnsembleView": reference/ensemble_view.md
     - "Sintel": reference/sintel.md
     - "Task": reference/tasks.md
+    - "Decoder": reference/decoder.md
     - "Training": reference/solver.md
     - "Flash Responses": reference/flash_responses.md
     - "Moving Stimulus Responses": reference/moving_stimulus_responses.md
@@ -119,6 +122,12 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 
 plugins:
@@ -132,7 +141,7 @@ plugins:
             show_source: true
             heading_level: 2
             members_order: source
-            show_root_heading: true
+            show_root_heading: false
             show_root_toc_entry: true
             show_symbol_type_toc: true
             show_root_full_path: false
@@ -140,9 +149,6 @@ plugins:
 watch:
   - ../flyvision
   - ../scripts
-
-# extra_javascript:
-#   - javascripts/switch-logo.js
 
 extra_css:
   - custom.css
