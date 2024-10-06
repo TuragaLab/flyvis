@@ -60,13 +60,35 @@ class MultiTaskSolver:
     Gives access to the network, decoder, task, optimizer, penalty and scheduler and
     the directory where the results are stored.
 
-    Note: specify delete_if_exists=True to delete the directory if it already exists.
+    Args:
+        name: Name of the solver.
+        config: Configuration for the solver.
+        init_network: Whether to initialize the network. Defaults to True.
+        init_decoder: Whether to initialize the decoder. Defaults to True.
+        init_task: Whether to initialize the task. Defaults to True.
+        init_optim: Whether to initialize the optimizer. Defaults to True.
+        init_penalties: Whether to initialize penalties. Defaults to True.
+        init_scheduler: Whether to initialize the scheduler. Defaults to True.
+        delete_if_exists: Whether to delete existing directory. Defaults to False.
+
+    Attributes:
+        dir (NetworkDir): Directory where results are stored.
+        network (Network): The neural network.
+        decoder (Dict[str, nn.Module]): The decoder modules.
+        task (Task): The task being solved.
+        optimizer (torch.optim.Optimizer): The optimizer.
+        penalty (Penalty): The penalty object.
+        scheduler (HyperParamScheduler): The hyperparameter scheduler.
 
     Example:
+        ```python
         from flyvision.utils.config_utils import get_default_config
-        config = get_default_config(overrides=["task_name=flow", "network_id=0"])
+        # Note: the config is typically defined through the command line.
+        config = get_default_config(overrides=["task_name=flow",
+                                               "ensemble_and_network_id=0"])
         solver = MultiTaskSolver("test", config)
         solver.train()
+        ```
     """
 
     def __init__(
@@ -113,14 +135,26 @@ class MultiTaskSolver:
 
     def _init_solver(
         self,
-        init_network=False,
-        init_decoder=False,
-        init_task=False,
-        init_optim=False,
-        init_penalties=False,
-        init_scheduler=False,
-    ):
-        """Initialize solver."""
+        init_network: bool = False,
+        init_decoder: bool = False,
+        init_task: bool = False,
+        init_optim: bool = False,
+        init_penalties: bool = False,
+        init_scheduler: bool = False,
+    ) -> list:
+        """Initialize solver components.
+
+        Args:
+            init_network: Whether to initialize the network.
+            init_decoder: Whether to initialize the decoder.
+            init_task: Whether to initialize the task.
+            init_optim: Whether to initialize the optimizer.
+            init_penalties: Whether to initialize penalties.
+            init_scheduler: Whether to initialize the scheduler.
+
+        Returns:
+            A list of initialized components.
+        """
         initialized = []
 
         if init_network:
@@ -162,7 +196,16 @@ class MultiTaskSolver:
     def _init_optimizer(
         optim: Namespace, network: Network, decoder: Optional[Dict[str, nn.Module]]
     ) -> torch.optim.Optimizer:
-        """Initializes the optim of network and decoder."""
+        """Initializes the optimizer for network and decoder.
+
+        Args:
+            optim: Optimizer configuration.
+            network: The neural network.
+            decoder: The decoder modules.
+
+        Returns:
+            The initialized optimizer.
+        """
 
         def decoder_parameters(decoder: Dict[str, nn.Module]):
             """Returns decoder parameters."""
@@ -189,24 +232,26 @@ class MultiTaskSolver:
 
         return optim(param_groups)
 
-    def train(self, overfit=False, initial_checkpoint=True) -> None:
+    def train(self, overfit: bool = False, initial_checkpoint: bool = True) -> None:
         """Trains the network by backprop through time.
+
         Args:
-            overfit (bool): If true, the dataloader is substituted by a
-                single-sequence loader and augmentation is turned off. Defaults to
-                False.
-            initial_checkpoint (bool): to disable the initial checkpoint when debugging.
+            overfit: If true, the dataloader is substituted by a
+                single-sequence loader and augmentation is turned off.
+            initial_checkpoint: Whether to create an initial checkpoint when debugging.
 
         Raises:
-            OverflowError: raised if the activity or loss reports Nan values for more
-            than 100 iterations.
+            OverflowError: If the activity or loss reports NaN values for more
+                than 100 iterations.
 
         Stores:
+            ```bash
             dir / loss.h5
             dir / loss_<task>.h5
             dir / activity.h5
             dir / activity_min.h5
             dir / activity_max.h5
+            ```
         """
         # pdb.set_trace()
         # return if iterations have already been trained.
@@ -360,7 +405,7 @@ class MultiTaskSolver:
         self.dir.time_trained = time_elapsed + time_trained
         logging.info("Finished training.")
 
-    def checkpoint(self):
+    def checkpoint(self) -> None:
         """Creates a checkpoint.
 
         Validates on the validation data calling ~self.test.
@@ -369,13 +414,16 @@ class MultiTaskSolver:
         pytorch's pickle function.
 
         Stores:
-            dir / chkpt_index.h5 (List): numerical identifier of the checkpoint.
-            dir / chkpt_iter.h5 (List): iteration at which this checkpoint was recorded.
-            dir / best_chkpt_index.h5 (int): chkpt index at which the val loss is
-            minimal.
-            dir / dt.h5 (float): the current time constant of the dataset.
-            dir / chkpts / chkpt_<chkpt_index> (dict): the state dicts of the network,
-                decoder and optimizer.
+            ```bash
+            dir / chkpt_index.h5  # (List): numerical identifier of the checkpoint.
+            dir / chkpt_iter.h5  # (List): iteration at which this checkpoint was
+                                 # recorded.
+            dir / best_chkpt_index.h5  # (int): chkpt index at which the val loss is
+                                       # minimal.
+            dir / dt.h5  # (float): the current time constant of the dataset.
+            dir / chkpts / chkpt_<chkpt_index>  # (dict): the state dicts of the network,
+                                                # decoder and optimizer.
+            ```
         """
         self._last_chkpt_ind += 1
         self._curr_chkpt_ind += 1
@@ -439,18 +487,21 @@ class MultiTaskSolver:
         """Tests the network on a given dataloader.
 
         Args:
-            dataloader: data to test on.
-            subdir: name of subdirectory. Defaults to 'validation'.
-            track_loss: whether to store the loss in dir.subdir.
-            t_pre: warmup time before the stimulus starts.
+            dataloader: Data to test on.
+            subdir: Name of subdirectory. Defaults to 'validation'.
+            track_loss: Whether to store the loss in dir.subdir.
+            t_pre: Warmup time before the stimulus starts.
 
         Returns:
-            float: validation loss
+            Validation loss.
 
         Stores:
-            dir.<subdir>.loss_<task> (List): loss per task, averaged over whole dataset.
-            dir.<subdir>.iteration (List): iteration when this was called.
-            dir.<subdir>.loss (List): average loss over tasks.
+            ```bash
+            dir.<subdir>.loss_<task>  # (List): Loss per task, averaged over whole
+                                      # dataset.
+            dir.<subdir>.iteration  # (List): Iteration when this was called.
+            dir.<subdir>.loss  # (List): Average loss over tasks.
+            ```
         """
         self._eval()
         logging.info("Test")
@@ -514,33 +565,19 @@ class MultiTaskSolver:
 
         return val_loss
 
-    def _train(self):
+    def _train(self) -> None:
         """Sets nn.Modules to train state."""
         self.network.train()
         if self.decoder is not None:
             for decoder in self.decoder.values():
                 decoder.train()
 
-    def _eval(self):
+    def _eval(self) -> None:
         """Sets nn.Modules to eval state."""
         self.network.eval()
         if self.decoder is not None:
             for decoder in self.decoder.values():
                 decoder.eval()
-
-    def get_checkpoints(
-        self,
-        checkpoint: Union[int, str] = "best",
-        validation_subdir: str = "validation",
-        loss_file_name: str = "loss",
-    ):
-        """Returns the path to a checkpoint. This can be passed to the recover methods
-        along with the nn.Module instances to create instances from checkpoints
-        independently of the solver.
-        """
-        return resolve_checkpoints(
-            self.dir, checkpoint, validation_subdir, loss_file_name
-        )
 
     def recover(
         self,
@@ -548,31 +585,25 @@ class MultiTaskSolver:
         decoder: bool = True,
         optimizer: bool = True,
         penalty: bool = True,
-        checkpoint: Union[
-            int, str
-        ] = "best",  # -1 for last, 'best' for best based on validation
-        validation_subdir: str = "validation",  # required if checkpoint == 'best'
+        checkpoint: Union[int, str] = "best",
+        validation_subdir: str = "validation",
         loss_file_name: str = "loss",
         strict: bool = True,
         force: bool = False,
-    ):
+    ) -> None:
         """Recovers the solver state from a checkpoint.
 
         Args:
-            network: recover network parameters. Defaults to True.
-            decoder: recover decoder parameters. Defaults to True.
-            optimizer: recover optimizer parameters. Defaults to True.
-            penalty: recover penalty parameters. Defaults to True.
-            checkpoint: index of the checkpoint to recover. Defaults to "best".
-                "best" for best based on tracked validation, -1 for last.
-            validation_subdir: name of the subdir to base the best checkpoint on.
-                Required if checkpoint == 'best'. Defaults to "validation".
-            loss_file_name: name of the loss to base the best checkpoint on. Defaults
-                to "epe". Assumed to be a subdir of validation.
-            strict: whether to load the state dict of the decoders strictly.
-                Defaults to True.
-            force: force recovery of checkpoint if _curr_chkpt_ind is arelady
-                the same as the checkpoint index. Defaults to False.
+            network: Recover network parameters.
+            decoder: Recover decoder parameters.
+            optimizer: Recover optimizer parameters.
+            penalty: Recover penalty parameters.
+            checkpoint: Index of the checkpoint to recover.
+            validation_subdir: Name of the subdir to base the best checkpoint on.
+            loss_file_name: Name of the loss to base the best checkpoint on.
+            strict: Whether to load the state dict of the decoders strictly.
+            force: Force recovery of checkpoint if _curr_chkpt_ind is already
+                the same as the checkpoint index.
         """
         checkpoints = resolve_checkpoints(
             self.dir, checkpoint, validation_subdir, loss_file_name
@@ -621,82 +652,111 @@ class Penalty:
     """Penalties on specific parameters.
 
     Args:
-        solver (MultiTaskSolver): the solver instance.
+        penalty: Penalty configuration.
+        network: The neural network.
 
-    Example configurations passed to the network object:
+    Note: Default config in config/penalizer/penalizer.yaml
+        ```yaml
+        activity_penalty:
+            activity_baseline: 5.0
+            activity_penalty: 0.1
+            stop_iter: 150000
+            below_baseline_penalty_weight: 1.0
+            above_baseline_penalty_weight: 0.1
+        ```
+
+    Note: Default config in config/network/node_config/bias/bias.yaml
+        ```yaml
+        type: RestingPotential
+        groupby:
+            - type
+        initial_dist: Normal
+        mode: sample
+        requires_grad: true
+        seed: 0
+        mean: 0.5
+        std: 0.05
+        symmetric: []
+        penalize:
+            activity: true
+        ```
+
+    Attributes:
+        config (Namespace): Penalty configuration.
+        network (Network): The neural network.
+        central_cells_index (np.ndarray): Index of central cells.
+        parameter_config (Namespace): Configuration for parameter penalties.
+        activity_penalty (float): Penalty for activity.
+        activity_baseline (float): Baseline for activity.
+        activity_penalty_stop_iter (int): Iteration to stop activity penalty.
+        below_baseline_penalty_weight (float): Weight for below baseline penalty.
+        above_baseline_penalty_weight (float): Weight for above baseline penalty.
+        parameter_optim (torch.optim.Optimizer): Optimizer for parameter penalties.
+        activity_optim (torch.optim.Optimizer): Optimizer for activity penalties.
+        optimizers (Dict[str, torch.optim.Optimizer]): Dictionary of optimizers.
+        param_list_func_pen (list): List of parameters for function penalties.
+        param_list_act_pen (list): List of parameters for activity penalties.
+
+    Examples:
+        Example configurations passed to the network object:
+
+        ```python
         # Example 1: Penalize the resting potential of all cell types.
-        bias=Namespace(
-                type="RestingPotential",
-                groupby=["type"],
-                initial_dist="Normal",
-                mode="sample",
-                requires_grad=True,
-                mean=0.5,
-                std=0.05,
-                penalize=Namespace(activity=True),
-                seed=0,
-            )
-        # Example 2: add a weight decay penalty to all synapse strengths.
-        syn_strength=Namespace(
-                type="SynapseCountScaling",
-                initial_dist="Value",
-                requires_grad=True,
-                scale_elec=0.01,
-                scale_chem=0.01,
-                clamp="non_negative",
-                groupby=["source_type", "target_type", "edge_type"],
-                penalize=Namespace(function="weight_decay", kwargs=dict(lambda=1e-3,)),
-            )
-    """
+        bias = Namespace(
+            type="RestingPotential",
+            groupby=["type"],
+            initial_dist="Normal",
+            mode="sample",
+            requires_grad=True,
+            mean=0.5,
+            std=0.05,
+            penalize=Namespace(activity=True),
+            seed=0,
+        )
 
-    solver: object
-    central_cells_index: np.ndarray
-    parameter_config: Namespace
-    activity_penalty: float
-    activity_baseline: float
-    activity_penalty_stop_iter: int
-    parameter_optim: torch.optim.Optimizer = None
-    activity_optim: torch.optim.Optimizer = None
-    optimizers: Dict[str, torch.optim.Optimizer]
-    default_optim: torch.optim.Optimizer = torch.optim.SGD
+        # Example 2: add a weight decay penalty to all synapse strengths.
+        syn_strength = Namespace(
+            type="SynapseCountScaling",
+            initial_dist="Value",
+            requires_grad=True,
+            scale_elec=0.01,
+            scale_chem=0.01,
+            clamp="non_negative",
+            groupby=["source_type", "target_type", "edge_type"],
+            penalize=Namespace(function="weight_decay", kwargs=dict(lambda=1e-3,)),
+        )
+        ```
+    """
 
     def __init__(self, penalty: Namespace, network: Network):
         self.config = penalty
         self.network = network
         self.central_cells_index = self.network.connectome.central_cells_index[:]
 
-        self.parameter_config = self.get_configs()
+        self.parameter_config = self.get_network_param_penalty_configs()
         self.init_optim()
         self.init_hparams()
 
-    def __repr__(self):
-        return (
-            f"Penalty("
-            f"parameter_config={self.parameter_config}, "
-            f"activity_penalty={self.activity_penalty}, "
-            f"activity_baseline={self.activity_baseline}, "
-            f"activity_penalty_stop_iter={self.activity_penalty_stop_iter}, "
-            f"below_baseline_penalty_weight={self.below_baseline_penalty_weight}, "
-            f"above_baseline_penalty_weight={self.above_baseline_penalty_weight}"
-            f")"
+    def get_network_param_penalty_configs(self) -> Namespace:
+        """Returns a dictionary of all network parameters configured to be penalized."""
+        node_config = Namespace({
+            "nodes_" + k: v.pop("penalize", None)
+            for k, v in self.network.config.node_config.deepcopy().items()
+        })
+        edge_config = Namespace({
+            "edges_" + k: v.pop("penalize", None)
+            for k, v in self.network.config.edge_config.deepcopy().items()
+        })
+        return valfilter(
+            lambda v: v is not None,
+            Namespace(**node_config, **edge_config),
+            factory=Namespace,
         )
 
-    def __call__(self, activity, iteration):
-        """Run all configured penalties."""
-        if self.parameter_optim:
-            self.param_penalty_step()
-        if self.activity_optim:
-            if (
-                self.activity_penalty_stop_iter is None
-                or iteration < self.activity_penalty_stop_iter
-            ):
-                self.activity_penalty_step(activity, retain_graph=False)
-            else:
-                self.activity_optim = None
-
-    def init_optim(self):
+    def init_optim(self) -> None:
         """Initialize the individual optimizer instances with the correct set of
-        parameters."""
+        parameters.
+        """
         self.optimizers = {}
         self.param_list_func_pen = []
         self.param_list_act_pen = []
@@ -723,7 +783,7 @@ class Penalty:
             )  # LR is overwritten by scheduler.
             self.optimizers.update(dict(activity_optim=self.activity_optim))
 
-    def init_hparams(self):
+    def init_hparams(self) -> None:
         """Initialize the hyperparameters for the activity penalty."""
         config = self.config.get("activity_penalty", Namespace())
 
@@ -756,23 +816,37 @@ class Penalty:
                 "set."
             )
 
-    def get_configs(self) -> Namespace:
-        """Returns a dictionary of all parameters that need to be penalized."""
-        node_config = Namespace({
-            "nodes_" + k: v.pop("penalize", None)
-            for k, v in self.network.config.node_config.deepcopy().items()
-        })
-        edge_config = Namespace({
-            "edges_" + k: v.pop("penalize", None)
-            for k, v in self.network.config.edge_config.deepcopy().items()
-        })
-        return valfilter(
-            lambda v: v is not None,
-            Namespace(**node_config, **edge_config),
-            factory=Namespace,
+    def __repr__(self):
+        return (
+            f"Penalty("
+            f"parameter_config={self.parameter_config}, "
+            f"activity_penalty={self.activity_penalty}, "
+            f"activity_baseline={self.activity_baseline}, "
+            f"activity_penalty_stop_iter={self.activity_penalty_stop_iter}, "
+            f"below_baseline_penalty_weight={self.below_baseline_penalty_weight}, "
+            f"above_baseline_penalty_weight={self.above_baseline_penalty_weight}"
+            f")"
         )
 
-    def _chkpt(self):
+    def __call__(self, activity: torch.Tensor, iteration: int) -> None:
+        """Run all configured penalties.
+
+        Args:
+            activity: Network activity.
+            iteration: Current iteration.
+        """
+        if self.parameter_optim:
+            self.param_penalty_step()
+        if self.activity_optim:
+            if (
+                self.activity_penalty_stop_iter is None
+                or iteration < self.activity_penalty_stop_iter
+            ):
+                self.activity_penalty_step(activity, retain_graph=False)
+            else:
+                self.activity_optim = None
+
+    def _chkpt(self) -> dict:
         """Returns a dictionary of all state dicts of all optimizer instances."""
         _chkpt = {}
         for key, optim in self.optimizers.items():
@@ -780,7 +854,7 @@ class Penalty:
                 _chkpt[key] = optim.state_dict()
         return _chkpt
 
-    def param_penalty_step(self):
+    def param_penalty_step(self) -> None:
         """Apply all the penalties on the individual parameters."""
         self.parameter_optim.zero_grad()
         penalty = 0
@@ -791,14 +865,22 @@ class Penalty:
         self.parameter_optim.step()
         self.network.clamp()
 
-    def activity_penalty_step(self, activity, retain_graph=True):
-        """Penalizes parameters tracked in activity_optim for too high or low acticity.
+    def activity_penalty_step(
+        self, activity: torch.Tensor, retain_graph: bool = True
+    ) -> None:
+        """Penalizes parameters tracked in activity_optim for too high or low activity.
 
-        Encourages the central nodes to have a higher temporal mean activity, remedying
-        dead neurons.
+        Encourages the nodes to have a higher or lower temporal mean activity,
+        remedying dead or overactive neurons.
+
+        Note:
+            This assumes that the central cells are representative for all cells because
+            of shared parameters across the cell types, which makes this reasonably
+            efficient.
 
         Args:
-            activity (tensor): network activity of shape (n_samples, n_frames, n_nodes).
+            activity: Network activity of shape (n_samples, n_frames, n_nodes).
+            retain_graph: Whether to retain the computation graph.
         """
         self.activity_optim.zero_grad()
         n_samples, n_frames, n_nodes = activity.shape
@@ -822,19 +904,38 @@ class Penalty:
         self.activity_optim.step()
         self.network.clamp()
 
-    # -- Penalty functions --
+    def weight_decay(self, param: str, config: Namespace) -> torch.Tensor:
+        """Adds weight decay to the loss.
 
-    def weight_decay(self, param, config):
-        """Adds weight decay to the loss."""
+        Warning: Experimental
+
+        Args:
+            param: Name of the parameter.
+            config: Configuration for the penalty.
+
+        Returns:
+            The weight decay penalty.
+
+        """
         w = getattr(self.network, param)
         return config.kwargs["lambda"] * (w**2).sum()
 
-    def prior(self, param, config):
-        """L2 penalty towards initial values."""
+    def prior(self, param: str, config: Namespace) -> torch.Tensor:
+        """L2 penalty towards initial values.
+
+        Warning: Experimental
+
+        Args:
+            param: Name of the parameter.
+            config: Configuration for the penalty.
+
+        Returns:
+            The L2 penalty.
+
+        TODO: this might be a convenient but suboptimal implementation when the initial
+        values are cast to tensors at each iteration.
+        """
         _key = "edge_config" if param.startswith("edges") else "node_config"
-        # TODO: check that this stores the actual initial values. This might be a
-        # convenient but suboptimal implementation if the initial values are cast
-        # to tensors at each iteration
         prior = torch.tensor(
             getattr(self.network.config, _key)[
                 param.replace("edges_", "").replace("nodes_", "")
@@ -851,6 +952,48 @@ class HyperParamScheduler:
 
     Calling the scheduler instance updates the respective hyperparameters per training
     iteration.
+
+    Args:
+        scheduler: Scheduler configuration.
+        network: The neural network.
+        task: The task being solved.
+        optimizer: The optimizer.
+        penalizer: The penalty object.
+
+    Note: Default config in config/scheduler/scheduler.yaml
+        ```yaml
+        lr_net:
+            function: stepwise
+            start: 5.0e-05
+            stop: 5.0e-06
+            steps: 10
+        lr_dec:
+            function: stepwise
+            start: 5.0e-05
+            stop: 5.0e-06
+            steps: 10
+        lr_pen:
+            function: stepwise
+            start: ${scheduler.lr_net.start}
+            stop: ${scheduler.lr_net.stop}
+            steps: 10
+        dt:
+            function: stepwise
+            start: 0.02
+            stop: 0.02
+            steps: 10
+        chkpt_every_epoch: 300
+        ```
+
+    Attributes:
+        config (Namespace): Scheduler configuration.
+        scheduled_params (Namespace): Scheduled parameters.
+        network (Network): The neural network.
+        task (Task): The task being solved.
+        optimizer (torch.optim.Optimizer): The optimizer.
+        penalizer (Penalty): The penalty object.
+        stop_iter (int): Iteration to stop scheduling.
+        _current_iteration (int): Current iteration.
     """
 
     def __init__(
@@ -875,7 +1018,7 @@ class HyperParamScheduler:
         for key, param in self.config.items():
             try:
                 schedfn_config = SchedulerFunction(**param)
-                logging.info(f"Init schedule for {key}")
+                logging.info("Init schedule for %s", key)
             except TypeError:
                 # lazy way to skip the parameter if it's not a SchedulerFunction
                 continue
@@ -890,7 +1033,12 @@ class HyperParamScheduler:
             )
             self.scheduled_params[key] = param
 
-    def __call__(self, iteration):
+    def __call__(self, iteration: int) -> None:
+        """Update hyperparameters for the given iteration.
+
+        Args:
+            iteration: Current iteration.
+        """
         self._current_iteration = iteration
         for key, param in self.scheduled_params.items():
             try:
@@ -909,50 +1057,55 @@ class HyperParamScheduler:
             self._params(),
         )
 
-    def _params(self):
+    def _params(self) -> dict:
+        """Get current parameter values.
+
+        Returns:
+            A dictionary of current parameter values.
+        """
         params = {}
         for key, _param in self.scheduled_params.items():
             value = getattr(self, key)
             params[key] = value
         return params
 
-    # -------- Decaying parameters
+    # -------- Setter methods called automatically by the scheduler
 
     @property
-    def dt(self):
+    def dt(self) -> float:
         return self.task.dataset.dt
 
     @dt.setter
-    def dt(self, value):
+    def dt(self, value: float) -> None:
         self.task.dataset.dt = value
 
     @property
-    def lr_net(self):
+    def lr_net(self) -> float:
         if self.optimizer is None:
             return
         return self.optimizer.param_groups[0]["lr"]
 
     @lr_net.setter
-    def lr_net(self, value):
+    def lr_net(self, value: float) -> None:
         if self.optimizer is None:
             return
         self.optimizer.param_groups[0]["lr"] = value
 
     @property
-    def lr_dec(self):
+    def lr_dec(self) -> list:
         if self.optimizer is None:
             return
         return [param_group["lr"] for param_group in self.optimizer.param_groups[1:]]
 
     @lr_dec.setter
-    def lr_dec(self, value):
+    def lr_dec(self, value: float) -> None:
         if self.optimizer is None:
             return
         for param_group in self.optimizer.param_groups[1:]:
             param_group["lr"] = value
 
     @property
-    def lr_pen(self):
+    def lr_pen(self) -> list:
         if self.penalizer is None:
             return
         return [
@@ -962,7 +1115,7 @@ class HyperParamScheduler:
         ]
 
     @lr_pen.setter
-    def lr_pen(self, value):
+    def lr_pen(self, value: float) -> None:
         if self.penalizer is None:
             return
         for optim in self.penalizer.optimizers.values():
@@ -971,26 +1124,26 @@ class HyperParamScheduler:
                     param_group["lr"] = value
 
     @property
-    def relu_leak(self):
+    def relu_leak(self) -> float:
         if self.network is None:
             return
         return getattr(self.network.dynamics.activation, "negative_slope", None)
 
     @relu_leak.setter
-    def relu_leak(self, value):
+    def relu_leak(self, value: float) -> None:
         if self.network is None:
             return
         if hasattr(self.network.dynamics.activation, "negative_slope"):
             self.network.dynamics.activation.negative_slope = value
 
     @property
-    def activity_penalty(self):
+    def activity_penalty(self) -> float:
         if self.penalizer is None:
             return
         return self.penalizer.activity_penalty
 
     @activity_penalty.setter
-    def activity_penalty(self, value):
+    def activity_penalty(self, value: float) -> None:
         if self.penalizer is None:
             return
         self.penalizer.activity_penalty = value
@@ -998,36 +1151,52 @@ class HyperParamScheduler:
     # -------- Decay Options
 
     @staticmethod
-    def linear(stop_iter, n_iterations, start, stop, steps):
+    def linear(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate a linear schedule from start to stop value."""
         f = np.linspace(start, stop, stop_iter)
         return np.pad(f, (0, n_iterations - len(f) + 1), constant_values=stop)
 
     @staticmethod
-    def stepwise(stop_iter, n_iterations, start, stop, steps):
+    def stepwise(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate a stepwise schedule from start to stop value."""
         f = np.linspace(start, stop, steps).repeat(stop_iter / steps)
         return np.pad(f, (0, n_iterations - len(f) + 1), constant_values=stop)
 
     @staticmethod
-    def stepwise_2ndhalf(stop_iter, n_iterations, start, stop, steps):
-        """Decays within half of the iterations and remains constant then."""
+    def stepwise_2ndhalf(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate a stepwise schedule that decays in the second half of iterations."""
         f = np.linspace(start, stop, steps).repeat((stop_iter / 2) / steps)
         return np.pad(f, (n_iterations - len(f) + 1, 0), constant_values=start)
 
     @staticmethod
-    def stepwise_half(stop_iter, n_iterations, start, stop, steps):
-        """Decays within half of the iterations and remains constant then."""
+    def stepwise_half(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate a stepwise schedule that decays in the first half of iterations."""
         f = np.linspace(start, stop, steps).repeat((stop_iter / 2) / steps)
         return np.pad(f, (0, n_iterations - len(f) + 1), constant_values=stop)
 
     @staticmethod
-    def steponential(stop_iter, n_iterations, start, stop, steps):
+    def steponential(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate an exponential stepwise schedule from start to stop value."""
         x = (1 / stop) ** (1 / steps)
         values = start / x ** np.arange(steps)
         f = values.repeat(stop_iter / steps)
         return np.pad(f, (0, n_iterations - len(f) + 1), constant_values=values[-1])
 
     @staticmethod
-    def steponential_inv(stop_iter, n_iterations, start, stop, steps):
+    def steponential_inv(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate an inverse exponential stepwise schedule."""
         _start = steps
         _stop = 0
         x = 1 / _stop
@@ -1036,13 +1205,19 @@ class HyperParamScheduler:
         return np.pad(f, (0, n_iterations - len(f) + 1), constant_values=values[-1])
 
     @staticmethod
-    def exponential(stop_iter, n_iterations, start, stop, steps):
+    def exponential(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate an exponential schedule from start to stop value."""
         tau = -stop_iter / (np.log(stop + 1e-15) - np.log(start))
         f = start * np.exp(-np.arange(stop_iter) / tau)
         return np.pad(f, (0, n_iterations - len(f) + 1), constant_values=stop)
 
     @staticmethod
-    def exponential_half(stop_iter, n_iterations, start, stop, steps):
+    def exponential_half(
+        stop_iter: int, n_iterations: int, start: float, stop: float, steps: int
+    ) -> np.ndarray:
+        """Generate exponential schedule that decays in the first half of iterations."""
         tau = -int((stop_iter / 2)) / (np.log(stop) - np.log(start))
         f = start * np.exp(-np.arange(int(stop_iter / 2)) / tau)
         return np.pad(f, (0, n_iterations - len(f) + 1), constant_values=stop)
@@ -1050,6 +1225,15 @@ class HyperParamScheduler:
 
 @dataclass
 class SchedulerFunction:
+    """Configuration for a scheduler function.
+
+    Attributes:
+        start (float): Start value.
+        stop (float): Stop value.
+        steps (int): Number of steps.
+        function (str): Name of the scheduling function.
+    """
+
     start: float
     stop: float
     steps: int
