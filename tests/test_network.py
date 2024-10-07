@@ -4,7 +4,7 @@ from datamate import Namespace
 
 import flyvision
 from flyvision import Network
-from flyvision.network import IntegrationWarning
+from flyvision.network.network import IntegrationWarning
 from flyvision.utils.tensor_utils import AutoDeref
 
 

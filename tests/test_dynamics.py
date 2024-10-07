@@ -1,7 +1,7 @@
 import pytest
 
-from flyvision import dynamics
-from flyvision.dynamics import NetworkDynamics, activation_fns
+from flyvision.network import dynamics
+from flyvision.network.dynamics import NetworkDynamics, activation_fns
 from flyvision.utils.class_utils import forward_subclass
 
 

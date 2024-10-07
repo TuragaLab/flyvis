@@ -3,7 +3,7 @@ import pytest
 import torch
 from datamate import Namespace
 
-from flyvision.initialization import InitialDistribution, Parameter
+from flyvision.network.initialization import InitialDistribution, Parameter
 from flyvision.utils.class_utils import forward_subclass
 
 # -- Fixtures ------------------------------------------------------------------

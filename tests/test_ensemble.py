@@ -8,9 +8,9 @@ import torch
 from datamate import Directory, Namespace
 
 from flyvision import results_dir
-from flyvision.ensemble import Ensemble, TaskError
-from flyvision.ensemble_view import EnsembleView
-from flyvision.network import IntegrationWarning, Network
+from flyvision.network.ensemble import Ensemble, TaskError
+from flyvision.network.ensemble_view import EnsembleView
+from flyvision.network.network import IntegrationWarning, Network
 
 pytestmark = pytest.mark.require_download
 
