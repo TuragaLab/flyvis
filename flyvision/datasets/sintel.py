@@ -56,6 +56,12 @@ class RenderedSintel(Directory):
 
     Attributes:
         config: Configuration parameters used for rendering.
+        sequence_<id>_<name>_split_<j>/lum (ArrayFile):
+            Rendered luminance data (frames, 1, hexals).
+        sequence_<id>_<name>_split_<j>/flow (ArrayFile):
+            Rendered flow data (frames, 2, hexals).
+        sequence_<id>_<name>_split_<j>/depth (ArrayFile):
+            Rendered depth data (frames, 1, hexals).
     """
 
     def __init__(
@@ -103,7 +109,7 @@ class RenderedSintel(Directory):
                     vertical_splits,
                     center_crop_fraction,
                 )
-                # (frames, splits, 1, #hexals)
+                # (splits, frames, 1, #hexals)
                 lum_hex = boxfilter(lum_split).cpu()
 
                 # (frames, 2, height, width)
@@ -117,7 +123,7 @@ class RenderedSintel(Directory):
                     vertical_splits,
                     center_crop_fraction,
                 )
-                # (frames, splits, 2, #hexals)
+                # (splits, frames, 2, #hexals)
                 flow_hex = torch.cat(
                     (
                         boxfilter(flow_split[:, :, 0], ftype="sum"),
@@ -140,7 +146,7 @@ class RenderedSintel(Directory):
                         vertical_splits,
                         center_crop_fraction,
                     )
-                    # (frames, splits, 1, #hexals)
+                    # (splits, frames, 1, #hexals)
                     depth_hex = boxfilter(depth_splits, ftype="median").cpu()
 
                 # -- store -----------------------------------------------------
@@ -156,7 +162,7 @@ class RenderedSintel(Directory):
             if unittest:
                 break
 
-    def __call__(self, seq_id: int) -> Dict[str, torch.Tensor]:
+    def __call__(self, seq_id: int) -> Dict[str, np.ndarray]:
         """Returns all rendered data for a given sequence index.
 
         Args:

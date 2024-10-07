@@ -1,5 +1,7 @@
 """Rendering utils"""
 
+from typing import Optional, Union
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -79,22 +81,35 @@ def median(x, kernel_size, stride=1, n_chunks=10):
         return _x.view(shape)
 
 
-def split(array, out_nelements, n_splits, center_crop_fraction=0.7):
-    """Splits an array into n_splits splits along the last dimension.
+def split(
+    array: Union[np.ndarray, torch.Tensor],
+    out_nelements: int,
+    n_splits: int,
+    center_crop_fraction: Optional[float] = 0.7,
+) -> Union[np.ndarray, torch.Tensor]:
+    """Split an array into overlapping segments along the last dimension.
 
-    Note, splits overlap if needed.
+    This function first applies an optional center crop, then splits the array
+    into potentially overlapping segments.
 
     Args:
-        array (np.ndarray, torch.Tensor): array of shape (..., nelements).
-        out_nelements (int): nelements of output.
-        n_splits (int): number of splits.
-        center_crop_fraction (float): array will be cropped centrally in
-            the last dimension of nelements to the fraction center_crop_fraction
-            before being partitioned to capture more central content of the last
-            dim.
+        array: Input array of shape (..., nelements).
+        out_nelements: Number of elements in each output split.
+        n_splits: Number of splits to create.
+        center_crop_fraction: If not None, the array is centrally cropped in the
+            last dimension to this fraction before splitting. Defaults to 0.7.
 
     Returns:
-        tuple of n_splits arrays: ((..., out_nelements), ..., (..., out_nelements))
+        A new array of shape (n_splits, ..., out_nelements) containing the splits.
+
+    Raises:
+        ValueError: If n_splits is less than 0.
+        TypeError: If the input array is neither a numpy array nor a torch tensor.
+
+    Note:
+        - If n_splits is 1, the entire array is returned (with an added dimension).
+        - If n_splits is None or 0, the original array is returned unchanged.
+        - Splits may overlap if out_nelements * n_splits > array.shape[-1].
     """
     if center_crop_fraction is not None:
         return split(
@@ -107,7 +122,9 @@ def split(array, out_nelements, n_splits, center_crop_fraction=0.7):
     actual_nelements = array.shape[-1]
     out_nelements = int(out_nelements)
 
-    def take(arr, start, stop):
+    def take(
+        arr: Union[np.ndarray, torch.Tensor], start: int, stop: int
+    ) -> Union[np.ndarray, torch.Tensor]:
         if isinstance(arr, np.ndarray):
             return np.take(arr, np.arange(start, stop), axis=-1)[None]
         elif isinstance(arr, torch.Tensor):
@@ -116,7 +133,6 @@ def split(array, out_nelements, n_splits, center_crop_fraction=0.7):
     if n_splits == 1:
         out = (array[None, :],)
     elif n_splits > 1:
-        _div = int(out_nelements / n_splits)
         out = ()
         out_nelements = max(out_nelements, int(actual_nelements / n_splits))
         overlap = np.ceil(
@@ -129,13 +145,13 @@ def split(array, out_nelements, n_splits, center_crop_fraction=0.7):
     elif n_splits is None or n_splits == 0:
         return array
     else:
-        raise ValueError
+        raise ValueError("n_splits must be a non-negative integer or None")
 
     if isinstance(array, np.ndarray):
         return np.concatenate(out, axis=0)
     elif isinstance(array, torch.Tensor):
         return torch.cat(out, dim=0)
-    raise TypeError
+    raise TypeError("Input array must be either a numpy array or a torch tensor")
 
 
 def center_crop(array, out_nelements_ratio):

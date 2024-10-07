@@ -2,7 +2,7 @@ import logging
 from contextlib import suppress
 from dataclasses import dataclass
 from numbers import Number
-from typing import Iterable, Tuple
+from typing import Iterable, List, Optional, Tuple, Union
 
 import matplotlib as mpl
 import matplotlib.patheffects as path_effects
@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from matplotlib import colormaps as cm
+from matplotlib.axes import Axes
 from matplotlib.axis import Axis
 from matplotlib.colorbar import Colorbar
 from matplotlib.figure import Figure
@@ -1089,57 +1090,98 @@ class ViolinData:
 
 
 def violin_groups(
-    values,
-    xticklabels=None,
-    pvalues=None,
-    display_pvalues_kwargs={},
-    legend=False,
-    legend_kwargs={},
-    as_bars=False,
-    colors=None,
-    cmap=mpl.colormaps["tab10"],
-    cstart=0,
-    cdist=1,
-    figsize=(10, 1),
-    title="",
-    ylabel=None,
-    ylim=None,
-    rotation=90,
-    width=0.7,
-    fontsize=6,
-    ax=None,
-    fig=None,
-    showmeans=False,
-    showmedians=True,
-    grid=False,
-    scatter=True,
-    scatter_radius=3,
-    scatter_edge_color=None,
-    scatter_edge_width=0.5,
-    violin_alpha=0.5,
-    violin_marker_lw=0.5,
-    violin_marker_color="k",
-    color_by="groups",
-    zorder_mean_median=5,
-    zorder_min_max=5,
-    mean_median_linewidth=0.5,
-    mean_median_color="k",
-    mean_median_bar_length=None,
+    values: np.ndarray,
+    xticklabels: Optional[List[str]] = None,
+    pvalues: Optional[np.ndarray] = None,
+    display_pvalues_kwargs: dict = {},
+    legend: Union[bool, List[str]] = False,
+    legend_kwargs: dict = {},
+    as_bars: bool = False,
+    colors: Optional[List[str]] = None,
+    cmap: mpl.colors.Colormap = mpl.colormaps["tab10"],
+    cstart: float = 0,
+    cdist: float = 1,
+    figsize: Tuple[float, float] = (10, 1),
+    title: str = "",
+    ylabel: Optional[str] = None,
+    ylim: Optional[Tuple[float, float]] = None,
+    rotation: float = 90,
+    width: float = 0.7,
+    fontsize: int = 6,
+    ax: Optional[Axes] = None,
+    fig: Optional[Figure] = None,
+    showmeans: bool = False,
+    showmedians: bool = True,
+    grid: bool = False,
+    scatter: bool = True,
+    scatter_radius: float = 3,
+    scatter_edge_color: Optional[str] = None,
+    scatter_edge_width: float = 0.5,
+    violin_alpha: float = 0.5,
+    violin_marker_lw: float = 0.5,
+    violin_marker_color: str = "k",
+    color_by: str = "groups",
+    zorder_mean_median: int = 5,
+    zorder_min_max: int = 5,
+    mean_median_linewidth: float = 0.5,
+    mean_median_color: str = "k",
+    mean_median_bar_length: Optional[float] = None,
     **kwargs,
-):
+) -> Tuple[Figure, Axes, ViolinData]:
     """
+    Create violin plots or bar plots for grouped data.
+
     Args:
-        values: matrix of shape (#random variables, #groups, #samples).
-                random variables are labeled with xticklabels.
-                groups are labeled with legend.
-        xticklabels: #independents labels
-        legend: #groups labels
-        legend_kwargs: cosmetics for the legend, see matplotlib docs.
-        as_bars: switch from violins to bars.
-        scatter: scatter plot of data points on top.
-        cmap: colormap.
-        cdist: color distance between groups, when indexing cmap.
-        ...
+        values: Array of shape (n_random_variables, n_groups, n_samples).
+        xticklabels: Labels for the x-axis ticks (random variables).
+        pvalues: Array of p-values for statistical significance.
+        display_pvalues_kwargs: Keyword arguments for displaying p-values.
+        legend: If True or a list, display a legend with group labels.
+        legend_kwargs: Keyword arguments for the legend.
+        as_bars: If True, create bar plots instead of violin plots.
+        colors: List of colors for the violins or bars.
+        cmap: Colormap to use when colors are not provided.
+        cstart: Starting point in the colormap.
+        cdist: Distance between colors in the colormap.
+        figsize: Size of the figure (width, height).
+        title: Title of the plot.
+        ylabel: Label for the y-axis.
+        ylim: Limits for the y-axis (min, max).
+        rotation: Rotation angle for x-axis labels.
+        width: Width of the violins or bars.
+        fontsize: Font size for labels and ticks.
+        ax: Existing Axes object to plot on.
+        fig: Existing Figure object to use.
+        showmeans: If True, show mean lines on violins.
+        showmedians: If True, show median lines on violins.
+        grid: If True, display a grid.
+        scatter: If True, scatter individual data points.
+        scatter_radius: Size of scattered points.
+        scatter_edge_color: Color of scattered point edges.
+        scatter_edge_width: Width of scattered point edges.
+        violin_alpha: Alpha (transparency) of violin plots.
+        violin_marker_lw: Line width of violin markers.
+        violin_marker_color: Color of violin markers.
+        color_by: Whether to color by "groups" or "experiments".
+        zorder_mean_median: Z-order for mean and median lines.
+        zorder_min_max: Z-order for min and max lines.
+        mean_median_linewidth: Line width for mean and median lines.
+        mean_median_color: Color for mean and median lines.
+        mean_median_bar_length: Length of mean and median bars.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        A tuple containing:
+        - Figure: The matplotlib Figure object.
+        - Axes: The matplotlib Axes object.
+        - ViolinData: A custom object containing plot data.
+
+    Raises:
+        ValueError: If color specifications are invalid.
+
+    Note:
+        This function creates either violin plots or bar plots for grouped data,
+        with options for customizing colors, scatter plots, and statistical annotations.
     """
     fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax, fig)
     if grid:
@@ -1150,8 +1192,6 @@ def violin_groups(
         return handle
 
     def plot_violin(X, values, color):
-        # breakpoint()
-
         if isinstance(values, np.ma.core.MaskedArray):
             values = values[~values.mask]
 
@@ -1165,7 +1205,6 @@ def violin_groups(
         # Color the bodies.
         for pc in parts["bodies"]:
             pc.set_facecolor(color)
-            # pc.set_edgecolor(color)
             pc.set_alpha(violin_alpha)
             pc.set_zorder(0)
         # Color the lines.
@@ -1195,8 +1234,6 @@ def violin_groups(
             parts["cmedians"].set_color(mean_median_color)
             parts["cmedians"].set_linewidth(mean_median_linewidth)
             parts["cmedians"].set_zorder(zorder_mean_median)
-            # parts["cmedians"].set_alpha(0.8)
-            # breakpoint()
             if mean_median_bar_length is not None:
                 (_, y0), (_, y1) = parts["cmedians"].get_segments()[0]
                 (x0_vert, _), _ = parts["cbars"].get_segments()[0]

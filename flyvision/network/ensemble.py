@@ -94,7 +94,7 @@ class Ensemble(dict):
         ```
         or
         ```python
-        ensemble['opticflow/000/0000']
+        ensemble['flow/000/0000']
         ```
         Slice to create a subset of the ensemble:
         ```python

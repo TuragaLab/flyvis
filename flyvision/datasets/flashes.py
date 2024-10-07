@@ -2,6 +2,7 @@
 
 import logging
 from itertools import product
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -16,7 +17,7 @@ from .datasets import SequenceDataset
 from .rendering import BoxEye
 from .rendering.utils import resample
 
-logging = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 __all__ = ["RenderedFlashes", "Flashes", "render_flash"]
 
@@ -26,26 +27,29 @@ class RenderedFlashes(Directory):
     """Render a directory with flashes for the Flashes dataset.
 
     Args:
-        boxfilter: parameters for the BoxEye filter.
-        dynamic_range: range of intensities. E.g. [0, 1] renders flashes
+        boxfilter: Parameters for the BoxEye filter.
+        dynamic_range: Range of intensities. E.g. [0, 1] renders flashes
             with decrement 0.5->0 and increment 0.5->1.
-        t_stim: duration of the stimulus.
-        t_pre: duration of the grey stimulus.
-        dt: timesteps.
-        radius: radius of the stimulus.
-        alternations: sequence of alternations between lower or upper intensity and
+        t_stim: Duration of the stimulus.
+        t_pre: Duration of the grey stimulus.
+        dt: Timesteps.
+        radius: Radius of the stimulus.
+        alternations: Sequence of alternations between lower or upper intensity and
             baseline of the dynamic range.
+
+    Attributes:
+        flashes (ArrayFile): Array containing rendered flash sequences.
     """
 
     def __init__(
         self,
-        boxfilter: dict = dict(extent=15, kernel_size=13),
-        dynamic_range: list = [0, 1],
-        t_stim=1.0,
-        t_pre=1.0,
-        dt=1 / 200,
-        radius: list = [-1, 6],
-        alternations=(0, 1, 0),
+        boxfilter: Dict[str, int] = dict(extent=15, kernel_size=13),
+        dynamic_range: List[float] = [0, 1],
+        t_stim: float = 1.0,
+        t_pre: float = 1.0,
+        dt: float = 1 / 200,
+        radius: List[int] = [-1, 6],
+        alternations: Tuple[int, ...] = (0, 1, 0),
     ):
         boxfilter = BoxEye(**boxfilter)
         n_ommatidia = len(boxfilter.receptor_centers)
@@ -75,20 +79,30 @@ class RenderedFlashes(Directory):
 
 
 def render_flash(
-    n_ommatidia, intensity, baseline, t_stim, t_pre, dt, alternations, radius
-):
+    n_ommatidia: int,
+    intensity: float,
+    baseline: float,
+    t_stim: float,
+    t_pre: float,
+    dt: float,
+    alternations: Tuple[int, ...],
+    radius: int,
+) -> np.ndarray:
     """Generate a sequence of flashes on a hexagonal lattice.
 
     Args:
-        n_ommatidia (int): number of ommatidia.
-        intensity (float): intensity of the flash.
-        baseline (float): intensity of the baseline.
-        t_stim (float): duration of the stimulus.
-        t_pre (float): duration of the grey stimulus.
-        dt (float): timesteps.
-        alternations (list): sequence of alternations between lower or upper intensity
+        n_ommatidia: Number of ommatidia.
+        intensity: Intensity of the flash.
+        baseline: Intensity of the baseline.
+        t_stim: Duration of the stimulus.
+        t_pre: Duration of the grey stimulus.
+        dt: Timesteps.
+        alternations: Sequence of alternations between lower or upper intensity
             and baseline of the dynamic range.
-        radius (int): radius of the stimulus.
+        radius: Radius of the stimulus.
+
+    Returns:
+        np.ndarray: Generated flash sequence.
     """
     stimulus = torch.ones(n_ommatidia)[None] * baseline
 
@@ -117,33 +131,50 @@ def render_flash(
 class Flashes(SequenceDataset):
     """Flashes dataset.
 
+
     Args:
-        boxfilter: parameters for the BoxEye filter.
-        dynamic_range: range of intensities. E.g. [0, 1] renders flashes
+        boxfilter: Parameters for the BoxEye filter.
+        dynamic_range: Range of intensities. E.g. [0, 1] renders flashes
             with decrement 0.5->0 and increment 0.5->1.
-        t_stim: duration of the stimulus.
-        t_pre: duration of the grey stimulus.
-        dt: timesteps.
-        radius: radius of the stimulus.
-        alternations: sequence of alternations between lower or upper intensity and
+        t_stim: Duration of the stimulus.
+        t_pre: Duration of the grey stimulus.
+        dt: Timesteps.
+        radius: Radius of the stimulus.
+        alternations: Sequence of alternations between lower or upper intensity and
             baseline of the dynamic range.
+
+    Note:
+        Zero alternation is the prestimulus and baseline. One alternation is the
+        central stimulus. Has to start with zero alternation. `t_pre` is the
+        duration of the prestimulus and `t_stim` is the duration of the stimulus.
+
+    Attributes:
+        augment (bool): Flag for data augmentation.
+        n_sequences (int): Number of sequences.
+        dt (float): Timestep.
+        framerate (float): Frame rate.
+        t_post (float): Post-stimulus time.
+        flashes_dir (RenderedFlashes): Directory containing rendered flashes.
+        config: Configuration object.
+        baseline (float): Baseline intensity.
+        arg_df (pd.DataFrame): DataFrame containing flash parameters.
     """
 
-    augment = False
-    n_sequences = 0
-    dt = None
-    framerate = None
-    t_post = 0.0
+    augment: bool = False
+    n_sequences: int = 0
+    dt: Union[float, None] = None
+    framerate: Union[float, None] = None
+    t_post: float = 0.0
 
     def __init__(
         self,
-        boxfilter=dict(extent=15, kernel_size=13),
-        dynamic_range=[0, 1],
-        t_stim=1.0,
-        t_pre=1.0,
-        dt=1 / 200,
-        radius=[-1, 6],
-        alternations=(0, 1, 0),
+        boxfilter: Dict[str, int] = dict(extent=15, kernel_size=13),
+        dynamic_range: List[float] = [0, 1],
+        t_stim: float = 1.0,
+        t_pre: float = 1.0,
+        dt: float = 1 / 200,
+        radius: List[int] = [-1, 6],
+        alternations: Tuple[int, ...] = (0, 1, 0),
     ):
         assert alternations[0] == 0, "First alternation must be 0."
         self.flashes_dir = RenderedFlashes(
@@ -169,19 +200,30 @@ class Flashes(SequenceDataset):
         self.dt = dt
 
     @property
-    def t_pre(self):
+    def t_pre(self) -> float:
+        """Duration of the prestimulus and zero alternation."""
         return self.config.t_pre
 
     @property
-    def t_stim(self):
+    def t_stim(self) -> float:
+        """Duration of the one alternation."""
         return self.config.t_stim
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of items in the dataset."""
         return len(self.arg_df)
 
-    def get_item(self, key):
-        """Indexing the dataset."""
+    def get_item(self, key: int) -> torch.Tensor:
+        """Index the dataset.
+
+        Args:
+            key: Index of the item to retrieve.
+
+        Returns:
+            torch.Tensor: Flash sequence at the given index.
+        """
         return torch.Tensor(self.flashes_dir.flashes[key])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the dataset."""
         return f"Flashes dataset. Parametrization: \n{self.arg_df}"

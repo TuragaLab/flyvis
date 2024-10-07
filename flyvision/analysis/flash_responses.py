@@ -1,3 +1,5 @@
+from typing import List, Optional, Tuple
+
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
@@ -15,12 +17,27 @@ __all__ = ["flash_response_index", "fri_correlation_to_known", "plot_fris"]
 
 def flash_response_index(
     self: xr.DataArray,
-    radius,
-    on_intensity=1.0,
-    off_intensity=0.0,
-    nonnegative=True,
+    radius: float,
+    on_intensity: float = 1.0,
+    off_intensity: float = 0.0,
+    nonnegative: bool = True,
 ) -> xr.DataArray:
-    """Compute the Flash Response Index (FRI) using xarray methods."""
+    """
+    Compute the Flash Response Index (FRI) using xarray methods.
+
+    Args:
+        self: The input DataArray containing response data.
+        radius: The radius value to select data for.
+        on_intensity: The intensity value for the 'on' state.
+        off_intensity: The intensity value for the 'off' state.
+        nonnegative: If True, applies a nonnegative constraint to the data.
+
+    Returns:
+        xr.DataArray: The computed Flash Response Index.
+
+    Note:
+        Ensures that the stimulus configuration is correct for FRI computation.
+    """
 
     # Ensure that the stimulus configuration is correct for FRI computation
     assert tuple(self.attrs['config']['alternations']) == (0, 1, 0)
@@ -65,7 +82,15 @@ def flash_response_index(
 
 
 def fri_correlation_to_known(fris: xr.DataArray) -> xr.DataArray:
-    """Compute the correlation of the FRI to known cell type tunings."""
+    """
+    Compute the correlation of the FRI to known cell type tunings.
+
+    Args:
+        fris: DataArray containing Flash Response Index values.
+
+    Returns:
+        xr.DataArray: Correlation of FRIs to known cell type tunings.
+    """
     known_preferred_contrasts = {
         k: v for k, v in groundtruth_utils.polarity.items() if v != 0
     }
@@ -87,110 +112,89 @@ def fri_correlation_to_known(fris: xr.DataArray) -> xr.DataArray:
 
 
 def plot_fris(
-    fris,  # fris.responses[:]
-    cell_types,  # fris.responses.cell_types
-    scatter_best=False,
-    scatter_all=True,
-    bold_output_type_labels=True,
-    output_cell_types=None,
-    known_first=True,
-    sorted_type_list=None,
-    figsize=[10, 1],
-    cmap=plt.cm.Greys_r,
-    ylim=(-1, 1),
-    color_known_types=True,
-    fontsize=6,
+    fris: np.ndarray,
+    cell_types: np.ndarray,
+    scatter_best: bool = False,
+    scatter_all: bool = True,
+    bold_output_type_labels: bool = True,
+    output_cell_types: Optional[List[str]] = None,
+    known_first: bool = True,
+    sorted_type_list: Optional[List[str]] = None,
+    figsize: List[int] = [10, 1],
+    cmap: plt.cm = plt.cm.Greys_r,
+    ylim: Tuple[float, float] = (-1, 1),
+    color_known_types: bool = True,
+    fontsize: int = 6,
+    colors: Optional[List[str]] = None,
+    color: str = "b",
+    showmeans: bool = False,
+    showmedians: bool = True,
+    scatter_edge_width: float = 0.5,
+    scatter_best_edge_width: float = 0.75,
+    scatter_edge_color: str = "none",
+    scatter_face_color: str = "k",
+    scatter_alpha: float = 0.35,
+    scatter_best_alpha: float = 1.0,
+    scatter_all_marker: str = "o",
+    scatter_best_index: Optional[int] = None,
+    scatter_best_marker: str = "o",
+    scatter_best_color: Optional[str] = None,
+    mean_median_linewidth: float = 1.5,
+    mean_median_bar_length: float = 1.0,
+    violin_alpha: float = 0.3,
     **kwargs,
-):
-    """Plot flash response indices (FRIs) for the given cell types with violins."""
-    fig, ax, colors, fris = fri_violins(
-        fris=fris,
-        cell_types=cell_types,
-        cmap=cmap,
-        fontsize=fontsize,
-        sorted_type_list=sorted_type_list,
-        figsize=figsize,
-        scatter_best=scatter_best,
-        scatter_all=scatter_all,
-        known_first=known_first,
-        **kwargs,
-    )
-    ax.grid(False)
+) -> Tuple[plt.Figure, plt.Axes]:
+    """
+    Plot flash response indices (FRIs) for the given cell types with violins.
 
-    if bold_output_type_labels and output_cell_types is not None:
-        plt_utils.boldify_labels(output_cell_types, ax)
+    Args:
+        fris: Array of FRI values (n_random_variables, n_groups, n_samples).
+        cell_types: Array of cell type labels.
+        scatter_best: If True, scatter the best points.
+        scatter_all: If True, scatter all points.
+        bold_output_type_labels: If True, bold the output type labels.
+        output_cell_types: List of cell types to bold in the output.
+        known_first: If True, sort known cell types first.
+        sorted_type_list: List of cell types to sort by.
+        figsize: Figure size as [width, height].
+        cmap: Colormap for the plot.
+        ylim: Y-axis limits as (min, max).
+        color_known_types: If True, color known cell type labels.
+        fontsize: Font size for labels.
+        colors: List of colors for the violins.
+        color: Single color for all violins if cmap is None.
+        showmeans: If True, show means on the violins.
+        showmedians: If True, show medians on the violins.
+        scatter_edge_width: Width of scatter point edges.
+        scatter_best_edge_width: Width of best scatter point edges.
+        scatter_edge_color: Color of scatter point edges.
+        scatter_face_color: Color of scatter point faces.
+        scatter_alpha: Alpha value for scatter points.
+        scatter_best_alpha: Alpha value for best scatter points.
+        scatter_all_marker: Marker style for all scatter points.
+        scatter_best_index: Index of the best scatter point.
+        scatter_best_marker: Marker style for the best scatter point.
+        scatter_best_color: Color of the best scatter point.
+        mean_median_linewidth: Line width for mean/median lines.
+        mean_median_bar_length: Length of mean/median bars.
+        violin_alpha: Alpha value for violin plots.
+        **kwargs: Additional keyword arguments for violin_groups.
 
-    ax.set_ylim(*ylim)
-    plt_utils.trim_axis(ax)
-    plt_utils.set_spine_tick_params(
-        ax,
-        tickwidth=0.5,
-        ticklength=3,
-        ticklabelpad=2,
-        spinewidth=0.5,
-    )
-
-    if color_known_types:
-        ax = flash_response_color_labels(ax)
-
-    ax.hlines(
-        0,
-        min(ax.get_xticks()),
-        max(ax.get_xticks()),
-        linewidth=0.25,
-        # linestyles="dashed",
-        color="k",
-        zorder=0,
-    )
-    ax.set_yticks(np.arange(-1.0, 1.5, 0.5))
-
-    return fig, ax
-
-
-def fri_violins(
-    fris,
-    cell_types,
-    scatter_best=True,
-    scatter_all=True,
-    cmap=plt.cm.Oranges_r,
-    colors=None,
-    color="b",
-    figsize=[10, 1],
-    fontsize=6,
-    showmeans=False,
-    showmedians=True,
-    sorted_type_list=None,
-    scatter_edge_width=0.5,
-    scatter_best_edge_width=0.75,
-    scatter_edge_color="none",
-    scatter_face_color="k",
-    scatter_alpha=0.35,
-    scatter_best_alpha=1.0,
-    scatter_all_marker="o",
-    scatter_best_index=None,
-    scatter_best_marker="o",
-    scatter_best_color=None,
-    known_first=True,
-    mean_median_linewidth=1.5,
-    mean_median_bar_length=1.0,
-    violin_alpha=0.3,
-    **kwargs,
-):
-    # always add empty group axis for violin plot unless fris is provided
-    # with 3 axes
+    Returns:
+        Tuple containing the Figure and Axes objects.
+    """
+    # Process FRIs data
     if len(fris.shape) != 3:
         fris = fris[:, None]
-
-    # transpose to #cell_types, #groups, #samples
     if fris.shape[0] != len(cell_types):
         fris = np.transpose(fris, (2, 1, 0))
 
+    # Sort cell types
     if sorted_type_list is not None:
         fris = nodes_edges_utils.sort_by_mapping_lists(
             cell_types, sorted_type_list, fris, axis=0
         )
         cell_types = np.array(sorted_type_list)
-
     if known_first:
         _cell_types = nodes_edges_utils.nodes_list_sorting_on_off_unknown(cell_types)
         fris = nodes_edges_utils.sort_by_mapping_lists(
@@ -198,6 +202,7 @@ def fri_violins(
         )
         cell_types = np.array(_cell_types)
 
+    # Set colors
     if colors is not None:
         pass
     elif cmap is not None:
@@ -206,6 +211,7 @@ def fri_violins(
         cmap = None
         colors = (color,)
 
+    # Create violin plot
     fig, ax, colors = violin_groups(
         fris,
         cell_types[:],
@@ -224,6 +230,7 @@ def fri_violins(
         **kwargs,
     )
 
+    # Add scatter points if necessary
     if fris.shape[1] == 1:
         plt_utils.scatter_on_violins_with_best(
             fris.T.squeeze(),
@@ -241,10 +248,45 @@ def fri_violins(
             best_marker=scatter_best_marker,
             best_color=scatter_best_color,
         )
-    return fig, ax, colors, fris
+
+    # Customize plot appearance
+    ax.grid(False)
+    if bold_output_type_labels and output_cell_types is not None:
+        plt_utils.boldify_labels(output_cell_types, ax)
+    ax.set_ylim(*ylim)
+    plt_utils.trim_axis(ax)
+    plt_utils.set_spine_tick_params(
+        ax,
+        tickwidth=0.5,
+        ticklength=3,
+        ticklabelpad=2,
+        spinewidth=0.5,
+    )
+    if color_known_types:
+        ax = flash_response_color_labels(ax)
+    ax.hlines(
+        0,
+        min(ax.get_xticks()),
+        max(ax.get_xticks()),
+        linewidth=0.25,
+        color="k",
+        zorder=0,
+    )
+    ax.set_yticks(np.arange(-1.0, 1.5, 0.5))
+
+    return fig, ax
 
 
-def flash_response_color_labels(ax):
+def flash_response_color_labels(ax: plt.Axes) -> plt.Axes:
+    """
+    Color the labels of ON and OFF cells in the plot.
+
+    Args:
+        ax: The matplotlib Axes object to modify.
+
+    Returns:
+        The modified matplotlib Axes object.
+    """
     on = [key for key, value in groundtruth_utils.polarity.items() if value == 1]
     off = [key for key, value in groundtruth_utils.polarity.items() if value == -1]
     plt_utils.color_labels(on, ON_FR, ax)
