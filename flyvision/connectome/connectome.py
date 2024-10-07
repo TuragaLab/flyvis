@@ -8,8 +8,9 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 import matplotlib.path as mp
 import numpy as np
-from datamate import ArrayFile, Directory, Namespace, root
+from datamate import Directory, Namespace, root
 from matplotlib import colormaps as cm
+from matplotlib.axes import Axes
 from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from numpy.typing import NDArray
@@ -36,79 +37,57 @@ __all__ = [
 class ConnectomeDir(Directory):
     """Compiles a connectome graph from average convolutional filters.
 
-    The graph is cells (nodes) and synapse sets (edges).
+    The graph consists of cells (nodes) and synapse sets (edges).
+
+    Args:
+        file: The name of a JSON connectome file.
+        extent: The array radius, in columns.
+        n_syn_fill: The number of synapses to assume in data gaps.
 
     Attributes:
-
-        Files:
-            unique_cell_types (str): identified cell types
-            input_cell_types (str): input cell types
-            intermediate_cell_types (str): hidden cell types
-            output_cell_types (str): decoded cell types
-            central_cells_index (int): index of central cell in nodes table
-                for each cell type in unique_cell_types.
-            layout (str): input, hidden, output definitions for visualization.
-
-        SubDirs:
-
-            nodes (NodeDir): table with a row for each individual node/cell and
-                columns/files describing their attributed.
-
-                Files:
-                    type (str): cell type name
-                    u (int): hex-coordinates #1 (oblique coordinates)
-                    v (int): hex-coordinates #2 (oblique coordinates)
-                    role (str): input, hidden, or output
-
-                SubDirs:
-
-                    layer_index (Directory): all indices of a cell type in nodes.
-
-                        Files:
-                            <cell_type> (int): all cell indices of cell_type in
-                                nodes.
-
-            edges (EdgeDir): A table with a row for each edge.
-
-                Files:
-                    source_index (str): presynaptic cell
-                    target_index (int): postsynaptic cell
-                    sign (int): +1 (excitatory) or -1 (inhibitory)
-                    n_syn (float): synapse count
-                    other files for convenience
+        unique_cell_types (ArrayFile): Identified cell types.
+        input_cell_types (ArrayFile): Input cell types.
+        intermediate_cell_types (ArrayFile): Hidden cell types.
+        output_cell_types (ArrayFile): Decoded cell types.
+        central_cells_index (ArrayFile): Index of central cell in nodes table
+            for each cell type in unique_cell_types.
+        layout (ArrayFile): Input, hidden, output definitions for visualization.
+        nodes (NodeDir): Table with a row for each individual node/cell.
+        edges (EdgeDir): Table with a row for each edge.
 
     Note:
-        A connectome can be constructed from a JSON model file following this
-        schema:.connectome import *
+        A connectome can be constructed from a JSON model file following this schema:
 
-            {
-                "nodes": [{
-                    "name": string,
-                    "pattern": (
-                        ["stride", [<u_stride:int>, <v_stride:int>]]
-                        | ["tile", <stride:int>]
-                        | ["single", null]
-                    )
-                }*],
-                "edges": [{
-                    "src": string,
-                    "tar": string,
-                    "alpha": int,
-                    "offsets": [[
-                        [<du:int>, <dv:int>],
-                        <n_synapses:number>
-                    ]*],
-                    "edge_type": "chem" | "elec"
-                }*]
-            }
+        ```json
+        {
+            "nodes": [{
+                "name": string,
+                "pattern": (
+                    ["stride", [<u_stride:int>, <v_stride:int>]]
+                    | ["tile", <stride:int>]
+                    | ["single", null]
+                )
+            }*],
+            "edges": [{
+                "src": string,
+                "tar": string,
+                "alpha": int,
+                "offsets": [[
+                    [<du:int>, <dv:int>],
+                    <n_synapses:number>
+                ]*],
+                "edge_type": "chem" | "elec"
+            }*]
+        }
+        ```
 
         See "data/connectome/fib25-fib19_v2.2.json" for an example.
 
     Example:
-        >>> config = Namespace(file='fib25-fib19_v2.2.json',
-                               extent=15,
-                               n_syn_fill=1)
-        >>> connectome = Connectome(config)
+        ```python
+        config = Namespace(file='fib25-fib19_v2.2.json', extent=15, n_syn_fill=1)
+        connectome = Connectome(config)
+        ```
     """
 
     class Config:
@@ -118,25 +97,6 @@ class ConnectomeDir(Directory):
         "The array radius, in columns"
         n_syn_fill: int
         "The number of synapses to assume in data gaps"
-
-    # -- Contents ------------------------------------------
-    unique_cell_types: ArrayFile
-    "A list of all cell types"
-    input_cell_types: ArrayFile
-    "The cell types to use as inputs"
-    intermediate_cell_types: ArrayFile
-    "The hidden cell types"
-    output_cell_types: ArrayFile
-    "The cell types to use for task readout"
-    central_cells_index: ArrayFile
-    "Index of the central node of a unique cell type in the nodes table"
-    layout: ArrayFile
-    "Input, hidden, output layout for later circuit visualization"
-    nodes: Directory
-    "A table with a row for each node"
-    edges: Directory
-    "A table with a row for each edge"
-    # ------------------------------------------------------
 
     def __init__(self, file=flyvision.connectome_file, extent=15, n_syn_fill=1) -> None:
         # Load the connectome spec.
@@ -240,6 +200,17 @@ class ConnectomeDir(Directory):
 
 @dataclass
 class Node:
+    """Represents a node in the connectome graph.
+
+    Attributes:
+        id: Index (0..n_nodes).
+        type: Cell type name.
+        u: Location coordinate #1 (oblique coordinates).
+        v: Location coordinate #2 (oblique coordinates).
+        u_stride: Stride in u.
+        v_stride: Stride in v.
+    """
+
     id: int
     "index (0..n_nodes)"
     type: str
@@ -261,7 +232,13 @@ class NodeDir(Directory):
 
 
 def add_nodes(seq: List[Node], node_spec: dict, extent: int) -> None:
-    """Add nodes to `seq`, based on `node_spec`."""
+    """Add nodes to `seq`, based on `node_spec`.
+
+    Args:
+        seq: List to append nodes to.
+        node_spec: Dictionary specifying node properties.
+        extent: The array radius, in columns.
+    """
     for n in node_spec:
         typ, (pattern, args) = n["name"], n["pattern"]
         if pattern == "stride":
@@ -275,7 +252,14 @@ def add_nodes(seq: List[Node], node_spec: dict, extent: int) -> None:
 def add_strided_nodes(
     seq: List[Node], typ: str, extent: int, strides: Tuple[int, int]
 ) -> None:
-    """Add to `seq` a population of neurons arranged in a hexagonal grid."""
+    """Add to `seq` a population of neurons arranged in a hexagonal grid.
+
+    Args:
+        seq: List to append nodes to.
+        typ: Cell type name.
+        extent: The array radius, in columns.
+        strides: Tuple of (u_stride, v_stride).
+    """
     n = extent
     u_stride, v_stride = strides
     for u in range(-n, n + 1):
@@ -285,12 +269,25 @@ def add_strided_nodes(
 
 
 def add_tiled_nodes(seq: List[Node], typ: str, extent: int, n: int) -> None:
-    """Add to `seq` a population of neurons with strides `(n, n)`."""
+    """Add to `seq` a population of neurons with strides `(n, n)`.
+
+    Args:
+        seq: List to append nodes to.
+        typ: Cell type name.
+        extent: The array radius, in columns.
+        n: Stride value for both u and v.
+    """
     add_strided_nodes(seq, typ, extent, (n, n))
 
 
 def add_single_node(seq: List[Node], typ: str, extent: int) -> None:
-    """Add to `seq` a single-neuron population."""
+    """Add to `seq` a single-neuron population.
+
+    Args:
+        seq: List to append nodes to.
+        typ: Cell type name.
+        extent: The array radius, in columns.
+    """
     add_strided_nodes(seq, typ, 0, (1, 1))
 
 
@@ -299,6 +296,18 @@ def add_single_node(seq: List[Node], typ: str, extent: int) -> None:
 
 @dataclass
 class Edge:
+    """Represents an edge in the connectome graph.
+
+    Attributes:
+        id: Index (0..n_edges).
+        source: Presynaptic cell.
+        target: Postsynaptic cell.
+        sign: +1 (excitatory) or -1 (inhibitory).
+        n_syn: Synapse count.
+        type: Synapse type.
+        n_syn_certainty: Certainty of synapse count.
+    """
+
     id: int
     "index (0..n_edges)"
     source: Node
@@ -323,7 +332,14 @@ class EdgeDir(Directory):
 def add_edges(
     seq: List[Edge], nodes: List[Node], edge_spec: dict, n_syn_fill: float
 ) -> None:
-    """Add edges to `seq` based on `edge_spec`."""
+    """Add edges to `seq` based on `edge_spec`.
+
+    Args:
+        seq: List to append edges to.
+        nodes: List of all nodes in the connectome.
+        edge_spec: Dictionary specifying edge properties.
+        n_syn_fill: Number of synapses to assume in data gaps.
+    """
     node_index = {
         **groupby(lambda n: n.type, nodes),
         **groupby(lambda n: (n.type, n.u, n.v), nodes),
@@ -347,7 +363,15 @@ def add_edges(
 
 
 def fill_hull(offsets: List[list], n_syn_fill: float) -> List[list]:
-    """Fill in the convex hull of the reported edges."""
+    """Fill in the convex hull of the reported edges.
+
+    Args:
+        offsets: List of edge offsets.
+        n_syn_fill: Number of synapses to assume in data gaps.
+
+    Returns:
+        List of filled offsets.
+    """
     # to save time at library import
     import scipy.spatial as ss
 
@@ -386,7 +410,18 @@ def add_conv_edges(
     type: str,
     n_syn_certainty: float,
 ) -> None:
-    """Construct a connection set with convolutional weight symmetry."""
+    """Construct a connection set with convolutional weight symmetry.
+
+    Args:
+        seq: List to append edges to.
+        node_index: Dictionary mapping node types to nodes.
+        source_typ: Source cell type.
+        target_typ: Target cell type.
+        sign: +1 (excitatory) or -1 (inhibitory).
+        offsets: List of edge offsets.
+        type: Synapse type.
+        n_syn_certainty: Certainty of synapse count.
+    """
     for (du, dv), n_syn in offsets:
         for src in node_index.get(source_typ, []):
             u_tgt = src.u + du
@@ -403,19 +438,24 @@ class ConnectomeView:
     """Visualization of the connectome data.
 
     Args:
-        connectome (ConnectomeDir): Directory of the connectome.
-        groups (List[str]): regular expressions to sort the nodes by.
+        connectome: Directory of the connectome.
+        groups: Regular expressions to sort the nodes by.
 
     Attributes:
-        connectome (ConnectomeDir): connectome of connectome.
-        nodes (Directory): node table.
-        edges (Directory): edge table.
+        dir (ConnectomeDir): Connectome directory.
+        edges (Directory): Edge table.
+        nodes (Directory): Node table.
+        cell_types_unsorted (List[str]): Unsorted list of cell types.
+        cell_types_sorted (List[str]): Sorted list of cell types.
+        cell_types_sort_index (List[int]): Indices for sorting cell types.
+        layout (Dict[str, str]): Layout information for cell types.
+        node_indexer (NodeIndexer): Indexer for nodes.
     """
 
     def __init__(
         self,
         connectome: ConnectomeDir,
-        groups=[
+        groups: List[str] = [
             r"R\d",
             r"L\d",
             r"Lawf\d",
@@ -426,13 +466,12 @@ class ConnectomeView:
             r"T\d{1,2}.*",
             r"Tm.*\d{1,2}.*",
         ],
-    ):
+    ) -> None:
         self.dir = connectome
 
         assert "nodes" in self.dir and "edges" in self.dir
 
         self.edges = self.dir.edges
-
         self.nodes = self.dir.nodes
 
         self.cell_types_unsorted = self.dir.unique_cell_types[:].astype(str)
@@ -447,8 +486,6 @@ class ConnectomeView:
         self.layout = dict(self.dir.layout[:].astype(str))
         self.node_indexer = nodes_edges_utils.NodeIndexer(self.dir)
 
-    # -- connectivity matrix -------------------------------------------------------
-
     def connectivity_matrix(
         self,
         mode: str = "n_syn",
@@ -462,20 +499,23 @@ class ConnectomeView:
         cbar_label: Optional[str] = None,
         **kwargs,
     ) -> Figure:
-        """Plots the connectivity matrix as counts or weights.
+        """Plot the connectivity matrix as counts or weights.
 
         Args:
-            mode: 'n_syn' referring to number of input synapses,
-                    'count' referring to number of input neurons.
-            only_sign: '+' for displaying only excitatory projections,
-                    '-' for displaying only inhibitory projections.
-            cell_types: provide a subset of nodes to only display those.
-            no_symlog: disable symetric log scale.
-            size_scale: determines the size of the scattered squares.
+            mode: 'n_syn' for number of input synapses, 'count' for number of neurons.
+            only_sign: '+' for excitatory projections, '-' for inhibitory projections.
+            cell_types: Subset of nodes to display.
+            no_symlog: Disable symmetric log scale.
+            min_number: Minimum value to display.
+            cmap: Custom colormap.
+            size_scale: Size of the scattered squares.
+            title: Custom title for the plot.
+            cbar_label: Custom colorbar label.
+            **kwargs: Additional arguments passed to the heatmap plot function.
 
-        Note, kwargs are passed to the heatmap plot function.
+        Returns:
+            Figure: Matplotlib figure object.
         """
-
         _kwargs = dict(
             n_syn=dict(
                 symlog=1e-5,
@@ -551,19 +591,26 @@ class ConnectomeView:
         return plots.heatmap(matrix, cell_types, **kwargs)
 
     def _weights(self) -> NDArray:
-        return self.edges.sign[:] * self.edges.n_syn[:]
+        """Calculate weights for edges.
 
-    # -- network graphs ------------------------------------------------------------
+        Returns:
+            NDArray: Array of edge weights.
+        """
+        return self.edges.sign[:] * self.edges.n_syn[:]
 
     def network_layout(
         self,
         max_extent: int = 5,
         **kwargs,
     ) -> Figure:
-        """Retinotopic hexagonal lattice columnar organization of the network.
+        """Plot retinotopic hexagonal lattice columnar organization of the network.
 
         Args:
-            max_extent: integer column radius to visualize.
+            max_extent: Integer column radius to visualize.
+            **kwargs: Additional arguments passed to hex_layout_all.
+
+        Returns:
+            Figure: Matplotlib figure object.
         """
         backbone = WholeNetworkFigure(self.dir)
         backbone.init_figure(figsize=[7, 3])
@@ -575,16 +622,32 @@ class ConnectomeView:
         self,
         cell_type: str,
         max_extent: int = 5,
-        edgecolor="none",
-        edgewidth=0.5,
-        alpha=1,
-        fill=False,
-        cmap=None,
-        fig=None,
-        ax=None,
+        edgecolor: str = "none",
+        edgewidth: float = 0.5,
+        alpha: float = 1,
+        fill: bool = False,
+        cmap: Optional[Colormap] = None,
+        fig: Optional[Figure] = None,
+        ax: Optional[Axes] = None,
         **kwargs,
-    ):
-        """Retinotopic hexagonal lattice columnar organization of the cell type."""
+    ) -> Figure:
+        """Plot retinotopic hexagonal lattice organization of a cell type.
+
+        Args:
+            cell_type: Type of cell to plot.
+            max_extent: Maximum extent of the layout.
+            edgecolor: Color of the hexagon edges.
+            edgewidth: Width of the hexagon edges.
+            alpha: Transparency of the hexagons.
+            fill: Whether to fill the hexagons.
+            cmap: Custom colormap.
+            fig: Existing figure to plot on.
+            ax: Existing axis to plot on.
+            **kwargs: Additional arguments passed to hex_scatter.
+
+        Returns:
+            Figure: Matplotlib figure object.
+        """
         nodes = self.nodes.to_df()
         node_condition = nodes.type == cell_type
         u, v = nodes.u[node_condition], nodes.v[node_condition]
@@ -623,17 +686,32 @@ class ConnectomeView:
 
     def hex_layout_all(
         self,
-        cell_types: str = None,
+        cell_types: Optional[List[str]] = None,
         max_extent: int = 5,
-        edgecolor="none",
-        alpha=1,
-        fill=False,
-        cmap=None,
-        fig=None,
-        axes=None,
+        edgecolor: str = "none",
+        alpha: float = 1,
+        fill: bool = False,
+        cmap: Optional[Colormap] = None,
+        fig: Optional[Figure] = None,
+        axes: Optional[List[Axes]] = None,
         **kwargs,
-    ):
-        """Retinotopic hexagonal lattice columnar organization of all cell types."""
+    ) -> Figure:
+        """Plot retinotopic hexagonal lattice organization of all cell types.
+
+        Args:
+            cell_types: List of cell types to plot.
+            max_extent: Maximum extent of the layout.
+            edgecolor: Color of the hexagon edges.
+            alpha: Transparency of the hexagons.
+            fill: Whether to fill the hexagons.
+            cmap: Custom colormap.
+            fig: Existing figure to plot on.
+            axes: List of existing axes to plot on.
+            **kwargs: Additional arguments passed to hex_layout.
+
+        Returns:
+            Figure: Matplotlib figure object.
+        """
         cell_types = self.cell_types_sorted if cell_types is None else cell_types
         if fig is None or axes is None:
             fig, axes, (gw, gh) = plt_utils.get_axis_grid(self.cell_types_sorted)
@@ -653,22 +731,41 @@ class ConnectomeView:
             )
         return fig
 
-    def get_uv(self, cell_type) -> Tuple[NDArray, NDArray]:
-        """Hex-coordinates of a particular cell type to pass to hex_scatter plot."""
+    def get_uv(self, cell_type: str) -> Tuple[NDArray, NDArray]:
+        """Get hex-coordinates of a particular cell type.
+
+        Args:
+            cell_type: Type of cell to get coordinates for.
+
+        Returns:
+            Tuple[NDArray, NDArray]: Arrays of u and v coordinates.
+        """
         nodes = self.nodes.to_df()
         nodes = nodes[nodes.type == cell_type]
         u, v = nodes[["u", "v"]].values.T
         return u, v
 
-    # -- receptive fields ----------------------------------------------------------
-
     def sources_list(self, cell_type: str) -> NDArray:
-        """Presynaptic cell types."""
+        """Get presynaptic cell types.
+
+        Args:
+            cell_type: Type of cell to get sources for.
+
+        Returns:
+            NDArray: Array of presynaptic cell types.
+        """
         edges = self.edges.to_df()
         return np.unique(edges[edges.target_type == cell_type].source_type.values)
 
     def targets_list(self, cell_type: str) -> NDArray:
-        """Postsynaptic cell types."""
+        """Get postsynaptic cell types.
+
+        Args:
+            cell_type: Type of cell to get targets for.
+
+        Returns:
+            NDArray: Array of postsynaptic cell types.
+        """
         edges = self.edges.to_df()
         return np.unique(edges[edges.source_type == cell_type].target_type.values)
 
@@ -677,13 +774,27 @@ class ConnectomeView:
         source: str = "Mi9",
         target: str = "T4a",
         rfs: Optional["ReceptiveFields"] = None,
-        max_extent: int = None,
-        vmin=None,
-        vmax=None,
-        title="{source} :→ {target}",
+        max_extent: Optional[int] = None,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+        title: str = "{source} :→ {target}",
         **kwargs,
-    ):
-        """Receptive field of target from source."""
+    ) -> Figure:
+        """Plot the receptive field of a target cell type from a source cell type.
+
+        Args:
+            source: Source cell type.
+            target: Target cell type.
+            rfs: ReceptiveFields object. If None, it will be created.
+            max_extent: Maximum extent of the receptive field.
+            vmin: Minimum value for colormap.
+            vmax: Maximum value for colormap.
+            title: Title format string for the plot.
+            **kwargs: Additional arguments passed to plots.kernel.
+
+        Returns:
+            Matplotlib Figure object.
+        """
         if rfs is None:
             rfs = ReceptiveFields(target, self.edges.to_df())
             max_extent = max_extent or rfs.max_extent
@@ -722,21 +833,41 @@ class ConnectomeView:
     def receptive_fields_grid(
         self,
         target: str,
-        sources: Iterable[str] = None,
-        sort_alphabetically=True,
-        ax_titles="{source} :→ {target}",
-        figsize=[20, 20],
-        max_extent=None,
-        fig=None,
-        axes=None,
-        ignore_sign_error=False,
-        max_figure_height_cm=22,
-        panel_height_cm=3,
-        max_figure_width_cm=18,
-        panel_width_cm=3.6,
+        sources: Optional[Iterable[str]] = None,
+        sort_alphabetically: bool = True,
+        ax_titles: str = "{source} :→ {target}",
+        figsize: List[int] = [20, 20],
+        max_extent: Optional[int] = None,
+        fig: Optional[Figure] = None,
+        axes: Optional[List[Axes]] = None,
+        ignore_sign_error: bool = False,
+        max_figure_height_cm: float = 22,
+        panel_height_cm: float = 3,
+        max_figure_width_cm: float = 18,
+        panel_width_cm: float = 3.6,
         **kwargs,
-    ):
-        """Receptive fields of target inside a regular grid of axes."""
+    ) -> Figure:
+        """Plot receptive fields of a target cell type in a grid layout.
+
+        Args:
+            target: Target cell type.
+            sources: Iterable of source cell types. If None, all sources are used.
+            sort_alphabetically: Whether to sort source types alphabetically.
+            ax_titles: Title format string for each subplot.
+            figsize: Figure size in inches.
+            max_extent: Maximum extent of the receptive fields.
+            fig: Existing figure to plot on.
+            axes: List of existing axes to plot on.
+            ignore_sign_error: Whether to ignore sign errors in plotting.
+            max_figure_height_cm: Maximum figure height in cm.
+            panel_height_cm: Height of each panel in cm.
+            max_figure_width_cm: Maximum figure width in cm.
+            panel_width_cm: Width of each panel in cm.
+            **kwargs: Additional arguments passed to receptive_field.
+
+        Returns:
+            Matplotlib Figure object.
+        """
 
         rfs = ReceptiveFields(target, self.edges.to_df())
         max_extent = max_extent or rfs.max_extent
@@ -802,20 +933,32 @@ class ConnectomeView:
                     raise e
         return fig
 
-    # -- projective fields ---------------------------------------------------------
-
     def projective_field(
         self,
         source: str = "Mi9",
         target: str = "T4a",
-        title="{source} →: {target}",
+        title: str = "{source} →: {target}",
         prfs: Optional["ProjectiveFields"] = None,
-        max_extent: int = None,
-        vmin=None,
-        vmax=None,
+        max_extent: Optional[int] = None,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
         **kwargs,
-    ):
-        """Projective field from source to target."""
+    ) -> Optional[Figure]:
+        """Plot the projective field from a source cell type to a target cell type.
+
+        Args:
+            source: Source cell type.
+            target: Target cell type.
+            title: Title format string for the plot.
+            prfs: ProjectiveFields object. If None, it will be created.
+            max_extent: Maximum extent of the projective field.
+            vmin: Minimum value for colormap.
+            vmax: Maximum value for colormap.
+            **kwargs: Additional arguments passed to plots.kernel.
+
+        Returns:
+            Matplotlib Figure object or None if max_extent is None.
+        """
         if prfs is None:
             prfs = ProjectiveFields(source, self.edges.to_df())
             max_extent = max_extent or prfs.max_extent
@@ -854,21 +997,41 @@ class ConnectomeView:
     def projective_fields_grid(
         self,
         source: str,
-        targets: Iterable[str] = None,
-        fig=None,
-        axes=None,
-        figsize=[20, 20],
-        ax_titles="{source} →: {target}",
-        max_figure_height_cm=22,
-        panel_height_cm=3,
-        max_figure_width_cm=18,
-        panel_width_cm=3.6,
-        max_extent=None,
-        sort_alphabetically=False,
-        ignore_sign_error=False,
+        targets: Optional[Iterable[str]] = None,
+        fig: Optional[Figure] = None,
+        axes: Optional[List[Axes]] = None,
+        figsize: List[int] = [20, 20],
+        ax_titles: str = "{source} →: {target}",
+        max_figure_height_cm: float = 22,
+        panel_height_cm: float = 3,
+        max_figure_width_cm: float = 18,
+        panel_width_cm: float = 3.6,
+        max_extent: Optional[int] = None,
+        sort_alphabetically: bool = False,
+        ignore_sign_error: bool = False,
         **kwargs,
-    ):
-        """Projective fields of source inside a regular grid of axes."""
+    ) -> Figure:
+        """Plot projective fields of a source cell type in a grid layout.
+
+        Args:
+            source: Source cell type.
+            targets: Iterable of target cell types. If None, all targets are used.
+            fig: Existing figure to plot on.
+            axes: List of existing axes to plot on.
+            figsize: Figure size in inches.
+            ax_titles: Title format string for each subplot.
+            max_figure_height_cm: Maximum figure height in cm.
+            panel_height_cm: Height of each panel in cm.
+            max_figure_width_cm: Maximum figure width in cm.
+            panel_width_cm: Width of each panel in cm.
+            max_extent: Maximum extent of the projective fields.
+            sort_alphabetically: Whether to sort target types alphabetically.
+            ignore_sign_error: Whether to ignore sign errors in plotting.
+            **kwargs: Additional arguments passed to projective_field.
+
+        Returns:
+            Matplotlib Figure object.
+        """
         prfs = ProjectiveFields(source, self.edges.to_df())
         max_extent = max_extent or prfs.max_extent
         weights = self._weights()
@@ -932,48 +1095,88 @@ class ConnectomeView:
                     raise e
         return fig
 
-    def receptive_fields_df(self, target_type) -> "ReceptiveFields":
+    def receptive_fields_df(self, target_type: str) -> "ReceptiveFields":
+        """Get receptive fields for a target cell type.
+
+        Args:
+            target_type: Target cell type.
+
+        Returns:
+            ReceptiveFields object.
+        """
         return ReceptiveFields(target_type, self.edges.to_df())
 
-    def projective_fields_df(self, source_type) -> "ProjectiveFields":
+    def projective_fields_df(self, source_type: str) -> "ProjectiveFields":
+        """Get projective fields for a source cell type.
+
+        Args:
+            source_type: Source cell type.
+
+        Returns:
+            ProjectiveFields object.
+        """
         return ProjectiveFields(source_type, self.edges.to_df())
 
-    def receptive_fields_sum(self, target_type) -> Dict[str, int]:
+    def receptive_fields_sum(self, target_type: str) -> Dict[str, int]:
+        """Get sum of synapses for each source type in the receptive field.
+
+        Args:
+            target_type: Target cell type.
+
+        Returns:
+            Dictionary mapping source types to synapse counts.
+        """
         return ReceptiveFields(target_type, self.edges.to_df()).sum()
 
-    def projective_fields_sum(self, source_type) -> Dict[str, int]:
-        return ProjectiveFields(source_type, self.edges.to_df()).sum()
+    def projective_fields_sum(self, source_type: str) -> Dict[str, int]:
+        """Get sum of synapses for each target type in the projective field.
+
+        Args:
+            source_type: Source cell type.
+
+        Returns:
+            Dictionary mapping target types to synapse counts.
+        """
 
 
 class ReceptiveFields(Namespace):
     """Dictionary of receptive field dataframes for a specific cell type.
 
     Args:
-        target_type: target cell type.
-        edges: all edges of a Connectome.
+        target_type: Target cell type.
+        edges: All edges of a Connectome.
 
     Attributes:
-        target_type str
-        source_types List[str]
+        target_type: The target cell type.
+        source_types: List of source cell types.
+        _extents: List of extents for each source type.
+
+    Example:
+        ```python
+        rf = ReceptiveFields("T4a", edges_dataframe)
+        ```
     """
 
-    def __init__(self, target_type, edges, *args, **kwargs):
+    def __init__(self, target_type: str, edges: DataFrame, *args, **kwargs):
         super().__init__(*args, **kwargs)
         object.__setattr__(self, "_extents", [])
         _receptive_fields_edge_dfs(self, target_type, edges)
 
     @property
-    def extents(self):
+    def extents(self) -> Dict[str, int]:
+        """Dictionary of extents for each source type."""
         return dict(zip(self.source_types, self._extents))
 
     @property
-    def max_extent(self):
+    def max_extent(self) -> Optional[int]:
+        """Maximum extent across all source types."""
         return max(self._extents) if self._extents else None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.target_type})"
 
-    def sum(self):
+    def sum(self) -> Dict[str, float]:
+        """Sum of synapses for each source type."""
         return {key: self[key].n_syn.sum() for key in self}
 
 
@@ -981,12 +1184,18 @@ class ProjectiveFields(Namespace):
     """Dictionary of projective field dataframes for a specific cell type.
 
     Args:
-        source_type: target cell type.
-        edges: all edges of a Connectome.
+        source_type: Source cell type.
+        edges: All edges of a Connectome.
 
     Attributes:
-        source_type str
-        target_types List[str]
+        source_type: The source cell type.
+        target_types: List of target cell types.
+        _extents: List of extents for each target type.
+
+    Example:
+        ```python
+        pf = ProjectiveFields("Mi9", edges_dataframe)
+        ```
     """
 
     def __init__(self, source_type: str, edges: DataFrame, *args, **kwargs):
@@ -995,25 +1204,36 @@ class ProjectiveFields(Namespace):
         _projective_fields_edge_dfs(self, source_type, edges)
 
     @property
-    def extents(self):
+    def extents(self) -> Dict[str, int]:
+        """Dictionary of extents for each target type."""
         return dict(zip(self.target_types, self._extents))
 
     @property
-    def max_extent(self):
+    def max_extent(self) -> Optional[int]:
+        """Maximum extent across all target types."""
         return max(self._extents) if self._extents else None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.source_type})"
 
-    def sum(self):
+    def sum(self) -> Dict[str, float]:
+        """Sum of synapses for each target type."""
         return {key: self[key].n_syn.sum() for key in self}
 
 
 def _receptive_fields_edge_dfs(
     cls: ReceptiveFields, target_type: str, edges: DataFrame
 ) -> ReceptiveFields:
-    """Populate ReceptiveFields."""
+    """Populate ReceptiveFields with edge dataframes.
 
+    Args:
+        cls: ReceptiveFields instance to populate.
+        target_type: Target cell type.
+        edges: DataFrame containing all edges.
+
+    Returns:
+        Populated ReceptiveFields instance.
+    """
     edges = edges[edges.target_type == target_type]
     source_types = edges.source_type.unique()
 
@@ -1041,8 +1261,16 @@ def _receptive_fields_edge_dfs(
 def _projective_fields_edge_dfs(
     cls: ProjectiveFields, source_type: str, edges: DataFrame
 ) -> ProjectiveFields:
-    """Populate ProjectiveFields."""
+    """Populate ProjectiveFields with edge dataframes.
 
+    Args:
+        cls: ProjectiveFields instance to populate.
+        source_type: Source cell type.
+        edges: DataFrame containing all edges.
+
+    Returns:
+        Populated ProjectiveFields instance.
+    """
     edges = edges[edges.source_type == source_type]
     target_types = edges.target_type.unique()
 
@@ -1067,4 +1295,12 @@ def _projective_fields_edge_dfs(
 
 
 def flyvision_connectome(network_dir) -> ConnectomeView:
+    """Create a ConnectomeView instance from a network directory.
+
+    Args:
+        network_dir: Directory containing network configuration.
+
+    Returns:
+        ConnectomeView instance.
+    """
     return ConnectomeView(ConnectomeDir(network_dir.config.network.connectome))
