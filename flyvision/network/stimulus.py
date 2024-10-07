@@ -1,6 +1,6 @@
 """Interface to control the cell-specific stimulus for the network."""
 
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import torch
@@ -15,36 +15,37 @@ __all__ = ["Stimulus"]
 class Stimulus:
     """Interface to control the cell-specific stimulus for the network.
 
-    Creates a buffer and e.g. maps standard video input to the photoreceptors
+    Creates a buffer and maps standard video input to the photoreceptors
     but can map input to any other cell as well, e.g. to do perturbation
     experiments.
 
     Args:
-        connectome: connectome directory to retrieve indexes for the stimulus
+        connectome: Connectome directory to retrieve indexes for the stimulus
             buffer at the respective cell positions.
-        n_samples: optional number of samples to initialize the buffer with.
-            Defaults to 1. Else call `zero()` to resize the buffer.
-        n_frames: optional number of frames to initialize the buffer with.
-            Defaults to 1. Else call `zero()` to resize the buffer.
-        _init: if False, do not initialize the stimulus buffer.
+        n_samples: Number of samples to initialize the buffer with.
+        n_frames: Number of frames to initialize the buffer with.
+        _init: If False, do not initialize the stimulus buffer.
 
     Attributes:
-        layer_index: dictionary of cell type to index array.
-        central_cells_index: dictionary of cell type to central cell index.
-        input_index: index array of photoreceptors.
-        n_frames: number of frames in the stimulus buffer.
-        n_samples: number of samples in the stimulus buffer.
-        n_nodes: number of nodes in the stimulus buffer.
-        n_input_elements: number of input elements.
-        buffer: stimulus buffer of shape (n_samples, n_frames, n_cells).
+        layer_index (Dict[str, NDArray]): Dictionary of cell type to index array.
+        central_cells_index (Dict[str, int]): Dictionary of cell type to
+            central cell index.
+        input_index (NDArray): Index array of photoreceptors.
+        n_frames (int): Number of frames in the stimulus buffer.
+        n_samples (int): Number of samples in the stimulus buffer.
+        n_nodes (int): Number of nodes in the stimulus buffer.
+        n_input_elements (int): Number of input elements.
+        buffer (Tensor): Stimulus buffer of shape (n_samples, n_frames, n_cells).
 
     Returns:
-        Tensor: stimulus of shape (n_samples, n_frames, n_cells)
+        Tensor: Stimulus of shape (n_samples, n_frames, n_cells)
 
     Example:
+        ```python
         stim = Stimulus(network.connectome, *x.shape[:2])
         stim.add_input(x)
         response = network(stim(), dt)
+        ```
     """
 
     layer_index: Dict[str, NDArray]
@@ -61,7 +62,7 @@ class Stimulus:
         connectome: ConnectomeDir,
         n_samples: int = 1,
         n_frames: int = 1,
-        _init=True,
+        _init: bool = True,
     ):
         self.layer_index = {
             cell_type: index[:]
@@ -89,16 +90,14 @@ class Stimulus:
 
     def zero(
         self,
-        n_samples=None,
-        n_frames=None,
-    ):
-        """Resets the stimulus buffer to zero.
+        n_samples: Optional[int] = None,
+        n_frames: Optional[int] = None,
+    ) -> None:
+        """Reset the stimulus buffer to zero.
 
         Args:
-            n_samples: optional number of samples. If provided, the
-                buffer will be resized.
-            n_frames: optional number of frames. If provided, the
-                buffer will be resized.
+            n_samples: Number of samples. If provided, the buffer will be resized.
+            n_frames: Number of frames. If provided, the buffer will be resized.
         """
         self.n_samples = n_samples or self.n_samples
         self.n_frames = n_frames or self.n_frames
@@ -112,29 +111,34 @@ class Stimulus:
         self._nonzero = False
 
     @property
-    def nonzero(self):
-        """Returns True if elements have been added to the stimulus buffer.
+    def nonzero(self) -> bool:
+        """Check if elements have been added to the stimulus buffer.
 
-        Note, even if those elements were all zero.
+        Returns:
+            bool: True if elements have been added, even if those elements were all zero.
         """
         return self._nonzero
 
     def add_input(
         self,
         x: torch.Tensor,
-        start=None,
-        stop=None,
-        n_frames_buffer=None,
-        cumulate=False,
-    ):
-        """Adds input to the input/photoreceptor cells.
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+        n_frames_buffer: Optional[int] = None,
+        cumulate: bool = False,
+    ) -> None:
+        """Add input to the input/photoreceptor cells.
 
         Args:
-            x: an input video of shape (n_samples, n_frames, 1, n_input_elements).
-            start: optional temporal start index of the stimulus.
-            stop: optional temporal stop index of the stimulus.
-            n_frames_buffer: optional number of frames to resize the buffer to.
-            cumulate: if True, add input to the existing buffer.
+            x: Input video of shape (n_samples, n_frames, 1, n_input_elements).
+            start: Temporal start index of the stimulus.
+            stop: Temporal stop index of the stimulus.
+            n_frames_buffer: Number of frames to resize the buffer to.
+            cumulate: If True, add input to the existing buffer.
+
+        Raises:
+            ValueError: If input shape is incorrect.
+            RuntimeError: If input shape doesn't match buffer shape.
         """
         shape = x.shape
         if len(shape) != 4:
@@ -148,7 +152,6 @@ class Stimulus:
             self.zero(n_samples, n_frames_buffer or n_frames_input)
 
         try:
-            # add input to buffer
             self.buffer[:, slice(start, stop), self.input_index] += x.to(
                 self.buffer.device
             )
@@ -159,16 +162,23 @@ class Stimulus:
         self._nonzero = True
 
     def add_pre_stim(
-        self, x: torch.Tensor, start: int = None, stop: int = None, n_frames_buffer=None
-    ):
-        """Adds a constant or sequence of constants to the input/photoreceptor cells.
+        self,
+        x: torch.Tensor,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+        n_frames_buffer: Optional[int] = None,
+    ) -> None:
+        """Add a constant or sequence of constants to the input/photoreceptor cells.
 
         Args:
-            x: grey value(s). If Tensor, must have length `n_frames` or `stop - start`.
-            start: start index in time. Defaults to None.
-            stop: stop index in time. Defaults to None.
-        """
+            x: Grey value(s). If Tensor, must have length `n_frames` or `stop - start`.
+            start: Start index in time.
+            stop: Stop index in time.
+            n_frames_buffer: Number of frames to resize the buffer to.
 
+        Raises:
+            RuntimeError: If input shape doesn't match buffer shape.
+        """
         if not hasattr(self, "buffer") or self.nonzero:
             self.zero(None, n_frames_buffer)
 
@@ -186,5 +196,9 @@ class Stimulus:
         self._nonzero = True
 
     def __call__(self) -> torch.Tensor:
-        """Returns the stimulus tensor."""
+        """Return the stimulus tensor.
+
+        Returns:
+            torch.Tensor: The stimulus buffer.
+        """
         return self.buffer
