@@ -70,7 +70,7 @@ class RenderedOffsets(Directory):
         for angle in angles:
             for width in widths:
                 for intensity in intensities:
-                    offset_bars = eye.offset_bars(
+                    offset_bars = eye.render_offset_bars(
                         bar_width_rad=width * led_width,
                         bar_height_rad=height,
                         n_bars=n_bars,
