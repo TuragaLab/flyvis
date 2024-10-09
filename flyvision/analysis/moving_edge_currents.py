@@ -1,4 +1,13 @@
-from typing import Any, Iterable, Union
+"""
+Analysis of currents in response to moving edges.
+
+Info:
+    Relies on dataclass defined in `flyvision.analysis.stimulus_responses_currents`.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Callable, Iterable, List, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,6 +30,7 @@ from flyvision.utils.color_utils import (
 from flyvision.utils.df_utils import where_dataframe as get_stimulus_index
 from flyvision.utils.nodes_edges_utils import CellTypeArray
 
+from .stimulus_responses_currents import ExperimentData
 from .visualization import plots, plt_utils
 from .visualization.figsize_utils import (
     cm_to_inch,
@@ -30,18 +40,48 @@ from .visualization.figsize_utils import (
 __all__ = ["MovingEdgeCurrentView"]
 
 
-# TODO: update to functions on xarray dataset
 class MovingEdgeCurrentView:
+    """Represents a view of moving edge currents for analysis and visualization.
+
+    This class provides methods for analyzing and visualizing currents and responses
+    related to moving edge stimuli in neural simulations.
+
+    Args:
+        ensemble: The ensemble of models.
+        target_type: The type of target cell.
+        exp_data: Experimental data.
+        arg_df: DataFrame containing stimulus arguments.
+        currents: Currents for each source type.
+        rfs: Receptive fields for the target cells.
+        time: Time array for the simulation.
+        responses: Responses of the target cells.
+
+    Attributes:
+        target_type: The type of target cell.
+        ensemble: The ensemble of models.
+        config: Configuration settings.
+        arg_df: DataFrame containing stimulus arguments.
+        rfs: Receptive fields for the target cells.
+        exp_data: Experimental data.
+        source_types: Types of source cells.
+        time: Time array for the simulation.
+        currents: Currents for each source type.
+        responses: Responses of the target cells.
+
+    Note:
+        This class is intended to be updated to use xarray datasets in the future.
+    """
+
     def __init__(
         self,
         ensemble,
-        target_type,
-        exp_data,
-        arg_df=None,
-        currents=None,
-        rfs=None,
-        time=None,
-        responses=None,
+        target_type: str,
+        exp_data: List[ExperimentData],
+        arg_df: pd.DataFrame | None = None,
+        currents: Namespace | None = None,
+        rfs: ReceptiveFields | None = None,
+        time: np.ndarray | None = None,
+        responses: np.ndarray | None = None,
     ):
         self.target_type = target_type
         self.ensemble = ensemble
@@ -60,7 +100,12 @@ class MovingEdgeCurrentView:
         self.init_time(time)
         self.init_responses(responses)
 
-    def init_currents(self, currents) -> None:
+    def init_currents(self, currents: Namespace | None) -> None:
+        """Initialize the currents for each source type.
+
+        Args:
+            currents: Currents for each source type.
+        """
         if currents is not None:
             self.currents = currents
             return
@@ -74,7 +119,12 @@ class MovingEdgeCurrentView:
                 ],
             )
 
-    def init_responses(self, responses) -> None:
+    def init_responses(self, responses: np.ndarray | None) -> None:
+        """Initialize the responses of the target cells.
+
+        Args:
+            responses: Responses of the target cells.
+        """
         if responses is not None:
             self.responses = responses
             return
@@ -86,7 +136,12 @@ class MovingEdgeCurrentView:
             ],
         )
 
-    def init_time(self, time) -> None:
+    def init_time(self, time: np.ndarray | None) -> None:
+        """Initialize the time array for the simulation.
+
+        Args:
+            time: Time array for the simulation.
+        """
         if time is not None:
             self.time = time
             return
@@ -97,6 +152,7 @@ class MovingEdgeCurrentView:
 
     @property
     def on(self) -> "MovingEdgeCurrentView":
+        """Return a view of the ON responses."""
         on_index = get_stimulus_index(self.arg_df, intensity=0)
         arg_df = self.arg_df.iloc[on_index]
         return self.view(
@@ -110,6 +166,7 @@ class MovingEdgeCurrentView:
 
     @property
     def off(self) -> "MovingEdgeCurrentView":
+        """Return a view of the OFF responses."""
         off_index = get_stimulus_index(self.arg_df, intensity=0)
         arg_df = self.arg_df.iloc[off_index]
         return self.view(
@@ -122,6 +179,17 @@ class MovingEdgeCurrentView:
         )
 
     def divide_by_given_norm(self, norm: CellTypeArray) -> "MovingEdgeCurrentView":
+        """Divide currents and responses by a given norm.
+
+        Args:
+            norm: The norm to divide by.
+
+        Returns:
+            A new view with normalized currents and responses.
+
+        Raises:
+            ValueError: If norm is not a CellTypeArray.
+        """
         if not isinstance(norm, CellTypeArray):
             raise ValueError
 
@@ -147,7 +215,15 @@ class MovingEdgeCurrentView:
         })
         return self.view(currents=new_currents, responses=new_responses)
 
-    def at_contrast(self, contrast) -> "MovingEdgeCurrentView":
+    def at_contrast(self, contrast: float) -> "MovingEdgeCurrentView":
+        """Create a new view filtered by contrast.
+
+        Args:
+            contrast: The contrast value to filter by.
+
+        Returns:
+            A new view with data filtered by the specified contrast.
+        """
         contrast_index = get_stimulus_index(self.arg_df, intensity=contrast)
         arg_df = self.arg_df.iloc[contrast_index]
         return self.view(
@@ -159,7 +235,15 @@ class MovingEdgeCurrentView:
             arg_df=arg_df,
         )
 
-    def at_angle(self, angle) -> "MovingEdgeCurrentView":
+    def at_angle(self, angle: float) -> "MovingEdgeCurrentView":
+        """Create a new view filtered by angle.
+
+        Args:
+            angle: The angle value to filter by.
+
+        Returns:
+            A new view with data filtered by the specified angle.
+        """
         angle_index = get_stimulus_index(self.arg_df, angle=angle)
         arg_df = self.arg_df.iloc[angle_index]
         return self.view(
@@ -171,7 +255,19 @@ class MovingEdgeCurrentView:
             arg_df=arg_df,
         )
 
-    def at_position(self, u=None, v=None, central=True) -> "MovingEdgeCurrentView":
+    def at_position(
+        self, u: float | None = None, v: float | None = None, central: bool = True
+    ) -> "MovingEdgeCurrentView":
+        """Create a new view filtered by position.
+
+        Args:
+            u: The u-coordinate.
+            v: The v-coordinate.
+            central: Whether to use central position.
+
+        Returns:
+            A new view with data filtered by the specified position.
+        """
         rfs = at_position(self.rfs, u, v, central)
         currents = Namespace({
             cell_type: c[:, :, :, :, rfs[cell_type].index]
@@ -179,14 +275,31 @@ class MovingEdgeCurrentView:
         })
         return self.view(currents, rfs=rfs)
 
-    def between_seconds(self, t_start, t_end) -> "MovingEdgeCurrentView":
+    def between_seconds(self, t_start: float, t_end: float) -> "MovingEdgeCurrentView":
+        """Create a new view filtered by time range.
+
+        Args:
+            t_start: Start time in seconds.
+            t_end: End time in seconds.
+
+        Returns:
+            A new view with data filtered by the specified time range.
+        """
         slice = np.where((self.time >= t_start) & (self.time < t_end))[0]
         newview = self[:, :, slice, :]
         newview.time = self.time[slice]
         newview.responses = self.responses[:, :, slice]
         return newview
 
-    def model_selection(self, mask) -> "MovingEdgeCurrentView":
+    def model_selection(self, mask: np.ndarray) -> "MovingEdgeCurrentView":
+        """Create a new view with selected models.
+
+        Args:
+            mask: Boolean mask for model selection.
+
+        Returns:
+            A new view with selected models.
+        """
         return self[mask, :, :, :]
 
     def __getattr__(self, key):
@@ -235,7 +348,19 @@ class MovingEdgeCurrentView:
     def shape(self):
         return next(iter(self.currents.values())).shape
 
-    def sorting(self, average_over_models=True, mode="all"):
+    def sorting(self, average_over_models: bool = True, mode: str = "all") -> np.ndarray:
+        """Sort cell types based on their contributions.
+
+        Args:
+            average_over_models: Whether to average over models.
+            mode: Sorting mode ("all", "excitatory", or "inhibitory").
+
+        Returns:
+            Sorted array of cell types.
+
+        Raises:
+            ValueError: If an invalid mode is provided.
+        """
         summed = self if len(self.shape) == 4 else self.sum_over_cells()
         signs = self.signs()
         if average_over_models:
@@ -288,15 +413,30 @@ class MovingEdgeCurrentView:
             raise ValueError(f"mode {mode}")
 
     def filter_cell_types_by_contribution(
-        self, bins=3, cut_off_edge=1, mode="above_cut_off", statistic=np.max
-    ):
-        """
-        Intuitively chunks the y-axis of the current plots into two parts:
-            - excitatory
-            - inhibitory
-        and each of these into bins. In case of 3 corresponding to low-contribution,
-        moderate-contribution, high-contribution. Then all cell types above or below the
-        bin edge specified by cut_off_edge are discarded.
+        self,
+        bins: int = 3,
+        cut_off_edge: int = 1,
+        mode: str = "above_cut_off",
+        statistic: Callable = np.max,
+    ) -> np.ndarray:
+        """Filter cell types based on their contribution.
+
+        Args:
+            bins: Number of bins for contribution levels.
+            cut_off_edge: Edge index for cut-off.
+            mode: Filtering mode ("above_cut_off" or "below_cut_off").
+            statistic: Function to compute the statistic.
+
+        Returns:
+            Filtered array of cell types.
+
+        Raises:
+            ValueError: If an invalid mode is provided.
+
+        Info:
+            In principle, chunks the y-axis of the current plots into excitatory and
+            inhibitory parts and each of the parts into bins. All cell types with currents
+            above or below, depending on the mode, the specified bin edge are discarded.
         """
         sorting = self.sorting()[0]
         signs = self.signs()
@@ -326,7 +466,26 @@ class MovingEdgeCurrentView:
                 raise ValueError(f"mode {mode}")
         return np.array(filtered_cell_types)
 
-    def filter_source_types(self, hide_source_types, bins, edge, mode, statistic=np.max):
+    def filter_source_types(
+        self,
+        hide_source_types: str | list | None,
+        bins: int,
+        edge: int,
+        mode: str,
+        statistic: Callable = np.max,
+    ) -> np.ndarray:
+        """Filter source types based on various criteria.
+
+        Args:
+            hide_source_types: Source types to hide or "auto".
+            bins: Number of bins for contribution levels.
+            edge: Edge index for cut-off.
+            mode: Filtering mode.
+            statistic: Function to compute the statistic.
+
+        Returns:
+            Filtered array of source types.
+        """
         source_types = self.sorting()[0]
         if isinstance(hide_source_types, str) and hide_source_types == "auto":
             hide_source_types = self.filter_cell_types_by_contribution(
@@ -341,10 +500,20 @@ class MovingEdgeCurrentView:
             ])
         return source_types
 
-    def signs(self):
+    def signs(self) -> dict[str, float]:
+        """Compute the signs of receptive fields for each source type.
+
+        Returns:
+            Dictionary of signs for each source type.
+        """
         return {ct: np.mean(self.rfs[ct].sign) for ct in self.rfs.source_types}
 
     def sum_over_cells(self) -> "MovingEdgeCurrentView":
+        """Sum currents over cells.
+
+        Returns:
+            A new view with currents summed over cells.
+        """
         return self.view(
             Namespace({
                 cell_type: c.sum(axis=-1) for cell_type, c in self.currents.items()
@@ -353,18 +522,32 @@ class MovingEdgeCurrentView:
 
     def plot_spatial_contribution(
         self,
-        source_type,
-        #         contrast,
-        #         angle,
-        t_start,
-        t_end,
-        mode="peak",
-        title="{source_type} :→",
-        fig=None,
-        ax=None,
-        max_extent=None,
+        source_type: str,
+        t_start: float,
+        t_end: float,
+        mode: str = "peak",
+        title: str = "{source_type} :→",
+        fig: plt.Figure | None = None,
+        ax: plt.Axes | None = None,
+        max_extent: float | None = None,
         **kwargs,
-    ):
+    ) -> plt.Axes:
+        """Plot the spatial contribution of a source type.
+
+        Args:
+            source_type: The source type to plot.
+            t_start: Start time for the plot.
+            t_end: End time for the plot.
+            mode: Mode for calculating values ("peak", "mean", or "std").
+            title: Title format string for the plot.
+            fig: Existing figure to use.
+            ax: Existing axes to use.
+            max_extent: Maximum extent of the spatial filter.
+            **kwargs: Additional keyword arguments for plt_utils.kernel.
+
+        Returns:
+            Axes object containing the plot.
+        """
         current_view = kwargs.get("current_view") or (
             self.between_seconds(t_start, t_end)  # .at_contrast(contrast).at_angle(angle)
         )
@@ -432,31 +615,62 @@ class MovingEdgeCurrentView:
 
     def plot_spatial_contribution_grid(
         self,
-        #         contrast,
-        #         angle,
-        t_start,
-        t_end,
-        max_extent=3,
-        mode="peak",
-        title="{source_type} :→",
-        fig=None,
-        axes=None,
-        fontsize=5,
-        edgewidth=0.125,
-        title_y=0.8,
-        max_figure_height_cm=9.271,
-        panel_height_cm="auto",
-        max_figure_width_cm=2.54,
-        panel_width_cm=2.54,
-        annotate=False,
-        cbar=False,
-        hide_source_types="auto",
-        hide_source_types_bins=5,
-        hide_source_types_cut_off_edge=1,
-        hide_source_types_mode="below_cut_off",
-        max_axes=None,
+        t_start: float,
+        t_end: float,
+        max_extent: float = 3,
+        mode: str = "peak",
+        title: str = "{source_type} :→",
+        fig: plt.Figure | None = None,
+        axes: np.ndarray[plt.Axes] | None = None,
+        fontsize: float = 5,
+        edgewidth: float = 0.125,
+        title_y: float = 0.8,
+        max_figure_height_cm: float = 9.271,
+        panel_height_cm: float | str = "auto",
+        max_figure_width_cm: float = 2.54,
+        panel_width_cm: float = 2.54,
+        annotate: bool = False,
+        cbar: bool = False,
+        hide_source_types: str | list | None = "auto",
+        hide_source_types_bins: int = 5,
+        hide_source_types_cut_off_edge: int = 1,
+        hide_source_types_mode: str = "below_cut_off",
+        max_axes: int | None = None,
         **kwargs,
-    ):
+    ) -> tuple[
+        plt.Figure,
+        np.ndarray[plt.Axes],
+        tuple[plt.Colorbar, plt.Colormap, plt.Normalize, float, float],
+    ]:
+        """Plot a grid of spatial contributions for different source types.
+
+        Args:
+            t_start: Start time for the plot.
+            t_end: End time for the plot.
+            max_extent: Maximum extent of the spatial filter.
+            mode: Mode for calculating values ("peak", "mean", or "std").
+            title: Title format string for each subplot.
+            fig: Existing figure to use.
+            axes: Existing axes to use.
+            fontsize: Font size for labels and titles.
+            edgewidth: Width of edges in the plot.
+            title_y: Y-position of the title.
+            max_figure_height_cm: Maximum figure height in centimeters.
+            panel_height_cm: Height of each panel in centimeters.
+            max_figure_width_cm: Maximum figure width in centimeters.
+            panel_width_cm: Width of each panel in centimeters.
+            annotate: Whether to annotate the plots.
+            cbar: Whether to add a colorbar.
+            hide_source_types: Source types to hide or "auto".
+            hide_source_types_bins: Number of bins for auto-hiding.
+            hide_source_types_cut_off_edge: Cut-off edge for auto-hiding.
+            hide_source_types_mode: Mode for auto-hiding source types.
+            max_axes: Maximum number of axes to create.
+            **kwargs: Additional keyword arguments for plot_spatial_contribution.
+
+        Returns:
+            Figure, axes, and colorbar information (cbar, cmap, norm, vmin, vmax).
+        """
         current_view = self.between_seconds(t_start, t_end)
 
         vmin = (
@@ -555,15 +769,26 @@ class MovingEdgeCurrentView:
 
     def plot_spatial_filter(
         self,
-        source_type,
-        #         contrast,
-        #         angle,
-        title="{source_type} :→",
-        fig=None,
-        ax=None,
-        max_extent=None,
+        source_type: str,
+        title: str = "{source_type} :→",
+        fig: plt.Figure | None = None,
+        ax: plt.Axes | None = None,
+        max_extent: float | None = None,
         **kwargs,
-    ):
+    ) -> plt.Axes:
+        """Plot the spatial filter for a given source type.
+
+        Args:
+            source_type: The source type to plot.
+            title: Title format string for the plot.
+            fig: Existing figure to use.
+            ax: Existing axes to use.
+            max_extent: Maximum extent of the spatial filter.
+            **kwargs: Additional keyword arguments for plt_utils.kernel.
+
+        Returns:
+            Axes object containing the plot.
+        """
         filter = self.rfs
 
         def filter_values(rf):
@@ -625,28 +850,60 @@ class MovingEdgeCurrentView:
 
     def plot_spatial_filter_grid(
         self,
-        title="{source_type} :→",
-        fig=None,
-        axes=None,
-        max_extent=None,
-        fontsize=5,
-        edgewidth=0.125,
-        title_y=0.8,
-        max_figure_height_cm=9.271,
-        panel_height_cm="auto",
-        max_figure_width_cm=2.54,
-        panel_width_cm=2.54,
-        annotate=False,
-        cbar=False,
-        hide_source_types="auto",
-        hide_source_types_bins=5,
-        hide_source_types_cut_off_edge=1,
-        hide_source_types_mode="below_cut_off",
-        max_axes=None,
-        wspace=0.0,
-        hspace=0.1,
+        title: str = "{source_type} :→",
+        fig: plt.Figure | None = None,
+        axes: np.ndarray[plt.Axes] | None = None,
+        max_extent: float | None = None,
+        fontsize: float = 5,
+        edgewidth: float = 0.125,
+        title_y: float = 0.8,
+        max_figure_height_cm: float = 9.271,
+        panel_height_cm: float | str = "auto",
+        max_figure_width_cm: float = 2.54,
+        panel_width_cm: float = 2.54,
+        annotate: bool = False,
+        cbar: bool = False,
+        hide_source_types: str | list | None = "auto",
+        hide_source_types_bins: int = 5,
+        hide_source_types_cut_off_edge: int = 1,
+        hide_source_types_mode: str = "below_cut_off",
+        max_axes: int | None = None,
+        wspace: float = 0.0,
+        hspace: float = 0.1,
         **kwargs,
-    ):
+    ) -> tuple[
+        plt.Figure,
+        np.ndarray[plt.Axes],
+        tuple[plt.Colorbar, plt.Colormap, plt.Normalize, float, float],
+    ]:
+        """Plot a grid of spatial filters for different source types.
+
+        Args:
+            title: Title format string for each subplot.
+            fig: Existing figure to use.
+            axes: Existing axes to use.
+            max_extent: Maximum extent of the spatial filter.
+            fontsize: Font size for labels and titles.
+            edgewidth: Width of edges in the plot.
+            title_y: Y-position of the title.
+            max_figure_height_cm: Maximum figure height in centimeters.
+            panel_height_cm: Height of each panel in centimeters.
+            max_figure_width_cm: Maximum figure width in centimeters.
+            panel_width_cm: Width of each panel in centimeters.
+            annotate: Whether to annotate the plots.
+            cbar: Whether to add a colorbar.
+            hide_source_types: Source types to hide or "auto".
+            hide_source_types_bins: Number of bins for auto-hiding.
+            hide_source_types_cut_off_edge: Cut-off edge for auto-hiding.
+            hide_source_types_mode: Mode for auto-hiding source types.
+            max_axes: Maximum number of axes to create.
+            wspace: Width space between subplots.
+            hspace: Height space between subplots.
+            **kwargs: Additional keyword arguments for plot_spatial_filter.
+
+        Returns:
+            Figure, axes, and colorbar information (cbar, cmap, norm, vmin, vmax).
+        """
         filter = self.rfs
 
         def filter_values(rf):
@@ -706,9 +963,7 @@ class MovingEdgeCurrentView:
                 for ax in np.array(axes).flatten():
                     if isinstance(ax, Axes):
                         ax.axis("off")
-        # import pdb
 
-        # pdb.set_trace()
         for i, source_type in enumerate(source_types):
             self.plot_spatial_filter(
                 source_type,
@@ -743,8 +998,26 @@ class MovingEdgeCurrentView:
         return fig, axes, (cbar, cmap, norm, vmin, vmax)
 
     def view(
-        self, currents, rfs=None, time=None, responses=None, arg_df=None
+        self,
+        currents: Namespace,
+        rfs: ReceptiveFields | None = None,
+        time: np.ndarray | None = None,
+        responses: np.ndarray | None = None,
+        arg_df: pd.DataFrame | None = None,
     ) -> "MovingEdgeCurrentView":
+        """
+        Create a new view with the given currents, rfs, time, responses, and arg_df.
+
+        Args:
+            currents: Currents for each source type.
+            rfs: Receptive fields for the target cells.
+            time: Time array for the simulation.
+            responses: Responses of the target cells.
+            arg_df: DataFrame containing stimulus arguments.
+
+        Returns:
+            A new view with the given data.
+        """
         arg_df = arg_df.reset_index(drop=True) if arg_df is not None else self.arg_df
         return MovingEdgeCurrentView(
             self.ensemble,
@@ -758,6 +1031,12 @@ class MovingEdgeCurrentView:
         )
 
     def subtract_baseline(self) -> "MovingEdgeCurrentView":
+        """
+        Create a new view with baseline subtracted from the currents and responses.
+
+        Returns:
+            A new view with baseline subtracted data.
+        """
         return self.view(
             Namespace({
                 cell_type: c - np.take(c, [0], -2)
@@ -767,6 +1046,12 @@ class MovingEdgeCurrentView:
         )
 
     def subtract_mean(self) -> "MovingEdgeCurrentView":
+        """
+        Create a new view with mean subtracted from the currents and responses.
+
+        Returns:
+            A new view with mean subtracted data.
+        """
         return self.view(
             Namespace({
                 cell_type: c - np.mean(c, -2, keepdims=True)
@@ -776,6 +1061,12 @@ class MovingEdgeCurrentView:
         )
 
     def standardize(self) -> "MovingEdgeCurrentView":
+        """
+        Create a new view with standardized currents and responses.
+
+        Returns:
+            A new view with standardized data.
+        """
         return self.view(
             Namespace({
                 cell_type: (c - np.mean(c, -2, keepdims=True))
@@ -787,8 +1078,19 @@ class MovingEdgeCurrentView:
         )
 
     def standardize_over_time_and_pd_nd(
-        self, t_start, t_end, pd
+        self, t_start: float, t_end: float, pd: float
     ) -> "MovingEdgeCurrentView":
+        """
+        Create a new view with standardized currents and responses over time and PD/ND.
+
+        Args:
+            t_start: Start time for standardization.
+            t_end: End time for standardization.
+            pd: Preferred direction for standardization.
+
+        Returns:
+            A new view with standardized data.
+        """
         temp = self.between_seconds(t_start, t_end).at_angle([pd, (pd - 180) % 360])
         return self.view(
             Namespace({
@@ -802,7 +1104,13 @@ class MovingEdgeCurrentView:
             / (np.std(temp.responses, (-1, -2), keepdims=True) + 1e-15),
         )
 
-    def init_colors(self, source_types):
+    def init_colors(self, source_types: list[str]) -> None:
+        """
+        Initialize colors for source types.
+
+        Args:
+            source_types: List of source types.
+        """
         signs = self.signs()
         signs = {cell_type: signs[cell_type] for cell_type in source_types}
         signs_reversed = {cell_type: signs[cell_type] for cell_type in source_types[::-1]}
@@ -836,12 +1144,40 @@ class MovingEdgeCurrentView:
         self.colors_pd = colors_pd
         self.colors_nd = colors_nd
 
-    def color(self, source_type, pd=True):
+    def color(self, source_type: str, pd: bool = True) -> tuple[float, float, float]:
+        """
+        Get the color for a given source type.
+
+        Args:
+            source_type: The source type.
+            pd: Whether to use PD or ND colors.
+
+        Returns:
+            The color as an RGB tuple.
+        """
         if pd:
             return self.colors_pd[source_type]
         return self.colors_nd[source_type]
 
-    def zorder(self, source_types, source_type, start_exc=1000, start_inh=1000):
+    def zorder(
+        self,
+        source_types: list[str],
+        source_type: str,
+        start_exc: int = 1000,
+        start_inh: int = 1000,
+    ) -> int:
+        """
+        Get the z-order for a given source type.
+
+        Args:
+            source_types: List of source types.
+            source_type: The source type.
+            start_exc: Starting z-order for excitatory cells.
+            start_inh: Starting z-order for inhibitory cells.
+
+        Returns:
+            The z-order for the given source type.
+        """
         signs = self.signs()
         signs_reversed = {cell_type: signs[cell_type] for cell_type in source_types[::-1]}
 
@@ -859,8 +1195,19 @@ class MovingEdgeCurrentView:
                     return z_order
                 z_order -= 10
 
-    def ylims(self, source_types=None, offset=0.02):
-        "Ylims for temporal contributions summed over cells."
+    def ylims(
+        self, source_types: list[str] | None = None, offset: float = 0.02
+    ) -> dict[str, tuple[float, float]]:
+        """
+        Get the y-limits for temporal contributions summed over cells.
+
+        Args:
+            source_types: List of source types to consider.
+            offset: Offset for the y-limits.
+
+        Returns:
+            Y-limits for the given source types or all source types.
+        """
         if source_types is not None:
             return {
                 cell_type: plt_utils.get_lims(c, offset)
@@ -871,28 +1218,57 @@ class MovingEdgeCurrentView:
 
     def plot_response(
         self,
-        contrast,
-        angle,
-        t_start=0,
-        t_end=1,
-        max_figure_height_cm=1.4477,
-        panel_height_cm=1.4477,
-        max_figure_width_cm=4.0513,
-        panel_width_cm=4.0513,
-        fontsize=5,
-        model_average=True,
-        color=(0, 0, 0),
-        legend=False,
-        hide_yaxis=True,
-        trim_axes=True,
-        quantile=None,
-        scale_position=None,  # "lower left",
-        scale_label="{:.0f} ms",
-        scale_unit=1000,
-        hline=False,
-        fig=None,
-        ax=None,
+        contrast: float,
+        angle: float,
+        t_start: float = 0,
+        t_end: float = 1,
+        max_figure_height_cm: float = 1.4477,
+        panel_height_cm: float = 1.4477,
+        max_figure_width_cm: float = 4.0513,
+        panel_width_cm: float = 4.0513,
+        fontsize: float = 5,
+        model_average: bool = True,
+        color: tuple[float, float, float] = (0, 0, 0),
+        legend: bool = False,
+        hide_yaxis: bool = True,
+        trim_axes: bool = True,
+        quantile: float | None = None,
+        scale_position: str | None = None,  # "lower left",
+        scale_label: str = "{:.0f} ms",
+        scale_unit: float = 1000,
+        hline: bool = False,
+        fig: plt.Figure | None = None,
+        ax: plt.Axes | None = None,
     ):
+        """
+        Plot the response to a moving edge stimulus.
+
+        Args:
+            contrast: The contrast of the stimulus.
+            angle: The angle of the stimulus.
+            t_start: Start time for the plot.
+            t_end: End time for the plot.
+            max_figure_height_cm: Maximum figure height in centimeters.
+            panel_height_cm: Height of each panel in centimeters.
+            max_figure_width_cm: Maximum figure width in centimeters.
+            panel_width_cm: Width of each panel in centimeters.
+            fontsize: Font size for labels and titles.
+            model_average: Whether to plot the model average.
+            color: Color for the plot.
+            legend: Whether to show the legend.
+            hide_yaxis: Whether to hide the y-axis.
+            trim_axes: Whether to trim the axes.
+            quantile: Quantile for shading.
+            scale_position: Position of the scale.
+            scale_label: Label format for the scale.
+            scale_unit: Unit for the scale.
+            hline: Whether to show a horizontal line at 0.
+            fig: Existing figure to use.
+            ax: Existing axes to use.
+
+        Returns:
+            Figure and axes objects.
+        """
         r_pd = (
             self.at_angle(angle)
             .at_contrast(contrast)
@@ -1006,28 +1382,57 @@ class MovingEdgeCurrentView:
 
     def plot_response_pc_nc(
         self,
-        contrast,
-        angle,
-        t_start=0,
-        t_end=1,
-        max_figure_height_cm=1.4477,
-        panel_height_cm=1.4477,
-        max_figure_width_cm=4.0513,
-        panel_width_cm=4.0513,
-        fontsize=5,
-        model_average=True,
-        color=(0, 0, 0),
-        legend=False,
-        hide_yaxis=True,
-        trim_axes=True,
-        quantile=None,
-        scale_position=None,  # "lower left",
-        scale_label="{:.0f} ms",
-        scale_unit=1000,
-        fig=None,
-        ax=None,
-        hline=False,
-    ):
+        contrast: float,
+        angle: float,
+        t_start: float = 0,
+        t_end: float = 1,
+        max_figure_height_cm: float = 1.4477,
+        panel_height_cm: float = 1.4477,
+        max_figure_width_cm: float = 4.0513,
+        panel_width_cm: float = 4.0513,
+        fontsize: float = 5,
+        model_average: bool = True,
+        color: tuple[float, float, float] = (0, 0, 0),
+        legend: bool = False,
+        hide_yaxis: bool = True,
+        trim_axes: bool = True,
+        quantile: float | None = None,
+        scale_position: str | None = None,
+        scale_label: str = "{:.0f} ms",
+        scale_unit: float = 1000,
+        fig: plt.Figure | None = None,
+        ax: plt.Axes | None = None,
+        hline: bool = False,
+    ) -> tuple[plt.Figure, plt.Axes]:
+        """
+        Plot the response to a moving edge stimulus with positive and negative contrasts.
+
+        Args:
+            contrast: The contrast of the stimulus.
+            angle: The angle of the stimulus.
+            t_start: Start time for the plot.
+            t_end: End time for the plot.
+            max_figure_height_cm: Maximum figure height in centimeters.
+            panel_height_cm: Height of each panel in centimeters.
+            max_figure_width_cm: Maximum figure width in centimeters.
+            panel_width_cm: Width of each panel in centimeters.
+            fontsize: Font size for labels and titles.
+            model_average: Whether to plot the model average.
+            color: Color for the plot.
+            legend: Whether to show the legend.
+            hide_yaxis: Whether to hide the y-axis.
+            trim_axes: Whether to trim the axes.
+            quantile: Quantile for shading.
+            scale_position: Position of the scale.
+            scale_label: Label format for the scale.
+            scale_unit: Unit for the scale.
+            fig: Existing figure to use.
+            ax: Existing axes to use.
+            hline: Whether to show a horizontal line at 0.
+
+        Returns:
+            Figure and axes objects.
+        """
         r_pc = (
             self.at_angle(angle)
             .at_contrast(contrast)
@@ -1141,45 +1546,93 @@ class MovingEdgeCurrentView:
 
     def plot_temporal_contributions(
         self,
-        contrast,
-        angle,
-        t_start=0,
-        t_end=1,
-        fontsize=5,
-        linewidth=0.25,
-        legend=False,
-        legend_standalone=True,
-        legend_figsize_cm=(4.0572, 1),
-        legend_n_rows=None,
-        # for supplementary
-        # max_figure_height_cm=1.4477,
-        # panel_height_cm=1.4477,
-        # max_figure_width_cm=4.0513,
-        # panel_width_cm=4.0513,
-        # for Fig 3
-        max_figure_height_cm=3.3941,
-        panel_height_cm=3.3941,
-        max_figure_width_cm=4.0572,
-        panel_width_cm=4.0572,
-        model_average=True,
-        highlight_mean=True,  # only applies if model_average is False
-        sum_exc_inh=False,
-        only_sum=False,
-        hide_source_types="auto",
-        hide_source_types_bins=5,
-        hide_source_types_cut_off_edge=1,
-        hide_source_types_mode="below_cut_off",
-        hide_yaxis=True,
-        trim_axes=True,
-        quantile=None,
-        fig=None,
-        ax=None,
-        legend_ax=None,
-        hline=True,
-        legend_n_cols=None,
-        baseline_color=None,
-        colors=None,
+        contrast: float,
+        angle: float,
+        t_start: float = 0,
+        t_end: float = 1,
+        fontsize: float = 5,
+        linewidth: float = 0.25,
+        legend: bool = False,
+        legend_standalone: bool = True,
+        legend_figsize_cm: tuple[float, float] = (4.0572, 1),
+        legend_n_rows: int | None = None,
+        max_figure_height_cm: float = 3.3941,
+        panel_height_cm: float = 3.3941,
+        max_figure_width_cm: float = 4.0572,
+        panel_width_cm: float = 4.0572,
+        model_average: bool = True,
+        highlight_mean: bool = True,  # only applies if model_average is False
+        sum_exc_inh: bool = False,
+        only_sum: bool = False,
+        hide_source_types: str | list | None = "auto",
+        hide_source_types_bins: int = 5,
+        hide_source_types_cut_off_edge: int = 1,
+        hide_source_types_mode: str = "below_cut_off",
+        hide_yaxis: bool = True,
+        trim_axes: bool = True,
+        quantile: float | None = None,
+        fig: plt.Figure | None = None,
+        ax: plt.Axes | None = None,
+        legend_ax: plt.Axes | None = None,
+        hline: bool = True,
+        legend_n_cols: int | None = None,
+        baseline_color: tuple[float, float, float, float] | None = None,
+        colors: dict[str, tuple[float, float, float, float]] | None = None,
     ):
+        """
+        Plot temporal contributions of different source types.
+
+        Args:
+            contrast: The contrast of the stimulus.
+            angle: The angle of the stimulus.
+            t_start: Start time for the plot.
+            t_end: End time for the plot.
+            fontsize: Font size for labels and titles.
+            linewidth: Line width for traces.
+            legend: Whether to show the legend.
+            legend_standalone: Whether to create a standalone legend.
+            legend_figsize_cm: Figure size for the standalone legend.
+            legend_n_rows: Number of rows for the standalone legend.
+            max_figure_height_cm: Maximum figure height in centimeters.
+            panel_height_cm: Height of each panel in centimeters.
+            max_figure_width_cm: Maximum figure width in centimeters.
+            panel_width_cm: Width of each panel in centimeters.
+            model_average: Whether to plot the model average.
+            highlight_mean: Whether to highlight the mean trace.
+            sum_exc_inh: Whether to sum excitatory and inhibitory contributions.
+            only_sum: Whether to only plot the summed contributions.
+            hide_source_types: Source types to hide or "auto".
+            hide_source_types_bins: Number of bins for auto-hiding.
+            hide_source_types_cut_off_edge: Cut-off edge for auto-hiding.
+            hide_source_types_mode: Mode for auto-hiding source types.
+            hide_yaxis: Whether to hide the y-axis.
+            trim_axes: Whether to trim the axes.
+            quantile: Quantile for shading.
+            fig: Existing figure to use.
+            ax: Existing axes to use.
+            legend_ax: Existing axes for the standalone legend.
+            hline: Whether to show a horizontal line at 0.
+            legend_n_cols: Number of columns for the standalone legend.
+            baseline_color: Color for the baseline.
+            colors: Colors for each source type.
+
+        Returns:
+            Figure, axes, and legend axes objects.
+
+        Example:
+            ```
+            view = MovingEdgeCurrentView(...)
+            fig, ax = view.plot_temporal_contributions(
+                contrast=1.0,
+                angle=0,
+                t_start=0,
+                t_end=1,
+                fontsize=5,
+                linewidth=0.25,
+                legend=True
+            )
+            ```
+        """
         if fig is None and ax is None:
             figsize = figsize_from_n_items(
                 1,
@@ -1493,37 +1946,89 @@ class MovingEdgeCurrentView:
 
     def plot_temporal_contributions_pc_nc(
         self,
-        contrast,
-        angle,
-        t_start=0,
-        t_end=1,
-        fontsize=5,
-        linewidth=0.25,
-        legend=False,
-        legend_standalone=True,
-        legend_figsize_cm=(4.0572, 1),
-        legend_n_rows=None,
-        max_figure_height_cm=3.3941,
-        panel_height_cm=3.3941,
-        max_figure_width_cm=4.0572,
-        panel_width_cm=4.0572,
-        model_average=True,
-        highlight_mean=True,  # only applies if model_average is False
-        sum_exc_inh=False,
-        only_sum=False,
-        hide_source_types="auto",
-        hide_source_types_bins=5,
-        hide_source_types_cut_off_edge=1,
-        hide_source_types_mode="below_cut_off",
-        hide_yaxis=True,
-        trim_axes=True,
-        quantile=None,
-        fig=None,
-        ax=None,
-        legend_ax=None,
-        null_linestyle="dotted",
-        legend_n_cols=None,
-    ):
+        contrast: float,
+        angle: float,
+        t_start: float = 0,
+        t_end: float = 1,
+        fontsize: float = 5,
+        linewidth: float = 0.25,
+        legend: bool = False,
+        legend_standalone: bool = True,
+        legend_figsize_cm: tuple[float, float] = (4.0572, 1),
+        legend_n_rows: int | None = None,
+        max_figure_height_cm: float = 3.3941,
+        panel_height_cm: float = 3.3941,
+        max_figure_width_cm: float = 4.0572,
+        panel_width_cm: float = 4.0572,
+        model_average: bool = True,
+        highlight_mean: bool = True,
+        sum_exc_inh: bool = False,
+        only_sum: bool = False,
+        hide_source_types: str | list | None = "auto",
+        hide_source_types_bins: int = 5,
+        hide_source_types_cut_off_edge: int = 1,
+        hide_source_types_mode: str = "below_cut_off",
+        hide_yaxis: bool = True,
+        trim_axes: bool = True,
+        quantile: float | None = None,
+        fig: plt.Figure | None = None,
+        ax: plt.Axes | None = None,
+        legend_ax: plt.Axes | None = None,
+        null_linestyle: str = "dotted",
+        legend_n_cols: int | None = None,
+    ) -> tuple[plt.Figure, plt.Axes, plt.Figure | None, plt.Axes | None]:
+        """
+        Temporal contributions of different source types for positive/negative contrasts.
+
+        Args:
+            contrast: The contrast of the stimulus.
+            angle: The angle of the stimulus.
+            t_start: Start time for the plot.
+            t_end: End time for the plot.
+            fontsize: Font size for labels and titles.
+            linewidth: Line width for traces.
+            legend: Whether to show the legend.
+            legend_standalone: Whether to create a standalone legend.
+            legend_figsize_cm: Figure size for the standalone legend.
+            legend_n_rows: Number of rows for the standalone legend.
+            max_figure_height_cm: Maximum figure height in centimeters.
+            panel_height_cm: Height of each panel in centimeters.
+            max_figure_width_cm: Maximum figure width in centimeters.
+            panel_width_cm: Width of each panel in centimeters.
+            model_average: Whether to plot the model average.
+            highlight_mean: Whether to highlight the mean trace.
+            sum_exc_inh: Whether to sum excitatory and inhibitory contributions.
+            only_sum: Whether to only plot the summed contributions.
+            hide_source_types: Source types to hide or "auto".
+            hide_source_types_bins: Number of bins for auto-hiding.
+            hide_source_types_cut_off_edge: Cut-off edge for auto-hiding.
+            hide_source_types_mode: Mode for auto-hiding source types.
+            hide_yaxis: Whether to hide the y-axis.
+            trim_axes: Whether to trim the axes.
+            quantile: Quantile for shading.
+            fig: Existing figure to use.
+            ax: Existing axes to use.
+            legend_ax: Existing axes for the standalone legend.
+            null_linestyle: Linestyle for null direction traces.
+            legend_n_cols: Number of columns for the standalone legend.
+
+        Returns:
+            Figure, axes, and legend axes objects.
+
+        Example:
+            ```
+            view = MovingEdgeCurrentView(...)
+            fig, ax = view.plot_temporal_contributions_pc_nc(
+                contrast=1.0,
+                angle=0,
+                t_start=0,
+                t_end=1,
+                fontsize=5,
+                linewidth=0.25,
+                legend=True
+            )
+            ```
+        """
         if fig is None and ax is None:
             figsize = figsize_from_n_items(
                 1,
@@ -1534,15 +2039,15 @@ class MovingEdgeCurrentView:
             )
             fig, axes = figsize.axis_grid(hspace=0.0, wspace=0, fontsize=fontsize)
             ax = axes[0]
-        cv_pc = (
+        cv_pd = (
             self.at_contrast(contrast)
             .at_angle(angle)
             .between_seconds(t_start, t_end)
             .sum_over_cells()
         )
-        cv_nc = (
-            self.at_contrast(0 if contrast == 1 else 1)
-            .at_angle(angle)
+        cv_nd = (
+            self.at_contrast(contrast)
+            .at_angle((angle - 180) % 360)
             .between_seconds(t_start, t_end)
             .sum_over_cells()
         )
@@ -1570,10 +2075,12 @@ class MovingEdgeCurrentView:
                 hide_source_types_mode,
             )
         )
-        cv_pc.init_colors(color_source_types)
-        cv_nc.init_colors(color_source_types)
+        cv_pd.init_colors(color_source_types)
+        cv_nd.init_colors(color_source_types)
 
-        def plot_mean_trace(time, trace, label, color, zorder, linestyle="solid"):
+        def plot_mean_trace(
+            time, trace, label, color, zorder, linestyle="solid", ax=None, fig=None
+        ):
             ax.plot(
                 time,
                 trace,
@@ -1629,20 +2136,20 @@ class MovingEdgeCurrentView:
                     linestyle=linestyle,
                 )
 
-        def get_summed_traces(signs, source_types, cv_pc, cv_nc):
+        def get_summed_traces(signs, source_types, cv_pd, cv_nd):
             # sum over cell types then average over models
-            exc_pd = np.zeros(cv_pc.shape)
-            inh_pd = np.zeros(cv_pc.shape)
-            exc_nd = np.zeros(cv_nc.shape)
-            inh_nd = np.zeros(cv_nc.shape)
+            exc_pd = np.zeros(cv_pd.shape)
+            inh_pd = np.zeros(cv_pd.shape)
+            exc_nd = np.zeros(cv_nd.shape)
+            inh_nd = np.zeros(cv_nd.shape)
             # sum over cell types
             for source_type in source_types:
                 if signs[source_type] == 1:
-                    exc_pd += cv_pc[source_type][:]  # (1, n_models, 1, n_timesteps)
-                    exc_nd += cv_nc[source_type][:]
+                    exc_pd += cv_pd[source_type][:]  # (1, n_models, 1, n_timesteps)
+                    exc_nd += cv_nd[source_type][:]
                 else:
-                    inh_pd += cv_pc[source_type][:]
-                    inh_nd += cv_nc[source_type][:]
+                    inh_pd += cv_pd[source_type][:]
+                    inh_nd += cv_nd[source_type][:]
             # (n_models, n_timesteps)
             return (
                 exc_pd.squeeze(),
@@ -1654,64 +2161,70 @@ class MovingEdgeCurrentView:
         for source_type in source_types:
             if model_average and not only_sum:
                 # mean traces solid for PD and dashed for ND
+                color = cv_pd.color(source_type)
+
                 plot_mean_trace(
-                    cv_pc.time,
-                    cv_pc[source_type][:].squeeze(axis=-2).T.mean(axis=1),
+                    cv_pd.time,
+                    cv_pd[source_type][:].squeeze(axis=-2).T.mean(axis=1),
                     source_type,
-                    cv_pc.color(source_type),
-                    cv_pc.zorder(source_types, source_type),
+                    color,
+                    cv_pd.zorder(source_types, source_type),
+                    ax=ax,
+                    fig=fig,
                 )
                 plot_mean_trace(
-                    cv_nc.time,
-                    cv_nc[source_type][:].squeeze(axis=-2).T.mean(axis=1),
+                    cv_nd.time,
+                    cv_nd[source_type][:].squeeze(axis=-2).T.mean(axis=1),
                     source_type,
-                    cv_pc.color(source_type),
+                    color,
                     linestyle=null_linestyle,
-                    zorder=cv_pc.zorder(source_types, source_type),
+                    zorder=cv_pd.zorder(source_types, source_type),
+                    ax=ax,
+                    fig=fig,
                 )
 
             elif not model_average and not only_sum:
                 # individual traces
                 plot_individual_traces(
-                    cv_pc[source_type][:].squeeze(axis=-2),
-                    cv_pc.time,
-                    cv_pc.color(source_type),
-                    cv_pc.zorder(source_types, source_type),
+                    cv_pd[source_type][:].squeeze(axis=-2),
+                    cv_pd.time,
+                    cv_pd.color(source_type),
+                    cv_pd.zorder(source_types, source_type),
                     source_type,
                 )
                 plot_individual_traces(
-                    cv_nc[source_type][:].squeeze(axis=-2),
-                    cv_nc.time,
-                    cv_pc.color(source_type),
-                    cv_pc.zorder(source_types, source_type),
+                    cv_nd[source_type][:].squeeze(axis=-2),
+                    cv_nd.time,
+                    cv_pd.color(source_type),
+                    cv_pd.zorder(source_types, source_type),
                     source_type,
                     linestyle=null_linestyle,
-                    legend="null contrast",
+                    legend="null direction",
                 )
 
             # quantiles
             plot_quantile(
-                cv_pc[source_type][:].squeeze(axis=-2),
-                cv_pc.time,
-                cv_pc.color(source_type),
-                cv_pc.zorder(source_types, source_type),
+                cv_pd[source_type][:].squeeze(axis=-2),
+                cv_pd.time,
+                cv_pd.color(source_type),
+                cv_pd.zorder(source_types, source_type),
                 linestyle="solid",
             )
             plot_quantile(
-                cv_nc[source_type][:].squeeze(axis=-2),
-                cv_nc.time,
-                cv_pc.color(source_type),
-                cv_pc.zorder(source_types, source_type),
+                cv_nd[source_type][:].squeeze(axis=-2),
+                cv_nd.time,
+                cv_pd.color(source_type),
+                cv_pd.zorder(source_types, source_type),
                 linestyle=null_linestyle,
             )
         if sum_exc_inh or only_sum:
             # plot summed traces
-            signs = cv_pc.signs()
+            signs = cv_pd.signs()
             exc_pd, inh_pd, exc_nd, inh_nd = get_summed_traces(
-                signs, source_types, cv_pc, cv_nc
+                signs, source_types, cv_pd, cv_nd
             )
             plot_summed_trace(
-                cv_pc.time,
+                cv_pd.time,
                 exc_pd.mean(axis=0),
                 "excitatory",
                 (0.931, 0.0, 0.0, 1.0),
@@ -1719,13 +2232,13 @@ class MovingEdgeCurrentView:
             )
             plot_quantile(
                 exc_pd,
-                cv_pc.time,
+                cv_pd.time,
                 (0.931, 0.0, 0.0, 1.0),
                 zorder=0,
                 linestyle="solid",
             )
             plot_summed_trace(
-                cv_nc.time,
+                cv_nd.time,
                 exc_nd.mean(axis=0),
                 "excitatory",
                 (0.931, 0.0, 0.0, 1.0),
@@ -1734,13 +2247,13 @@ class MovingEdgeCurrentView:
             )
             plot_quantile(
                 exc_nd,
-                cv_pc.time,
+                cv_pd.time,
                 (0.931, 0.0, 0.0, 1.0),
                 zorder=0,
                 linestyle=null_linestyle,
             )
             plot_summed_trace(
-                cv_pc.time,
+                cv_pd.time,
                 inh_pd.mean(axis=0),
                 "inhibitory",
                 (0.0, 0.0, 0.849, 1.0),
@@ -1748,13 +2261,13 @@ class MovingEdgeCurrentView:
             )
             plot_quantile(
                 inh_pd,
-                cv_pc.time,
+                cv_pd.time,
                 (0.0, 0.0, 0.849, 1.0),
                 zorder=0,
                 linestyle="solid",
             )
             plot_summed_trace(
-                cv_nc.time,
+                cv_nd.time,
                 inh_nd.mean(axis=0),
                 "inhibitory",
                 (0.0, 0.0, 0.849, 1.0),
@@ -1763,12 +2276,11 @@ class MovingEdgeCurrentView:
             )
             plot_quantile(
                 inh_nd,
-                cv_pc.time,
+                cv_pd.time,
                 (0.0, 0.0, 0.849, 1.0),
                 zorder=0,
                 linestyle=null_linestyle,
             )
-        ax.axhline(0, color=(0, 0, 0, 1), linewidth=0.25, zorder=-10)
 
         if legend:
             ax.legend(
@@ -1793,17 +2305,12 @@ class MovingEdgeCurrentView:
         if legend_standalone:
             handles, labels = ax.get_legend_handles_labels()
             nd_handle = Line2D(
-                [0],
-                [0],
-                color="k",
-                lw=1,
-                label="null contrast",
-                ls=null_linestyle,
+                [0], [0], color="k", lw=1, label="null direction", ls=null_linestyle
             )
             legend_n_rows = legend_n_rows or len(labels) + 1
             # legend_n_cols = (len(labels) + 1) // legend_n_rows
             legend_fig, legend_ax = plt_utils.standalone_legend(
-                [*labels[::2], "null contrast"],
+                [*labels[::2], "null direction"],
                 None,
                 [*handles[::2], nd_handle],
                 fontsize=fontsize,
@@ -1816,20 +2323,25 @@ class MovingEdgeCurrentView:
                 ax=legend_ax,
             )
             return fig, ax, legend_fig, legend_ax
-        return fig, ax
+        return fig, ax, None, None
 
     def get_temporal_contributions(
         self,
-        contrast,
-        angle,
-        t_start=0,
-        t_end=1,
-        hide_source_types="auto",
-        hide_source_types_bins=5,
-        hide_source_types_cut_off_edge=1,
-        hide_source_types_mode="below_cut_off",
-        summed_traces=False,
-    ):
+        contrast: float,
+        angle: float,
+        t_start: float = 0,
+        t_end: float = 1,
+        hide_source_types: str | list | None = "auto",
+        hide_source_types_bins: int = 5,
+        hide_source_types_cut_off_edge: int = 1,
+        hide_source_types_mode: str = "below_cut_off",
+        summed_traces: bool = False,
+    ) -> tuple[
+        "MovingEdgeCurrentView" | np.ndarray,
+        "MovingEdgeCurrentView" | np.ndarray,
+        list[str],
+        list[str],
+    ]:
         cv_pd = (
             self.at_contrast(contrast)
             .at_angle(angle)
@@ -1902,12 +2414,12 @@ class MovingEdgeCurrentView:
 
     def get_response(
         self,
-        contrast,
-        angle,
-        t_start=0,
-        t_end=1,
-        model_average=True,
-    ):
+        contrast: float,
+        angle: float,
+        t_start: float = 0,
+        t_end: float = 1,
+        model_average: bool = True,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         r_pd = (
             self.at_angle(angle)
             .at_contrast(contrast)
@@ -1931,7 +2443,7 @@ class MovingEdgeCurrentView:
         return r_pd, r_nd, self.between_seconds(t_start, t_end).time
 
 
-def reset_index(rfs, inplace=False):
+def reset_index(rfs: ReceptiveFields, inplace: bool = False) -> ReceptiveFields:
     if inplace:
         for source_type in rfs.source_types:
             edges = rfs[source_type]
@@ -1943,7 +2455,13 @@ def reset_index(rfs, inplace=False):
         return reset_index(new, inplace=True)
 
 
-def at_position(rfs, u=None, v=None, central=True, inplace=False):
+def at_position(
+    rfs: ReceptiveFields,
+    u: float | None = None,
+    v: float | None = None,
+    central: bool = True,
+    inplace: bool = False,
+) -> ReceptiveFields:
     if inplace:
         for source_type in rfs.source_types:
             edges = rfs[source_type]
