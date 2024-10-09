@@ -1,13 +1,14 @@
 # Moving Stimulus Responses
 
+## Rendering
+
+::: flyvision.datasets.moving_bar.RenderedOffsets
+
 ## Datasets
 
-::: flyvision.datasets.moving_bar
-    options:
-      members:
-        - RenderedOffsets
-        - MovingBar
-        - MovingEdge
+::: flyvision.datasets.moving_bar.MovingBar
+
+::: flyvision.datasets.moving_bar.MovingEdge
 
 ## Response Analysis
 
@@ -15,4 +16,4 @@
 
 ## Current Analysis
 
-::: flyvision.analysis.moving_edge_currents
+::: flyvision.analysis.moving_edge_currents.MovingEdgeCurrentView

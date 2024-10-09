@@ -1,12 +1,13 @@
 # Ensemble Clustering
 
+::: flyvision.analysis.clustering.compute_umap_and_clustering
 
-::: flyvision.analysis.clustering
-    options:
-      members:
-        - compute_umap_and_clustering
-        - umap_embedding
-        - GaussianMixtureClustering
-        - EnsembleEmbedding
-        - Embedding
-      group_by_category: false
+::: flyvision.analysis.clustering.umap_embedding
+
+::: flyvision.analysis.clustering.GaussianMixtureClustering
+
+::: flyvision.analysis.clustering.EnsembleEmbedding
+
+::: flyvision.analysis.clustering.Embedding
+
+::: flyvision.analysis.clustering.Clustering
