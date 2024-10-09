@@ -33,7 +33,7 @@ nav:
     - "Optimal Stimuli": reference/optimal_stimuli.md
     - Miscelleanous:
       - "Rendering": reference/rendering.md
-      - "Augmentation": reference/augmentation.md
+      - "Hex Augmentations": reference/augmentation.md
       - "Datasets": reference/datasets.md
       - "Utils": reference/utils.md
       - "Visualizations": reference/visualizations.md
