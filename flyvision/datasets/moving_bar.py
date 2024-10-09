@@ -11,6 +11,7 @@ from datamate import Directory, Namespace, root
 from matplotlib.colors import Colormap
 from matplotlib.patches import RegularPolygon
 from tqdm.auto import tqdm
+from typing_extensions import Literal
 
 import flyvision
 from flyvision import renderings_dir
@@ -132,9 +133,6 @@ class MovingBar(StimulusDataset):
         randomstate (np.random.RandomState): Random state for shuffling.
     """
 
-    augment: bool = False
-    n_sequences: int = 0
-    framerate: Optional[float] = None
     arg_df: pd.DataFrame = None
 
     def __init__(
@@ -147,7 +145,7 @@ class MovingBar(StimulusDataset):
         dt: float = 1 / 200,
         device: str = flyvision.device,
         bar_loc_horizontal: float = np.radians(90),
-        post_pad_mode: str = "value",
+        post_pad_mode: Literal["continue", "value", "reflect"] = "value",
         t_pre: float = 1.0,
         t_post: float = 1.0,
         build_stim_on_init: bool = True,
@@ -263,9 +261,6 @@ class MovingBar(StimulusDataset):
             self._dt,
         )
 
-    def __len__(self) -> int:
-        return len(self.arg_df)
-
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}\n"
@@ -371,7 +366,7 @@ class MovingBar(StimulusDataset):
         self, angle: float, width: float, intensity: float, speed: float
     ) -> int:
         """Get sequence ID from stimulus arguments."""
-        return self._get_sequence_id_from_arguments(locals())
+        return self.get_stimulus_index(locals())
 
     def _params(self, key: int) -> np.ndarray:
         """Get parameters for a given key."""
@@ -462,7 +457,7 @@ class MovingBar(StimulusDataset):
             post_stim: Include post-stimulus period.
 
         Returns:
-            np.ndarray: Stimulus array.
+            Stimulus array.
         """
         key = self._key(angle, width, intensity, speed)
         stim = self[key][:, 360].cpu().numpy()
@@ -659,10 +654,7 @@ class MovingEdge(MovingBar):
         seed: Seed for the random state.
         angles: List of angles in degrees.
 
-    Attributes:
-        Inherits all attributes from MovingBar class.
-
-    Info:
+    Note:
         This class uses a very wide bar (width=80) under the hood to render an
         edge stimulus.
     """
@@ -675,7 +667,7 @@ class MovingEdge(MovingBar):
         height: int = 9,
         dt: float = 1 / 200,
         device: str = flyvision.device,
-        post_pad_mode: str = "continue",
+        post_pad_mode: Literal["continue", "value", "reflect"] = "continue",
         t_pre: float = 1.0,
         t_post: float = 1.0,
         build_stim_on_init: bool = True,
@@ -711,15 +703,14 @@ def filter_post(resp: np.ndarray, t_post: float, dt: float) -> np.ndarray:
         t_post: Post-stimulus time in seconds.
         dt: Time step in seconds.
 
-    The post stimulus time is per speed in
-    'first_nan - int(t_post / dt):first_nan'.
+    Returns:
+        Filtered response array.
 
-    Assuming resp can be partitioned along the temporal dimension as |pre stim|
-    stimulus   |    post stimulus       |        nan padding        |
-    |0:t_pre:|t_pre + t_stim:|t_pre + t_stim + t_post:|t_pre + t_stim_max +
-    t_post|
-
-    Args: resp of shape (n_samples, n_frames, ...)
+    Note:
+        The post stimulus time is per speed in 'first_nan - int(t_post / dt):first_nan'.
+        Assuming resp can be partitioned along the temporal dimension as:
+        |pre stim|stimulus|post stimulus|nan padding|
+        |0:t_pre:|t_pre + t_stim:|t_pre + t_stim + t_post:|t_pre + t_stim_max + t_post|
     """
     _resp = []
     # for each sample
@@ -744,8 +735,15 @@ def filter_post(resp: np.ndarray, t_post: float, dt: float) -> np.ndarray:
     return np.array(_resp)
 
 
-def filter_pre(resp, t_pre, dt):
-    """
-    Args: resp of shape (n_samples, n_frames, ...)
+def filter_pre(resp: np.ndarray, t_pre: float, dt: float) -> np.ndarray:
+    """Remove pre-stimulus time from responses.
+
+    Args:
+        resp: Response array of shape (n_samples, n_frames, ...).
+        t_pre: Pre-stimulus time in seconds.
+        dt: Time step in seconds.
+
+    Returns:
+        Filtered response array.
     """
     return resp[:, int(t_pre / dt) :]

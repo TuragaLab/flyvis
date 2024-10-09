@@ -1,5 +1,5 @@
 from itertools import product
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -17,23 +17,49 @@ __all__ = ["Dots", "CentralImpulses", "SpatialImpulses"]
 
 
 class Dots(StimulusDataset):
-    """Render flashes aka dots per ommatidia.
+    """
+    Render flashes aka dots per ommatidia.
 
     Note:
         Renders directly in receptor space, does not use BoxEye or HexEye as eye-model.
 
+    Args:
+        dot_column_radius: Radius of the dot column.
+        max_extent: Maximum extent of the stimulus.
+        bg_intensity: Background intensity.
+        t_stim: Stimulus duration.
+        dt: Time step.
+        t_impulse: Impulse duration.
+        n_ommatidia: Number of ommatidia.
+        t_pre: Pre-stimulus duration.
+        t_post: Post-stimulus duration.
+        intensity: Stimulus intensity.
+        mode: Stimulus mode ('sustained' or 'impulse').
+        device: Torch device for computations.
+
     Attributes:
-        augment (bool): Flag for data augmentation.
-        dt (Optional[float]): Time step.
-        framerate (Optional[float]): Frame rate.
-        n_sequences (int): Number of sequences.
-        arg_df (Optional[pd.DataFrame]): DataFrame containing stimulus parameters.
+        dt: Time step.
+        arg_df: DataFrame containing stimulus parameters.
+        config: Namespace containing configuration parameters.
+        t_stim: Stimulus duration.
+        n_ommatidia: Number of ommatidia.
+        offsets: Array of ommatidia offsets.
+        u: U-coordinates of the hexagonal grid.
+        v: V-coordinates of the hexagonal grid.
+        extent_condition: Boolean mask for the extent condition.
+        max_extent: Maximum extent of the stimulus.
+        bg_intensity: Background intensity.
+        intensities: List of stimulus intensities.
+        device: Torch device for computations.
+        mode: Stimulus mode ('sustained' or 'impulse').
+        params: List of stimulus parameters.
+        t_impulse: Impulse duration.
+
+    Raises:
+        ValueError: If dot_column_radius is greater than max_extent.
     """
 
-    augment: bool = False
     dt: Optional[float] = None
-    framerate: Optional[float] = None
-    n_sequences: int = 0
     arg_df: Optional[pd.DataFrame] = None
 
     def __init__(
@@ -48,28 +74,9 @@ class Dots(StimulusDataset):
         t_pre: float = 2.0,
         t_post: float = 0,
         intensity: float = 1,
-        mode: str = "sustained",
+        mode: Literal["sustained", "impulse"] = "sustained",
         device: torch.device = flyvision.device,
     ):
-        """Initialize the Dots stimulus dataset.
-
-        Args:
-            dot_column_radius: Radius of the dot column.
-            max_extent: Maximum extent of the stimulus.
-            bg_intensity: Background intensity.
-            t_stim: Stimulus duration.
-            dt: Time step.
-            t_impulse: Impulse duration.
-            n_ommatidia: Number of ommatidia.
-            t_pre: Pre-stimulus duration.
-            t_post: Post-stimulus duration.
-            intensity: Stimulus intensity.
-            mode: Stimulus mode ('sustained' or 'impulse').
-            device: Torch device for computations.
-
-        Raises:
-            ValueError: If dot_column_radius is greater than max_extent.
-        """
         if dot_column_radius > max_extent:
             raise ValueError("dot_column_radius must be smaller than max_extent")
         self.config = Namespace(
@@ -218,15 +225,7 @@ class Dots(StimulusDataset):
         )
         return sequence.squeeze()
 
-    def __len__(self) -> int:
-        """Get the number of items in the dataset.
-
-        Returns:
-            Number of items in the dataset.
-        """
-        return len(self.arg_df)
-
-    def get_sequence_id_from_arguments(self, u: float, v: float, intensity: float) -> int:
+    def get_stimulus_index(self, u: float, v: float, intensity: float) -> int:
         """Get sequence ID from given arguments.
 
         Args:
@@ -237,35 +236,36 @@ class Dots(StimulusDataset):
         Returns:
             Sequence ID.
         """
-        return self._get_sequence_id_from_arguments(locals())
-
-    @property
-    def t_pre(self) -> float:
-        """Get pre-stimulus duration."""
-        return self._t_pre
-
-    @property
-    def t_post(self) -> float:
-        """Get post-stimulus duration."""
-        return self._t_post
+        return StimulusDataset.get_stimulus_index(self, locals())
 
 
 class CentralImpulses(StimulusDataset):
     """Flashes at the center of the visual field for temporal receptive field mapping.
 
+    Args:
+        impulse_durations: List of impulse durations.
+        dot_column_radius: Radius of the dot column.
+        bg_intensity: Background intensity.
+        t_stim: Stimulus duration.
+        dt: Time step.
+        n_ommatidia: Number of ommatidia.
+        t_pre: Pre-stimulus duration.
+        t_post: Post-stimulus duration.
+        intensity: Stimulus intensity.
+        mode: Stimulus mode.
+        device: Torch device for computations.
+
     Attributes:
-        arg_df (Optional[pd.DataFrame]): DataFrame containing stimulus parameters.
-        augment (bool): Flag for data augmentation.
-        dt (Optional[float]): Time step.
-        framerate (Optional[float]): Frame rate.
-        n_sequences (Optional[int]): Number of sequences.
+        arg_df: DataFrame containing stimulus parameters.
+        dt: Time step.
+        dots: Instance of the Dots class.
+        impulse_durations: List of impulse durations.
+        config: Configuration namespace.
+        params: List of stimulus parameters.
     """
 
     arg_df: Optional[pd.DataFrame] = None
-    augment: bool = False
     dt: Optional[float] = None
-    framerate: Optional[float] = None
-    n_sequences: Optional[int] = None
 
     def __init__(
         self,
@@ -329,14 +329,6 @@ class CentralImpulses(StimulusDataset):
         )
         self.dt = dt
 
-    def __len__(self) -> int:
-        """Get the number of items in the dataset.
-
-        Returns:
-            Number of items in the dataset.
-        """
-        return len(self.arg_df)
-
     def _params(self, key: int) -> np.ndarray:
         """Get parameters for a specific key.
 
@@ -359,9 +351,7 @@ class CentralImpulses(StimulusDataset):
         """
         u, v, offset, coordinate_index, intensity, t_impulse = self._params(key)
         self.dots.t_impulse = t_impulse
-        return self.dots[self.dots.get_sequence_id_from_arguments(u, v, intensity)]
-
-    get_sequence_id_from_arguments = StimulusDataset._get_sequence_id_from_arguments
+        return self.dots[self.dots.get_stimulus_index(u, v, intensity)]
 
     @property
     def t_pre(self) -> float:
@@ -381,19 +371,31 @@ class CentralImpulses(StimulusDataset):
 class SpatialImpulses(StimulusDataset):
     """Spatial flashes for spatial receptive field mapping.
 
+    Args:
+        impulse_durations: List of impulse durations.
+        max_extent: Maximum extent of the stimulus.
+        dot_column_radius: Radius of the dot column.
+        bg_intensity: Background intensity.
+        t_stim: Stimulus duration.
+        dt: Time step.
+        n_ommatidia: Number of ommatidia.
+        t_pre: Pre-stimulus duration.
+        t_post: Post-stimulus duration.
+        intensity: Stimulus intensity.
+        mode: Stimulus mode.
+        device: Torch device for computations.
+
     Attributes:
-        arg_df (Optional[pd.DataFrame]): DataFrame containing stimulus parameters.
-        augment (bool): Flag for data augmentation.
-        dt (Optional[float]): Time step.
-        framerate (Optional[float]): Frame rate.
-        n_sequences (Optional[int]): Number of sequences.
+        arg_df: DataFrame containing stimulus parameters.
+        dt: Time step.
+        dots: Instance of the Dots class.
+        impulse_durations: List of impulse durations.
+        config: Configuration namespace.
+        params: List of stimulus parameters.
     """
 
     arg_df: Optional[pd.DataFrame] = None
-    augment: bool = False
     dt: Optional[float] = None
-    framerate: Optional[float] = None
-    n_sequences: Optional[int] = None
 
     def __init__(
         self,
@@ -410,22 +412,6 @@ class SpatialImpulses(StimulusDataset):
         mode: str = "impulse",
         device: torch.device = flyvision.device,
     ):
-        """Initialize the SpatialImpulses dataset.
-
-        Args:
-            impulse_durations: List of impulse durations.
-            max_extent: Maximum extent of the stimulus.
-            dot_column_radius: Radius of the dot column.
-            bg_intensity: Background intensity.
-            t_stim: Stimulus duration.
-            dt: Time step.
-            n_ommatidia: Number of ommatidia.
-            t_pre: Pre-stimulus duration.
-            t_post: Post-stimulus duration.
-            intensity: Stimulus intensity.
-            mode: Stimulus mode.
-            device: Torch device for computations.
-        """
         self.dots = Dots(
             dot_column_radius=dot_column_radius,
             max_extent=max_extent,
@@ -461,14 +447,6 @@ class SpatialImpulses(StimulusDataset):
             ],
         )
 
-    def __len__(self) -> int:
-        """Get the number of items in the dataset.
-
-        Returns:
-            Number of items in the dataset.
-        """
-        return len(self.arg_df)
-
     def _params(self, key: int) -> np.ndarray:
         """Get parameters for a specific key.
 
@@ -491,19 +469,7 @@ class SpatialImpulses(StimulusDataset):
         """
         u, v, offset, coordinate_index, intensity, t_impulse = self._params(key)
         self.dots.t_impulse = t_impulse
-        return self.dots[self.dots.get_sequence_id_from_arguments(u, v, intensity)]
-
-    get_sequence_id_from_arguments = StimulusDataset._get_sequence_id_from_arguments
-
-    @property
-    def t_pre(self) -> float:
-        """Get pre-stimulus duration."""
-        return self.dots.t_pre
-
-    @property
-    def t_post(self) -> float:
-        """Get post-stimulus duration."""
-        return self.dots.t_post
+        return self.dots[self.dots.get_stimulus_index(u, v, intensity)]
 
     def __repr__(self) -> str:
         """Get string representation of the dataset."""

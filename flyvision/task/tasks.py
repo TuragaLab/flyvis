@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
 
+import torch
 from datamate import Namespace
 from toolz import valmap
 from torch.utils.data import DataLoader, sampler
@@ -36,6 +37,7 @@ class Task:
         seed: Random seed for reproducibility.
         decoder: Configuration for the decoder.
         dataset (MultiTaskDataset): The initialized multi-task dataset.
+        losses (Namespace): Loss functions for each task.
         train_seq_index (List[int]): Indices of training sequences.
         val_seq_index (List[int]): Indices of validation sequences.
         train_data (DataLoader): DataLoader for training data.
@@ -50,6 +52,7 @@ class Task:
         dataset: Namespace,
         decoder: Namespace,
         loss: Namespace,
+        task_weights: Dict[str, float] = None,
         batch_size: int = 4,
         n_iters: int = 250_000,
         n_folds: int = 4,
@@ -66,7 +69,9 @@ class Task:
 
         # Initialize dataset.
         self.dataset = forward_subclass(MultiTaskDataset, dataset)
-        self.dataset.losses = Namespace({
+        self.task_weights = self.init_task_weights(task_weights)
+
+        self.losses = Namespace({
             task: getattr(objectives, config) for task, config in loss.items()
         })
 
@@ -125,6 +130,46 @@ class Task:
             A dictionary of initialized decoders.
         """
         return init_decoder(self.decoder, connectome)
+
+    def loss(
+        self, input: torch.Tensor, target: torch.Tensor, task: str, **kwargs
+    ) -> torch.Tensor:
+        """Returns the task loss multiplied with the task weight.
+
+        Args:
+            input: Input tensor.
+            target: Target tensor.
+            task: Task name.
+            **kwargs: Additional keyword arguments for the loss function.
+
+        Returns:
+            Weighted task loss.
+        """
+        return (
+            self.task_weights[task]
+            * self.losses[task](input, target, **kwargs)
+            / self.task_weights_sum
+        )
+
+    def init_task_weights(self, task_weights: Dict[str, float]) -> Dict[str, float]:
+        """Returns the task weights.
+
+        Returns:
+            A dictionary of task weights.
+        """
+        return (
+            task_weights
+            if task_weights is not None
+            else {task: 1 for task in self.dataset.tasks}
+        )
+
+    def task_weights_sum(self) -> float:
+        """Returns the sum of task weights.
+
+        Returns:
+            The sum of task weights.
+        """
+        return sum(self.task_weights.values())
 
 
 def init_decoder(config: Dict, connectome: ConnectomeDir) -> Dict[str, ActivityDecoder]:

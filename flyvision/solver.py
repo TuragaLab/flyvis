@@ -331,16 +331,10 @@ class MultiTaskSolver:
                             y = data[task]
                             y_est = self.decoder[task](activity)
 
-                            # to pass additional kwargs to the loss function, these
-                            # can either come from the decoder instance or from
+                            # to pass additional kwargs to the loss function, from
                             # the data batch from the dataset
-                            loss_kwargs = {
-                                **getattr(self.decoder[task], "loss_kwargs", {}),
-                                **data.get("loss_kwargs", {}),
-                            }
-
-                            losses[task] = self.task.dataset.loss(
-                                y_est, y, task, **loss_kwargs
+                            losses[task] = self.task.loss(
+                                y_est, y, task, **data.get("loss_kwargs", {})
                             )
 
                         # Sum all task losses. The weighting of the tasks is done in the
@@ -534,12 +528,8 @@ class MultiTaskSolver:
                     y = data[task]
                     y_est = self.decoder[task](activity)
 
-                    loss_kwargs = {
-                        **getattr(self.decoder[task], "loss_kwargs", {}),
-                        **data.get("loss_kwargs", {}),
-                    }
                     losses[task] += (
-                        self.task.dataset.loss(y_est, y, task, **loss_kwargs)
+                        self.task.loss(y_est, y, task, **data.get("loss_kwargs", {}))
                         .detach()
                         .cpu()
                         .item(),

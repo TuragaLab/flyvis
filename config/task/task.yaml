@@ -27,7 +27,6 @@ dataset:
     - 1
     - 2
     - 3
-  task_weights: null
 decoder:
   flow:
     type: 'DecoderGAVP'
@@ -41,6 +40,7 @@ decoder:
 loss:
   flow:
     type: 'l2norm'
+task_weights: null
 batch_size: 4
 n_iters: 250000
 n_folds: 4

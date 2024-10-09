@@ -102,7 +102,7 @@ def render_flash(
         radius: Radius of the stimulus.
 
     Returns:
-        np.ndarray: Generated flash sequence.
+        Generated flash sequence.
     """
     stimulus = torch.ones(n_ommatidia)[None] * baseline
 
@@ -131,7 +131,6 @@ def render_flash(
 class Flashes(SequenceDataset):
     """Flashes dataset.
 
-
     Args:
         boxfilter: Parameters for the BoxEye filter.
         dynamic_range: Range of intensities. E.g. [0, 1] renders flashes
@@ -143,27 +142,21 @@ class Flashes(SequenceDataset):
         alternations: Sequence of alternations between lower or upper intensity and
             baseline of the dynamic range.
 
+    Attributes:
+        dt: Timestep.
+        t_post: Post-stimulus time.
+        flashes_dir: Directory containing rendered flashes.
+        config: Configuration object.
+        baseline: Baseline intensity.
+        arg_df: DataFrame containing flash parameters.
+
     Note:
         Zero alternation is the prestimulus and baseline. One alternation is the
         central stimulus. Has to start with zero alternation. `t_pre` is the
         duration of the prestimulus and `t_stim` is the duration of the stimulus.
-
-    Attributes:
-        augment (bool): Flag for data augmentation.
-        n_sequences (int): Number of sequences.
-        dt (float): Timestep.
-        framerate (float): Frame rate.
-        t_post (float): Post-stimulus time.
-        flashes_dir (RenderedFlashes): Directory containing rendered flashes.
-        config: Configuration object.
-        baseline (float): Baseline intensity.
-        arg_df (pd.DataFrame): DataFrame containing flash parameters.
     """
 
-    augment: bool = False
-    n_sequences: int = 0
     dt: Union[float, None] = None
-    framerate: Union[float, None] = None
     t_post: float = 0.0
 
     def __init__(
@@ -209,10 +202,6 @@ class Flashes(SequenceDataset):
         """Duration of the one alternation."""
         return self.config.t_stim
 
-    def __len__(self) -> int:
-        """Return the number of items in the dataset."""
-        return len(self.arg_df)
-
     def get_item(self, key: int) -> torch.Tensor:
         """Index the dataset.
 
@@ -220,7 +209,7 @@ class Flashes(SequenceDataset):
             key: Index of the item to retrieve.
 
         Returns:
-            torch.Tensor: Flash sequence at the given index.
+            Flash sequence at the given index.
         """
         return torch.Tensor(self.flashes_dir.flashes[key])
 

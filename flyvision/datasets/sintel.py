@@ -1,7 +1,7 @@
 import logging
 from contextlib import contextmanager
 from itertools import product
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -49,9 +49,9 @@ class RenderedSintel(Directory):
     Args:
         tasks: List of tasks to include in the rendering. May include 'flow' or 'depth'.
         boxfilter: Key word arguments for the BoxEye filter.
+        vertical_splits: Number of vertical splits of each frame.
         n_frames: Number of frames to render for each sequence.
         center_crop_fraction: Fraction of the image to keep after cropping.
-        vertical_splits: Number of vertical splits of each frame.
         unittest: If True, only renders a single sequence.
 
     Attributes:
@@ -180,7 +180,7 @@ class MultiTaskSintel(MultiTaskDataset):
     """Sintel dataset.
 
     Args:
-        tasks: List of tasks to include. May include 'flow' or 'depth'.
+        tasks: List of tasks to include. May include 'flow', 'lum', or 'depth'.
         boxfilter: Key word arguments for the BoxEye filter.
         vertical_splits: Number of vertical splits of each frame.
         n_frames: Number of frames to render for each sequence.
@@ -204,37 +204,24 @@ class MultiTaskSintel(MultiTaskDataset):
         _init_cache: If True, caches the dataset in memory.
         unittest: If True, only renders a single sequence.
         flip_axes: List of axes to flip over.
-        task_weights: Dictionary of task weights for loss calculation.
 
     Attributes:
-        framerate (int): Framerate of the original sequences.
         dt (float): Sampling and integration time constant.
-        n_sequences (int): Number of sequences in the dataset.
         t_pre (float): Warmup time.
         t_post (float): Cooldown time.
         tasks (List[str]): List of all tasks.
-        task_weights (Dict[str, float]): Weighting of each task.
-        task_weights_sum (float): Sum of all indicated task weights to normalize loss.
-        losses (Dict[str, Callable]): Loss function for each task.
-        loss_kwargs (Dict[str, Any]): Additional keyword arguments for loss functions.
         valid_tasks (List[str]): List of valid task names.
 
     Raises:
         ValueError: If any element in tasks is invalid.
     """
 
-    framerate: int = 24
+    original_framerate: int = 24
     dt: float = 1 / 50
-    n_sequences: int = 0
     t_pre: float = 0.0
     t_post: float = 0.0
     tasks: List[str] = []
-    task_weights: Dict[str, float] = dict()
-    task_weights_sum: float = 1.0
-    losses: Dict[str, Callable] = dict()
-    loss_kwargs: Dict[str, Any] = dict()
-
-    valid_tasks = ["lum", "flow", "depth"]
+    valid_tasks: List[str] = ["lum", "flow", "depth"]
 
     def __init__(
         self,
@@ -258,7 +245,6 @@ class MultiTaskSintel(MultiTaskDataset):
         _init_cache: bool = True,
         unittest: bool = False,
         flip_axes: List[int] = [0, 1],
-        task_weights: Optional[Dict[str, float]] = None,
     ):
         def check_tasks(tasks):
             invalid_tasks = [x for x in tasks if x not in self.valid_tasks]
@@ -271,7 +257,6 @@ class MultiTaskSintel(MultiTaskDataset):
             return tasks, data_keys
 
         self.tasks, self.data_keys = check_tasks(tasks)
-        self._init_task_weights(task_weights)
         self.interpolate = interpolate
         self.n_frames = n_frames if not unittest else 3
         self.dt = dt
@@ -335,11 +320,9 @@ class MultiTaskSintel(MultiTaskDataset):
             center_crop_fraction=center_crop_fraction,
         )
 
-        self.n_sequences = len(self.rendered)
-
         self.arg_df = pd.DataFrame(
             dict(
-                index=np.arange(self.n_sequences),
+                index=np.arange(len(self.rendered)),
                 original_index=self.meta.sequence_indices.repeat(vertical_splits),
                 name=sorted(self.rendered.keys()),
                 original_n_frames=self.meta.frames_per_scene.repeat(vertical_splits),
@@ -357,7 +340,7 @@ class MultiTaskSintel(MultiTaskDataset):
                 for key, val in self.rendered(seq_id).items()
                 if key in self.data_keys
             }
-            for seq_id in range(self.n_sequences)
+            for seq_id in range(self)
         ]
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -377,9 +360,31 @@ class MultiTaskSintel(MultiTaskDataset):
         if hasattr(self, "rendered") and name in self.rendered.config:
             raise AttributeError("cannot change attribute of rendered initialization")
         super().__setattr__(name, value)
-        # also update augmentation if it is already initialized
+        # also update augmentation because it may already be initialized
         if getattr(self, "_augmentations_are_initialized", False):
             self.update_augmentation(name, value)
+
+    def init_augmentation(self) -> None:
+        """Initialize augmentation callables."""
+        self.temporal_crop = CropFrames(
+            self.n_frames, all_frames=self.all_frames, random=self.random_temporal_crop
+        )
+        self.jitter = ContrastBrightness(
+            contrast_std=self.contrast_std, brightness_std=self.brightness_std
+        )
+        self.rotate = HexRotate(self.extent, p_rot=self.p_rot)
+        self.flip = HexFlip(self.extent, p_flip=self.p_flip, flip_axes=self.flip_axes)
+        self.noise = PixelNoise(self.gaussian_white_noise)
+
+        self.piecewise_resample = Interpolate(
+            self.original_framerate, 1 / self.dt, mode="nearest-exact"
+        )
+        self.linear_interpolate = Interpolate(
+            self.original_framerate,
+            1 / self.dt,
+            mode="linear",
+        )
+        self.gamma_correct = GammaCorrection(1, self.gamma_std)
 
     def update_augmentation(self, name: str, value: Any) -> None:
         """Update augmentation parameters based on attribute changes.
@@ -406,28 +411,6 @@ class MultiTaskSintel(MultiTaskDataset):
         if name == "gamma_std":
             self.gamma_correct.std = value
 
-    def init_augmentation(self) -> None:
-        """Initialize augmentation callables."""
-        self.temporal_crop = CropFrames(
-            self.n_frames, all_frames=self.all_frames, random=self.random_temporal_crop
-        )
-        self.jitter = ContrastBrightness(
-            contrast_std=self.contrast_std, brightness_std=self.brightness_std
-        )
-        self.rotate = HexRotate(self.extent, p_rot=self.p_rot)
-        self.flip = HexFlip(self.extent, p_flip=self.p_flip, flip_axes=self.flip_axes)
-        self.noise = PixelNoise(self.gaussian_white_noise)
-
-        self.piecewise_resample = Interpolate(
-            self.framerate, 1 / self.dt, mode="nearest-exact"
-        )
-        self.linear_interpolate = Interpolate(
-            self.framerate,
-            1 / self.dt,
-            mode="linear",
-        )
-        self.gamma_correct = GammaCorrection(1, self.gamma_std)
-
     def set_augmentation_params(
         self,
         n_rot: Optional[int] = None,
@@ -439,7 +422,10 @@ class MultiTaskSintel(MultiTaskDataset):
         start_frame: Optional[int] = None,
         total_sequence_length: Optional[int] = None,
     ) -> None:
-        """Set augmentation callable parameters for each call of get_item.
+        """Set augmentation callable parameters.
+
+        Info:
+            Called for each call of get_item.
 
         Args:
             n_rot: Number of rotations to apply.
@@ -480,9 +466,11 @@ class MultiTaskSintel(MultiTaskDataset):
             abool: Boolean value to set augmentation state.
 
         Example:
-            >>> with dataset.augmentation(True):
-            >>>    for i, data in enumerate(dataloader):
-            >>>        ...  # all data is augmented
+            ```python
+            with dataset.augmentation(True):
+                for i, data in enumerate(dataloader):
+                    ...  # all data is augmented
+            ```
         """
         augmentations = [
             "temporal_crop",
@@ -724,13 +712,8 @@ class MultiTaskSintel(MultiTaskDataset):
 class AugmentedSintel(MultiTaskSintel):
     """Sintel dataset with controlled, rich augmentation.
 
-    No nan-padding is applied.
-
-    Note:
-        Returns all data and can be used to evaluate networks on a richer dataset.
-
-    Expands MultiTaskSintel with methods to hold a trained network directory
-    and return responses for specific augmentation parameters.
+    Info:
+        Returns deterministic augmented dataset to evaluate networks on a richer dataset.
 
     Args:
         n_frames: Number of sequence frames to sample from.
@@ -739,7 +722,7 @@ class AugmentedSintel(MultiTaskSintel):
         temporal_split: Enable temporally controlled augmentation (experimental).
         build_stim_on_init: Build the augmented stimulus in cache.
         dt: Integration and sampling time constant.
-        tasks: List of tasks to include. May include 'flow' or 'depth'.
+        tasks: List of tasks to include. May include 'flow', 'lum', or 'depth'.
         interpolate: If True, linearly interpolates the target sequence to the target
             framerate.
         all_frames: If True, all frames are returned. If False, only `n_frames`.
@@ -781,7 +764,7 @@ class AugmentedSintel(MultiTaskSintel):
         temporal_split: bool = False,
         augment: bool = True,
         dt: float = 1 / 50,
-        tasks: List[str] = ["flow"],
+        tasks: List[Literal["flow", "depth", "lum"]] = ["flow"],
         interpolate: bool = True,
         all_frames: bool = False,
         random_temporal_crop: bool = False,
@@ -902,9 +885,6 @@ class AugmentedSintel(MultiTaskSintel):
         self.temporal_crop.random = False
         if self.temporal_split:
             self.temporal_crop.augment = False
-
-    def __len__(self) -> int:
-        return len(self.cached_sequences)
 
     def _original_length(self) -> int:
         """Return the original number of sequences before splitting."""
