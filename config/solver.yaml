@@ -23,3 +23,30 @@ hydra:
   run:
     dir: .
   output_subdir: null
+  help:
+    app_name: flyvis
+    header: |
+      == ${hydra.help.app_name} ==
+      Train the visual system model using the specified configuration.
+
+        This script initializes and runs the training process for the model.
+        It uses the configuration provided through Hydra to set up the solver, manage the
+        training process, and handle checkpoints.
+
+        High-level options:
+
+        - train (bool): Whether to run the training process
+        - resume (bool): Whether to resume training from the last checkpoint
+        - overfit (bool): Whether to use overfitting mode in training
+        - checkpoint_only (bool): Whether to create a checkpoint without training
+        - save_environment (bool): Whether to save the source code and environment details
+
+        Example:
+            Train a network for 1000 iterations and describe it as 'test':
+            python train.py \
+                ensemble_and_network_id=0045/000 \
+                task_name=flow \
+                train=true \
+                resume=false \
+                task.n_iters=1000
+                description='test'

@@ -1,12 +1,38 @@
-"""Script to store synthetic recordings in the way the paper does it.
+"""Script for precomputing synthetic recordings for a single network.
 
-Example usage:
-python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000
-python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=9998/000
---functions spatial_impulses_responses central_impulses_responses
+Example Usage:
+--------------
+1. Generate all default synthetic recordings for a specific network:
+   ```bash
+   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000
+   ```
+
+2. Generate only spatial and central impulse responses for a different network:
+   ```bash
+   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=9998/000 \
+   --functions spatial_impulses_responses central_impulses_responses
+   ```
+
+3. Generate default recordings with a custom batch size and delete existing recordings:
+   ```bash
+   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000 \
+   --batch_size 16 --delete_recordings
+   ```
+
+Available Functions:
+--------------------
+- flash_responses
+- moving_edge_responses
+- moving_edge_responses_currents
+- moving_bar_responses
+- naturalistic_stimuli_responses
+- spatial_impulses_responses
+- central_impulses_responses
 """
+
 # pyright: reportCallIssue=false
 
+import argparse
 import logging
 
 from flyvision import NetworkView
@@ -20,8 +46,12 @@ logging = logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = HybridArgumentParser(
-        hybrid_args=["task_name", "ensemble_and_network_id"],
+        hybrid_args={
+            "task_name": {"required": True},
+            "ensemble_and_network_id": {"required": True},
+        },
         description="Record synthetic responses.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--chkpt", type=str, default="best", help="checkpoint to evaluate."
@@ -55,6 +85,7 @@ if __name__ == "__main__":
         help="List of functions to run.",
         default=default_functions,
     )
+    parser.epilog = __doc__
     args = parser.parse_with_hybrid_args()
 
     network_name = f"{args.task_name}/{args.ensemble_and_network_id}"
@@ -102,7 +133,7 @@ if __name__ == "__main__":
         logging.info("Stored naturalistic stimuli responses.")
 
     # TODO: this implementation is currently inefficient as it reloads the cache
-    # for each cell type, but it's also uneccesary to store all of them
+    # for each cell type, but it's also uneccesary to store all of them because
     # these can be computed at runtime relatively eaily for single networks
     # if "optimal_stimulus_responses" in args.functions:
     #     for cell_type in network_view.connectome_view.cell_types_sorted:

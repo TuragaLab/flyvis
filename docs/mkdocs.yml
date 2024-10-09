@@ -31,7 +31,6 @@ nav:
     - "Moving Stimulus Responses": reference/moving_stimulus_responses.md
     - "Ensemble Clustering": reference/ensemble_clustering.md
     - "Optimal Stimuli": reference/optimal_stimuli.md
-    - "Scripts": reference/scripts.md
     - Miscelleanous:
       - "Rendering": reference/rendering.md
       - "Augmentation": reference/augmentation.md
@@ -39,6 +38,21 @@ nav:
       - "Utils": reference/utils.md
       - "Visualizations": reference/visualizations.md
       - "Animations": reference/animations.md
+    - "Scripts":
+      - "Data Download": reference/scripts/scripts/download_pretrained_models.md
+      - "Training": reference/scripts/training/train_single.md
+      - "Validation": reference/scripts/validation/val_single.md
+      - "Analysis":
+        - "Ensemble Analysis": reference/scripts/analysis/ensemble_analysis.md
+        - "Synthetic Recordings": reference/scripts/analysis/synthetic_recordings_single.md
+      - "Notebook": reference/scripts/scripts/notebook.md
+      - "Cluster Submissions":
+        - "Pipeline Manager": reference/scripts/scripts/pipeline_manager.md
+        - "Train": reference/scripts/scripts/train.md
+        - "Validate": reference/scripts/scripts/validate.md
+        - "Record": reference/scripts/scripts/record.md
+        - "Analysis": reference/scripts/scripts/analysis.md
+        - "Notebook per Model": reference/scripts/scripts/notebook_per_model.md
   - Contributing: contribute.md
   - FAQ: faq.md
   - Acknowledgements: acknowledgements.md
@@ -145,7 +159,8 @@ plugins:
             show_root_toc_entry: true
             show_symbol_type_toc: true
             show_root_full_path: true
-
+            separate_signature: true
+            toc_depth: 3
 watch:
   - ../flyvision
   - ../scripts

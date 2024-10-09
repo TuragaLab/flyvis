@@ -1,8 +1,13 @@
-"""Script to store recordings of an ensemble.
+"""Store analysis results of an ensemble.
 
-Example usage:
-python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000
---functions spatial_impulses_responses_main central_impulses_responses_main
+Example:
+    Compute UMAP and clustering for the ensemble 0000:
+    ```bash
+    python ensemble_analysis.py \
+        task_name=flow \
+        ensemble_and_network_id=0000/000 \
+        --functions umap_and_clustering_main
+    ```
 """
 
 import logging
@@ -19,8 +24,11 @@ logging = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = HybridArgumentParser(
-        hybrid_args=["task_name", "ensemble_id"],
-        description="Recordings for ensemble.",
+        hybrid_args={
+            "task_name": {"required": True},
+            "ensemble_id": {"required": True},
+        },
+        description="Analysis for ensemble.",
     )
     parser.add_argument(
         "--chkpt", type=str, default="best", help="checkpoint to evaluate."
@@ -50,6 +58,7 @@ if __name__ == "__main__":
         "--delete_umap_and_clustering",
         action="store_true",
     )
+    parser.epilog = __doc__
     args = parser.parse_with_hybrid_args()
 
     ensemble_name = f"{args.task_name}/{args.ensemble_id}"
