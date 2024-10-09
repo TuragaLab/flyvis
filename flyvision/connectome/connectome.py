@@ -1294,7 +1294,7 @@ def _projective_fields_edge_dfs(
     return cls
 
 
-def flyvision_connectome(network_dir) -> ConnectomeView:
+def flyvision_connectome(config: dict) -> ConnectomeView:
     """Create a ConnectomeView instance from a network directory.
 
     Args:
@@ -1303,4 +1303,4 @@ def flyvision_connectome(network_dir) -> ConnectomeView:
     Returns:
         ConnectomeView instance.
     """
-    return ConnectomeView(ConnectomeDir(network_dir.config.network.connectome))
+    return ConnectomeView(ConnectomeDir(config))

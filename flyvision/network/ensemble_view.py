@@ -14,7 +14,10 @@ from torch import nn
 
 import flyvision
 from flyvision.analysis.flash_responses import flash_response_index, plot_fris
-from flyvision.analysis.moving_bar_responses import direction_selectivity_index, plot_dsis
+from flyvision.analysis.moving_bar_responses import (
+    direction_selectivity_index,
+    dsi_violins_on_and_off,
+)
 from flyvision.analysis.visualization import plots
 from flyvision.connectome import flyvision_connectome
 from flyvision.utils.chkpt_utils import (
@@ -248,7 +251,7 @@ class EnsembleView(Ensemble):
             **kwargs,
         )
 
-    @wraps(plot_dsis)
+    @wraps(dsi_violins_on_and_off)
     def direction_selectivity_index(
         self, **kwargs
     ) -> Tuple[plt.Figure, Tuple[plt.Axes, plt.Axes]]:
@@ -264,7 +267,7 @@ class EnsembleView(Ensemble):
         dsis = direction_selectivity_index(responses)
         task_error = self.task_error()
         best_index = np.argmin(task_error.values)
-        return plot_dsis(
+        return dsi_violins_on_and_off(
             dsis,
             responses.cell_type,
             bold_output_type_labels=False,

@@ -1041,7 +1041,9 @@ class NetworkView:
         self.root_dir = root_dir
         self.connectome_getter = connectome_getter
         self.checkpoint_mapper = checkpoint_mapper
-        self.connectome_view: ConnectomeView = connectome_getter(self.dir)
+        self.connectome_view: ConnectomeView = connectome_getter(
+            self.dir.config.network.connectome
+        )
         self.connectome = self.connectome_view.dir
         self.checkpoints = checkpoint_mapper(self.dir)
         self.memory = Memory(

@@ -1,7 +1,7 @@
 """Modules for decoding the DMN activity."""
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -28,15 +28,15 @@ class ActivityDecoder(nn.Module):
         connectome: Connectome directory with output_cell_types.
 
     Attributes:
-        dvs_channels: Dictionary of DVS channels.
-        num_parameters: Number of parameters in the model.
-        u: u-coordinates of hexagonal grid.
-        v: v-coordinates of hexagonal grid.
-        H: Height of the hexagonal grid.
-        W: Width of the hexagonal grid.
+        dvs_channels (LayerActivity): Dictionary of DVS channels.
+        num_parameters (NumberOfParams): Number of parameters in the model.
+        u (torch.Tensor): u-coordinates of hexagonal grid.
+        v (torch.Tensor): v-coordinates of hexagonal grid.
+        H (int): Height of the hexagonal grid.
+        W (int): Width of the hexagonal grid.
     """
 
-    dvs_channels: Dict[str, torch.Tensor]
+    dvs_channels: Union[Dict[str, torch.Tensor], LayerActivity]
 
     def __init__(self, connectome: ConnectomeDir):
         super().__init__()

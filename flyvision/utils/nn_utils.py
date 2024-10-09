@@ -3,6 +3,8 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
 
+from torch import nn
+
 
 @contextmanager
 def simulation(network):
@@ -27,7 +29,7 @@ class NumberOfParams:
     fixed: int
 
 
-def n_params(nnmodule):
+def n_params(nnmodule: nn.Module) -> NumberOfParams:
     """Returns the numbers of free and fixed parameters in a pytorch module."""
     n_free = 0
     n_fixed = 0

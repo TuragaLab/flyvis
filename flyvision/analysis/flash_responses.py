@@ -1,3 +1,10 @@
+"""
+Analysis of responses to flash stimuli.
+
+Info:
+    Relies on xarray dataset format defined in `flyvision.analysis.stimulus_responses`.
+"""
+
 from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
@@ -149,7 +156,8 @@ def plot_fris(
 
     Args:
         fris: Array of FRI values (n_random_variables, n_groups, n_samples).
-        cell_types: Array of cell type labels.
+        cell_types: Array of cell type labels, corresponding to the first axis
+            (n_random_variables) of `fris`.
         scatter_best: If True, scatter the best points.
         scatter_all: If True, scatter all points.
         bold_output_type_labels: If True, bold the output type labels.
