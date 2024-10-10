@@ -179,3 +179,4 @@ animations
 flyvision/version.py
 debug
 .env.dev
+prepare_api_reference.py

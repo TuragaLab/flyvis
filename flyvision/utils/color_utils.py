@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import numpy as np
 from matplotlib.colors import (
     LinearSegmentedColormap,
@@ -27,29 +29,70 @@ INH = "#0000ff"
 EXC = "#FF0000"
 
 
-def is_hex(color):
+def is_hex(color: Union[str, Tuple[float, float, float]]) -> bool:
+    """
+    Check if the given color is in hexadecimal format.
+
+    Args:
+        color: The color to check.
+
+    Returns:
+        True if the color is in hexadecimal format, False otherwise.
+    """
     return "#" in color
 
 
-def is_integer_rgb(color):
+def is_integer_rgb(color: Union[Tuple[float, float, float], List[float]]) -> bool:
+    """
+    Check if the given color is in integer RGB format (0-255).
+
+    Args:
+        color: The color to check.
+
+    Returns:
+        True if the color is in integer RGB format, False otherwise.
+    """
     try:
         return any([c > 1 for c in color])
     except TypeError:
         return False
 
 
-def single_color_cmap(color):
+def single_color_cmap(color: Union[str, Tuple[float, float, float]]) -> ListedColormap:
+    """
+    Create a single color colormap.
+
+    Args:
+        color: The color to use for the colormap.
+
+    Returns:
+        A ListedColormap object with the specified color.
+    """
     if is_hex(color):
         color = to_rgba(color)
     elif is_integer_rgb(color):
         color = np.array(color) / 255
-    else:
-        pass
-
     return ListedColormap(color)
 
 
-def color_to_cmap(end_color, start_color="#FFFFFF", name="custom_cmap", N=256):
+def color_to_cmap(
+    end_color: str,
+    start_color: str = "#FFFFFF",
+    name: str = "custom_cmap",
+    N: int = 256,
+) -> LinearSegmentedColormap:
+    """
+    Create a colormap from start and end colors.
+
+    Args:
+        end_color: The end color of the colormap.
+        start_color: The start color of the colormap.
+        name: The name of the colormap.
+        N: The number of color segments.
+
+    Returns:
+        A LinearSegmentedColormap object.
+    """
     return LinearSegmentedColormap.from_list(
         name,
         [hex2color(start_color), hex2color(end_color)],
@@ -57,16 +100,26 @@ def color_to_cmap(end_color, start_color="#FFFFFF", name="custom_cmap", N=256):
     )
 
 
-def get_alpha_colormap(saturated_color, number_of_shades):
-    """To create a colormap from a color and a number of shades."""
+def get_alpha_colormap(
+    saturated_color: Union[str, Tuple[float, float, float]], number_of_shades: int
+) -> ListedColormap:
+    """
+    Create a colormap from a color and a number of shades.
+
+    Args:
+        saturated_color: The base color for the colormap.
+        number_of_shades: The number of shades to create.
+
+    Returns:
+        A ListedColormap object with varying alpha values.
+    """
     if is_hex(saturated_color):
         rgba = [*hex2color(saturated_color)[:3], 0]
     elif is_integer_rgb(saturated_color):
         rgba = [*list(np.array(saturated_color) / 255.0), 0]
 
-    N = number_of_shades
     colors = []
-    alphas = np.linspace(1 / N, 1, N)[::-1]
+    alphas = np.linspace(1 / number_of_shades, 1, number_of_shades)[::-1]
     for alpha in alphas:
         rgba[-1] = alpha
         colors.append(rgba.copy())
@@ -74,17 +127,20 @@ def get_alpha_colormap(saturated_color, number_of_shades):
     return ListedColormap(colors)
 
 
-def adapt_color_alpha(color, alpha):
+def adapt_color_alpha(
+    color: Union[str, Tuple[float, float, float], Tuple[float, float, float, float]],
+    alpha: float,
+) -> Tuple[float, float, float, float]:
     """
-    Transforms a color specification to RGBA and adapts the alpha value.
+    Transform a color specification to RGBA and adapt the alpha value.
 
     Args:
-        color (Union[str, Tuple[float, float, float], Tuple[float, float, float, float]]):
-            Color specification in various formats: hex string, RGB tuple, or RGBA tuple.
-        alpha (float): New alpha value to be applied.
+        color: Color specification in various formats: hex string, RGB tuple, or
+            RGBA tuple.
+        alpha: New alpha value to be applied.
 
     Returns:
-        Tuple[float, float, float, float]: The adapted color in RGBA format.
+        The adapted color in RGBA format.
     """
     color_rgb = to_rgba(color)
     r, g, b, _ = color_rgb
@@ -92,6 +148,15 @@ def adapt_color_alpha(color, alpha):
 
 
 def flash_response_color_labels(ax):
+    """
+    Apply color labels for ON and OFF flash responses.
+
+    Args:
+        ax: The matplotlib axis to apply the labels to.
+
+    Returns:
+        The modified matplotlib axis.
+    """
     on = [key for key, value in polarity.items() if value == 1]
     off = [key for key, value in polarity.items() if value == -1]
     color_labels(on, ON_FR, ax)
@@ -171,7 +236,24 @@ cell_type_colors = {
 }
 
 
-def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+def truncate_colormap(
+    cmap: Union[LinearSegmentedColormap, ListedColormap],
+    minval: float = 0.0,
+    maxval: float = 1.0,
+    n: int = 100,
+) -> LinearSegmentedColormap:
+    """
+    Truncate a colormap to a specific range.
+
+    Args:
+        cmap: The colormap to truncate.
+        minval: The minimum value of the new range.
+        maxval: The maximum value of the new range.
+        n: The number of color segments in the new colormap.
+
+    Returns:
+        A new LinearSegmentedColormap with the truncated range.
+    """
     new_cmap = LinearSegmentedColormap.from_list(
         "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
         cmap(np.linspace(minval, maxval, max(n, 2))),
@@ -180,15 +262,42 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
 
 
 class cmap_iter:
-    def __init__(self, cmap):
-        self.i = 0
-        self.cmap = cmap
-        self.stop = cmap.N
+    """
+    An iterator for colormap colors.
 
-    def __next__(self):
+    Attributes:
+        i: The current index.
+        cmap: The colormap to iterate over.
+        stop: The number of colors in the colormap.
+    """
+
+    def __init__(self, cmap: Union[LinearSegmentedColormap, ListedColormap]):
+        """
+        Initialize the cmap_iter.
+
+        Args:
+            cmap: The colormap to iterate over.
+        """
+        self.i: int = 0
+        self.cmap = cmap
+        self.stop: int = cmap.N
+
+    def __next__(self) -> Tuple[float, float, float, float]:
+        """
+        Get the next color from the colormap.
+
+        Returns:
+            The next color as an RGBA tuple.
+        """
         if self.i < self.stop:
             self.i += 1
             return self.cmap(self.i - 1)
 
-    def _repr_html_(self):
+    def _repr_html_(self) -> str:
+        """
+        Return the HTML representation of the colormap.
+
+        Returns:
+            The HTML representation of the colormap.
+        """
         return self.cmap._repr_html_()

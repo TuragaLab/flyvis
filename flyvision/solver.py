@@ -13,7 +13,6 @@ from torch import nn
 
 from flyvision.network.network import Network, NetworkDir
 from flyvision.task.tasks import Task
-from flyvision.utils.activity_utils import asymmetric_weighting
 from flyvision.utils.chkpt_utils import (
     recover_decoder,
     recover_network,
@@ -21,6 +20,7 @@ from flyvision.utils.chkpt_utils import (
     recover_penalty_optimizers,
     resolve_checkpoints,
 )
+from flyvision.utils.tensor_utils import asymmetric_weighting
 
 logging = logging.getLogger(__name__)
 

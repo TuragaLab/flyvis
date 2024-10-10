@@ -1,75 +1,79 @@
-"""Convenience and efficient access to activity of particular cells.
+"""Methods to access and process network activity and currents based on cell types.
 
 Example:
+    Get the activity of all cells of a certain cell type
+    (note, `LayerActivity` is not the network split into feedforward layers in the
+    machine learning sense but the activity of all cells by cell type):
+    ```python
     layer_activity = LayerActivity(activity, network.connectome)
     T4a_response = layer_activity.T4a
     T5a_response = layer_activity.T5a
     T4b_central_response = layer_activity.central.T4a
+    ```
 """
 
-import operator
 import weakref
-from functools import reduce
 from textwrap import wrap
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
-from torch import nn
 
-from flyvision.connectome import ConnectomeDir, ReceptiveFields
+from flyvision.connectome import ConnectomeFromAvgFilters, ReceptiveFields
 from flyvision.utils import nodes_edges_utils
 
 __all__ = [
     "CentralActivity",
     "LayerActivity",
-    # "StimulusResponseIndexer",
     "SourceCurrentView",
-    "asymmetric_weighting",
 ]
 
 
 class CellTypeActivity(dict):
-    """Base class for attribute-style access to network activity.
-
-    Note, activity is stored as a weakref by default. This is for memory efficienty
-    during training. If you want to keep a reference to the activity for analysis,
-    set keepref=True.
+    """Base class for attribute-style access to network activity based on cell types.
 
     Args:
-        keepref (bool, optional): Whether to keep a reference to the activity. Defaults
-        to False.
+        keepref: Whether to keep a reference to the activity. This may not be desired
+            during training to avoid memory issues.
 
     Attributes:
-        activity (weakref.ref): Weak reference to the activity.
-        keepref (bool): Whether to keep a reference to the activity.
+        activity: Weak reference to the activity.
+        keepref: Whether to keep a reference to the activity.
+        unique_cell_types: List of unique cell types.
+        input_indices: Indices of input cells.
+        output_indices: Indices of output cells.
+
+    Note:
+        Activity is stored as a weakref by default for memory efficiency
+        during training. Set keepref=True to keep a reference for analysis.
     """
 
-    def __init__(self, keepref=False):
+    def __init__(self, keepref: bool = False):
         self.keepref = keepref
+        self.activity: Union[weakref.ref, NDArray, torch.Tensor] = None
+        self.unique_cell_types: List[str] = []
+        self.input_indices: NDArray = np.array([])
+        self.output_indices: NDArray = np.array([])
 
-    def __dir__(self):
+    def __dir__(self) -> List[str]:
         return list(set([*dict.__dir__(self), *dict.__iter__(self)]))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.unique_cell_types)
 
     def __iter__(self):
-        for cell_type in self.unique_cell_types:
-            yield cell_type
+        yield from self.unique_cell_types
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Activity of: \n{}".format("\n".join(wrap(", ".join(list(self)))))
 
-    def update(self, activity):
+    def update(self, activity: Union[NDArray, torch.Tensor]) -> None:
+        """Update the activity reference."""
         self.activity = activity
 
-    def _slices(self, n):
-        slices = tuple()
-        for _ in range(n):
-            slices += (slice(None, None, None),)
-        return slices
+    def _slices(self, n: int) -> tuple:
+        return tuple(slice(None) for _ in range(n))
 
     def __getattr__(self, key):
         activity = self.activity() if not self.keepref else self.activity
@@ -94,18 +98,6 @@ class CellTypeActivity(dict):
             slices = self._slices(len(activity.shape) - 1)
             slices += (self.input_indices,)
             return activity[slices]
-        elif "+" in key:
-            _cell_types = key.split("+")
-            return sum(map(self.__getattr__, _cell_types))
-        elif "-" in key:
-            _cell_types = key.split("-")
-            return reduce(operator.sub, map(self.__getattr__, _cell_types))
-        elif "*" in key:
-            _cell_types = key.split("*")
-            return reduce(operator.mul, map(self.__getattr__, _cell_types))
-        elif "/" in key:
-            _cell_types = key.split("/")
-            return reduce(operator.truediv, map(self.__getattr__, _cell_types))
         elif key in self.__dict__:
             return self.__dict__[key]
         else:
@@ -122,46 +114,28 @@ class CellTypeActivity(dict):
         else:
             object.__setattr__(self, key, value)
 
-    def __copy__(self, memodict={}):
-        return self
-
-    def __deepcopy__(self, memodict={}):
-        return self
-
 
 class CentralActivity(CellTypeActivity):
-    """Attribute-style access to central activity.
+    """Attribute-style access to central cell activity of a cell type.
 
     Args:
-        activity (array-like): activity of shape (..., n_cells)
-        connectome: connectome dir with reference to
-                        - connectome.nodes.layer_index
-                        - connectome.unique_cell_types
-                        - connectome.central_cells_index
-        keepref (bool, optional): Whether to keep a reference to the activity.
-            Defaults to False.
-
-    Note, activity is stored as a weakref by default. This is for memory efficienty
-    during training. If you want to keep a reference to the activity for analysis,
-    set keepref=True.
+        activity: Activity of shape (..., n_cells).
+        connectome: Connectome directory with reference to required attributes.
+        keepref: Whether to keep a reference to the activity.
 
     Attributes:
-        activity (array-like): activity of shape (..., n_cells)
-        unique_cell_types (array)
-        index (NodeIndexer)
-        input_indices (array)
-        output_indices (array)
-
-    Note: also allows 'virtual types' that are basic operations of individuals
-        >>> a = LayerActivity(activity, network.connectome)
-        >>> summed_a = a['L2+L4*L3/L5']
+        activity: Activity of shape (..., n_cells).
+        unique_cell_types: Array of unique cell types.
+        index: NodeIndexer instance.
+        input_indices: Array of input indices.
+        output_indices: Array of output indices.
     """
 
     def __init__(
         self,
         activity: Union[NDArray, torch.Tensor],
-        connectome: ConnectomeDir,
-        keepref=False,
+        connectome: ConnectomeFromAvgFilters,
+        keepref: bool = False,
     ):
         super().__init__(keepref)
         self.index = nodes_edges_utils.NodeIndexer(connectome)
@@ -201,18 +175,6 @@ class CentralActivity(CellTypeActivity):
             slices = self._slices(len(activity.shape) - 1)
             slices += (self.input_indices,)
             return activity[slices]
-        elif "+" in key:
-            _cell_types = key.split("+")
-            return sum(map(self.__getattr__, _cell_types))
-        elif "-" in key:
-            _cell_types = key.split("-")
-            return reduce(operator.sub, map(self.__getattr__, _cell_types))
-        elif "*" in key:
-            _cell_types = key.split("*")
-            return reduce(operator.mul, map(self.__getattr__, _cell_types))
-        elif "/" in key:
-            _cell_types = key.split("/")
-            return reduce(operator.truediv, map(self.__getattr__, _cell_types))
         elif key in self.__dict__:
             return self.__dict__[key]
         else:
@@ -242,57 +204,50 @@ class CentralActivity(CellTypeActivity):
 class LayerActivity(CellTypeActivity):
     """Attribute-style access to hex-lattice activity (cell-type specific).
 
-    Note:
-        The name `LayerActivity` might change in future as it is misleading.
-        Different to the conventional ML term, this is not a feedfoward layer but
-        the activity of all cells of a certain cell-type.
-
     Args:
-        activity (array-like): activity of shape (..., n_cells)
-        connectome (Folder): connectome dir with reference to
-                        - connectome.nodes.layer_index
-                        - connectome.unique_cell_types
-                        - connectome.central_cells_index
-                        - connectome.input_cell_types
-                        - connectome.output_cell_types
-        keepref (bool, optional): Whether to keep a reference to the activity.
-            Defaults to False.
-
-    Note, activity is stored as a weakref by default. This is for memory efficienty
-    during training. If you want to keep a reference to the activity for analysis,
-    set keepref=True.
+        activity: Activity of shape (..., n_cells).
+        connectome: Connectome directory with reference to required attributes.
+        keepref: Whether to keep a reference to the activity.
+        use_central: Whether to use central activity.
 
     Attributes:
-        central (CentralActivity): central activity mapping,
-            giving attribute-style access to central nodes of particular types.
-        activity (array-like): activity of shape (..., n_cells)
-        connectome (Folder): connectome dir with reference to
-                        - connectome.nodes.layer_index
-                        - connectome.unique_cell_types
-                        - connectome.central_cells_index
-                        - connectome.input_cell_types
-                        - connectome.output_cell_types
-        unique_cell_types (array)
-        input_indices (array)
-        output_indices (array)
+        central: CentralActivity instance for central nodes.
+        activity: Activity of shape (..., n_cells).
+        connectome: Connectome directory.
+        unique_cell_types: Array of unique cell types.
+        input_indices: Array of input indices.
+        output_indices: Array of output indices.
+        input_cell_types: Array of input cell types.
+        output_cell_types: Array of output cell types.
+        n_nodes: Number of nodes.
 
-    Note: central activity can be accessed by
-    >>> a = LayerActivity(activity, network.connectome)
-    >>> central_T4a = a.central.T4a
+    Note:
+        The name `LayerActivity` might change in future as it is misleading.
+        This is not a feedforward layer in the machine learning sense but the
+        activity of all cells of a certain cell-type.
 
-    Note: also allows 'virtual types' that are the sum of individuals
-    >>> a = LayerActivity(activity, network.connectome)
-    >>> summed_a = a['L2+L4']
+    Example:
+
+        Central activity can be accessed by:
+        ```python
+        a = LayerActivity(activity, network.connectome)
+        central_T4a = a.central.T4a
+        ```
+
+        Also allows 'virtual types' that are the sum of individuals:
+        ```python
+        a = LayerActivity(activity, network.connectome)
+        summed_a = a['L2+L4']
+        ```
     """
 
-    central = {}
-    activity = None
-    connectome = None
-    unique_cell_types = []
-    input_cell_types = []
-    output_cell_types = []
-
-    def __init__(self, activity, connectome, keepref=False, use_central=True):
+    def __init__(
+        self,
+        activity: Union[NDArray, torch.Tensor],
+        connectome: ConnectomeFromAvgFilters,
+        keepref: bool = False,
+        use_central: bool = True,
+    ):
         super().__init__(keepref)
         self.keepref = keepref
 
@@ -332,31 +287,33 @@ class LayerActivity(CellTypeActivity):
 
 
 class SourceCurrentView:
-    """Create views of source currents for a target type."""
+    """Create views of source currents for a target type.
 
-    def __init__(self, rfs: ReceptiveFields, currents):
+    Args:
+        rfs: ReceptiveFields instance.
+        currents: Current values.
+
+    Attributes:
+        target_type: Target cell type.
+        source_types: List of source cell types.
+        rfs: ReceptiveFields instance.
+        currents: Current values.
+    """
+
+    def __init__(self, rfs: ReceptiveFields, currents: Union[NDArray, torch.Tensor]):
         self.target_type = rfs.target_type
         self.source_types = list(rfs)
         self.rfs = rfs
         self.currents = currents
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Union[NDArray, torch.Tensor]:
         if key in self.source_types:
             return np.take(self.currents, self.rfs[key].index, axis=-1)
         return object.__getattr__(self, key)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Union[NDArray, torch.Tensor]:
         return self.__getattr__(key)
 
-    def update(self, currents):
+    def update(self, currents: Union[NDArray, torch.Tensor]) -> None:
+        """Update the currents."""
         self.currents = currents
-
-
-def asymmetric_weighting(tensor, gamma=1.0, delta=0.1):
-    """
-    Applies asymmetric weighting to the positive and negative elements of a tensor.
-
-    The function is defined as:
-    f(x) = gamma * x if x > 0 else delta * x
-    """
-    return gamma * nn.functional.relu(tensor) - delta * nn.functional.relu(-tensor)

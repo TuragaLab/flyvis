@@ -246,10 +246,3 @@ def test_cartesian(dataset):
     assert cartesian["flow"].shape[0] == dataset.vertical_splits
     assert len(cartesian["depth"].shape) == 4
     assert cartesian["depth"].shape[0] == dataset.vertical_splits
-
-
-def test_original_train_and_validation_indices(dataset):
-    train_indices, val_indices = dataset.original_train_and_validation_indices()
-    # because unittest only renders 3 splits of first scene
-    assert train_indices == [0, 1, 2]
-    assert val_indices == []

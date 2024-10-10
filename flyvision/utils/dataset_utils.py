@@ -2,6 +2,7 @@
 
 import zipfile
 from pathlib import Path
+from typing import List, Tuple
 
 import numpy as np
 from numpy.random import RandomState
@@ -12,37 +13,37 @@ import flyvision
 
 
 def random_walk_of_blocks(
-    n_blocks=20,
-    block_size=4,
-    top_lum=0,
-    bottom_lum=0,
-    dataset_size=[3, 20, 64, 64],
-    noise_mean=0.5,
-    noise_std=0.1,
-    step_size=4,
-    p_random=0.6,
-    p_center_attraction=0.3,
-    p_edge_attraction=0.1,
-    seed=42,
-):
-    """Generates a sequence dataset with blocks doing random walks.
+    n_blocks: int = 20,
+    block_size: int = 4,
+    top_lum: float = 0,
+    bottom_lum: float = 0,
+    dataset_size: List[int] = [3, 20, 64, 64],
+    noise_mean: float = 0.5,
+    noise_std: float = 0.1,
+    step_size: int = 4,
+    p_random: float = 0.6,
+    p_center_attraction: float = 0.3,
+    p_edge_attraction: float = 0.1,
+    seed: int = 42,
+) -> np.ndarray:
+    """Generate a sequence dataset with blocks doing random walks.
 
     Args:
-        n_blocks (int): Number of blocks.
-        block_size (int): Size of blocks.
-        top_lum (float): Luminance of the top of the block.
-        bottom_lum (float): Luminance of the bottom of the block.
-        dataset_size (list): Size of the dataset. (n_sequences, n_frames, h, w)
-        noise_mean (float): Mean of the background noise.
-        noise_std (float): Standard deviation of the background noise.
-        step_size (int): Number of pixels to move in each step.
-        p_random (float): Probability of moving randomly.
-        p_center_attraction (float): Probability of moving towards the center.
-        p_edge_attraction (float): Probability of moving towards the edge.
-        seed (int): Seed for the random number generator.
+        n_blocks: Number of blocks.
+        block_size: Size of blocks.
+        top_lum: Luminance of the top of the block.
+        bottom_lum: Luminance of the bottom of the block.
+        dataset_size: Size of the dataset. (n_sequences, n_frames, h, w)
+        noise_mean: Mean of the background noise.
+        noise_std: Standard deviation of the background noise.
+        step_size: Number of pixels to move in each step.
+        p_random: Probability of moving randomly.
+        p_center_attraction: Probability of moving towards the center.
+        p_edge_attraction: Probability of moving towards the edge.
+        seed: Seed for the random number generator.
 
     Returns:
-        array: Dataset of shape (n_sequences, n_frames, h, w)
+        Dataset of shape (n_sequences, n_frames, h, w)
     """
     np.random.seed(seed)
     sequences = np.random.normal(loc=noise_mean, scale=noise_std, size=dataset_size)
@@ -52,7 +53,7 @@ def random_walk_of_blocks(
     y_coordinates = np.arange(h)
     x_coordinates = np.arange(w)
 
-    def step(coordinate):
+    def step(coordinate: int) -> int:
         ps = np.array([p_random, p_center_attraction, p_edge_attraction])
         ps /= ps.max()
 
@@ -63,9 +64,10 @@ def random_walk_of_blocks(
             return (coordinate + np.sign(coordinate - h // 2) * step_size) % h
         else:
             return (coordinate + np.random.choice([-1, 1]) * step_size) % h
-        return coordinate
 
-    def block_at_coords(y, x):
+    def block_at_coords(
+        y: int, x: int
+    ) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
         mask_top = np.meshgrid(
             np.arange(y - block_size // 2, y) % h,
             np.arange(x - block_size // 2, x + block_size // 2) % w,
@@ -76,7 +78,11 @@ def random_walk_of_blocks(
         )
         return mask_bottom, mask_top
 
-    def initial_block():
+    def initial_block() -> (
+        Tuple[
+            int, int, Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]
+        ]
+    ):
         initial_x = np.random.choice(x_coordinates)
         initial_y = np.random.choice(y_coordinates)
         return initial_x, initial_y, block_at_coords(initial_x, initial_y)
@@ -96,17 +102,18 @@ def random_walk_of_blocks(
     return sequences / sequences.max()
 
 
-def load_moving_mnist(delete_if_exists=False):
+def load_moving_mnist(delete_if_exists: bool = False) -> np.ndarray:
     """Return Moving MNIST dataset.
 
     Args:
-        delete_if_exists (bool): If True, delete the dataset if it exists.
+        delete_if_exists: If True, delete the dataset if it exists.
 
     Returns:
-        array: Dataset of shape (n_sequences, n_frames, h, w)==(10000, 20, 64, 64).
+        Dataset of shape (n_sequences, n_frames, h, w)==(10000, 20, 64, 64).
 
-    Note: this dataset (0.78GB) will be downloaded if not present. The download
-        is stored in flyvision.root_dor / "mnist_test_seq.npy".
+    Note:
+        This dataset (0.78GB) will be downloaded if not present. The download
+        is stored in flyvision.root_dir / "mnist_test_seq.npy".
     """
     moving_mnist_path = flyvision.root_dir / "mnist_test_seq.npy"
     moving_mnist_url = (
@@ -124,13 +131,12 @@ def load_moving_mnist(delete_if_exists=False):
         return load_moving_mnist(delete_if_exists=True)
 
 
-def download_sintel(delete_if_exists=False, depth=False):
-    """Downloads the sintel dataset.
+def download_sintel(delete_if_exists: bool = False, depth: bool = False) -> Path:
+    """Download the sintel dataset.
 
     Args:
-        delete_if_exists (bool): If True, delete the dataset if it exists and download
-        again.
-        depth (bool): If True, download the depth dataset as well.
+        delete_if_exists: If True, delete the dataset if it exists and download again.
+        depth: If True, download the depth dataset as well.
 
     Returns:
         Path to the sintel dataset.
@@ -138,7 +144,7 @@ def download_sintel(delete_if_exists=False, depth=False):
     sintel_dir = flyvision.sintel_dir
     sintel_dir.mkdir(parents=True, exist_ok=True)
 
-    def exists(depth=False):
+    def exists(depth: bool = False) -> bool:
         try:
             assert sintel_dir.exists()
             assert (sintel_dir / "training").exists()
@@ -150,7 +156,7 @@ def download_sintel(delete_if_exists=False, depth=False):
         except AssertionError:
             return False
 
-    def download_and_extract(url, depth=False):
+    def download_and_extract(url: str, depth: bool = False) -> None:
         sintel_zip = sintel_dir / Path(url).name
 
         if not exists(depth=depth) or delete_if_exists:
@@ -177,16 +183,20 @@ class CrossValIndices:
     """Returns folds of indices for cross-validation.
 
     Args:
-        n_samples (int): total number of samples.
-        folds (int): total number of folds.
-        shuffle (bool, optional): shuffles the indices. Defaults to True.
-        seed (int, optional): seed for shuffling. Defaults to 0.
+        n_samples: Total number of samples.
+        folds: Total number of folds.
+        shuffle: Shuffles the indices.
+        seed: Seed for shuffling.
 
-    Call:
-        Returns train and test indices for a fold.
+    Attributes:
+        n_samples: Total number of samples.
+        folds: Total number of folds.
+        indices: Array of indices.
+        random: RandomState object for shuffling.
+
     """
 
-    def __init__(self, n_samples, folds, shuffle=True, seed=0):
+    def __init__(self, n_samples: int, folds: int, shuffle: bool = True, seed: int = 0):
         self.n_samples = n_samples
         self.folds = folds
         self.indices = np.arange(n_samples)
@@ -195,7 +205,15 @@ class CrossValIndices:
             self.random = RandomState(seed)
             self.random.shuffle(self.indices)
 
-    def __call__(self, fold):
+    def __call__(self, fold: int) -> Tuple[np.ndarray, np.ndarray]:
+        """Returns train and test indices for a fold.
+
+        Args:
+            fold: The fold number.
+
+        Returns:
+            A tuple containing train and test indices.
+        """
         fold_sizes = np.full(self.folds, self.n_samples // self.folds, dtype=int)
         fold_sizes[: self.n_samples % self.folds] += 1
         current = sum(fold_sizes[:fold])
@@ -205,13 +223,31 @@ class CrossValIndices:
         test_mask[test_index] = True
         return self.indices[np.logical_not(test_mask)], self.indices[test_mask]
 
-    def iter(self):
+    def iter(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Iterate over all folds.
+
+        Yields:
+            A tuple containing train and test indices for each fold.
+        """
         for fold in range(self.folds):
             yield self(fold)
 
 
-def get_random_data_split(fold, n_samples, n_folds, shuffle=True, seed=0):
-    """Return indices to split the data."""
+def get_random_data_split(
+    fold: int, n_samples: int, n_folds: int, shuffle: bool = True, seed: int = 0
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Return indices to split the data.
+
+    Args:
+        fold: The fold number.
+        n_samples: Total number of samples.
+        n_folds: Total number of folds.
+        shuffle: Whether to shuffle the indices.
+        seed: Seed for shuffling.
+
+    Returns:
+        A tuple containing train and validation indices.
+    """
     cv_split = CrossValIndices(
         n_samples=n_samples,
         folds=n_folds,
@@ -225,17 +261,21 @@ def get_random_data_split(fold, n_samples, n_folds, shuffle=True, seed=0):
 class IndexSampler(Sampler):
     """Samples the provided indices in sequence.
 
-    Note, to be used with torch.utils.data.DataLoader.
+    Note:
+        To be used with torch.utils.data.DataLoader.
 
     Args:
-        indices: list of indices to sample.
+        indices: List of indices to sample.
+
+    Attributes:
+        indices: List of indices to sample.
     """
 
-    def __init__(self, indices):
+    def __init__(self, indices: List[int]):
         self.indices = indices
 
     def __iter__(self):
         return (self.indices[i] for i in range(len(self.indices)))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.indices)

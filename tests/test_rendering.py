@@ -43,14 +43,7 @@ def test_call(boxeye: rendering.BoxEye):
         boxeye(sequence, ftype="invalid", hex_sample=True)
 
 
-def test_sample(boxeye: rendering.BoxEye):
-    frame = torch.ones((100, 100))
-    rendered = boxeye.sample(frame)
-    assert rendered.cpu().numpy().shape == (boxeye.hexals,)
-    assert np.isclose(rendered.cpu().numpy().mean(), 1, atol=0.05)
-
-
-def test_hex_sample(boxeye: rendering.BoxEye):
+def test_hex_render(boxeye: rendering.BoxEye):
     sequence = torch.ones((2, 2, 100, 100))
-    rendered = boxeye.hex_sample(sequence)
+    rendered = boxeye.hex_render(sequence)
     assert rendered.shape == (2, 2, 1, boxeye.hexals)

@@ -5,7 +5,7 @@ import logging
 from typing import List
 
 from flyvision import script_dir
-from flyvision.utils.lsf_utils import launch_range
+from flyvision.utils.compute_cloud_utils import launch_range
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO

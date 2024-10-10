@@ -43,7 +43,7 @@ def test_task(connectome):
                 p_dropout=0.5,
             )
         ),
-        loss=Namespace(flow=Namespace(type="l2norm")),
+        loss=Namespace(flow="l2norm"),
         batch_size=4,
         num_workers=0,
         n_iters=250000,

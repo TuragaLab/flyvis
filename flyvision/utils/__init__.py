@@ -1,42 +1,59 @@
-"""Utility functions."""
+"""Utility functions for the flyvision package.
 
-from flyvision.utils import (
-    activity_utils,
-    dataset_utils,
-    hex_utils,
-    nn_utils,
-    nodes_edges_utils,
-    tensor_utils,
-    xarray_utils,
-    xarray_joblib_backend,
-)
+This module organizes various utility submodules and sets up custom
+accessors and backends.
+"""
 
-import xarray as xr
-
-# Register the custom accessors
-xr.register_dataarray_accessor("custom")(xarray_utils.CustomAccessor)
-xr.register_dataset_accessor("custom")(xarray_utils.CustomAccessor)
-
-del xr
+from importlib import import_module
 
 
-from joblib import register_store_backend
+def __getattr__(name):
+    # This lazy loading mechanism is implemented to improve import performance
+    # by deferring the import of submodules until they are actually needed.
+    # It reduces the initial import time of the utils package, especially
+    # beneficial for large codebases or when only specific utilities are required.
+    if name in (
+        'activity_utils',
+        'cache_utils',
+        'chkpt_utils',
+        'class_utils',
+        'color_utils',
+        'compute_cloud_utils',
+        'config_utils',
+        'dataset_utils',
+        'df_utils',
+        'groundtruth_utils',
+        'hex_utils',
+        'logging_utils',
+        'log_utils',
+        'nn_utils',
+        'nodes_edges_utils',
+        'tensor_utils',
+        'type_utils',
+        'xarray_joblib_backend',
+        'xarray_utils',
+    ):
+        return import_module(f'flyvision.utils.{name}')
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-# Register xarray store backend for joblib
-register_store_backend(
-    'xarray_dataset_zarr', xarray_joblib_backend.XArrayDatasetZarrStoreBackend
-)
-register_store_backend(
-    'xarray_dataarray_zarr', xarray_joblib_backend.XArrayDataArrayZarrStoreBackend
-)
-register_store_backend(
-    'xarray_dataarray_netcdf', xarray_joblib_backend.XArrayDataArrayNetCDFStoreBackend
-)
-register_store_backend(
-    'xarray_dataset_netcdf', xarray_joblib_backend.XArrayDatasetNetCDFStoreBackend
-)
-register_store_backend(
-    'xarray_dataset_h5', xarray_joblib_backend.H5XArrayDatasetStoreBackend
-)
 
-del register_store_backend, xarray_joblib_backend
+def setup_xarray_accessors():
+    import xarray as xr
+    from . import xarray_utils
+
+    xr.register_dataarray_accessor("custom")(xarray_utils.CustomAccessor)
+    xr.register_dataset_accessor("custom")(xarray_utils.CustomAccessor)
+
+
+def setup_joblib_backend():
+    from joblib import register_store_backend
+    from . import xarray_joblib_backend
+
+    register_store_backend(
+        'xarray_dataset_h5', xarray_joblib_backend.H5XArrayDatasetStoreBackend
+    )
+
+
+# Setup functions are called here, but they can be moved to be called only when needed
+setup_xarray_accessors()
+setup_joblib_backend()

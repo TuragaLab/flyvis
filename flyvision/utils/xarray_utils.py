@@ -11,44 +11,39 @@ import numpy as np
 import xarray as xr
 
 
-def where_xarray(dataset, rtol=1.0e-5, atol=1.0e-8, **kwargs):
+def where_xarray(
+    dataset: xr.Dataset | xr.DataArray,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
+    **kwargs,
+) -> xr.Dataset | xr.DataArray:
     """Return a subset of the xarray Dataset or DataArray where coordinates meet
     specified query-like conditions.
 
-    Parameters:
-    ----------
-    dataset : xarray.Dataset or xarray.DataArray
-        The dataset or data array to filter.
-    atol : float
-        Tolerance for floating point comparisons (used for continuous coordinates).
-    rtol : float
-        Relative tolerance for floating point comparisons (used for continuous
-        coordinates).
-    **kwargs : dict
-        Query-like conditions on coordinates. Conditions can be specified as:
+    Args:
+        dataset: The dataset or data array to filter.
+        rtol: Relative tolerance for floating point comparisons.
+        atol: Absolute tolerance for floating point comparisons.
+        **kwargs: Query-like conditions on coordinates. Conditions can be specified as:
             - Strings with comma-separated conditions (interpreted as AND).
-              Example: time='<1.0,>0'
-            - Iterables (lists, tuples) representing multiple conditions (interpreted as
-                OR).
-              Example: cell_type=["T4a", "T4b"]
+            - Iterables (lists, tuples) representing multiple conditions
+                (interpreted as OR).
             - Single values for equality conditions.
-              Example: intensity=1.0
 
     Returns:
-    -------
-    filtered_dataset : xarray.Dataset or xarray.DataArray
         The filtered dataset or data array.
 
     Example:
-    -------
-    filtered_ds = where_xarray(
-        ds,
-        cell_type=["T4a", "T4b"],
-        time="<1.0,>0",
-        intensity=1.0,
-        radius=6,
-        width=2.4
-    )
+        ```python
+        filtered_ds = where_xarray(
+            ds,
+            cell_type=["T4a", "T4b"],
+            time="<1.0,>0",
+            intensity=1.0,
+            radius=6,
+            width=2.4
+        )
+        ```
     """
 
     # Define a mapping of operators from string to functions
@@ -166,34 +161,30 @@ def plot_traces(
     x: str,
     legend_labels: List[str] = [],
     extra_legend_coords: List[str] = [],
-    plot_kwargs={},
+    plot_kwargs: dict = {},
     **kwargs,
-):
-    """
-    Plot the flash response traces from the dataset, optionally filtered by various
+) -> plt.Axes:
+    """Plot the flash response traces from the dataset, optionally filtered by various
     parameters.
 
-    Parameters
-    ----------
-    dataset : xr.DataArray
-        The dataset containing the responses to plot.
-    key : str
-        The key of the data to plot if the dataset is a Dataset.
-    x : str
-        The dimension to use as the x-axis.
-    extra_legend_coords : List[str]
-        Additional coordinates to include in the legend.
-    plot_kwargs : dict
-        Additional keyword arguments to pass to the plot function.
-    **kwargs : dict
-        Query-like conditions on coordinates, e.g., time='<0.5,>0.1', lat='>=45.0' or
-        radius=6. Ranges and multiple conditions can be given as string and
-        separated by commas. Lists can be provided for equality conditions.
+    Args:
+        dataset: The dataset containing the responses to plot.
+        key: The key of the data to plot if the dataset is a Dataset.
+        x: The dimension to use as the x-axis.
+        legend_labels: List of coordinates to include in the legend.
+        extra_legend_coords: Additional coordinates to include in the legend.
+        plot_kwargs: Additional keyword arguments to pass to the plot function.
+        **kwargs: Query-like conditions on coordinates.
 
-    Returns
-    -------
-    matplotlib.axes.Axes
+    Returns:
         The matplotlib axes object containing the plot.
+
+    Note:
+        Query-like conditions can be specified as:
+
+        - Strings with comma-separated conditions (e.g., time='<0.5,>0.1')
+        - Lists for equality conditions (e.g., cell_type=["T4a", "T4b"])
+        - Single values for equality conditions (e.g., intensity=1.0)
     """
     traces = dataset.custom.where(**kwargs)
 
@@ -255,68 +246,86 @@ def plot_traces(
 
 
 class CustomAccessor:
-    def __init__(self, xarray_obj):
-        self._obj = xarray_obj  # Store the xarray object
+    """Custom accessor for xarray objects providing additional functionality.
+
+    Attributes:
+        _obj: The xarray object being accessed.
+    """
+
+    def __init__(self, xarray_obj: xr.Dataset | xr.DataArray):
+        self._obj = xarray_obj
 
     @wraps(where_xarray)
-    def where(self, **kwargs):
-        __doc__ = where_xarray.__doc__
+    def where(self, **kwargs) -> xr.Dataset | xr.DataArray:
         return where_xarray(self._obj, **kwargs)
 
     @wraps(plot_traces)
     def plot_traces(
         self,
-        x,
-        key="",
-        legend_labels=[],
-        extra_legend_coords=[],
-        plot_kwargs={},
+        x: str,
+        key: str = "",
+        legend_labels: List[str] = [],
+        extra_legend_coords: List[str] = [],
+        plot_kwargs: dict = {},
         **kwargs,
-    ):
-        __doc__ = (
-            plot_traces.__doc__
-            + """
-        Example: Overlay stimulus and response traces.
-        -------
-        fig, ax = plt.subplots()
-        r.custom.plot_traces(key='stimulus',
-                            x='time',
-                            speed=[19, 25],
-                            intensity=1,
-                            angle=90,
-                            u_in=0,
-                            v_in=0,
-                            plot_kwargs=dict(ax=ax),
-                            time='>0,<1.0'
-                            )
-        r.custom.plot_traces(key='responses',
-                            x='time',
-                            speed=[19, 25],
-                            cell_type='T4c',
-                            intensity=1,
-                            angle=90,
-                            network_id=0,
-                            plot_kwargs=dict(ax=ax),
-                            time='>0,<1.0'
-        )
+    ) -> plt.Axes:
+        """Plot traces from the xarray object.
 
-        Example: Polar plot.
-        -------
-        prs = peak_responses(stims_and_resps_moving_edges).custom.where(
-            cell_type="T4c",
-            intensity=1,
-            speed=19,
-        )
-        # Convert angle to radians if necessary
-        prs['angle'] = np.radians(prs.angle)
-        ax = plt.subplots(subplot_kw={"projection": "polar"})[1]
-        prs.custom.plot_traces(
-            x="angle",
-            legend_labels=["network_id"],
-            plot_kwargs={"add_legend": False, "ax": ax, "color": "b"},
-        )
+        Args:
+            x: The dimension to use as the x-axis.
+            key: The key of the data to plot if the dataset is a Dataset.
+            legend_labels: List of coordinates to include in the legend.
+            extra_legend_coords: Additional coordinates to include in the legend.
+            plot_kwargs: Additional keyword arguments to pass to the plot function.
+            **kwargs: Query-like conditions on coordinates.
+
+        Returns:
+            The matplotlib axes object containing the plot.
+
+        Example:
+            Overlay stimulus and response traces:
+            ```python
+            fig, ax = plt.subplots()
+            r.custom.plot_traces(
+                key='stimulus',
+                x='time',
+                speed=[19, 25],
+                intensity=1,
+                angle=90,
+                u_in=0,
+                v_in=0,
+                plot_kwargs=dict(ax=ax),
+                time='>0,<1.0'
+            )
+            r.custom.plot_traces(
+                key='responses',
+                x='time',
+                speed=[19, 25],
+                cell_type='T4c',
+                intensity=1,
+                angle=90,
+                network_id=0,
+                plot_kwargs=dict(ax=ax),
+                time='>0,<1.0'
+            )
+            ```
+
+            Polar plot:
+            ```python
+            prs = peak_responses(stims_and_resps_moving_edges).custom.where(
+                cell_type="T4c",
+                intensity=1,
+                speed=19,
+            )
+            prs['angle'] = np.radians(prs.angle)
+            ax = plt.subplots(subplot_kw={"projection": "polar"})[1]
+            prs.custom.plot_traces(
+                x="angle",
+                legend_labels=["network_id"],
+                plot_kwargs={"add_legend": False, "ax": ax, "color": "b"},
+            )
+            ```
         """
-        )
         return plot_traces(
             self._obj,
             key,

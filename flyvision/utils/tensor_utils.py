@@ -1,20 +1,19 @@
-"""Utility on tensors and arrays."""
+"""Utility functions for tensors and arrays."""
 
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Union
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
+from torch import nn
 
 
 class RefTensor:
     """A tensor with reference indices along the last dimension.
 
-    Args:
-        values
-        indices
-
-    Attributes: same as args.
+    Attributes:
+        values (torch.Tensor): The tensor values.
+        indices (torch.Tensor): The reference indices.
     """
 
     def __init__(self, values: torch.Tensor, indices: torch.Tensor) -> None:
@@ -22,34 +21,38 @@ class RefTensor:
         self.indices = indices
 
     def deref(self) -> torch.Tensor:
-        """Indexes the values with the given indices in the last dimension."""
+        """Index the values with the given indices in the last dimension."""
         return self.values.index_select(-1, self.indices)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.values)
 
-    def __repr__(self):
-        return "RefTensor(values={}, indices={})".format(self.values.data, self.indices)
+    def __repr__(self) -> str:
+        return f"RefTensor(values={self.values.data}, indices={self.indices})"
 
     def clone(self) -> "RefTensor":
-        """Returns a copy of the RefTensor cloning values."""
+        """Return a copy of the RefTensor cloning values."""
         return RefTensor(self.values.clone(), self.indices)
 
     def detach(self) -> "RefTensor":
-        """Returns a copy of the RefTensor detaching values."""
+        """Return a copy of the RefTensor detaching values."""
         return RefTensor(self.values.detach(), self.indices)
 
 
 class AutoDeref(dict):
     """An auto-dereferencing namespace.
 
-    Note: dereferencing here means that if attributes are RefTensors,
-    __getitem__ will call RefTebsir.deref() to obtain the values at the
+    Dereferencing means that if attributes are RefTensors,
+    __getitem__ will call RefTensor.deref() to obtain the values at the
     given indices.
 
-    Note, constructed at each forward call in Network. A cache speeds up
-    processing, e.g. when a parameter is referenced multiple times in the
-    dynamics.
+    Note:
+        Constructed at each forward call in Network. A cache speeds up
+        processing, e.g., for when a parameter is referenced multiple times in the
+        dynamics.
+
+    Attributes:
+        _cache (Dict[str, object]): Cache for dereferenced values.
     """
 
     _cache: Dict[str, object]
@@ -124,20 +127,31 @@ class AutoDeref(dict):
 
         return repr_in_context(self, 0, 0)
 
-    def get_as_reftensor(self, key):
+    def get_as_reftensor(self, key: str) -> RefTensor:
+        """Get the original RefTensor without dereferencing."""
         return dict.__getitem__(self, key)
 
-    def clear_cache(self):
+    def clear_cache(self) -> "AutoDeref":
+        """Clear the cache and return a cloned instance."""
         object.__setattr__(self, "_cache", {})
         return clone(self)
 
-    def detach(self):
+    def detach(self) -> "AutoDeref":
+        """Return a detached copy of the AutoDeref instance."""
         return detach(self)
 
 
 def detach(obj: AutoDeref) -> AutoDeref:
-    """
-    Recursively detach AutoDeref mappings.
+    """Recursively detach AutoDeref mappings.
+
+    Args:
+        obj: The object to detach.
+
+    Returns:
+        A detached copy of the input object.
+
+    Raises:
+        TypeError: If the object type is not supported.
     """
     if isinstance(obj, (type(None), bool, int, float, str, type)):
         return obj
@@ -155,8 +169,16 @@ def detach(obj: AutoDeref) -> AutoDeref:
 
 
 def clone(obj: AutoDeref) -> AutoDeref:
-    """
-    Recursively clone AutoDeref mappings.
+    """Recursively clone AutoDeref mappings.
+
+    Args:
+        obj: The object to clone.
+
+    Returns:
+        A cloned copy of the input object.
+
+    Raises:
+        TypeError: If the object type is not supported.
     """
     if isinstance(obj, (type(None), bool, int, float, str, type)):
         return obj
@@ -174,8 +196,18 @@ def clone(obj: AutoDeref) -> AutoDeref:
             raise TypeError(f"{obj} of type {type(obj)} as {e}.") from None
 
 
-def to_numpy(array):
-    """Convert array-like to numpy array."""
+def to_numpy(array: Union[np.ndarray, torch.Tensor, List]) -> np.ndarray:
+    """Convert array-like to numpy array.
+
+    Args:
+        array: The input array-like object.
+
+    Returns:
+        A numpy array.
+
+    Raises:
+        ValueError: If the input type cannot be cast to a numpy array.
+    """
     if isinstance(array, np.ndarray):
         return array
     elif isinstance(array, torch.Tensor):
@@ -186,34 +218,44 @@ def to_numpy(array):
         raise ValueError(f"type {type(array)} cannot be cast to numpy array")
 
 
-def atleast_column_vector(array):
-    """Convert 1d-array-like to column vector n x 1 or return the original."""
+def atleast_column_vector(array: np.ndarray) -> np.ndarray:
+    """Convert 1d-array-like to column vector n x 1 or return the original.
+
+    Args:
+        array: The input array.
+
+    Returns:
+        A column vector or the original array if it's already 2D or higher.
+    """
     array = np.array(array)
     if array.ndim == 1:
         return array.reshape(-1, 1)
     return array
 
 
-def matrix_mask_by_sub(sub_matrix, matrix) -> NDArray[bool]:
-    """Mask of rows in matrix that are contained in sub_matrix.
+def matrix_mask_by_sub(sub_matrix: np.ndarray, matrix: np.ndarray) -> NDArray[bool]:
+    """Create a mask of rows in matrix that are contained in sub_matrix.
 
     Args:
-        sub_matrix (array): shape (#rows1, #columns)
-        matrix (array): shape (#rows2, #columns)
+        sub_matrix: Shape (n_rows1, n_columns)
+        matrix: Shape (n_rows2, n_columns)
 
     Returns:
-        array: 1D boolean array of length #rows2
+        1D boolean array of length n_rows2
 
-    Note: #rows1 !<= #rows2
+    Note:
+        n_rows1 !<= n_rows2
 
     Example:
+        ```python
         sub_matrix = np.array([[1, 2, 3],
-                                [4, 3, 1]])
+                               [4, 3, 1]])
         matrix = np.array([[3, 4, 1],
-                            [4, 3, 1],
-                            [1, 2, 3]])
+                           [4, 3, 1],
+                           [1, 2, 3]])
         matrix_mask_by_sub(sub_matrix, matrix)
-        array([False, True, True])
+        # array([False, True, True])
+        ```
 
     Typically, indexing a tensor with indices instead of booleans is
     faster. Therefore, see also where_equal_rows.
@@ -223,7 +265,7 @@ def matrix_mask_by_sub(sub_matrix, matrix) -> NDArray[bool]:
     n_rows, n_columns = sub_matrix.shape
     n_rows2 = matrix.shape[0]
     if not n_rows <= n_rows2:
-        raise ValueError
+        raise ValueError("sub_matrix must have fewer or equal rows as matrix")
     row_mask = []
     for i in range(n_rows):
         column_mask = []
@@ -233,10 +275,25 @@ def matrix_mask_by_sub(sub_matrix, matrix) -> NDArray[bool]:
     return reduce(np.logical_or, row_mask)
 
 
-def where_equal_rows(matrix1, matrix2, as_mask=False, astype="|S64") -> NDArray[int]:
-    """Indices where matrix1 rows are in matrix2.
+def where_equal_rows(
+    matrix1: np.ndarray,
+    matrix2: np.ndarray,
+    as_mask: bool = False,
+    astype: str = "|S64",
+) -> NDArray[int]:
+    """Find indices where matrix1 rows are in matrix2.
+
+    Args:
+        matrix1: First input matrix.
+        matrix2: Second input matrix.
+        as_mask: If True, return a boolean mask instead of indices.
+        astype: Data type to use for comparison.
+
+    Returns:
+        Array of indices or boolean mask.
 
     Example:
+        ```python
         matrix1 = np.array([[1, 2, 3],
                             [4, 3, 1]])
         matrix2 = np.array([[3, 4, 1],
@@ -244,12 +301,14 @@ def where_equal_rows(matrix1, matrix2, as_mask=False, astype="|S64") -> NDArray[
                             [1, 2, 3],
                             [0, 0, 0]])
         where_equal_rows(matrix1, matrix2)
-        array([2, 1])
+        # array([2, 1])
         matrix2[where_equal_rows(matrix1, matrix2)]
-        array([[1, 2, 3],
-               [4, 3, 1]])
+        # array([[1, 2, 3],
+        #        [4, 3, 1]])
+        ```
 
-    See also: matrix_mask_by_sub.
+    See also:
+        matrix_mask_by_sub
     """
     matrix1 = atleast_column_vector(matrix1)
     matrix2 = atleast_column_vector(matrix2)
@@ -263,7 +322,7 @@ def where_equal_rows(matrix1, matrix2, as_mask=False, astype="|S64") -> NDArray[
     n_rows2, n_cols2 = matrix2.shape
 
     if not n_rows1 <= n_rows2:
-        raise ValueError("matrix1 must have less or" " equal as many rows as matrix2")
+        raise ValueError("matrix1 must have less or equal as many rows as matrix2")
     if not n_cols1 == n_cols2:
         raise ValueError("cannot compare matrices with different number of columns")
 
@@ -276,10 +335,19 @@ def where_equal_rows(matrix1, matrix2, as_mask=False, astype="|S64") -> NDArray[
     return np.array(where)
 
 
-def broadcast(src: torch.Tensor, other: torch.Tensor, dim: int):
+def broadcast(src: torch.Tensor, other: torch.Tensor, dim: int) -> torch.Tensor:
     """Broadcast `src` to the shape of `other` along dimension `dim`.
 
-    From https://github.com/rusty1s/pytorch_scatter/.
+    Args:
+        src: Source tensor to broadcast.
+        other: Target tensor to broadcast to.
+        dim: Dimension along which to broadcast.
+
+    Returns:
+        Broadcasted tensor.
+
+    Note:
+        From https://github.com/rusty1s/pytorch_scatter/.
     """
     if dim < 0:
         dim = other.dim() + dim
@@ -292,34 +360,73 @@ def broadcast(src: torch.Tensor, other: torch.Tensor, dim: int):
     return src
 
 
-def scatter_reduce(src, index, dim=-1, mode="mean"):
+def scatter_reduce(
+    src: torch.Tensor,
+    index: torch.Tensor,
+    dim: int = -1,
+    mode: Literal["mean", "sum"] = "mean",
+) -> torch.Tensor:
     """Reduce along dimension `dim` using values in the `index` tensor.
 
-    Convenience function for `torch.scatter_reduce` that broadcasts `index` to
-    the shape of `src` along dimension `dim` to cohere to pytorch_scatter
-    API.
+    Args:
+        src: Source tensor.
+        index: Index tensor.
+        dim: Dimension along which to reduce.
+        mode: Reduction mode, either "mean" or "sum".
+
+    Returns:
+        Reduced tensor.
+
+    Note:
+        Convenience function for `torch.scatter_reduce` that broadcasts `index` to
+        the shape of `src` along dimension `dim` to cohere to pytorch_scatter API.
     """
     index = broadcast(index.long(), src, dim)
     return torch.scatter_reduce(src, dim, index, reduce=mode)
 
 
-def scatter_mean(src, index, dim=-1):
-    """Average along dimension `dim` using values in the `index` tensor."""
+def scatter_mean(src: torch.Tensor, index: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    """Average along dimension `dim` using values in the `index` tensor.
+
+    Args:
+        src: Source tensor.
+        index: Index tensor.
+        dim: Dimension along which to average.
+
+    Returns:
+        Averaged tensor.
+    """
     return scatter_reduce(src, index, dim, "mean")
 
 
-def scatter_add(src, index, dim=-1):
-    """Sum along dimension `dim` using values in the `index` tensor."""
+def scatter_add(src: torch.Tensor, index: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    """Sum along dimension `dim` using values in the `index` tensor.
+
+    Args:
+        src: Source tensor.
+        index: Index tensor.
+        dim: Dimension along which to sum.
+
+    Returns:
+        Summed tensor.
+    """
     return scatter_reduce(src, index, dim, "sum")
 
 
-def select_along_axes(array, indices, dims):
+def select_along_axes(
+    array: np.ndarray,
+    indices: Union[int, Iterable[int]],
+    dims: Union[int, Iterable[int]],
+) -> np.ndarray:
     """Select indices from array along dims.
 
     Args:
-        array (array): array to take indices from
-        indices (array): indices to take
-        dims (list): dimensions to take indices from
+        array: Array to take indices from.
+        indices: Indices to take.
+        dims: Dimensions to take indices from.
+
+    Returns:
+        Array with selected indices along specified dimensions.
     """
     if not isinstance(indices, Iterable):
         indices = [indices]
@@ -331,3 +438,24 @@ def select_along_axes(array, indices, dims):
             index = [index]
         array = array.take(index, axis=dim)
     return array
+
+
+def asymmetric_weighting(
+    tensor: Union[NDArray, torch.Tensor], gamma: float = 1.0, delta: float = 0.1
+) -> Union[NDArray, torch.Tensor]:
+    """
+    Apply asymmetric weighting to the positive and negative elements of a tensor.
+
+    Args:
+        tensor: Input tensor.
+        gamma: Positive weighting factor.
+        delta: Negative weighting factor.
+
+    Returns:
+        Weighted tensor.
+
+    Note:
+        The function is defined as:
+        f(x) = gamma * x if x > 0 else delta * x
+    """
+    return gamma * nn.functional.relu(tensor) - delta * nn.functional.relu(-tensor)

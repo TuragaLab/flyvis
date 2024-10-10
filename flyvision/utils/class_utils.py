@@ -1,11 +1,21 @@
 """Utilities for working with classes."""
 
 from copy import deepcopy
+from typing import Any, Dict, Optional, Type
 from warnings import warn
 
 
-def find_subclass(cls, target_subclass_name):
-    """Recursively search for the target subclass."""
+def find_subclass(cls: Type, target_subclass_name: str) -> Optional[Type]:
+    """
+    Recursively search for the target subclass.
+
+    Args:
+        cls: The base class to start the search from.
+        target_subclass_name: The name of the subclass to find.
+
+    Returns:
+        The found subclass, or None if not found.
+    """
     for subclass in cls.__subclasses__():
         if subclass.__qualname__ == target_subclass_name:
             return subclass
@@ -17,11 +27,28 @@ def find_subclass(cls, target_subclass_name):
 
 
 def forward_subclass(
-    cls: type, config: object = {}, subclass_key="type", unpack_kwargs=True
-) -> object:
-    """Forward to a subclass based on the `<subclass_key>` key in `config`.
+    cls: Type,
+    config: Dict[str, Any] = {},
+    subclass_key: str = "type",
+    unpack_kwargs: bool = True,
+) -> Any:
+    """
+    Forward to a subclass based on the `<subclass_key>` key in `config`.
 
     Forwards to the parent class if `<subclass_key>` is not in `config`.
+
+    Args:
+        cls: The base class to forward from.
+        config: Configuration dictionary containing subclass information.
+        subclass_key: Key in the config dictionary specifying the subclass.
+        unpack_kwargs: Whether to unpack kwargs when initializing the instance.
+
+    Returns:
+        An instance of the specified subclass or the base class.
+
+    Note:
+        If the specified subclass is not found, a warning is issued and the base
+        class is used instead.
     """
     config = deepcopy(config)
     target_subclass = config.pop(subclass_key, None)
@@ -29,7 +56,7 @@ def forward_subclass(
     # Prepare kwargs by removing the subclass_key if it exists
     kwargs = {k: v for k, v in config.items() if k != subclass_key}
 
-    def init_with_kwargs(instance):
+    def init_with_kwargs(instance: Any) -> None:
         if unpack_kwargs:
             instance.__init__(**kwargs)
         else:
@@ -44,10 +71,8 @@ def forward_subclass(
             return instance
         else:
             warn(
-                (
-                    f"Unrecognized {subclass_key} {target_subclass}. "
-                    f" Using {cls.__qualname__}."
-                ),
+                f"Unrecognized {subclass_key} {target_subclass}. "
+                f"Using {cls.__qualname__}.",
                 stacklevel=2,
             )
     else:

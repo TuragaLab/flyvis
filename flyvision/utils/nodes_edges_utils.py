@@ -1,5 +1,5 @@
 import re
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -10,8 +10,8 @@ from flyvision.utils import groundtruth_utils
 
 
 def order_node_type_list(
-    node_types: List,
-    groups: List = [
+    node_types: List[str],
+    groups: List[str] = [
         r"R\d",
         r"L\d",
         r"Lawf\d",
@@ -22,15 +22,21 @@ def order_node_type_list(
         r"T\d{1,2}.*",
         r"Tm.*\d{1,2}.*",
     ],
-) -> Tuple[List, List]:
+) -> Tuple[List[str], List[int]]:
     """Orders a list of node types by the regular expressions defined in groups.
 
     Args:
-        node_types (list): messy list of nodes.
-        groups (list): ordered list of regular expressions to sort node_types.
+        node_types: Messy list of nodes.
+        groups: Ordered list of regular expressions to sort node_types.
 
     Returns:
-        ordered node type list and the corresponding sorting indices.
+        A tuple containing:
+        - Ordered node type list
+        - Corresponding sorting indices
+
+    Raises:
+        AssertionError: If sorting doesn't include all cell types.
+        ValueError: If sorting fails due to length mismatch.
     """
     if node_types is None:
         return None, None
@@ -86,19 +92,28 @@ def order_node_type_list(
     return nodes, index
 
 
-def get_index_mapping_lists(from_list: List, to_list: List) -> List[int]:
-    """Indices to sort and filter from_list by occurence of items in to_list.
+def get_index_mapping_lists(from_list: List[str], to_list: List[str]) -> List[int]:
+    """Get indices to sort and filter from_list by occurrence of items in to_list.
 
     The indices are useful to sort or filter another list or tensor that
     is an ordered mapping to items in from_list to the order of items in to_list.
 
-    Simple example:
-    >>> from_list = ["a", "b", "c"]
-    >>> mapping_to_from_list = [1, 2, 3]
-    >>> to_list = ["c", "a", "b"]
-    >>> sort_index = sort_index_mapping_lists(from_list, to_list)
-    >>> [mapping_to_from_list[i] for i in sort_index]
-    >>> [3, 1, 2]
+    Args:
+        from_list: Original list of items.
+        to_list: Target list of items.
+
+    Returns:
+        List of indices for sorting.
+
+    Example:
+        ```python
+        from_list = ["a", "b", "c"]
+        mapping_to_from_list = [1, 2, 3]
+        to_list = ["c", "a", "b"]
+        sort_index = get_index_mapping_lists(from_list, to_list)
+        sorted_list = [mapping_to_from_list[i] for i in sort_index]
+        # sorted_list will be [3, 1, 2]
+        ```
     """
     if isinstance(from_list, np.ndarray):
         from_list = from_list.tolist()
@@ -107,9 +122,22 @@ def get_index_mapping_lists(from_list: List, to_list: List) -> List[int]:
     return [from_list.index(item) for item in to_list]
 
 
-def sort_by_mapping_lists(from_list, to_list, tensor, axis=0):
-    """Sort and filter a tensor along axis that is indexed by from_list
-    by occurences of indices in to_list.
+def sort_by_mapping_lists(
+    from_list: List[str],
+    to_list: List[str],
+    tensor: Union[np.ndarray, torch.Tensor],
+    axis: int = 0,
+) -> np.ndarray:
+    """Sort and filter a tensor along an axis indexed by from_list to match to_list.
+
+    Args:
+        from_list: Original list of items.
+        to_list: Target list of items.
+        tensor: Tensor to be sorted.
+        axis: Axis along which to sort the tensor.
+
+    Returns:
+        Sorted numpy array.
     """
     tensor = np.array(tensor)
     if axis != 0:
@@ -121,7 +149,18 @@ def sort_by_mapping_lists(from_list, to_list, tensor, axis=0):
     return tensor
 
 
-def nodes_list_sorting_on_off_unknown(cell_types=None):
+def nodes_list_sorting_on_off_unknown(
+    cell_types: Optional[List[str]] = None,
+) -> List[str]:
+    """Sort node list based on on/off/unknown polarity.
+
+    Args:
+        cell_types: List of cell types to sort. If None, uses all types from
+                    groundtruth_utils.polarity.
+
+    Returns:
+        Sorted list of cell types.
+    """
     value = {1: 1, -1: 2, 0: 3}
     preferred_contrasts = groundtruth_utils.polarity
     cell_types = list(preferred_contrasts) if cell_types is None else cell_types
@@ -138,20 +177,22 @@ class NodeIndexer(dict):
 
     Args:
         connectome: Connectome object. The cell types are taken from the
-            connectome and references are created in order. Additionally stores
-            the central_cells_index in the whole list of nodes/cells.
-        unique_cell_types: array of unique cell types. Optional.
-            To specifiy the mapping from cell types to indices in provided order.
+            connectome and references are created in order.
+        unique_cell_types: Array of unique cell types. Optional.
+            To specify the mapping from cell types to indices in provided order.
 
     Attributes:
-        unique_cell_types: array of unique cell types.
-        central_cells_index: array of indices of central cells.
+        unique_cell_types (NDArray[str]): Array of unique cell types.
+        central_cells_index (Optional[NDArray[int]]): Array of indices of central cells.
+
+    Raises:
+        ValueError: If neither connectome nor unique_cell_types is provided.
     """
 
     def __init__(
         self,
-        connectome: "connectome.ConnectomeDir" = None,
-        unique_cell_types: NDArray = None,
+        connectome: Optional["connectome.ConnectomeFromAvgFilters"] = None,
+        unique_cell_types: Optional[NDArray[str]] = None,
     ):
         # if connectome is specified, the indices are taken from the connectome
         # and reference to positions in the entire list of nodes/cells
@@ -193,10 +234,17 @@ class CellTypeArray:
     """Attribute-style accessible map from cell types to coordinates in array.
 
     Args:
-        array: has the dim-th axis corresponding to unique cell types
+        array: Has the dim-th axis corresponding to unique cell types
             in the connectome or provided cell types.
         connectome: Connectome object.
-        dim: axis correpsonding to unique cell types.
+        cell_types: Array of cell types.
+        dim: Axis corresponding to unique cell types.
+
+    Attributes:
+        node_indexer (NodeIndexer): Indexer for cell types.
+        array (NDArray): The array of cell type data.
+        dim (int): Dimension corresponding to cell types.
+        cell_types (NDArray[str]): Array of unique cell types.
     """
 
     node_indexer: NodeIndexer = None
@@ -206,8 +254,8 @@ class CellTypeArray:
     def __init__(
         self,
         array: Union[NDArray, torch.Tensor],
-        connectome: "connectome.ConnectomeDir" = None,
-        cell_types: NDArray = None,
+        connectome: Optional["connectome.ConnectomeFromAvgFilters"] = None,
+        cell_types: Optional[NDArray[str]] = None,
         dim: int = -1,
     ):
         self.array = array

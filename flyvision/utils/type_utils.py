@@ -1,14 +1,35 @@
 from numbers import Number
-from typing import Mapping
+from typing import Any, Mapping
 
 import numpy as np
 
 
-def byte_to_str(obj):
-    """Cast byte elements to string types.
+def byte_to_str(obj: Any) -> Any:
+    """Cast byte elements to string types recursively.
 
-    Note, this function is recursive and will cast all byte elements in a nested
-    list or tuple.
+    This function recursively converts byte elements to string types in nested
+    data structures.
+
+    Args:
+        obj: The object to be processed. Can be of various types including
+            Mapping, numpy.ndarray, list, tuple, bytes, str, or Number.
+
+    Returns:
+        The input object with all byte elements converted to strings.
+
+    Raises:
+        TypeError: If the input object cannot be cast to a string type.
+
+    Note:
+        This function will cast all byte elements in nested lists or tuples.
+
+    Examples:
+        ```python
+        >>> byte_to_str(b"hello")
+        'hello'
+        >>> byte_to_str([b"world", 42, {b"key": b"value"}])
+        ['world', 42, {'key': 'value'}]
+        ```
     """
     if isinstance(obj, Mapping):
         return type(obj)({k: byte_to_str(v) for k, v in obj.items()})
@@ -17,11 +38,9 @@ def byte_to_str(obj):
             return obj.astype("U")
         return obj
     elif isinstance(obj, list):
-        obj = [byte_to_str(item) for item in obj]
-        return obj
+        return [byte_to_str(item) for item in obj]
     elif isinstance(obj, tuple):
-        obj = tuple([byte_to_str(item) for item in obj])
-        return obj
+        return tuple(byte_to_str(item) for item in obj)
     elif isinstance(obj, bytes):
         return obj.decode()
     elif isinstance(obj, (str, Number)):

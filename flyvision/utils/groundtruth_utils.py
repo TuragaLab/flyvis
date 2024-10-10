@@ -1,4 +1,14 @@
-"""Groundtruth from literature in appropriate datastructures."""
+"""Groundtruth data structures for fly visual system cell types.
+
+This module contains various dictionaries and lists that represent groundtruth
+information from literature about different cell types in the fly visual system.
+The data includes polarity, pathway classification, layout, direction selectivity,
+and other properties of various neurons.
+
+Note:
+    All data structures are based on published literature and may need to be
+    updated as new research becomes available.
+"""
 
 # -- polarity ------------------------------------------------------------------
 

@@ -1,47 +1,108 @@
 import argparse
+import os
 import sys
-from typing import List
+from typing import Any, Dict, List, Optional, Union
 
 import hydra
-from datamate import namespacify
+from datamate import Namespace, namespacify
 from hydra.core.global_hydra import GlobalHydra
-from omegaconf import OmegaConf
+from omegaconf import DictKeyType, OmegaConf, errors
 
 
 def get_default_config(
     overrides: List[str],
-    config_path: str = "../../config",
-    config_name: str = "solver",
-):
+    path: str = "../../config/solver.yaml",
+    as_namespace: bool = True,
+) -> Union[Dict[DictKeyType, Any], List[Any], None, str, Any, Namespace]:
     """
-    Expected overridess are:
+    Get the default configuration using Hydra.
+
+    Args:
+        overrides: List of configuration overrides.
+        path: Path to the configuration file.
+        as_namespace: Whether to return a namespaced configuration or the
+            OmegaConf object.
+
+    Returns:
+        The configuration object.
+
+    Note:
+        Expected overrides are:
         - task_name
         - network_id
     """
 
+    config = get_config_from_file(path, overrides, resolve=True)
+    if as_namespace:
+        return namespacify(config)
+    return config
+
+
+def get_config_from_file(
+    path: str,
+    overrides: List[str] = [],
+    resolve: bool = False,
+    throw_on_missing: bool = False,
+) -> Union[Dict[DictKeyType, Any], List[Any], None, str, Any]:
+    """
+    Get the configuration from a file.
+
+    Args:
+        path: Path to the configuration file.
+        overrides: List of configuration overrides.
+        resolve: Whether to resolve the configuration.
+        throw_on_missing: Whether to throw an error if a key is missing.
+
+    Returns:
+        The configuration object.
+    """
+    config_name = path.split(os.sep)[-1].replace(".yaml", "")
+    config_path = os.sep.join(path.split(os.sep)[:-1])
     GlobalHydra.instance().clear()
     hydra.initialize(config_path=config_path, version_base=None)
     config = hydra.compose(config_name=config_name, overrides=overrides)
-    config = namespacify(OmegaConf.to_container(config, resolve=True))
+    config = OmegaConf.to_container(
+        config, resolve=resolve, throw_on_missing=throw_on_missing
+    )
     GlobalHydra.instance().clear()
     return config
 
 
 class HybridArgumentParser(argparse.ArgumentParser):
-    """Hybrid argument parser that can parse unknown arguments in basic key=value style.
+    """
+    Hybrid argument parser that can parse unknown arguments in basic key=value style.
+
+    Attributes:
+        hybrid_args: Dictionary of hybrid arguments with their requirements and
+            help texts.
+        allow_unrecognized: Whether to allow unrecognized arguments.
+        drop_disjoint_from: Path to a configuration file that can be used to filter
+            out arguments that are present in the command line arguments but not in
+            the configuration file. This is to pass through arguments through multiple
+            scripts as hydra does not support this.
 
     Args:
-        hybrid_args (dict): Dictionary of hybrid arguments with their requirements
-            and help texts.
+        hybrid_args: Dictionary of hybrid arguments with their requirements and
+            help texts.
+        allow_unrecognized: Whether to allow unrecognized arguments.
     """
 
-    def __init__(self, *args, hybrid_args=None, allow_unrecognized=True, **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        hybrid_args: Optional[Dict[str, Dict[str, Any]]] = None,
+        allow_unrecognized: bool = True,
+        drop_disjoint_from: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.hybrid_args = hybrid_args or {}
         self.allow_unrecognized = allow_unrecognized
+        self.drop_disjoint_from = drop_disjoint_from
         self._add_hybrid_args_to_help()
 
-    def _add_hybrid_args_to_help(self):
+    def _add_hybrid_args_to_help(self) -> None:
+        """Add hybrid arguments to the help message."""
         if self.hybrid_args:
             hybrid_group = self.add_argument_group('Hybrid Arguments')
             for arg, config in self.hybrid_args.items():
@@ -55,8 +116,25 @@ class HybridArgumentParser(argparse.ArgumentParser):
                     arg_help += " (Required)"
                 hybrid_group.add_argument(f"--{arg}", help=arg_help, required=False)
 
-    def parse_with_hybrid_args(self, args=None, namespace=None):
-        """Parse arguments and set hybrid arguments as attributes in the namespace."""
+    def parse_with_hybrid_args(
+        self,
+        args: Optional[List[str]] = None,
+        namespace: Optional[argparse.Namespace] = None,
+    ) -> argparse.Namespace:
+        """
+        Parse arguments and set hybrid arguments as attributes in the namespace.
+
+        Args:
+            args: List of arguments to parse.
+            namespace: Namespace to populate with parsed arguments.
+
+        Returns:
+            Namespace with parsed arguments.
+
+        Raises:
+            argparse.ArgumentError: If required arguments are missing or invalid
+                values are provided.
+        """
         if args is None:
             args = sys.argv[1:]
 
@@ -134,11 +212,71 @@ class HybridArgumentParser(argparse.ArgumentParser):
             msg = "unrecognized arguments: %s"
             self.error(msg % " ".join(argv))
 
+        if self.drop_disjoint_from:
+            args = self._filter_args_based_on_config(args)
+
         return args
 
+    def _filter_args_based_on_config(
+        self, args: argparse.Namespace
+    ) -> argparse.Namespace:
+        """
+        Filter arguments based on the Hydra config file specified in drop_disjoint_from.
 
-def parse_kwargs_to_dict(values):
-    """Parse a list of key-value pairs into a dictionary."""
+        Args:
+            args: Namespace containing all parsed arguments.
+
+        Returns:
+            Filtered Namespace with only arguments present in the config or with
+                Hydra syntax.
+        """
+        if not self.drop_disjoint_from:
+            return args
+
+        config = OmegaConf.create(
+            get_config_from_file(self.drop_disjoint_from, resolve=False)
+        )
+
+        filtered_args = argparse.Namespace()
+
+        for arg, value in vars(args).items():
+            if (
+                self._is_in_config(arg, config)
+                or arg.startswith('+')
+                or arg.startswith('++')
+                or arg.startswith('~')
+            ):
+                setattr(filtered_args, arg, value)
+
+        return filtered_args
+
+    def _is_in_config(self, arg: str, config: Any) -> bool:
+        """
+        Check if an argument exists in the config, including nested structures.
+
+        Args:
+            arg: The argument to check.
+            config: The configuration object or sub-object.
+
+        Returns:
+            True if the argument is found in the config, False otherwise.
+        """
+        try:
+            return OmegaConf.select(config, arg, throw_on_missing=True) is not None
+        except errors.MissingMandatoryValue:
+            return True
+
+
+def parse_kwargs_to_dict(values: List[str]) -> argparse.Namespace:
+    """
+    Parse a list of key-value pairs into a dictionary.
+
+    Args:
+        values: List of key-value pairs in the format "key=value".
+
+    Returns:
+        Namespace object with parsed key-value pairs as attributes.
+    """
     kwargs = argparse.Namespace()
     for value in values:
         key, value = value.split("=")
@@ -146,7 +284,20 @@ def parse_kwargs_to_dict(values):
     return kwargs
 
 
-def safe_cast(value, type_name):
+def safe_cast(value: str, type_name: str) -> Union[int, float, bool, str]:
+    """
+    Safely cast a string value to a specified type.
+
+    Args:
+        value: The string value to cast.
+        type_name: The name of the type to cast to.
+
+    Returns:
+        The casted value.
+
+    Note:
+        Supports casting to int, float, bool, and str.
+    """
     if type_name == 'int':
         return int(value)
     elif type_name == 'float':
@@ -155,3 +306,18 @@ def safe_cast(value, type_name):
         return value.lower() in ('true', 'yes', '1', 'on')
     else:
         return value  # Default to string
+
+
+if __name__ == "__main__":
+    parser = HybridArgumentParser(
+        hybrid_args={"abc": {"type": str, "required": True}},
+        drop_disjoint_from="../../config/solver.yaml",
+        allow_unrecognized=True,
+    )
+    args, kwargs = parser.parse_known_args()
+    print(args)
+    print(kwargs)
+    args = parser.parse_with_hybrid_args()
+    print(args)
+    kwargs = ["=".join(arg) for arg in vars(args).items()]
+    print(kwargs)

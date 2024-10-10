@@ -17,7 +17,8 @@ __all__ = ["SequenceDataset", "StimulusDataset", "MultiTaskDataset"]
 class SequenceDataset(torch.utils.data.Dataset):
     """Base class for all sequence datasets.
 
-    All sequence datasets can subclass this class.
+    All sequence datasets can subclass this class. They are expected to implement
+    the following attributes and methods.
 
     Attributes:
         framerate (int): Framerate of the original sequences.
@@ -103,10 +104,10 @@ class StimulusDataset(SequenceDataset):
             ValueError: If arg_df attribute is not specified.
 
         Note:
-            The child dataset implements a specific method:
+            The child dataset implements the specific method:
             ```python
-            def get_arg_df(arg1, arg2, ...):
-                return self._get_arg_index(locals())
+            def get_stimulus_index(self, arg1, arg2, ...):
+                return StimulusDataset.get_stimulus_index(locals())
             ```
             with locals() specifying kwargs in terms of `arg1`, `arg2`, ...
             to index arg_df.
@@ -123,7 +124,8 @@ class StimulusDataset(SequenceDataset):
 class MultiTaskDataset(SequenceDataset):
     """Base class for all (multi-)task sequence datasets.
 
-    All (multi-)task sequence datasets can subclass this class.
+    All (multi-)task sequence datasets can subclass this class. They are expected
+    to implement the following additional attributes and methods.
 
     Attributes:
         tasks (List[str]): A list of all tasks.
