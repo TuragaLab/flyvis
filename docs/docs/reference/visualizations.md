@@ -1,3 +1,0 @@
-# Visualizations
-
-::: flyvision.analysis.visualization

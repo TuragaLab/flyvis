@@ -1,6 +1,7 @@
-"""Plotting utils.""" ""
+"""Plotting utils."""
+
 from numbers import Number
-from typing import Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import matplotlib as mpl
 import matplotlib.colors as colors
@@ -17,57 +18,69 @@ from matplotlib.gridspec import GridSpec
 MARKERS = np.array(["o", "^", "s", "*", "+", "h", "p", "8"])
 
 
-def check_markers(N):
-    """Check if the number of clusters is larger than the number of markers."""
+def check_markers(N: int) -> List[str]:
+    """
+    Check if the number of clusters is larger than the number of markers.
 
+    Args:
+        N: Number of clusters.
+
+    Returns:
+        List of markers.
+    """
     if len(MARKERS) < N:
         return [f"${i}$" for i in range(N)]
     return MARKERS
 
 
-def get_marker(n):
-    """Get marker for n."""
+def get_marker(n: int) -> str:
+    """
+    Get marker for n.
+
+    Args:
+        n: Index of the marker.
+
+    Returns:
+        Marker string.
+    """
     return check_markers(n)[n]
 
 
 def init_plot(
-    figsize=[1, 1],
-    title="",
-    fontsize=5,
-    ax=None,
-    fig=None,
-    projection=None,
-    set_axis_off=False,
-    transparent=False,
-    face_alpha=0,
-    position=None,
-    title_pos="center",
-    title_y=None,
+    figsize: List[float] = [1, 1],
+    title: str = "",
+    fontsize: int = 5,
+    ax: Axes = None,
+    fig: plt.Figure = None,
+    projection: str = None,
+    set_axis_off: bool = False,
+    transparent: bool = False,
+    face_alpha: float = 0,
+    position: List[float] = None,
+    title_pos: Literal["center", "left", "right"] = "center",
+    title_y: float = None,
     **kwargs,
-):
-    """Creates fig and axis object with certain default settings.
+) -> Tuple[plt.Figure, Axes]:
+    """
+    Creates fig and axis object with certain default settings.
 
     Args:
-        figsize (list, optional): Defaults to [1, 1].
-        title (str, optional): Defaults to ''.
-        fontsize (int, optional): Defaults to 5.
-        fig (Figure, optional): If None, creates new figure. Defaults to None.
-        ax (Axes, optional): If None, creates new axis. Defaults to None.
-            `fontsize` and `transparent` effect existing axis.
-        projection (str, optional): Defaults to None. E.g. `polar`.
-        set_axis_off (bool, optional): Defaults to False.
-        transparent (bool, optional): Defaults to False.
-        face_alpha (float, optional): Defaults to 0.
-        position (list, optional): Position for newly created axis.
-            Defaults to None.
-        title_pos (str, optional): Defaults to 'center'.
-        title_y (float, optional): Defaults to None.
+        figsize: Figure size.
+        title: Title of the plot.
+        fontsize: Font size for title and labels.
+        ax: Existing axis object.
+        fig: Existing figure object.
+        projection: Projection type (e.g., 'polar').
+        set_axis_off: Whether to turn off axis.
+        transparent: Whether to make the axis transparent.
+        face_alpha: Alpha value for the face color.
+        position: Position for newly created axis.
+        title_pos: Position of the title.
+        title_y: Y-coordinate of the title.
 
     Returns:
-        fig, ax
+        Tuple containing the figure and axis objects.
     """
-
-    # initialize figure and ax
     if fig is None:
         fig = plt.figure(figsize=figsize, layout="constrained")
     if ax is not None:
@@ -87,23 +100,48 @@ def init_plot(
     return fig, ax
 
 
-def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-    """Truncate colormap."""
+def truncate_colormap(
+    cmap: colors.Colormap, minval: float = 0.0, maxval: float = 1.0, n: int = 100
+) -> colors.LinearSegmentedColormap:
+    """
+    Truncate colormap.
+
+    Args:
+        cmap: Original colormap.
+        minval: Minimum value for truncation.
+        maxval: Maximum value for truncation.
+        n: Number of colors in the new colormap.
+
+    Returns:
+        Truncated colormap.
+    """
     new_cmap = colors.LinearSegmentedColormap.from_list(
-        "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
+        f"trunc({cmap.name},{minval:.2f},{maxval:.2f})",
         cmap(np.linspace(minval, maxval, n)),
     )
     return new_cmap
 
 
 def rm_spines(
-    ax,
-    spines=("top", "right", "bottom", "left"),
-    visible=False,
-    rm_xticks=True,
-    rm_yticks=True,
-):
-    """Removes spines and ticks from axis."""
+    ax: Axes,
+    spines: Tuple[str, ...] = ("top", "right", "bottom", "left"),
+    visible: bool = False,
+    rm_xticks: bool = True,
+    rm_yticks: bool = True,
+) -> Axes:
+    """
+    Removes spines and ticks from axis.
+
+    Args:
+        ax: Matplotlib axis object.
+        spines: Tuple of spines to remove.
+        visible: Whether to make spines visible.
+        rm_xticks: Whether to remove x-ticks.
+        rm_yticks: Whether to remove y-ticks.
+
+    Returns:
+        Modified axis object.
+    """
     for spine in spines:
         ax.spines[spine].set_visible(visible)
     if ("top" in spines or "bottom" in spines) and rm_xticks:
@@ -115,14 +153,16 @@ def rm_spines(
     return ax
 
 
-def get_ax_positions(axes):
-    """Returns the positions of the axes in the figure.
+def get_ax_positions(axes: Iterable[Axes]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Returns the positions of the axes in the figure.
 
     Args:
-        single ax or iterable of axes
+        axes: Single ax or iterable of axes.
 
     Returns:
-        tuple ((lefts, bottoms, rights, tops), (centers, widths, heights))
+        Tuple containing arrays of left, bottom, right, and top positions,
+        and arrays of centers, widths, and heights.
     """
     axes = np.atleast_1d(axes)
     lefts, bottoms, rights, tops = np.atleast_2d(
@@ -134,22 +174,46 @@ def get_ax_positions(axes):
     return (lefts, bottoms, rights, tops), (centers, widths, heights)
 
 
-def is_hex(color):
-    """Checks if color is hex.""" ""
+def is_hex(color: str) -> bool:
+    """
+    Checks if color is hex.
+
+    Args:
+        color: Color string.
+
+    Returns:
+        True if color is hex, False otherwise.
+    """
     return "#" in color
 
 
-def is_integer_rgb(color):
-    """Checks if color is integer rgb."""
+def is_integer_rgb(color: Iterable[int]) -> bool:
+    """
+    Checks if color is integer RGB.
+
+    Args:
+        color: Color tuple or list.
+
+    Returns:
+        True if color is integer RGB, False otherwise.
+    """
     try:
         return any([c > 1 for c in color])
-    # if color is string
     except TypeError:
         return False
 
 
-def get_alpha_colormap(saturated_color, number_of_shades):
-    """Create a colormap from a color and a number of shades."""
+def get_alpha_colormap(saturated_color: str, number_of_shades: int) -> ListedColormap:
+    """
+    Create a colormap from a color and a number of shades.
+
+    Args:
+        saturated_color: Saturated color string.
+        number_of_shades: Number of shades in the colormap.
+
+    Returns:
+        ListedColormap object.
+    """
     if is_hex(saturated_color):
         rgba = [*hex2color(saturated_color)[:3], 0]
     elif is_integer_rgb(saturated_color):
@@ -166,9 +230,27 @@ def get_alpha_colormap(saturated_color, number_of_shades):
 
 
 def polar_to_cmap(
-    r, theta, invert=True, cmap=plt.cm.twilight_shifted, norm=None, sm=None
-):
-    """Maps angle to rgb and amplitude to alpha and returns the resulting array."""
+    r: np.ndarray,
+    theta: np.ndarray,
+    invert: bool = True,
+    cmap: colors.Colormap = plt.cm.twilight_shifted,
+    norm: Normalize = None,
+    sm: ScalarMappable = None,
+) -> np.ndarray:
+    """
+    Maps angle to rgb and amplitude to alpha and returns the resulting array.
+
+    Args:
+        r: Amplitude array.
+        theta: Angle array.
+        invert: Whether to invert the colormap.
+        cmap: Colormap.
+        norm: Normalization object.
+        sm: ScalarMappable object.
+
+    Returns:
+        RGBA array.
+    """
     sm = sm if sm else plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     r = r / r.max()
     A = np.zeros([theta.shape[0], theta.shape[1], 4])
@@ -186,30 +268,54 @@ def polar_to_cmap(
 
 
 def add_colorwheel_2d(
-    fig,
-    axes=None,
-    pos="southeast",
-    radius=0.25,
-    x_offset=0,
-    y_offset=0,
-    sm=None,
-    cmap="cm_uniform_2d",
-    norm=None,
-    fontsize=6,
-    N=512,
-    labelpad=0,
-    invert=False,
-    mode="2d",
-    ticks=[0, 60, 120],
-):
-    """Adds a colorwheel to a figure.
+    fig: plt.Figure,
+    axes: Iterable[Axes] = None,
+    pos: Literal[
+        "southeast",
+        "east",
+        "northeast",
+        "north",
+        "northwest",
+        "west",
+        "southwest",
+        "south",
+        "origin",
+    ] = "southeast",
+    radius: float = 0.25,
+    x_offset: float = 0,
+    y_offset: float = 0,
+    sm: ScalarMappable = None,
+    cmap: str = "cm_uniform_2d",
+    norm: Normalize = None,
+    fontsize: int = 6,
+    N: int = 512,
+    labelpad: float = 0,
+    invert: bool = False,
+    mode: Literal["1d", "2d"] = "2d",
+    ticks: List[int] = [0, 60, 120],
+) -> Tuple[Axes, Axes]:
+    """
+    Adds a colorwheel to a figure.
 
     Args:
-        pos: 'southeast', 'east', 'northeast', 'north', 'northwest', 'west',
-             'southwest', 'south', 'origin'.
-        radius: radius in percentage of the ax radius
-        x_offset: offset in percentage of cbar diameter
-        y_offset: offset in percentage of cbar diameter
+        fig: Matplotlib figure object.
+        axes: Iterable of axes to which the colorwheel will be added.
+        pos: Position of the colorwheel.
+        radius: Radius of the colorwheel in percentage of the ax radius.
+        x_offset: X-offset of the colorwheel in percentage of the cbar diameter.
+        y_offset: Y-offset of the colorwheel in percentage of the cbar diameter.
+        sm: ScalarMappable object.
+        cmap: Colormap name.
+        norm: Normalization object.
+        fontsize: Font size for tick labels.
+        N: Number of samples for the colorwheel.
+        labelpad: Padding for tick labels.
+        invert: Whether to invert the colormap.
+        mode: Mode of the colorwheel ("1d" or "2d").
+        ticks: Tick positions in degrees.
+
+    Returns:
+        Tuple containing the colorwheel axis and the annotation axis.
     """
     cmap = plt.get_cmap(cmap)
 
@@ -256,14 +362,26 @@ def add_colorwheel_2d(
 
 
 def add_cluster_marker(
-    fig,
-    ax,
-    marker="o",
-    marker_size=15,
-    color="#4F73AE",
-    x_offset=0,
-    y_offset=0,
-):
+    fig: plt.Figure,
+    ax: Axes,
+    marker: str = "o",
+    marker_size: int = 15,
+    color: str = "#4F73AE",
+    x_offset: float = 0,
+    y_offset: float = 0,
+) -> None:
+    """
+    Adds a cluster marker to a figure.
+
+    Args:
+        fig: Matplotlib figure object.
+        ax: Matplotlib axis object.
+        marker: Marker style.
+        marker_size: Marker size.
+        color: Marker color.
+        x_offset: X-offset of the marker in percentage of the ax width.
+        y_offset: Y-offset of the marker in percentage of the ax height.
+    """
     # make all axes transparent to see the marker regardless where on the figure
     # plane it is
     for _ax in fig.axes:
@@ -297,14 +415,28 @@ def add_cluster_marker(
 
 
 def derive_position_for_supplementary_ax(
-    fig, pos="right", width=0.04, height=0.5, x_offset=0, y_offset=0, axes=None
-):
-    """Returns a position for a supplementary ax.
+    fig: plt.Figure,
+    pos: Literal["right", "left", "top", "bottom"] = "right",
+    width: float = 0.04,
+    height: float = 0.5,
+    x_offset: float = 0,
+    y_offset: float = 0,
+    axes: Iterable[Axes] = None,
+) -> List[float]:
+    """
+    Returns a position for a supplementary ax.
 
-    pos: right, left, top, or bottom referring to the edge in cartesian space
-        that the ax will be placed on.
+    Args:
+        fig: Matplotlib figure object.
+        pos: Position of the supplementary ax relative to the main axes.
+        width: Width of the supplementary ax in percentage of the main ax width.
+        height: Height of the supplementary ax in percentage of the main ax height.
+        x_offset: X-offset of the supplementary ax in percentage of the main ax width.
+        y_offset: Y-offset of the supplementary ax in percentage of the main ax height.
+        axes: Iterable of axes to which the supplementary ax will be added.
 
-    Returns: tuple: left, bottom, width, height
+    Returns:
+        List containing the left, bottom, width, and height of the supplementary ax.
     """
     axes = axes if axes is not None else fig.get_axes()
     x0, y0, x1, y1 = np.array([ax.get_position().extents for ax in axes]).T
@@ -343,19 +475,36 @@ def derive_position_for_supplementary_ax(
 
 
 def derive_position_for_supplementary_ax_hex(
-    fig,
-    axes=None,
-    pos="southwest",
-    radius=0.25,
-    x_offset=0,
-    y_offset=0,
-):
-    """Returns a position for a supplementary ax.
+    fig: plt.Figure,
+    axes: Iterable[Axes] = None,
+    pos: Literal[
+        "southeast",
+        "east",
+        "northeast",
+        "north",
+        "northwest",
+        "west",
+        "southwest",
+        "south",
+        "origin",
+    ] = "southwest",
+    radius: float = 0.25,
+    x_offset: float = 0,
+    y_offset: float = 0,
+) -> List[float]:
+    """
+    Returns a position for a supplementary ax.
 
     Args:
-        pos: 'southwest', 'southeast', 'northeast', 'northwest', 'north',
-            'south', 'east', 'west', 'origin'
+        fig: Matplotlib figure object.
+        axes: Iterable of axes to which the supplementary ax will be added.
+        pos: Position of the supplementary ax relative to the main axes.
+        radius: Radius of the supplementary ax in percentage of the main ax radius.
+        x_offset: X-offset of the supplementary ax in percentage of the main ax width.
+        y_offset: Y-offset of the supplementary ax in percentage of the main ax height.
 
+    Returns:
+        List containing the left, bottom, width, and height of the supplementary ax.
     """
     axes = axes if axes is not None else fig.get_axes()
     x0, y0, x1, y1 = np.array([ax.get_position().extents for ax in axes]).T
@@ -439,42 +588,65 @@ def derive_position_for_supplementary_ax_hex(
 
 
 def add_colorbar_to_fig(
-    fig,
-    axes=None,
-    pos="right",
-    width=0.04,
-    height=0.5,
-    x_offset=0,
-    y_offset=0,
-    cmap=cm.get_cmap("binary"),
-    fontsize=10,
-    tick_length=1.5,
-    tick_width=0.75,
-    rm_outline=True,
-    ticks=None,
-    norm=None,
-    label="",
-    plain=False,
-    use_math_text=False,
-    scilimits=None,
-    style="",
-    alpha=1,
-    n_ticks=9,  # only effective if norm is TwoSlopeNorm
-    discrete=False,
-    n_discrete=None,
-    discrete_labels=None,
-    n_decimals=2,
-):
-    """Adds a colorbar to a figure.
+    fig: plt.Figure,
+    axes: Iterable[Axes] = None,
+    pos: Literal["right", "left", "top", "bottom"] = "right",
+    width: float = 0.04,
+    height: float = 0.5,
+    x_offset: float = 0,
+    y_offset: float = 0,
+    cmap: colors.Colormap = cm.get_cmap("binary"),
+    fontsize: int = 10,
+    tick_length: float = 1.5,
+    tick_width: float = 0.75,
+    rm_outline: bool = True,
+    ticks: Iterable[float] = None,
+    norm: Normalize = None,
+    label: str = "",
+    plain: bool = False,
+    use_math_text: bool = False,
+    scilimits: Tuple[float, float] = None,
+    style: str = "",
+    alpha: float = 1,
+    n_ticks: int = 9,  # only effective if norm is TwoSlopeNorm
+    discrete: bool = False,
+    n_discrete: int = None,
+    discrete_labels: Iterable[str] = None,
+    n_decimals: int = 2,
+) -> mpl.colorbar.Colorbar:
+    """
+    Adds a colorbar to a figure.
 
     Args:
-        pos: either 'right', 'left', 'top', or 'bottom'
-        width: cbar width in percentage of ax_width
-        height: cbar height in percentage of ax_height
-        x_offset: offset in percentage of cbar width
-        y_offset: offset in percentage of cbar height
-    """
+        fig: Matplotlib figure object.
+        axes: Iterable of axes to which the colorbar will be added.
+        pos: Position of the colorbar.
+        width: Width of the colorbar in percentage of the ax width.
+        height: Height of the colorbar in percentage of the ax height.
+        x_offset: X-offset of the colorbar in percentage of the ax width.
+        y_offset: Y-offset of the colorbar in percentage of the ax height.
+        cmap: Colormap.
+        fontsize: Font size for tick labels.
+        tick_length: Length of the tick marks.
+        tick_width: Width of the tick marks.
+        rm_outline: Whether to remove the outline of the colorbar.
+        ticks: Tick positions.
+        norm: Normalization object.
+        label: Colorbar label.
+        plain: Whether to remove tick labels.
+        use_math_text: Whether to use math text for tick labels.
+        scilimits: Limits for scientific notation.
+        style: Style for scientific notation.
+        alpha: Alpha value for the colorbar.
+        n_ticks: Number of ticks for TwoSlopeNorm.
+        discrete: Whether to use discrete colors.
+        n_discrete: Number of discrete colors.
+        discrete_labels: Labels for discrete colors.
+        n_decimals: Number of decimal places for tick labels.
 
+    Returns:
+        Matplotlib colorbar object.
+    """
     _orientation = "vertical" if pos in ("left", "right") else "horizontal"
 
     position = derive_position_for_supplementary_ax(
@@ -557,28 +729,27 @@ def add_colorbar_to_fig(
 
 
 def get_norm(
-    norm=None, vmin=None, vmax=None, midpoint=None, log=None, symlog=None
+    norm: Normalize = None,
+    vmin: float = None,
+    vmax: float = None,
+    midpoint: float = None,
+    log: bool = None,
+    symlog: float = None,
 ) -> Normalize:
-    """Returns a normalization object for color normalization.
+    """
+    Returns a normalization object for color normalization.
 
     Args:
-        norm (Normalize, optional): A class which, when called, can normalize
-            data into an interval [vmin, vmax]. Defaults to None.
-        vmin (float, optional): Defaults to None.
-        vmax (float, optional): Defaults to None.
-        midpoint (float, optional): Midpoint value so that data is normalized
-            around it. Defaults to None.
-        log (bool, optional): if to normalize on a log-scale. Defaults to None.
-        symlog (float, optional): normalizes to symlog with linear range
-            around the range (-symlog, symlog).
+        norm: A class which, when called, can normalize data into an interval
+            [vmin, vmax].
+        vmin: Minimum value for normalization.
+        vmax: Maximum value for normalization.
+        midpoint: Midpoint value so that data is normalized around it.
+        log: Whether to normalize on a log-scale.
+        symlog: Normalizes to symlog with linear range around the range (-symlog, symlog).
 
     Returns:
-        1. existing norm if given.
-        2. else TwoSlopeNorm if vmin, vmax and midpoint is not None.
-        3. else LogNorm if vmin, vmax and log is not None.
-        4. else SymLogNorm if vmin, vmax and symlog is not None.
-        5. else regular Normalize object if vmin and vmax is not None.
-        6. else None.
+        Normalization object.
     """
     if norm:
         return norm
@@ -605,21 +776,30 @@ def get_norm(
 
 
 def get_scalarmapper(
-    scalarmapper=None,
-    cmap=None,
-    norm=None,
-    vmin=None,
-    vmax=None,
-    midpoint=None,
-    log=None,
-    symlog=None,
+    scalarmapper: ScalarMappable = None,
+    cmap: colors.Colormap = None,
+    norm: Normalize = None,
+    vmin: float = None,
+    vmax: float = None,
+    midpoint: float = None,
+    log: bool = None,
+    symlog: float = None,
 ) -> Tuple[ScalarMappable, Normalize]:
-    """Returns scalarmappable with norm from `get_norm` and cmap.
+    """
+    Returns scalarmappable with norm from `get_norm` and cmap.
 
     Args:
-        scalarmapper (Scalarmappable, optional): for data to RGBA mapping.
-            Defaults to None.
-        cmap (Colormap, optional): Defaults to None.
+        scalarmapper: Scalarmappable for data to RGBA mapping.
+        cmap: Colormap.
+        norm: Normalization object.
+        vmin: Minimum value for normalization.
+        vmax: Maximum value for normalization.
+        midpoint: Midpoint value for normalization.
+        log: Whether to normalize on a log-scale.
+        symlog: Normalizes to symlog with linear range around the range (-symlog, symlog).
+
+    Returns:
+        Tuple containing the scalarmappable and the normalization object.
     """
     if scalarmapper:
         return scalarmapper, norm
@@ -635,10 +815,26 @@ def get_scalarmapper(
     return plt.cm.ScalarMappable(norm=norm, cmap=cmap), norm
 
 
-def get_lims(z, offset, min=None, max=None):
-    """Get scalar bounds of Ndim-array-like structure with relative offset."""
+def get_lims(
+    z: Union[np.ndarray, Iterable[np.ndarray]],
+    offset: float,
+    min: float = None,
+    max: float = None,
+) -> Tuple[float, float]:
+    """
+    Get scalar bounds of Ndim-array-like structure with relative offset.
 
-    def sub_nan(val, sub):
+    Args:
+        z: Ndim-array-like structure.
+        offset: Relative offset for the bounds.
+        min: Minimum value for the bounds.
+        max: Maximum value for the bounds.
+
+    Returns:
+        Tuple containing the minimum and maximum values.
+    """
+
+    def sub_nan(val: float, sub: float) -> float:
         if np.isnan(val):
             return sub
         else:
@@ -663,11 +859,16 @@ def get_lims(z, offset, min=None, max=None):
     return _min, _max
 
 
-def avg_pool(trace, N):
-    """Smoothes (multiple) traces over the second dimension using the GPU.
+def avg_pool(trace: np.ndarray, N: int) -> np.ndarray:
+    """
+    Smoothes (multiple) traces over the second dimension using the GPU.
 
     Args:
-        trace (array): of shape (N, t).
+        trace: Array of shape (N, t).
+        N: Window size for averaging.
+
+    Returns:
+        Smoothed trace array.
     """
     shape = trace.shape
     trace = trace.reshape(np.prod(shape[:-1]), 1, shape[-1])
@@ -678,8 +879,21 @@ def avg_pool(trace, N):
     return trace_smooth.reshape(shape[0], -1)
 
 
-def width_n_height(N, aspect_ratio, max_width=None, max_height=None):
-    """Integer width and height for a grid of N plots with aspect ratio."""
+def width_n_height(
+    N: int, aspect_ratio: float, max_width: int = None, max_height: int = None
+) -> Tuple[int, int]:
+    """
+    Integer width and height for a grid of N plots with aspect ratio.
+
+    Args:
+        N: Number of plots.
+        aspect_ratio: Aspect ratio of the grid.
+        max_width: Maximum width of the grid.
+        max_height: Maximum height of the grid.
+
+    Returns:
+        Tuple containing the width and height of the grid.
+    """
     if max_width is not None and max_height is not None:
         raise ValueError
 
@@ -705,55 +919,56 @@ def width_n_height(N, aspect_ratio, max_width=None, max_height=None):
 
 
 def get_axis_grid(
-    alist=None,
-    gridwidth=None,
-    gridheight=None,
-    max_width=None,
-    max_height=None,
-    fig=None,
-    ax=None,
-    axes=None,
-    aspect_ratio=1,
-    figsize=None,
-    scale=3,
-    projection=None,
-    as_matrix=False,
-    fontsize=5,
-    wspace=0.1,
-    hspace=0.3,
-    alpha=1,
-    sharex=None,
-    sharey=None,
-    unmask_n=None,
-):
-    """Create axis grid for a list of elements or integer width and height.
+    alist: Iterable = None,
+    gridwidth: int = None,
+    gridheight: int = None,
+    max_width: int = None,
+    max_height: int = None,
+    fig: plt.Figure = None,
+    ax: Axes = None,
+    axes: Iterable[Axes] = None,
+    aspect_ratio: float = 1,
+    figsize: List[float] = None,
+    scale: Union[int, Iterable[int]] = 3,
+    projection: Union[str, Iterable[str]] = None,
+    as_matrix: bool = False,
+    fontsize: int = 5,
+    wspace: float = 0.1,
+    hspace: float = 0.3,
+    alpha: float = 1,
+    sharex: Axes = None,
+    sharey: Axes = None,
+    unmask_n: int = None,
+) -> Tuple[plt.Figure, Union[List[Axes], np.ndarray], Tuple[int, int]]:
+    """
+    Create axis grid for a list of elements or integer width and height.
 
     Args:
-        alist: list of elements to create grid for.
-        gridwidth: width of grid.
-        gridheight: height of grid.
-        max_width: maximum width of grid.
-        max_height: maximum height of grid.
-        fig: optional existing figure to use.
-        ax: optional existing axis to use. This ax will be divided into a grid
-            of axes with the same size as the grid.
-        axes: optional existing axes to use.
-        aspect_ratio: aspect ratio of grid.
-        figsize: figure size.
-        scale: scales figure size by this factor(s) times the grid width and height.
-        projection: projection of axes.
-        as_matrix: return axes as matrix.
-        fontsize: fontsize of axes.
-        wspace: width space between axes.
-        hspace: height space between axes.
-        alpha: alpha of axes.
-        sharex: share x axis. Only effective if a new grid of axes is created.
-        sharey: share y axis. Only effective if a new grid of axes is created.
-        unmask_n: number of elements to unmask. If None, all elements are unmasked.
+        alist: List of elements to create grid for.
+        gridwidth: Width of grid.
+        gridheight: Height of grid.
+        max_width: Maximum width of grid.
+        max_height: Maximum height of grid.
+        fig: Existing figure to use.
+        ax: Existing axis to use. This ax will be divided into a grid of axes with the
+            same size as the grid.
+        axes: Existing axes to use.
+        aspect_ratio: Aspect ratio of grid.
+        figsize: Figure size.
+        scale: Scales figure size by this factor(s) times the grid width and height.
+        projection: Projection of axes.
+        as_matrix: Return axes as matrix.
+        fontsize: Fontsize of axes.
+        wspace: Width space between axes.
+        hspace: Height space between axes.
+        alpha: Alpha of axes.
+        sharex: Share x axis. Only effective if a new grid of axes is created.
+        sharey: Share y axis. Only effective if a new grid of axes is created.
+        unmask_n: Number of elements to unmask. If None, all elements are unmasked.
             If provided elements at indices >= unmask_n are padded with nans.
 
     Returns:
-        fig, axes, (gridwidth, gridheight)
+        Tuple containing the figure, axes, and the grid width and height.
     """
     if alist is not None and (
         gridwidth is None or gridheight is None or gridwidth * gridheight != len(alist)
@@ -836,16 +1051,31 @@ def get_axis_grid(
 
 
 def figure(
-    figsize,
-    hspace=0.3,
-    wspace=0.1,
-    left=0.125,
-    right=0.9,
-    top=0.9,
-    bottom=0.1,
-    frameon=None,
-):
-    """Create a figure with the given size and spacing."""
+    figsize: List[float],
+    hspace: float = 0.3,
+    wspace: float = 0.1,
+    left: float = 0.125,
+    right: float = 0.9,
+    top: float = 0.9,
+    bottom: float = 0.1,
+    frameon: bool = None,
+) -> plt.Figure:
+    """
+    Create a figure with the given size and spacing.
+
+    Args:
+        figsize: Figure size.
+        hspace: Height space between subplots.
+        wspace: Width space between subplots.
+        left: Left margin.
+        right: Right margin.
+        top: Top margin.
+        bottom: Bottom margin.
+        frameon: Whether to draw the figure frame.
+
+    Returns:
+        Matplotlib figure object.
+    """
     fig = plt.figure(figsize=figsize, frameon=frameon)
     plt.subplots_adjust(
         hspace=hspace,
@@ -859,23 +1089,44 @@ def figure(
 
 
 def subplot(
-    title,
-    grid=(1, 1),
-    location=(0, 0),
-    colspan=1,
-    rowspan=1,
-    projection=None,
-    sharex=None,
-    sharey=None,
-    xlabel="",
-    ylabel="",
-    face_alpha=1.0,
-    fontisze=5,
-    title_pos="center",
-    position=None,
+    title: str = "",
+    grid: Tuple[int, int] = (1, 1),
+    location: Tuple[int, int] = (0, 0),
+    colspan: int = 1,
+    rowspan: int = 1,
+    projection: str = None,
+    sharex: Axes = None,
+    sharey: Axes = None,
+    xlabel: str = "",
+    ylabel: str = "",
+    face_alpha: float = 1.0,
+    fontisze: int = 5,
+    title_pos: Literal["center", "left", "right"] = "center",
+    position: List[float] = None,
     **kwargs,
-):
-    """Create a subplot using subplot2grid with some extra options."""
+) -> Axes:
+    """
+    Create a subplot using subplot2grid with some extra options.
+
+    Args:
+        title: Title of the subplot.
+        grid: Grid shape.
+        location: Location of the subplot in the grid.
+        colspan: Number of columns the subplot spans.
+        rowspan: Number of rows the subplot spans.
+        projection: Projection type (e.g., 'polar').
+        sharex: Axis to share x-axis with.
+        sharey: Axis to share y-axis with.
+        xlabel: X-axis label.
+        ylabel: Y-axis label.
+        face_alpha: Alpha value for the face color.
+        fontisze: Font size for title and labels.
+        title_pos: Position of the title.
+        position: Position for the subplot.
+
+    Returns:
+        Matplotlib axis object.
+    """
     ax = plt.subplot2grid(
         grid,
         location,
@@ -898,38 +1149,38 @@ def subplot(
 
 
 def divide_axis_to_grid(
-    ax,
-    matrix=((0, 1, 2), (3, 3, 3)),
-    wspace=0.1,
-    hspace=0.1,
-    projection=None,
-):
-    """Divides an existing axis inside a figure to a grid specified by unique
-        elements in a matrix.
+    ax: Axes,
+    matrix: np.ndarray = ((0, 1, 2), (3, 3, 3)),
+    wspace: float = 0.1,
+    hspace: float = 0.1,
+    projection: str = None,
+) -> Dict[Any, Axes]:
+    """
+    Divides an existing axis inside a figure to a grid specified by unique elements
+    in a matrix.
 
     Args:
-        ax: existing Axes object.
-        matrix (array): grid matrix, where each unique element specifies
-            a new axis.
-        wspace (float): horizontal space between new axes.
-        hspace (float): vertical space between new axes.
-        projection (str): projection of new axes.
+        ax: Existing Axes object.
+        matrix: Grid matrix, where each unique element specifies a new axis.
+        wspace: Horizontal space between new axes.
+        hspace: Vertical space between new axes.
+        projection: Projection of new axes.
 
-
-    Returns
-        dict: dictionary of new axes, where keys are unique elements in
-            the matrix.
+    Returns:
+        Dictionary of new axes, where keys are unique elements in the matrix.
 
     Example:
-        >>> fig = plt.figure()
-        >>> ax = plt.subplot()
-        >>> plt.tight_layout()
-        >>> divide_axis_to_grid(ax, matrix=[[0, 1, 1, 1, 2, 2, 2],
+        ```python
+        fig = plt.figure()
+        ax = plt.subplot()
+        plt.tight_layout()
+        divide_axis_to_grid(ax, matrix=[[0, 1, 1, 1, 2, 2, 2],
                                             [3, 4, 5, 6, 2, 2, 2],
                                             [3, 7, 7, 7, 2, 2, 2],
                                             [3, 8, 8, 12, 2, 2, 2],
                                             [3, 10, 11, 12, 2, 2, 2]],
                                 wspace=0.1, hspace=0.1)
+        ```
     """
 
     # get position of original axis, and dispose it
@@ -978,31 +1229,50 @@ def divide_axis_to_grid(
 
 
 def divide_figure_to_grid(
-    matrix=[
+    matrix: List[List[int]] = [
         [0, 1, 1, 1, 2, 2, 2],
         [3, 4, 5, 6, 2, 2, 2],
         [3, 7, 7, 7, 2, 2, 2],
         [3, 8, 8, 12, 2, 2, 2],
         [3, 10, 11, 12, 2, 2, 2],
     ],
-    as_matrix=False,
-    alpha=0,
-    constrained_layout=False,
-    fig=None,
-    figsize=[10, 10],
-    projection=None,
-    wspace=0.1,
-    hspace=0.3,
-    no_spines=False,
-    keep_nan_axes=False,
-    fontsize=5,
-    reshape_order="F",
-):
+    as_matrix: bool = False,
+    alpha: float = 0,
+    constrained_layout: bool = False,
+    fig: Optional[plt.Figure] = None,
+    figsize: List[float] = [10, 10],
+    projection: Optional[Union[str, List[str]]] = None,
+    wspace: float = 0.1,
+    hspace: float = 0.3,
+    no_spines: bool = False,
+    keep_nan_axes: bool = False,
+    fontsize: int = 5,
+    reshape_order: Literal["C", "F", "A", "K"] = "F",
+) -> Tuple[plt.Figure, Union[Dict[int, plt.Axes], np.ndarray]]:
     """
-    Creates a figure grid specified by the arrangement of unique
-    elements in a matrix.
+    Creates a figure grid specified by the arrangement of unique elements in a matrix.
 
-    Today there is also an official plt.subplot_mosaic with more features.
+    Info:
+        `matplotlib` now also has `matplotlib.pyplot.subplot_mosaic` which does the
+        same thing and should be used instead.
+
+    Args:
+        matrix: Grid layout specification.
+        as_matrix: If True, return axes as a numpy array.
+        alpha: Alpha value for axis patches.
+        constrained_layout: Use constrained layout for the figure.
+        fig: Existing figure to use. If None, a new figure is created.
+        figsize: Figure size in inches.
+        projection: Projection type for the axes.
+        wspace: Width space between subplots.
+        hspace: Height space between subplots.
+        no_spines: If True, remove spines from all axes.
+        keep_nan_axes: If True, keep axes for NaN values in the matrix.
+        fontsize: Font size for tick labels.
+        reshape_order: Order to use when reshaping the axes array.
+
+    Returns:
+        A tuple containing the figure and a dictionary or numpy array of axes.
     """
 
     def _array_to_slice(array):
@@ -1060,14 +1330,34 @@ def divide_figure_to_grid(
     return fig, axes
 
 
-def scale(x, y, wpad=0.1, hpad=0.1, wspace=0, hspace=0):
+def scale(
+    x: np.ndarray,
+    y: np.ndarray,
+    wpad: float = 0.1,
+    hpad: float = 0.1,
+    wspace: float = 0,
+    hspace: float = 0,
+) -> Tuple[np.ndarray, np.ndarray, float, float]:
+    """
+    Scale x and y coordinates to fit within a specified padding and spacing.
+
+    Args:
+        x: Array of x-coordinates.
+        y: Array of y-coordinates.
+        wpad: Width padding.
+        hpad: Height padding.
+        wspace: Width space between elements.
+        hspace: Height space between elements.
+
+    Returns:
+        A tuple containing scaled x, y coordinates, width, and height.
+    """
     x, y = np.array(x), np.array(y)
     assert len(x) == len(y)
 
     # Min-Max Scale x-Positions.
-    # breakpoint()
     width = (1 - 2 * wpad) / (2 * np.ceil(np.median(np.unique(x))))
-    width = width - wspace * width  # len(np.unique(np.round(x, 2)))#))
+    width = width - wspace * width
     x = (x - np.min(x)) / (np.max(x) + np.min(x)) * (1 - width) * (1 - wpad * 2) + wpad
 
     # Min-Max Scale y-Positions.
@@ -1078,40 +1368,38 @@ def scale(x, y, wpad=0.1, hpad=0.1, wspace=0, hspace=0):
 
 
 def ax_scatter(
-    x,
-    y,
-    fig=None,
-    figsize=[7, 7],
-    hspace=0,
-    wspace=0,
-    hpad=0.1,
-    wpad=0.1,
-    alpha=0,
-    zorder=10,
-    projection=None,
-    labels=None,
-):
-    """Creates scattered axes in a given or new figure.
+    x: np.ndarray,
+    y: np.ndarray,
+    fig: Optional[plt.Figure] = None,
+    figsize: List[float] = [7, 7],
+    hspace: float = 0,
+    wspace: float = 0,
+    hpad: float = 0.1,
+    wpad: float = 0.1,
+    alpha: float = 0,
+    zorder: int = 10,
+    projection: Optional[str] = None,
+    labels: Optional[List[str]] = None,
+) -> Tuple[plt.Figure, List[plt.Axes], List[List[float]]]:
+    """
+    Creates scattered axes in a given or new figure.
 
     Args:
-        x (list or array): representing left coordinates of the axes.
-        y (list or array): representing bottom coordinates of the axes.
-        fig (None or maptlotlib.figure): Defaults to None.
-        figsize (tuple or list): size of new figure. Without effect if a figure is
-            provided. Defaults to [7, 7].
-        hspace (float): spacing between axes in horizontal direction. Defaults to 0.
-        wspace (float): spacing between axes in vertical direction. Defaults to 0.
-        hpad (float): spacing to the horizontal borders of the figure. Defaults to 0.1.
-        wpad (float): spacing to the vertical borders of the figure. Defaults to 0.1.
-        alpha (float): alpha value for the white background of each ax. Defaults to 0.
-        zorder (int): zorder of the white background of each ax. Defaults to 10.
-        projection (str): projection of the axes. Defaults to None.
-        labels (list): list of labels for each ax. Defaults to None.
+        x: Array of x-coordinates.
+        y: Array of y-coordinates.
+        fig: Existing figure to use. If None, a new figure is created.
+        figsize: Figure size in inches.
+        hspace: Height space between subplots.
+        wspace: Width space between subplots.
+        hpad: Height padding.
+        wpad: Width padding.
+        alpha: Alpha value for axis patches.
+        zorder: Z-order for axis patches.
+        projection: Projection type for the axes.
+        labels: List of labels for each axis.
 
     Returns:
-        fig
-        list of axes for each point in (x, y)
-        scaled version of x and y in figure coordinates
+        A tuple containing the figure, a list of axes, and a list of center coordinates.
     """
     x, y, width, height = scale(x, y, wpad, hpad, wspace, hspace)
 
@@ -1135,15 +1423,22 @@ def ax_scatter(
     return fig, axes, center
 
 
-# -- originally in dvs.plots.decoration
-
-
 def color_labels(labels: List[str], color, ax):
     for label in labels:
         color_label(label, color, ax)
 
 
-def color_label(label: str, color, ax):
+def color_label(
+    label: str, color: Union[str, Tuple[float, float, float]], ax: plt.Axes
+) -> None:
+    """
+    Color a specific label in the given axes.
+
+    Args:
+        label: The label text to color.
+        color: The color to apply to the label.
+        ax: The matplotlib axes object.
+    """
     for t in ax.texts:
         if t.get_text() == label:
             t.set_color(color)
@@ -1163,7 +1458,14 @@ def color_label(label: str, color, ax):
         ax.yaxis.get_label().set_color(color)
 
 
-def boldify_labels(labels, ax):
+def boldify_labels(labels: List[str], ax: plt.Axes) -> None:
+    """
+    Make specific labels bold in the given axes.
+
+    Args:
+        labels: List of label texts to make bold.
+        ax: The matplotlib axes object.
+    """
     for t in ax.texts:
         if t.get_text() in labels:
             t.set_weight("bold")
@@ -1184,24 +1486,46 @@ def boldify_labels(labels, ax):
 
 
 def scatter_on_violins_or_bars(
-    data,
-    ax,
-    xticks=None,
-    indices=None,
-    s=5,
-    zorder=100,
-    facecolor="none",
-    edgecolor="k",
-    linewidth=0.5,
-    alpha=0.35,
-    uniform=[-0.35, 0.35],
-    seed=42,
-    marker="o",
+    data: np.ndarray,
+    ax: Axes,
+    xticks: Optional[np.ndarray] = None,
+    indices: Optional[np.ndarray] = None,
+    s: float = 5,
+    zorder: int = 100,
+    facecolor: Union[
+        str, Tuple[float, float, float], List[Union[str, Tuple[float, float, float]]]
+    ] = "none",
+    edgecolor: Union[
+        str, Tuple[float, float, float], List[Union[str, Tuple[float, float, float]]]
+    ] = "k",
+    linewidth: float = 0.5,
+    alpha: float = 0.35,
+    uniform: List[float] = [-0.35, 0.35],
+    seed: int = 42,
+    marker: str = "o",
     **kwargs,
-):
+) -> None:
     """
-    data (array): shape (n_samples, n_random_variables).
-    indices (array, optional): selection along sample dimension.
+    Scatter data points on violin or bar plots.
+
+    Args:
+        data: Array of shape (n_samples, n_random_variables).
+        ax: Matplotlib axes object to plot on.
+        xticks: X-axis tick positions.
+        indices: Selection along sample dimension.
+        s: Marker size.
+        zorder: Z-order for plotting.
+        facecolor: Color(s) for marker face.
+        edgecolor: Color(s) for marker edge.
+        linewidth: Width of marker edge.
+        alpha: Transparency of markers.
+        uniform: Range for uniform distribution of x-positions.
+        seed: Random seed for reproducibility.
+        marker: Marker style.
+        **kwargs: Additional keyword arguments for plt.scatter.
+
+    Returns:
+        None
     """
     random = np.random.RandomState(seed)
 
@@ -1225,7 +1549,6 @@ def scatter_on_violins_or_bars(
         edgecolor = (edgecolor,) * len(indices)
 
     for i, model_index in enumerate(indices):
-        # try:
         ax.scatter(
             xticks + random.uniform(*uniform, size=len(xticks)),
             data[model_index],
@@ -1241,43 +1564,74 @@ def scatter_on_violins_or_bars(
 
 
 def set_spine_tick_params(
-    ax,
-    spinewidth=0.25,
-    tickwidth=0.25,
-    ticklength=3,
-    ticklabelpad=2,
-    spines=("top", "right", "bottom", "left"),
-):
-    """Set spine and tick widths and lengths."""
+    ax: Axes,
+    spinewidth: float = 0.25,
+    tickwidth: float = 0.25,
+    ticklength: float = 3,
+    ticklabelpad: float = 2,
+    spines: Tuple[str, ...] = ("top", "right", "bottom", "left"),
+) -> None:
+    """
+    Set spine and tick widths and lengths.
+
+    Args:
+        ax: Matplotlib axes object.
+        spinewidth: Width of spines.
+        tickwidth: Width of ticks.
+        ticklength: Length of ticks.
+        ticklabelpad: Padding between ticks and labels.
+        spines: Tuple of spine names to adjust.
+
+    Returns:
+        None
+    """
     for s in spines:
         ax.spines[s].set_linewidth(spinewidth)
     ax.tick_params(axis="both", width=tickwidth, length=ticklength, pad=ticklabelpad)
 
 
 def scatter_on_violins_with_best(
-    data,
-    ax,
-    scatter_best,
-    scatter_all,
-    xticks=None,
-    facecolor="none",
-    edgecolor="k",
-    best_scatter_alpha=1.0,
-    all_scatter_alpha=0.35,
-    best_index=None,
-    best_color=None,
-    all_marker="o",
-    best_marker="o",
-    linewidth=0.5,
-    best_linewidth=0.75,
-    uniform=[-0.35, 0.35],
-):
+    data: np.ndarray,
+    ax: Axes,
+    scatter_best: bool,
+    scatter_all: bool,
+    xticks: Optional[np.ndarray] = None,
+    facecolor: Union[str, Tuple[float, float, float]] = "none",
+    edgecolor: Union[str, Tuple[float, float, float]] = "k",
+    best_scatter_alpha: float = 1.0,
+    all_scatter_alpha: float = 0.35,
+    best_index: Optional[int] = None,
+    best_color: Optional[Union[str, Tuple[float, float, float]]] = None,
+    all_marker: str = "o",
+    best_marker: str = "o",
+    linewidth: float = 0.5,
+    best_linewidth: float = 0.75,
+    uniform: List[float] = [-0.35, 0.35],
+    **kwargs,
+) -> None:
     """
-    Ax patch to scatter data on top of violins.
-    data (Array): n_samples, n_variables.
+    Scatter data points on violin plots, optionally highlighting the best point.
 
-    Not necessary to be a class method here. Should be optional for
-    violin plot.
+    Args:
+        data: Array of shape (n_samples, n_variables).
+        ax: Matplotlib axes object to plot on.
+        scatter_best: Whether to scatter the best point.
+        scatter_all: Whether to scatter all points.
+        xticks: X-axis tick positions.
+        facecolor: Color for marker face.
+        edgecolor: Color for marker edge.
+        best_scatter_alpha: Alpha for best point.
+        all_scatter_alpha: Alpha for all other points.
+        best_index: Index of the best point.
+        best_color: Color for the best point.
+        all_marker: Marker style for all points.
+        best_marker: Marker style for the best point.
+        linewidth: Width of marker edge for all points.
+        best_linewidth: Width of marker edge for the best point.
+        uniform: Range for uniform distribution of x-positions.
+
+    Returns:
+        None
     """
     if scatter_all and not scatter_best:
         scatter_on_violins_or_bars(
@@ -1334,7 +1688,18 @@ def scatter_on_violins_with_best(
         )
 
 
-def trim_axis(ax, xaxis=True, yaxis=True):
+def trim_axis(ax: Axes, xaxis: bool = True, yaxis: bool = True) -> None:
+    """
+    Trim axis to show only the range of data.
+
+    Args:
+        ax: Matplotlib axes object.
+        xaxis: Whether to trim x-axis.
+        yaxis: Whether to trim y-axis.
+
+    Returns:
+        None
+    """
     if xaxis:
         xticks = np.array(ax.get_xticks())
         minor_xticks = np.array(ax.get_xticks(minor=True))
@@ -1369,43 +1734,53 @@ def trim_axis(ax, xaxis=True, yaxis=True):
 
 
 def display_significance_value(
-    ax,
-    pvalue,
-    y,
-    x0=None,
-    x1=None,
-    ticklabel=None,
-    bar_width=0.7,
-    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
-    fontsize=8,
-    annotate_insignificant="",
-    append_tick=False,
-    show_bar=False,
-    other_ax=None,
-    bar_height_ylim_ratio=0.01,
-    linewidth=0.5,
-    annotate_pthresholds=True,
-    loc_pthresh_annotation=(0.1, 0.1),
-    location="above",
-    asterisk_offset=None,
-):
-    """Display a significance value annotation along x at height y.
+    ax: Axes,
+    pvalue: float,
+    y: float,
+    x0: Optional[float] = None,
+    x1: Optional[float] = None,
+    ticklabel: Optional[str] = None,
+    bar_width: float = 0.7,
+    pthresholds: Dict[float, str] = {0.01: "***", 0.05: "**", 0.1: "*"},
+    fontsize: int = 8,
+    annotate_insignificant: str = "",
+    append_tick: bool = False,
+    show_bar: bool = False,
+    other_ax: Optional[Axes] = None,
+    bar_height_ylim_ratio: float = 0.01,
+    linewidth: float = 0.5,
+    annotate_pthresholds: bool = True,
+    loc_pthresh_annotation: Tuple[float, float] = (0.1, 0.1),
+    location: Literal["above", "below"] = "above",
+    asterisk_offset: Optional[float] = None,
+) -> None:
+    """
+    Display a significance value annotation along x at height y.
 
     Args:
-        ax (Axis)
-        pvalue (float)
-        y (float)
-        x0 (float, optional): left edge of bar if show_bar is True.
-        x1 (float, optional): right edge of bar if show_bar is True.
-        ticklabel (str, optional): ticklabel to
-        bar_width (float, optional)
-        pthresholds (Dict[float, str]): annotations
-        xpvalues Dict[str, float]: x-ticklabel to pvalue mapping
-        y: height to put text
-        pthreshold: different thresholds for different annotations
+        ax: Matplotlib axes object.
+        pvalue: P-value to display.
+        y: Height to put text.
+        x0: Left edge of bar if show_bar is True.
+        x1: Right edge of bar if show_bar is True.
+        ticklabel: Tick label to annotate.
+        bar_width: Width of the bar.
+        pthresholds: Dictionary of p-value thresholds and corresponding annotations.
+        fontsize: Font size for annotations.
+        annotate_insignificant: Annotation for insignificant p-values.
+        append_tick: Whether to append annotation to tick label.
+        show_bar: Whether to show a bar above the annotation.
+        other_ax: Another axes object to get tick labels from.
+        bar_height_ylim_ratio: Ratio of bar height to y-axis limits.
+        linewidth: Line width for the bar.
+        annotate_pthresholds: Whether to annotate p-value thresholds.
+        loc_pthresh_annotation: Location of p-value threshold annotation.
+        location: Location of annotation ("above" or "below").
+        asterisk_offset: Offset for asterisk annotation.
 
+    Returns:
+        None
     """
-
     if x0 is None and x1 is None and ticklabel is None and bar_width is None:
         raise ValueError("specify (x0, x1) or (ticklabel, bar_width)")
 
@@ -1427,7 +1802,6 @@ def display_significance_value(
             ticklabels = other_ax.get_xticklabels()
         if not ticklabels:
             raise AssertionError("no ticklables found")
-        # get the tick to get the x position for the annotation
         tick = [tick for tick in ticklabels if tick.get_text() == ticklabel][0]
         x, _ = tick.get_position()
         x0 = x - bar_width / 2
@@ -1500,27 +1874,45 @@ def display_significance_value(
 
 
 def display_pvalues(
-    ax,
-    pvalues: dict[str, float],
-    ticklabels: list[str],
+    ax: Axes,
+    pvalues: Dict[str, float],
+    ticklabels: List[str],
     data: np.ndarray,
-    location="above",
-    bar_width=0.7,
-    show_bar=True,
-    bar_height_ylim_ratio=0.01,
-    fontsize=6,
-    annotate_insignificant="ns",
-    loc_pthresh_annotation=(0.01, 0.01),
-    append_tick=False,
-    data_relative_offset=0.05,
-    asterisk_offset=0,
-    pthresholds={0.01: "***", 0.05: "**", 0.1: "*"},
-):
-    """Annotate all pvalues from Dict[xticklabel, pvalue].
-
-    data is Array[random variables, ...]
+    location: Literal["above", "below"] = "above",
+    bar_width: float = 0.7,
+    show_bar: bool = True,
+    bar_height_ylim_ratio: float = 0.01,
+    fontsize: int = 6,
+    annotate_insignificant: str = "ns",
+    loc_pthresh_annotation: Tuple[float, float] = (0.01, 0.01),
+    append_tick: bool = False,
+    data_relative_offset: float = 0.05,
+    asterisk_offset: float = 0,
+    pthresholds: Dict[float, str] = {0.01: "***", 0.05: "**", 0.1: "*"},
+) -> None:
     """
+    Annotate all p-values from a dictionary of x-tick labels to p-values.
 
+    Args:
+        ax: Matplotlib axes object.
+        pvalues: Dictionary mapping x-tick labels to p-values.
+        ticklabels: List of x-tick labels.
+        data: Array of shape (random variables, ...).
+        location: Location of annotation ("above" or "below").
+        bar_width: Width of the bar.
+        show_bar: Whether to show a bar above the annotation.
+        bar_height_ylim_ratio: Ratio of bar height to y-axis limits.
+        fontsize: Font size for annotations.
+        annotate_insignificant: Annotation for insignificant p-values.
+        loc_pthresh_annotation: Location of p-value threshold annotation.
+        append_tick: Whether to append annotation to tick label.
+        data_relative_offset: Relative offset for annotation placement.
+        asterisk_offset: Offset for asterisk annotation.
+        pthresholds: Dictionary of p-value thresholds and corresponding annotations.
+
+    Returns:
+        None
+    """
     for key in pvalues:
         if key not in ticklabels:
             raise ValueError(f"pvalue key {key} is not a ticklabel")
@@ -1541,8 +1933,6 @@ def display_pvalues(
         elif location == "below":
             _min = _values.min()
             y = max(_min - offset, ylim[0])
-
-        # print(y)
 
         display_significance_value(
             ax,
@@ -1565,7 +1955,16 @@ def display_pvalues(
     ax.set_ylim(*get_lims([bars, ylim], 0.01))
 
 
-def closest_divisors(n):
+def closest_divisors(n: int) -> Tuple[int, int]:
+    """
+    Find the closest divisors of a number.
+
+    Args:
+        n: Number to find divisors for.
+
+    Returns:
+        Tuple of closest divisors.
+    """
     closest_diff = float("inf")
     closest_divisors = (1, 1)
 
@@ -1582,21 +1981,43 @@ def closest_divisors(n):
 
 
 def standalone_legend(
-    labels,
-    colors,
-    legend_elements=None,
-    alpha=1,
-    fontsize=6,
-    fig=None,
-    ax=None,
-    lw=4,
-    labelspacing=0.5,
-    handlelength=2.0,
-    n_cols=None,
-    columnspacing=0.8,
-    figsize=None,
-    linestyles=None,
-):
+    labels: List[str],
+    colors: List[Union[str, Tuple[float, float, float]]],
+    legend_elements: Optional[List] = None,
+    alpha: float = 1,
+    fontsize: int = 6,
+    fig: Optional[plt.Figure] = None,
+    ax: Optional[Axes] = None,
+    lw: float = 4,
+    labelspacing: float = 0.5,
+    handlelength: float = 2.0,
+    n_cols: Optional[int] = None,
+    columnspacing: float = 0.8,
+    figsize: Optional[Tuple[float, float]] = None,
+    linestyles: Optional[List[str]] = None,
+) -> Tuple[plt.Figure, Axes]:
+    """
+    Create a standalone legend.
+
+    Args:
+        labels: List of labels for legend entries.
+        colors: List of colors for legend entries.
+        legend_elements: List of custom legend elements.
+        alpha: Alpha value for legend entries.
+        fontsize: Font size for legend text.
+        fig: Existing figure to use.
+        ax: Existing axes to use.
+        lw: Line width for legend entries.
+        labelspacing: Vertical space between legend entries.
+        handlelength: Length of the legend handles.
+        n_cols: Number of columns in the legend.
+        columnspacing: Spacing between legend columns.
+        figsize: Figure size (width, height) in inches.
+        linestyles: List of line styles for legend entries.
+
+    Returns:
+        Tuple containing the figure and axes objects.
+    """
     if legend_elements is None:
         from matplotlib.lines import Line2D
 
@@ -1629,7 +2050,6 @@ def standalone_legend(
         edgecolor="white",
         framealpha=1,
         fontsize=fontsize,
-        # bbox_to_anchor=(0, 1, 0, 1),
         labelspacing=labelspacing,
         handlelength=handlelength,
         columnspacing=columnspacing,
@@ -1637,6 +2057,45 @@ def standalone_legend(
     )
     rm_spines(ax, rm_yticks=True, rm_xticks=True)
     return fig, ax
+
+
+def extend_arg(
+    arg: Union[Number, List[Number]],
+    argtype: type,
+    r: np.ndarray,
+    default: Any,
+    dim: int = -1,
+) -> Union[List[Number], Number]:
+    """
+    Extend an argument to the correct length for a given dimension.
+
+    Args:
+        arg: Argument to extend.
+        argtype: Type of the argument.
+        r: Reference array for shape.
+        default: Default value if arg is not provided.
+        dim: Dimension to extend along.
+
+    Returns:
+        Extended argument.
+    """
+    r = np.asarray(r)
+
+    if isinstance(arg, argtype) and r.ndim > 1:
+        return [arg] * r.shape[dim]
+    elif (
+        isinstance(arg, Iterable)
+        and len(arg) == r.shape[dim]
+        or r.ndim == 1
+        and np.asarray(arg).size == 1
+    ):
+        return arg
+    elif r.ndim == 1:
+        return default
+    else:
+        raise ValueError(
+            f"arg must be either an integer or a list of length {r.shape[-1]}."
+        )
 
 
 # colormap from

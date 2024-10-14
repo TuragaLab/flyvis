@@ -3,6 +3,7 @@
 import collections
 import itertools
 from numbers import Number
+from typing import Dict, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -14,14 +15,29 @@ from . import plt_utils
 
 
 class WholeNetworkFigure:
+    """
+    Class for creating a whole network figure.
+
+    Attributes:
+        nodes (pd.DataFrame): DataFrame containing node information.
+        edges (pd.DataFrame): DataFrame containing edge information.
+        layout (Dict[str, str]): Dictionary mapping node types to layout positions.
+        cell_types (List[str]): List of unique cell types.
+        video (bool): Whether to include video node.
+        rendering (bool): Whether to include rendering node.
+        motion_decoder (bool): Whether to include motion decoder node.
+        decoded_motion (bool): Whether to include decoded motion node.
+        pixel_accurate_motion (bool): Whether to include pixel-accurate motion node.
+    """
+
     def __init__(
         self,
         connectome,
-        video=False,
-        rendering=False,
-        motion_decoder=False,
-        decoded_motion=False,
-        pixel_accurate_motion=False,
+        video: bool = False,
+        rendering: bool = False,
+        motion_decoder: bool = False,
+        decoded_motion: bool = False,
+        pixel_accurate_motion: bool = False,
     ):
         self.nodes = connectome.nodes.to_df()
         self.edges = connectome.edges.to_df()
@@ -49,21 +65,32 @@ class WholeNetworkFigure:
 
     def init_figure(
         self,
-        figsize=[15, 6],
-        fontsize=6,
-        decoder_box=True,
-        cell_type_labels=True,
-        neuropil_labels=True,
-        network_layout_axes_kwargs={},
-        add_graph_kwargs={},
-    ):
+        figsize: List[int] = [15, 6],
+        fontsize: int = 6,
+        decoder_box: bool = True,
+        cell_type_labels: bool = True,
+        neuropil_labels: bool = True,
+        network_layout_axes_kwargs: Dict = {},
+        add_graph_kwargs: Dict = {},
+    ) -> None:
+        """
+        Initialize the figure with various components.
+
+        Args:
+            figsize: Size of the figure.
+            fontsize: Font size for labels.
+            decoder_box: Whether to add a decoder box.
+            cell_type_labels: Whether to add cell type labels.
+            neuropil_labels: Whether to add neuropil labels.
+            network_layout_axes_kwargs: Additional kwargs for network_layout_axes.
+            add_graph_kwargs: Additional kwargs for add_graph.
+        """
         self.fig, self.axes, self.axes_centers = network_layout_axes(
             self.layout, figsize=figsize, **network_layout_axes_kwargs
         )
-        self.ax_dict = {ax.get_label(): ax for ax in self.axes}  # type: Dict[str, Axes]
+        self.ax_dict = {ax.get_label(): ax for ax in self.axes}
         self.add_graph(**add_graph_kwargs)
 
-        # invisible box for arrow positioning
         self.add_retina_box()
 
         if decoder_box:
@@ -82,15 +109,29 @@ class WholeNetworkFigure:
 
     def add_graph(
         self,
-        edge_color_key=None,
-        arrows=True,
-        edge_alpha=1.0,
-        edge_width=1.0,
-        constant_edge_width=0.25,
-        constant_edge_color="#c5c5c5",
-        edge_cmap=None,
-        nx_kwargs={},
-    ):
+        edge_color_key: Optional[str] = None,
+        arrows: bool = True,
+        edge_alpha: float = 1.0,
+        edge_width: float = 1.0,
+        constant_edge_width: Optional[float] = 0.25,
+        constant_edge_color: str = "#c5c5c5",
+        edge_cmap: Optional[str] = None,
+        nx_kwargs: Dict = {},
+    ) -> None:
+        """
+        Add the graph to the figure.
+
+        Args:
+            edge_color_key: Key for edge color.
+            arrows: Whether to add arrows to edges.
+            edge_alpha: Alpha value for edges.
+            edge_width: Width of edges.
+            constant_edge_width: Constant width for all edges.
+            constant_edge_color: Constant color for all edges.
+            edge_cmap: Colormap for edges.
+            nx_kwargs: Additional kwargs for networkx drawing.
+        """
+
         def _network_graph(nodes, edges):
             """Transform graph from df to list to create networkx.Graph object."""
             nodes = nodes.groupby(by=["type"], sort=False, as_index=False).first().type
@@ -422,17 +463,37 @@ class WholeNetworkFigure:
 
 
 def network_layout_axes(
-    layout,
-    cell_types=None,
-    fig=None,
-    figsize=[16, 10],
-    types_per_column=8,
-    region_spacing=2,
-    wspace=0,
-    hspace=0,
-    as_dict=False,
-    pos=None,
-):
+    layout: Dict[str, str],
+    cell_types: Optional[List[str]] = None,
+    fig: Optional[plt.Figure] = None,
+    figsize: List[int] = [16, 10],
+    types_per_column: int = 8,
+    region_spacing: int = 2,
+    wspace: float = 0,
+    hspace: float = 0,
+    as_dict: bool = False,
+    pos: Optional[Dict[str, List[float]]] = None,
+) -> Tuple[
+    plt.Figure, Union[List[plt.Axes], Dict[str, plt.Axes]], Dict[str, List[float]]
+]:
+    """
+    Create axes for network layout.
+
+    Args:
+        layout: Dictionary mapping node types to layout positions.
+        cell_types: List of cell types to include.
+        fig: Existing figure to use.
+        figsize: Size of the figure.
+        types_per_column: Number of types per column.
+        region_spacing: Spacing between regions.
+        wspace: Width space between subplots.
+        hspace: Height space between subplots.
+        as_dict: Whether to return axes as a dictionary.
+        pos: Pre-computed positions for nodes.
+
+    Returns:
+        Tuple containing the figure, axes, and node positions.
+    """
     fig = fig or plt.figure(figsize=figsize)
 
     pos = pos or _network_graph_node_pos(
@@ -470,20 +531,38 @@ def network_layout_axes(
     return fig, axes, new_pos
 
 
-def _network_graph_node_pos(layout, region_spacing=2, types_per_column=8):
-    # one way to compute (x,y) coordinates for nodes
+def _network_graph_node_pos(
+    layout: Dict[str, str], region_spacing: float = 2, types_per_column: int = 8
+) -> Dict[str, List[float]]:
+    """
+    Compute (x, y) coordinates for nodes in a network graph.
+
+    Args:
+        layout: Dictionary mapping node types to layout positions.
+        region_spacing: Spacing between regions.
+        types_per_column: Number of types per column.
+
+    Returns:
+        Dictionary mapping node types to their (x, y) coordinates.
+
+    Note:
+        Special nodes like 'video', 'rendering', etc. are positioned at the middle
+        y-coordinate of their respective columns.
+    """
     x_coordinate = 0
     region_0 = "retina"
     pos = {}
     j = 0
+    special_nodes = [
+        "video",
+        "rendering",
+        "motion decoder",
+        "decoded motion",
+        "pixel-accurate motion",
+    ]
+
     for typ in layout:
-        if typ in [
-            "video",
-            "rendering",
-            "motion decoder",
-            "decoded motion",
-            "pixel-accurate motion",
-        ]:
+        if typ in special_nodes:
             region_spacing = 1.25
         if layout[typ] != region_0:
             x_coordinate += region_spacing
@@ -497,14 +576,10 @@ def _network_graph_node_pos(layout, region_spacing=2, types_per_column=8):
 
     y_mid = (types_per_column - 1) / 2
 
-    if "video" in layout:
-        pos["video"][1] = y_mid
-    if "rendering" in layout:
-        pos["rendering"][1] = y_mid
-    if "motion decoder" in layout:
-        pos["motion decoder"][1] = y_mid
-    if "decoded motion" in layout:
-        pos["decoded motion"][1] = y_mid
+    for node in special_nodes:
+        if node in layout:
+            pos[node][1] = y_mid
+
     if "pixel-accurate motion" in layout:
         pos["pixel-accurate motion"][1] = y_mid - 1.5
 

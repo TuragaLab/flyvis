@@ -1,8 +1,8 @@
 import logging
 from contextlib import suppress
 from dataclasses import dataclass
-from numbers import Number
-from typing import Iterable, List, Optional, Tuple, Union
+from functools import wraps
+from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence, Tuple, Union
 
 import matplotlib as mpl
 import matplotlib.patheffects as path_effects
@@ -11,7 +11,6 @@ import numpy as np
 import torch
 from matplotlib import colormaps as cm
 from matplotlib.axes import Axes
-from matplotlib.axis import Axis
 from matplotlib.colorbar import Colorbar
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -29,50 +28,64 @@ logging = logging.getLogger(__name__)
 
 
 def heatmap(
-    matrix,
-    xlabels,
-    ylabels=None,
-    size_scale="auto",
-    cmap=cm.get_cmap("seismic"),
-    origin="upper",
-    ax=None,
-    fig=None,
-    vmin=None,
-    vmax=None,
-    # cbar_fontsize=16,
-    symlog=None,
-    cbar_label="",
-    log=None,
-    cbar_height=0.5,
-    cbar_width=0.01,
-    title="",
-    figsize=[5, 4],
-    fontsize=4,
-    midpoint=None,
-    cbar=True,
-    grid_linewidth=0.5,
+    matrix: np.ndarray,
+    xlabels: List[str],
+    ylabels: Optional[List[str]] = None,
+    size_scale: Union[str, float] = "auto",
+    cmap: mpl.colors.Colormap = cm.get_cmap("seismic"),
+    origin: Literal["upper", "lower"] = "upper",
+    ax: Optional[Axes] = None,
+    fig: Optional[Figure] = None,
+    vmin: Optional[float] = None,
+    vmax: Optional[float] = None,
+    symlog: Optional[bool] = None,
+    cbar_label: str = "",
+    log: Optional[bool] = None,
+    cbar_height: float = 0.5,
+    cbar_width: float = 0.01,
+    title: str = "",
+    figsize: Tuple[float, float] = [5, 4],
+    fontsize: int = 4,
+    midpoint: Optional[float] = None,
+    cbar: bool = True,
+    grid_linewidth: float = 0.5,
     **kwargs,
-) -> Tuple[Figure, Axis, Colorbar, NDArray]:
+) -> Tuple[Figure, Axes, Optional[Colorbar], np.ndarray]:
     """
-    Heatmap scatter of the matrix.
+    Create a heatmap scatter plot of the matrix.
 
     Args:
-        matrix (np.ndarray): 2D matrix
-        xlabels (list): list of x labels
-        ylabels (list): list of y labels. Optional. If not provided, xlabels will be
-            used.
-        scale (bool): whether to scale the size of the scatter points with the value.
-            If True, the sizes of the scatter points will be |value| * size_scale
-            or |value| * 0.005 * (size_scale or prod(figsize)).
-            If False, the sizes of the scatter points will be 100.
-        size_scale (float): size scale of the scatter points. Optional.
-            If not provided, prod(figsize) will be used.
-        origin (str): origin of the matrix. Either "upper" or "lower".
-        size_transform (callable): optional function to transform the values to the
-            size of the scatter points.
+        matrix: 2D matrix to be plotted.
+        xlabels: List of x-axis labels.
+        ylabels: List of y-axis labels. If not provided, xlabels will be used.
+        size_scale: Size scale of the scatter points. If "auto",
+            uses 0.005 * prod(figsize).
+        cmap: Colormap for the heatmap.
+        origin: Origin of the matrix. Either "upper" or "lower".
+        ax: Existing Matplotlib Axes object to plot on.
+        fig: Existing Matplotlib Figure object to use.
+        vmin: Minimum value for color scaling.
+        vmax: Maximum value for color scaling.
+        symlog: Whether to use symmetric log normalization.
+        cbar_label: Label for the colorbar.
+        log: Whether to use logarithmic color scaling.
+        cbar_height: Height of the colorbar.
+        cbar_width: Width of the colorbar.
+        title: Title of the plot.
+        figsize: Size of the figure.
+        fontsize: Font size for labels and ticks.
+        midpoint: Midpoint for diverging colormaps.
+        cbar: Whether to show the colorbar.
+        grid_linewidth: Width of the grid lines.
+        **kwargs: Additional keyword arguments.
 
     Returns:
-        fig, ax, cbar, matrix
+        A tuple containing the Figure, Axes, Colorbar (if shown), and the input matrix.
+
+    Note:
+        This function creates a heatmap scatter plot with various customization options.
+        The size of scatter points can be scaled based on the absolute value of the matrix
+        elements.
     """
     y, x = np.nonzero(matrix)
     value = matrix[y, x]
@@ -82,7 +95,7 @@ def heatmap(
     norm = plt_utils.get_norm(
         symlog=symlog,
         vmin=vmin if vmin is not None else np.nanmin(matrix),
-        vmax=vmax if vmin is not None else np.nanmax(matrix),
+        vmax=vmax if vmax is not None else np.nanmax(matrix),
         log=log,
         midpoint=midpoint,
     )
@@ -118,8 +131,9 @@ def heatmap(
     ax.tick_params(axis="x", which="minor", bottom=False)
     ax.tick_params(axis="y", which="minor", left=False)
 
-    cbar = (
-        plt_utils.add_colorbar_to_fig(
+    cbar_obj = None
+    if cbar:
+        cbar_obj = plt_utils.add_colorbar_to_fig(
             fig,
             height=cbar_height,
             width=cbar_width,
@@ -129,374 +143,333 @@ def heatmap(
             label=cbar_label,
             x_offset=15,
         )
-        if cbar
-        else None
-    )
 
-    return fig, ax, cbar, matrix
+    return fig, ax, cbar_obj, matrix
 
 
 # ---- hex scatter
 
 
 def hex_scatter(
-    u,
-    v,
-    color,
-    max_extent=None,
-    fig=None,
-    ax=None,
-    figsize=(1, 1),
-    title="",
-    title_y=None,
-    fontsize=5,
-    label="",
-    labelxy="auto",
-    label_color="black",
-    edgecolor=None,
-    edgewidth=0.5,
-    alpha=1,
-    fill=False,
-    scalarmapper=None,
-    norm=None,
-    radius=1,
-    origin="lower",
-    vmin=None,
-    vmax=None,
-    midpoint=None,
-    mode="default",
-    orientation=np.radians(30),
-    cmap=cm.get_cmap("seismic"),
-    cbar=True,
-    cbar_label="",
-    cbar_height=None,
-    cbar_width=None,
-    cbar_x_offset=0.05,
-    annotate=False,
-    annotate_coords=False,
-    annotate_indices=False,
-    frame=False,
-    frame_hex_width=1,
-    frame_color=None,
-    nan_linestyle="-",
-    text_color_hsv_threshold=0.8,
+    u: NDArray,
+    v: NDArray,
+    values: NDArray,
+    max_extent: Optional[int] = None,
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    figsize: Tuple[float, float] = (1, 1),
+    title: str = "",
+    title_y: Optional[float] = None,
+    fontsize: int = 5,
+    label: str = "",
+    labelxy: Union[str, Tuple[float, float]] = "auto",
+    label_color: str = "black",
+    edgecolor: Optional[str] = None,
+    edgewidth: float = 0.5,
+    alpha: float = 1,
+    fill: Union[bool, int] = False,
+    scalarmapper: Optional[mpl.cm.ScalarMappable] = None,
+    norm: Optional[mpl.colors.Normalize] = None,
+    radius: float = 1,
+    origin: Literal["lower", "upper"] = "lower",
+    vmin: Optional[float] = None,
+    vmax: Optional[float] = None,
+    midpoint: Optional[float] = None,
+    mode: str = "default",
+    orientation: float = np.radians(30),
+    cmap: mpl.colors.Colormap = cm.get_cmap("seismic"),
+    cbar: bool = True,
+    cbar_label: str = "",
+    cbar_height: Optional[float] = None,
+    cbar_width: Optional[float] = None,
+    cbar_x_offset: float = 0.05,
+    annotate: bool = False,
+    annotate_coords: bool = False,
+    annotate_indices: bool = False,
+    frame: bool = False,
+    frame_hex_width: int = 1,
+    frame_color: Optional[Union[str, Tuple[float, float, float, float]]] = None,
+    nan_linestyle: str = "-",
+    text_color_hsv_threshold: float = 0.8,
     **kwargs,
-):
-    """Plots a hexagonal lattice with coordinates u, v, and coloring color.
+) -> Tuple[Figure, Axes, Tuple[Optional[Line2D], mpl.cm.ScalarMappable]]:
+    """
+    Plot a hexagonally arranged data points with coordinates u, v, and coloring color.
 
     Args:
-        u (array): array of hex coordinates in u direction.
-        v (array): array of hex coordinates in v direction.
-        color (array): array of pixel values per point (u_i, v_i).
-        max_extent (tuple, optional): maximum extent of the hex lattice.
-            Defaults to None.
-        label (str, optional): a label positioned on the axis. In the upper left
-            corner per default. Defaults to "".
-        labelxy (tuple, optional): position of the label. Defaults to (0, 1).
-        edgecolor (str, optional): color of the edges. Defaults to None.
-        alpha (float, optional): alpha of the hexagon faces. Defaults to 0.8.
-        fill (bool, optional): automatic filling of smallest hex grid around
-            u, v, c. Defaults to False.
-        scalarmapper (Scalarmappable, optional): Defaults to None.
-        norm (Norm, optional): Defaults to None.
-        vmin (float, optional): Defaults to None.
-        vmax (float, optional): Defaults to None.
-        midpoint (float, optional): color midpoint. Defaults to None.
-        cmap (Colormap, optional): Defaults to cm.get_cmap("seismic").
-        cbar (bool, optional): plots a colorbar. Defaults to True.
-        annotate (bool, optional): annotates a rounded value. Defaults to False.
-        annotate_coords (bool, optional): annotates (u_i, v_i).
-            Defaults to False.
-        mode (str, optional): hex coordinate system. Defaults to "default".
-        orientation (float, optional): orientation of the hexagons in rad.
-            Defaults to np.radians(30).
-
+        u: Array of hex coordinates in u direction.
+        v: Array of hex coordinates in v direction.
+        values: Array of pixel values per point (u_i, v_i).
+        fill: Whether to fill the hex grid around u, v, values.
+        max_extent: Maximum extent of the hex lattice shown. When fill=True, the hex
+            grid is padded to the maximum extent when above the extent of u, v.
+        fig: Matplotlib Figure object.
+        ax: Matplotlib Axes object.
+        figsize: Size of the figure.
+        title: Title of the plot.
+        title_y: Y-position of the title.
+        fontsize: Font size for text elements.
+        label: Label for the plot.
+        labelxy: Position of the label. Either "auto" or a tuple of (x, y) coordinates.
+        label_color: Color of the label.
+        edgecolor: Color of the hexagon edges.
+        edgewidth: Width of the hexagon edges.
+        alpha: Alpha value for transparency.
+        scalarmapper: ScalarMappable object for color mapping.
+        norm: Normalization for color mapping.
+        radius: Radius of the hexagons.
+        origin: Origin of the plot. Either "lower" or "upper".
+        vmin: Minimum value for color mapping.
+        vmax: Maximum value for color mapping.
+        midpoint: Midpoint for color mapping.
+        mode: Hex coordinate system mode.
+        orientation: Orientation of the hexagons in radians.
+        cmap: Colormap for the plot.
+        cbar: Whether to show a colorbar.
+        cbar_label: Label for the colorbar.
+        cbar_height: Height of the colorbar.
+        cbar_width: Width of the colorbar.
+        cbar_x_offset: X-offset of the colorbar.
+        annotate: Whether to annotate hexagons with values.
+        annotate_coords: Whether to annotate hexagons with coordinates.
+        annotate_indices: Whether to annotate hexagons with indices.
+        frame: Whether to add a frame around the plot.
+        frame_hex_width: Width of the frame in hexagon units.
+        frame_color: Color of the frame.
+        nan_linestyle: Line style for NaN values.
+        text_color_hsv_threshold: Threshold for text color in HSV space.
+        **kwargs: Additional keyword arguments.
 
     Returns:
-        [type]: [description]
+        A tuple containing the Figure, Axes, and a tuple of (label_text, scalarmapper).
     """
-    fig, ax = plt_utils.init_plot(
-        figsize, title, fontsize, ax, fig, title_y=title_y, **kwargs
-    )
-    ax.set_aspect("equal")
-    color = color * np.ones_like(u) if not isinstance(color, Iterable) else color
-    if u.shape != v.shape or u.shape != color.shape:
-        raise ValueError("shape mismatch of hexal values and coordinates")
 
-    u, v, color = hex_utils.sort_u_then_v(u, v, color)
-    if max_extent:
-        extent = hex_utils.get_extent(u, v) or 1
-
-        if fill and extent < max_extent:
-            _u, _v = hex_utils.get_hex_coords(max_extent)
-            _color = np.ones_like(_u, dtype=float) * np.nan
-            UV = np.stack((_u, _v), axis=1)
-            uv = np.stack((u, v), axis=1)
-            mask = utils.tensor_utils.matrix_mask_by_sub(uv, UV)
-            _color[mask] = color
-            u, v, color = _u, _v, _color
-
-        extent_condition = (
-            (-max_extent <= u)
-            & (u <= max_extent)
-            & (-max_extent <= v)
-            & (v <= max_extent)
-            & (-max_extent <= u + v)
-            & (u + v <= max_extent)
+    def init_plot_and_validate_input(fig, ax):
+        nonlocal values, u, v
+        fig, ax = plt_utils.init_plot(
+            figsize, title, fontsize, ax=ax, fig=fig, title_y=title_y, **kwargs
         )
-        u = u[extent_condition]
-        v = v[extent_condition]
-        color = color[extent_condition]
+        ax.set_aspect("equal")
+        values = values * np.ones_like(u) if not isinstance(values, Iterable) else values
+        if u.shape != v.shape or u.shape != values.shape:
+            raise ValueError("shape mismatch of hexal values and coordinates")
+        u, v, values = hex_utils.sort_u_then_v(u, v, values)
+        return fig, ax
 
-    vmin = vmin - 1e-10 if vmin is not None else np.nanmin(color) - 1e-10
-    vmax = vmax + 1e-10 if vmax is not None else np.nanmax(color) + 1e-10
-
-    if (
-        midpoint == 0
-        and np.isclose(vmin, vmax, atol=1e-10)
-        and np.sign(vmin) == np.sign(vmax)
-    ):
-        sign = np.sign(vmax)
-        if sign > 0:
-            vmin = -vmax
-        elif sign < 0:
-            vmax = -vmin
-        else:
-            raise ValueError
-
-    scalarmapper, norm = plt_utils.get_scalarmapper(
-        scalarmapper=scalarmapper,
-        cmap=cmap,
-        norm=norm,
-        vmin=vmin,
-        vmax=vmax,
-        midpoint=midpoint,
-    )
-    color_rgba = scalarmapper.to_rgba(color)
-
-    if frame:
+    def apply_max_extent():
+        nonlocal u, v, values
         extent = hex_utils.get_extent(u, v) or 1
-        _u, _v = hex_utils.get_hex_coords(extent + frame_hex_width)
-        framed_color = np.zeros([len(_u)])
-        framed_color_rgba = np.zeros([len(_u), 4])
-        uv = np.stack((_u, _v), 1)
-        _rings = (
-            abs(0 - uv[:, 0]) + abs(0 + 0 - uv[:, 0] - uv[:, 1]) + abs(0 - uv[:, 1])
-        ) / 2
-        mask = np.where(_rings <= extent, True, False)
-        framed_color[mask] = color
-        framed_color[~mask] = 0.0
-        # c_mask = np.ma.masked_invalid(framed_color)
-        # framed_color[c_mask.mask] = 0.0
-        framed_color_rgba[mask] = color_rgba
-        framed_color_rgba[~mask] = frame_color if frame_color else np.array([0, 0, 0, 1])
-        u, v, color_rgba, color = _u, _v, framed_color_rgba, framed_color
+        if fill:
+            u, v, values = hex_utils.pad_to_regular_hex(u, v, values, extent=extent)
+        if max_extent is not None and extent > max_extent:
+            u, v, values = hex_utils.crop_to_extent(u, v, values, max_extent)
+        elif max_extent is not None and extent < max_extent and fill:
+            u, v, values = hex_utils.pad_to_regular_hex(u, v, values, extent=max_extent)
 
-    extent = hex_utils.get_extent(u, v) or 1
-    c_mask = np.ma.masked_invalid(color)
-    # color[c_mask.mask] = 0.0
-
-    _valid_patches_start_index = 0
-    if fill:
-        if isinstance(fill, bool):
-            # smallest hexagonal coordinate system around that
-            u_cs, v_cs = hex_utils.get_hex_coords(extent)
-            x_cs, y_cs = hex_utils.hex_to_pixel(u_cs, v_cs, mode=mode)
-            # if hex_utils.get_hextent(len(color)) != extent:
-            if origin == "upper":
-                y_cs = y_cs[::-1]
-            for _x, _y in zip(x_cs, y_cs):
-                _hex = RegularPolygon(
-                    (_x, _y),
-                    numVertices=6,
-                    radius=radius,
-                    linewidth=edgewidth,
-                    orientation=orientation,
-                    edgecolor=edgecolor,
-                    facecolor="white",
-                    alpha=alpha,
-                    ls="-",
-                )
-                # Adding fill to patches not allows to loop through actual patches.
-                # We assign new colors to them in animation's update functions.
-                # Requires tracking actual and filled hexals if neurons are strided
-                # as used in LayerActivityGrid. Simply store start index for the actual
-                # valid patches as attribute of the axis.
-                ax.add_patch(_hex)
-                _valid_patches_start_index += 1
-        elif isinstance(fill, Number):
-            fill = int(fill)
-            extent = fill
-            # smallest hexagonal coordinate system around that
-            u_cs, v_cs = hex_utils.get_hex_coords(fill)
-            x_cs, y_cs = hex_utils.hex_to_pixel(u_cs, v_cs, mode=mode)
-            # if hex_utils.get_hextent(len(color)) != fill:
-            if origin == "upper":
-                y_cs = y_cs[::-1]
-            for _x, _y in zip(x_cs, y_cs):
-                _hex = RegularPolygon(
-                    (_x, _y),
-                    numVertices=6,
-                    radius=radius,
-                    linewidth=edgewidth,
-                    orientation=orientation,
-                    edgecolor=edgecolor,
-                    facecolor="white",
-                    alpha=alpha,
-                    ls="-",
-                )
-                # Adding fill to patches not allows to loop through actual patches.
-                # We assign new colors to them in animation's update functions.
-                # Requires tracking actual and filled hexals if neurons are strided
-                # as used in LayerActivityGrid. Simply store start index for the actual
-                # valid patches as attribute of the axis.
-                ax.add_patch(_hex)
-                _valid_patches_start_index += 1
-    ax._valid_patches_start_index = _valid_patches_start_index
-
-    # Add coloured hexagons on top
-    x, y = hex_utils.hex_to_pixel(u, v, mode=mode)
-    if origin == "upper":
-        y = y[::-1]
-    for i, (_x, _y, fc) in enumerate(zip(x, y, color_rgba)):
-        if c_mask.mask[i]:
-            _hex = RegularPolygon(
-                (_x, _y),
-                numVertices=6,
-                radius=radius,
-                linewidth=edgewidth,
-                orientation=orientation,
-                edgecolor=edgecolor,
-                facecolor="white",
-                alpha=alpha,
-                ls=nan_linestyle,
-            )
+    def setup_color_mapping(scalarmapper, norm):
+        nonlocal vmin, vmax
+        if np.any(values):
+            vmin = vmin - 1e-10 if vmin is not None else np.nanmin(values) - 1e-10
+            vmax = vmax + 1e-10 if vmax is not None else np.nanmax(values) + 1e-10
         else:
-            _hex = RegularPolygon(
-                (_x, _y),
-                numVertices=6,
-                radius=radius,
-                linewidth=edgewidth,
-                orientation=orientation,
-                edgecolor=edgecolor or fc,
-                facecolor=fc,
-                alpha=alpha,
-            )
-        ax.add_patch(_hex)
+            vmin = 0
+            vmax = 1
 
-    if cbar:
-        cbar = plt_utils.add_colorbar_to_fig(
-            fig,
-            label=cbar_label,
-            width=cbar_width or 0.03,
-            height=cbar_height or 0.5,
-            x_offset=cbar_x_offset or -2,  # (1 - 1 / extent),
+        if (
+            midpoint == 0
+            and np.isclose(vmin, vmax, atol=1e-10)
+            and np.sign(vmin) == np.sign(vmax)
+        ):
+            sign = np.sign(vmax)
+            if sign > 0:
+                vmin = -vmax
+            elif sign < 0:
+                vmax = -vmin
+            else:
+                raise ValueError
+
+        if midpoint == 0 and np.isnan(values).all():
+            vmin = 0
+            vmax = 0
+
+        scalarmapper, norm = plt_utils.get_scalarmapper(
+            scalarmapper=scalarmapper,
             cmap=cmap,
             norm=norm,
-            fontsize=fontsize,
-            tick_length=1,
-            tick_width=0.25,
-            rm_outline=True,
+            vmin=vmin,
+            vmax=vmax,
+            midpoint=midpoint,
         )
+        return scalarmapper.to_rgba(values), scalarmapper, norm
 
-    if fill:
-        xmin, xmax = plt_utils.get_lims(x_cs, 1 / extent)
-        ymin, ymax = plt_utils.get_lims(y_cs, 1 / extent)
-        if xmin != xmax and ymin != ymax:
-            ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax])
-    else:
-        xmin, xmax = plt_utils.get_lims(x, 1 / extent)
-        ymin, ymax = plt_utils.get_lims(y, 1 / extent)
-        if xmin != xmax and ymin != ymax:
-            ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax])
+    def apply_frame():
+        nonlocal u, v, values, color_rgba
+        if frame:
+            extent = hex_utils.get_extent(u, v) or 1
+            _u, _v = hex_utils.get_hex_coords(extent + frame_hex_width)
+            framed_color = np.zeros([len(_u)])
+            framed_color_rgba = np.zeros([len(_u), 4])
+            uv = np.stack((_u, _v), 1)
+            _rings = (
+                abs(0 - uv[:, 0]) + abs(0 + 0 - uv[:, 0] - uv[:, 1]) + abs(0 - uv[:, 1])
+            ) / 2
+            mask = np.where(_rings <= extent, True, False)
+            framed_color[mask] = values
+            framed_color[~mask] = 0.0
+            framed_color_rgba[mask] = color_rgba
+            framed_color_rgba[~mask] = (
+                frame_color if frame_color else np.array([0, 0, 0, 1])
+            )
+            u, v, color_rgba, values = _u, _v, framed_color_rgba, framed_color
 
-    ax = plt_utils.rm_spines(ax, rm_xticks=True, rm_yticks=True)
-    # cmap_fc = cm.get_cmap("binary")
-    if annotate:
-        # annotate hexagons with activity value
-        for i, (_label, _x, _y) in enumerate(zip(color, x, y)):
-            if not c_mask.mask[i] and not np.isnan(_label):
-                # fontcolor = cmap_fc(_label)
-                _textcolor = (
-                    "black"
-                    if mpl.colors.rgb_to_hsv(color_rgba[i][:-1])[-1]
-                    > text_color_hsv_threshold
-                    else "white"
+    def draw_hexagons():
+        x, y = hex_utils.hex_to_pixel(u, v, mode=mode)
+        if origin == "upper":
+            y = y[::-1]
+        c_mask = np.ma.masked_invalid(values)
+        for i, (_x, _y, fc) in enumerate(zip(x, y, color_rgba)):
+            if c_mask.mask[i]:
+                _hex = RegularPolygon(
+                    (_x, _y),
+                    numVertices=6,
+                    radius=radius,
+                    linewidth=edgewidth,
+                    orientation=orientation,
+                    edgecolor=edgecolor,
+                    facecolor="white",
+                    alpha=alpha,
+                    ls=nan_linestyle,
                 )
-                ax.annotate(
-                    f"{_label:.1F}",
-                    fontsize=fontsize,
-                    xy=(_x, _y),
-                    xytext=(0, 0),
-                    textcoords="offset points",
+            else:
+                _hex = RegularPolygon(
+                    (_x, _y),
+                    numVertices=6,
+                    radius=radius,
+                    linewidth=edgewidth,
+                    orientation=orientation,
+                    edgecolor=edgecolor or fc,
+                    facecolor=fc,
+                    alpha=alpha,
+                )
+            ax.add_patch(_hex)
+        return x, y, c_mask
+
+    def add_colorbar():
+        if cbar:
+            plt_utils.add_colorbar_to_fig(
+                fig,
+                label=cbar_label,
+                width=cbar_width or 0.03,
+                height=cbar_height or 0.5,
+                x_offset=cbar_x_offset or -2,
+                cmap=cmap,
+                norm=norm,
+                fontsize=fontsize,
+                tick_length=1,
+                tick_width=0.25,
+                rm_outline=True,
+            )
+
+    def set_plot_limits(x, y):
+        extent = hex_utils.get_extent(u, v) or 1
+        if fill:
+            u_cs, v_cs = hex_utils.get_hex_coords(extent)
+            x_cs, y_cs = hex_utils.hex_to_pixel(u_cs, v_cs, mode=mode)
+            if origin == "upper":
+                y_cs = y_cs[::-1]
+            xmin, xmax = plt_utils.get_lims(x_cs, 1 / extent)
+            ymin, ymax = plt_utils.get_lims(y_cs, 1 / extent)
+        else:
+            xmin, xmax = plt_utils.get_lims(x, 1 / extent)
+            ymin, ymax = plt_utils.get_lims(y, 1 / extent)
+        if xmin != xmax and ymin != ymax:
+            ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax])
+
+    def annotate_hexagons(x, y, c_mask):
+        if annotate:
+            for i, (_label, _x, _y) in enumerate(zip(values, x, y)):
+                if not c_mask.mask[i] and not np.isnan(_label):
+                    _textcolor = (
+                        "black"
+                        if mpl.colors.rgb_to_hsv(color_rgba[i][:-1])[-1]
+                        > text_color_hsv_threshold
+                        else "white"
+                    )
+                    ax.annotate(
+                        f"{_label:.1F}",
+                        fontsize=fontsize,
+                        xy=(_x, _y),
+                        xytext=(0, 0),
+                        textcoords="offset points",
+                        ha="center",
+                        va="center",
+                        color=_textcolor,
+                    )
+        if annotate_coords:
+            for _x, _y, _u, _v in zip(x, y, u, v):
+                ax.text(
+                    _x - 0.45,
+                    _y + 0.2,
+                    _u,
                     ha="center",
                     va="center",
-                    color=_textcolor,
+                    fontsize=fontsize,
                 )
-            # elif c_mask.mask[i]:
-            #     _textcolor = "black"
-            #     ax.annotate(
-            #         f"nan",
-            #         fontsize=fontsize,
-            #         xy=(_x, _y),
-            #         xytext=(0, 0),
-            #         textcoords="offset points",
-            #         ha="center",
-            #         va="center",
-            #         color=_textcolor,
-            #     )
+                ax.text(
+                    _x + 0.45,
+                    _y + 0.2,
+                    _v,
+                    ha="center",
+                    va="center",
+                    fontsize=fontsize,
+                )
+        if annotate_indices:
+            for i, (_x, _y) in enumerate(zip(x, y)):
+                ax.text(_x, _y, i, ha="center", va="center", fontsize=fontsize)
 
-    if annotate_coords:
-        for _x, _y, _u, _v in zip(x, y, u, v):
-            ax.text(
-                _x - 0.45,
-                _y + 0.2,
-                _u,
-                ha="center",
+    def add_label():
+        if labelxy == "auto":
+            extent = hex_utils.get_extent(u, v) or 1
+            u_cs, v_cs = hex_utils.get_hex_coords(extent)
+            z = -u_cs + v_cs
+            labelu, labelv = min(u_cs[z == 0]) - 1, min(v_cs[z == 0]) - 1
+            labelx, labely = hex_utils.hex_to_pixel(labelu, labelv)
+            ha = "right" if len(label) < 4 else "center"
+            label_text = ax.annotate(
+                label,
+                (labelx, labely),
+                ha=ha,
+                va="bottom",
+                fontsize=fontsize,
+                zorder=1000,
+                xycoords="data",
+                color=label_color,
+            )
+        else:
+            label_text = ax.text(
+                labelxy[0],
+                labelxy[1],
+                label,
+                transform=ax.transAxes,
+                ha="left",
                 va="center",
                 fontsize=fontsize,
+                zorder=100,
+                color=label_color,
             )
-            ax.text(
-                _x + 0.45,
-                _y + 0.2,
-                _v,
-                ha="center",
-                va="center",
-                fontsize=fontsize,
-            )
+        return label_text
 
-    if annotate_indices:
-        for i, (_x, _y) in enumerate(zip(x, y)):
-            ax.text(_x, _y, i, ha="center", va="center", fontsize=fontsize)
-
-    if labelxy == "auto":
-        u_cs, v_cs = hex_utils.get_hex_coords(extent)
-        z = -u_cs + v_cs
-        labelu, labelv = min(u_cs[z == 0]) - 1, min(v_cs[z == 0]) - 1
-        labelx, labely = hex_utils.hex_to_pixel(labelu, labelv)
-        ha = "right" if len(label) < 4 else "center"
-        label_text = ax.annotate(
-            label,
-            (labelx, labely),
-            ha=ha,
-            va="bottom",
-            fontsize=fontsize,
-            zorder=1000,
-            xycoords="data",
-            color=label_color,
-        )
-    else:
-        label_text = ax.text(
-            labelxy[0],
-            labelxy[1],
-            label,
-            transform=ax.transAxes,
-            ha="left",
-            va="center",
-            fontsize=fontsize,
-            zorder=100,
-            color=label_color,
-        )
+    # Main execution
+    fig, ax = init_plot_and_validate_input(fig, ax)
+    apply_max_extent()
+    color_rgba, scalarmapper, norm = setup_color_mapping(scalarmapper, norm)
+    apply_frame()
+    x, y, c_mask = draw_hexagons()
+    add_colorbar()
+    set_plot_limits(x, y)
+    ax = plt_utils.rm_spines(ax, rm_xticks=True, rm_yticks=True)
+    annotate_hexagons(x, y, c_mask)
+    label_text = add_label()
 
     (xmin, ymin, xmax, ymax) = ax.dataLim.extents
     ax.set_xlim(plt_utils.get_lims((xmin, xmax), 0.01))
@@ -506,58 +479,113 @@ def hex_scatter(
 
 
 class SignError(Exception):
+    """Raised when kernel signs are inconsistent."""
+
     pass
 
 
+@wraps(hex_scatter)
 def kernel(
-    u,
-    v,
-    color,
-    fontsize=5,
-    cbar=True,
-    edgecolor="k",
-    fig=None,
-    ax=None,
-    figsize=(1, 1),
-    midpoint=0,
-    annotate=True,
-    alpha=0.8,
-    annotate_coords=False,
-    coord_fs=8,
-    cbar_height=0.3,
-    cbar_x_offset=-1,
+    u: NDArray,
+    v: NDArray,
+    values: NDArray,
+    fontsize: int = 5,
+    cbar: bool = True,
+    edgecolor: str = "k",
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    figsize: Tuple[float, float] = (1, 1),
+    midpoint: float = 0,
+    annotate: bool = True,
+    alpha: float = 0.8,
+    annotate_coords: bool = False,
+    coord_fs: int = 8,
+    cbar_height: float = 0.3,
+    cbar_x_offset: float = -1,
     **kwargs,
-):
-    """Plotting a receptive fields with hex_scatter.
-
-    Note, assigns `seismic` as colormap and checks that signs are consistent.
+) -> Tuple[Figure, Axes, Tuple[Optional[Line2D], mpl.cm.ScalarMappable]]:
+    """Plot receptive fields with hex_scatter.
 
     Args:
-        see hex_scatter, all args but cmap can be passed.
-        cmap is `seismic`.
+        u: Array of hex coordinates in u direction.
+        v: Array of hex coordinates in v direction.
+        color: Array of pixel values per point (u_i, v_i).
+        fontsize: Font size for text elements.
+        cbar: Whether to show a colorbar.
+        edgecolor: Color of the hexagon edges.
+        fig: Matplotlib Figure object.
+        ax: Matplotlib Axes object.
+        figsize: Size of the figure.
+        midpoint: Midpoint for color mapping.
+        annotate: Whether to annotate hexagons with values.
+        alpha: Alpha value for transparency.
+        annotate_coords: Whether to annotate hexagons with coordinates.
+        coord_fs: Font size for coordinate annotations.
+        cbar_height: Height of the colorbar.
+        cbar_x_offset: X-offset of the colorbar.
+        **kwargs: Additional keyword arguments passed to hex_scatter.
 
     Returns:
-        see hex_scatter
+        A tuple containing the Figure, Axes, and a tuple of (label_text, scalarmapper).
 
     Raises:
-        SignError: if signs are inconsistent
+        SignError: If signs in the kernel are inconsistent.
+
+    Note:
+        Assigns `seismic` as colormap and checks that signs are consistent.
+        All arguments except `cmap` can be passed to hex_scatter.
     """
-    sign = set(np.sign(color[np.nonzero(color)]))
-    if len(sign) == 1:
-        sign = sign.pop()
-    elif len(sign) == 0:
-        sign = 1
-    else:
-        raise SignError(f"inconsistent kernel with signs {sign}")
-    cmap = cm.get_cmap("seismic")
-    _kwargs = locals()
-    _kwargs.update(_kwargs["kwargs"])
-    _kwargs.pop("kwargs")
-    return hex_scatter(**_kwargs)
+
+    def check_sign_consistency(values: NDArray) -> None:
+        non_zero_signs = set(np.sign(values[np.nonzero(values)]))
+        if len(non_zero_signs) > 1:
+            raise SignError(f"Inconsistent kernel with signs {non_zero_signs}")
+
+    check_sign_consistency(values)
+
+    hex_scatter_kwargs = {
+        'u': u,
+        'v': v,
+        'values': values,
+        'fontsize': fontsize,
+        'cbar': cbar,
+        'edgecolor': edgecolor,
+        'fig': fig,
+        'ax': ax,
+        'figsize': figsize,
+        'midpoint': midpoint,
+        'annotate': annotate,
+        'alpha': alpha,
+        'annotate_coords': annotate_coords,
+        'coord_fs': coord_fs,
+        'cbar_height': cbar_height,
+        'cbar_x_offset': cbar_x_offset,
+        'cmap': cm.get_cmap("seismic"),
+        **kwargs,
+    }
+
+    return hex_scatter(**hex_scatter_kwargs)
 
 
-def hex_cs(extent=5, mode="default", annotate_coords=True, edgecolor="black", **kwargs):
-    """Convenience function for plotting a hexagonal coordinate system."""
+def hex_cs(
+    extent: int = 5,
+    mode: Literal["default", "flat"] = "default",
+    annotate_coords: bool = True,
+    edgecolor: str = "black",
+    **kwargs,
+) -> Tuple[Figure, Axes, Tuple[Optional[Line2D], mpl.cm.ScalarMappable]]:
+    """Plot a hexagonal coordinate system.
+
+    Args:
+        extent: Extent of the hexagonal grid.
+        mode: Hex coordinate system mode.
+        annotate_coords: Whether to annotate hexagons with coordinates.
+        edgecolor: Color of the hexagon edges.
+        **kwargs: Additional keyword arguments passed to hex_scatter.
+
+    Returns:
+        A tuple containing the Figure, Axes, and a tuple of (label_text, scalarmapper).
+    """
     u, v = hex_utils.get_hex_coords(extent)
     return hex_scatter(
         u,
@@ -574,59 +602,105 @@ def hex_cs(extent=5, mode="default", annotate_coords=True, edgecolor="black", **
     )
 
 
-def quick_hex_scatter(color, cmap=cm.get_cmap("binary_r"), **kwargs):
-    """Convenience function for a hex scatter plot with implicit coordinates."""
-    color = utils.tensor_utils.to_numpy(color.squeeze())
-    u, v = hex_utils.get_hex_coords(hex_utils.get_hextent(len(color)))
-    return hex_scatter(u, v, color, cmap=cmap, **kwargs)
+def quick_hex_scatter(
+    values: NDArray, cmap: mpl.colors.Colormap = cm.get_cmap("binary_r"), **kwargs
+) -> Tuple[Figure, Axes, Tuple[Optional[Line2D], mpl.cm.ScalarMappable]]:
+    """Create a hex scatter plot with implicit coordinates.
+
+    Args:
+        values: Array of pixel values.
+        cmap: Colormap for the plot.
+        **kwargs: Additional keyword arguments passed to hex_scatter.
+
+    Returns:
+        A tuple containing the Figure, Axes, and a tuple of (label_text, scalarmapper).
+    """
+    values = utils.tensor_utils.to_numpy(values.squeeze())
+    u, v = hex_utils.get_hex_coords(hex_utils.get_hextent(len(values)))
+    return hex_scatter(u, v, values, cmap=cmap, **kwargs)
 
 
 # ------------------------- hex optic flow -------------------------
 
 
 def hex_flow(
-    u,
-    v,
-    flow,
-    fig=None,
-    ax=None,
-    figsize=(1, 1),
-    title="",
-    cmap=plt_utils.cm_uniform_2d,
-    max_extent=None,
-    marker="H",
-    alpha=0.7,
-    cwheelradius=0.25,
-    mode="default",
-    orientation=np.radians(30),
-    origin="lower",
-    markerscale=1,
-    fontsize=5,
-    cwheel=True,
-    cwheelxy=(),
-    cwheelpos="southeast",
-    cwheellabelpad=-5,
-    annotate_r=False,
-    annotate_theta=False,
-    annotate_coords=False,
-    coord_fs=3,
-    label="",
-    labelxy=(0, 1),
-    vmin=-np.pi,
-    vmax=np.pi,
-    edgecolor=None,
+    u: NDArray,
+    v: NDArray,
+    flow: NDArray,
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    figsize: Tuple[float, float] = (1, 1),
+    title: str = "",
+    cmap: mpl.colors.Colormap = plt_utils.cm_uniform_2d,
+    max_extent: Optional[int] = None,
+    cwheelradius: float = 0.25,
+    mode: Literal["default", "flat"] = "default",
+    orientation: float = np.radians(30),
+    origin: Literal["lower", "upper"] = "lower",
+    fontsize: int = 5,
+    cwheel: bool = True,
+    cwheelxy: Tuple[float, float] = (),
+    cwheelpos: str = "southeast",
+    cwheellabelpad: float = -5,
+    annotate_r: bool = False,
+    annotate_theta: bool = False,
+    annotate_coords: bool = False,
+    coord_fs: int = 3,
+    label: str = "",
+    labelxy: Tuple[float, float] = (0, 1),
+    vmin: float = -np.pi,
+    vmax: float = np.pi,
+    edgecolor: Optional[str] = None,
     **kwargs,
-):
-    """Plots a hexagonal lattice with coordinates u, v, and coloring color.
+) -> Tuple[
+    Figure,
+    Axes,
+    Tuple[
+        Optional[Line2D],
+        mpl.cm.ScalarMappable,
+        Optional[mpl.colorbar.Colorbar],
+        Optional[mpl.collections.PathCollection],
+    ],
+]:
+    """Plot a hexagonal lattice with coordinates u, v, and flow.
 
     Args:
-        u (array): array of hex coordinates in u direction.
-        v (array): array of hex coordinates in v direction.
-        flow (array): array of flow per point (u_i, v_i), i.e. shape [2, len(u)].
+        u: Array of hex coordinates in u direction.
+        v: Array of hex coordinates in v direction.
+        flow: Array of flow per point (u_i, v_i), shape [2, len(u)].
+        fig: Matplotlib Figure object.
+        ax: Matplotlib Axes object.
+        figsize: Size of the figure.
+        title: Title of the plot.
+        cmap: Colormap for the plot.
+        max_extent: Maximum extent of the hex lattice.
+        cwheelradius: Radius of the colorwheel.
+        mode: Hex coordinate system mode.
+        orientation: Orientation of hexagons in radians.
+        origin: Origin of the plot.
+        fontsize: Font size for text elements.
+        cwheel: Whether to show a colorwheel.
+        cwheelxy: Position of the colorwheel.
+        cwheelpos: Position of the colorwheel.
+        cwheellabelpad: Padding for colorwheel labels.
+        annotate_r: Whether to annotate hexagons with magnitude.
+        annotate_theta: Whether to annotate hexagons with angle.
+        annotate_coords: Whether to annotate hexagons with coordinates.
+        coord_fs: Font size for coordinate annotations.
+        label: Label for the plot.
+        labelxy: Position of the label.
+        vmin: Minimum value for color mapping.
+        vmax: Maximum value for color mapping.
+        edgecolor: Color of the hexagon edges.
+        **kwargs: Additional keyword arguments.
 
-    Works largely like hex_scatter, but with 2d-flow instead of 1d-intensities.
+    Returns:
+        A tuple containing the Figure, Axes, and a tuple of
+            (label_text, scalarmapper, colorbar, scatter).
+
+    Note:
+        Works largely like hex_scatter, but with 2d-flow instead of 1d-intensities.
     """
-
     fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax, fig)
     ax.set_aspect("equal")
 
@@ -648,21 +722,24 @@ def hex_flow(
     color_rgba = scalarmapper.to_rgba(theta)
     color_rgba[:, -1] = r
 
-    # Add some coloured hexagons
     x, y = hex_utils.hex_to_pixel(u, v, mode=mode)
     if origin == "upper":
         y = y[::-1]
-    for _x, _y, c in zip(x, y, color_rgba):
-        _hex = RegularPolygon(
-            (_x, _y),
-            numVertices=6,
-            radius=1,
-            linewidth=0.5,
-            orientation=orientation,
-            edgecolor=edgecolor or c,
-            facecolor=c,
-        )
-        ax.add_patch(_hex)
+
+    def draw_hexagons():
+        for _x, _y, c in zip(x, y, color_rgba):
+            _hex = RegularPolygon(
+                (_x, _y),
+                numVertices=6,
+                radius=1,
+                linewidth=0.5,
+                orientation=orientation,
+                edgecolor=edgecolor or c,
+                facecolor=c,
+            )
+            ax.add_patch(_hex)
+
+    draw_hexagons()
 
     if cwheel:
         x_offset, y_offset = cwheelxy or (0, 0)
@@ -684,8 +761,8 @@ def hex_flow(
     ax.set_ylim(y.min() + y.min() / extent, y.max() + y.max() / extent)
 
     ax = plt_utils.rm_spines(ax, rm_xticks=True, rm_yticks=True)
+
     if annotate_r:
-        # annotate hexagons with magnitude and angle
         for _r, _x, _y in zip(r, x, y):
             ax.annotate(
                 f"{_r:.2G}",
@@ -747,9 +824,28 @@ def hex_flow(
     return fig, ax, (label_text, scalarmapper, None, None)
 
 
-def quick_hex_flow(flow, **kwargs):
-    """Convenience function for plotting a flow field on a hexagonal lattice with
-    implicit coordinates."""
+def quick_hex_flow(
+    flow: NDArray, **kwargs
+) -> Tuple[
+    Figure,
+    Axes,
+    Tuple[
+        Optional[Line2D],
+        mpl.cm.ScalarMappable,
+        Optional[mpl.colorbar.Colorbar],
+        Optional[mpl.collections.PathCollection],
+    ],
+]:
+    """Plot a flow field on a hexagonal lattice with implicit coordinates.
+
+    Args:
+        flow: Array of flow values.
+        **kwargs: Additional keyword arguments passed to hex_flow.
+
+    Returns:
+        A tuple containing the Figure, Axes, and a tuple of
+            (label_text, scalarmapper, colorbar, scatter).
+    """
     flow = utils.tensor_utils.to_numpy(flow.squeeze())
     u, v = hex_utils.get_hex_coords(hex_utils.get_hextent(flow.shape[-1]))
     return hex_flow(u, v, flow, **kwargs)
@@ -758,19 +854,26 @@ def quick_hex_flow(flow, **kwargs):
 # --- cartesian flow plots ---
 
 
-def flow_to_rgba(flow):
-    """Map cartesian flow to rgba colors.
+def flow_to_rgba(flow: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
+    """Map cartesian flow to RGBA colors.
 
     Args:
-        flow of shape (2, h, w)
+        flow: Flow field of shape (2, h, w).
+
+    Returns:
+        RGBA color representation of the flow field.
+
+    Note:
+        The flow magnitude is mapped to the alpha channel, while the flow
+        direction is mapped to the color using a uniform 2D colormap.
     """
     if isinstance(flow, torch.Tensor):
         flow = flow.cpu().numpy()
 
     X, Y = flow[0], flow[1]
     R = np.sqrt(X * X + Y * Y)
-    PHI = np.arctan2(Y, X)  # + np.pi
-    scalarmapper, norm = plt_utils.get_scalarmapper(
+    PHI = np.arctan2(Y, X)
+    scalarmapper, _ = plt_utils.get_scalarmapper(
         cmap=plt_utils.cm_uniform_2d, vmin=-np.pi, vmax=np.pi
     )
     rgba = scalarmapper.to_rgba(PHI)
@@ -778,11 +881,15 @@ def flow_to_rgba(flow):
     return rgba
 
 
-def plot_flow(flow):
+def plot_flow(flow: Union[np.ndarray, torch.Tensor]) -> None:
     """Plot cartesian flow.
 
     Args:
-        flow of shape (2, h, w)
+        flow: Flow field of shape (2, h, w).
+
+    Note:
+        This function displays the flow field using matplotlib's imshow
+        and immediately shows the plot.
     """
     rgba = flow_to_rgba(flow)
     plt.imshow(rgba)
@@ -790,53 +897,78 @@ def plot_flow(flow):
 
 
 # ---- TRACES
-
-
 def traces(
-    trace,
-    x=None,
-    contour=None,
-    legend=(),
-    smooth=None,
-    stim_line=None,
-    contour_cmap=cm.get_cmap("bone"),
-    color=None,
-    label="",
-    labelxy=(0, 1),
-    linewidth=1,
-    ax=None,
-    fig=None,
-    title="",
-    highlight_mean=False,
-    figsize=(7, 4),
-    fontsize=10,
-    ylim=None,
-    ylabel="",
-    xlabel="",
-    legend_frame_alpha=0,
-    contour_mode="full",
-    contour_y_rel=0.06,
-    fancy=False,
-    scale_pos=None,
-    scale_label="100ms",
-    null_line=False,
-    zorder_traces=None,
-    zorder_mean=None,
+    trace: NDArray,
+    x: Optional[NDArray] = None,
+    contour: Optional[NDArray] = None,
+    legend: Tuple[str, ...] = (),
+    smooth: Optional[float] = None,
+    stim_line: Optional[NDArray] = None,
+    contour_cmap: mpl.colors.Colormap = cm.get_cmap("bone"),
+    color: Optional[Union[str, List[str]]] = None,
+    label: str = "",
+    labelxy: Tuple[float, float] = (0, 1),
+    linewidth: float = 1,
+    ax: Optional[Axes] = None,
+    fig: Optional[Figure] = None,
+    title: str = "",
+    highlight_mean: bool = False,
+    figsize: Tuple[float, float] = (7, 4),
+    fontsize: int = 10,
+    ylim: Optional[Tuple[float, float]] = None,
+    ylabel: str = "",
+    xlabel: str = "",
+    legend_frame_alpha: float = 0,
+    contour_mode: Literal["full", "top", "bottom"] = "full",
+    contour_y_rel: float = 0.06,
+    fancy: bool = False,
+    scale_pos: Optional[str] = None,
+    scale_label: str = "100ms",
+    null_line: bool = False,
+    zorder_traces: Optional[int] = None,
+    zorder_mean: Optional[int] = None,
     **kwargs,
-):
-    """Simple line plot with optional contour e.g. to visualize stimuli and
-    optional smoothing.
+) -> Tuple[Figure, Axes, NDArray, Optional[Line2D]]:
+    """Create a line plot with optional contour and smoothing.
 
     Args:
-        trace (array): 2D array (#traces, #points).
-        x (array, optional): x-axis values. Defaults to None.
-        contour (array, optional): (#points) of contour values.
-        legend (list, optional): legend for each trace. Defaults to [].
-        smooth (float, optional): size of smoothing window in percent of #points.
-            Default is 0.05.
+        trace: 2D array (n_traces, n_points) of trace values.
+        x: X-axis values.
+        contour: Array of contour values.
+        legend: Legend for each trace.
+        smooth: Size of smoothing window in percent of #points.
+        stim_line: Stimulus line data.
+        contour_cmap: Colormap for the contour.
+        color: Color(s) for the traces.
+        label: Label for the plot.
+        labelxy: Position of the label.
+        linewidth: Width of the trace lines.
+        ax: Matplotlib Axes object.
+        fig: Matplotlib Figure object.
+        title: Title of the plot.
+        highlight_mean: Whether to highlight the mean trace.
+        figsize: Size of the figure.
+        fontsize: Font size for text elements.
+        ylim: Y-axis limits.
+        ylabel: Y-axis label.
+        xlabel: X-axis label.
+        legend_frame_alpha: Alpha value for the legend frame.
+        contour_mode: Mode for contour plotting.
+        contour_y_rel: Relative Y position for contour in "top" or "bottom" mode.
+        fancy: Whether to use fancy styling.
+        scale_pos: Position of the scale bar.
+        scale_label: Label for the scale bar.
+        null_line: Whether to draw a null line at y=0.
+        zorder_traces: Z-order for traces.
+        zorder_mean: Z-order for mean trace.
+        **kwargs: Additional keyword arguments.
 
     Returns:
-        fig, ax, trace (smoothed), label
+        A tuple containing the Figure, Axes, smoothed trace, and label text.
+
+    Note:
+        This function creates a line plot with various options for customization,
+        including contour plotting and trace smoothing.
     """
     trace = np.atleast_2d(np.array(trace))
 
@@ -876,7 +1008,7 @@ def traces(
             zorder=zorder_traces,
         )
 
-    if highlight_mean is True:
+    if highlight_mean:
         ax.plot(
             iterations,
             np.mean(trace, axis=0),
@@ -905,10 +1037,7 @@ def traces(
         elif contour_mode == "bottom":
             yrange = ylim[1] - ylim[0]
             contour_y_range = (ylim[0] - yrange * contour_y_rel, ylim[0])
-            # print(contour_y_range)
-            # print(ylim)
             ylim = (contour_y_range[0], ylim[1])
-            # print(ylim)
 
         _y = np.linspace(*contour_y_range, 100)
         Z = np.tile(contour, (len(_y), 1))
@@ -929,13 +1058,12 @@ def traces(
     # Cosmetics.
     ax.set_xlabel(xlabel, fontsize=fontsize)
     ax.set_ylabel(ylabel, fontsize=fontsize)
-    if null_line is True:
+    if null_line:
         ax.hlines(
             0,
             -20_000,
             20_000,
-            color="0.5",  # "0.7",
-            # linestyle="--",
+            color="0.5",
             zorder=-1,
             linewidth=0.5,
         )
@@ -989,24 +1117,46 @@ def traces(
 
 
 def grouped_traces(
-    trace_groups: list[np.ndarray],
-    x=None,
-    legend=(),
-    color=None,
-    linewidth=1,
-    ax=None,
-    fig=None,
-    title="",
-    highlight_mean=False,
-    figsize=(7, 4),
-    fontsize=10,
-    ylim=None,
-    ylabel="",
-    xlabel="",
-    legend_frame_alpha=0,
+    trace_groups: List[np.ndarray],
+    x: Optional[np.ndarray] = None,
+    legend: Tuple[str, ...] = (),
+    color: Optional[Union[str, List[str]]] = None,
+    linewidth: float = 1,
+    ax: Optional[Axes] = None,
+    fig: Optional[Figure] = None,
+    title: str = "",
+    highlight_mean: bool = False,
+    figsize: Tuple[float, float] = (7, 4),
+    fontsize: int = 10,
+    ylim: Optional[Tuple[float, float]] = None,
+    ylabel: str = "",
+    xlabel: str = "",
+    legend_frame_alpha: float = 0,
     **kwargs,
-):
-    """Line plot with"""
+) -> Tuple[Figure, Axes]:
+    """Create a line plot with grouped traces.
+
+    Args:
+        trace_groups: List of 2D arrays, each containing trace values.
+        x: X-axis values.
+        legend: Legend for each trace group.
+        color: Color(s) for the trace groups.
+        linewidth: Width of the trace lines.
+        ax: Matplotlib Axes object.
+        fig: Matplotlib Figure object.
+        title: Title of the plot.
+        highlight_mean: Whether to highlight the mean trace.
+        figsize: Size of the figure.
+        fontsize: Font size for text elements.
+        ylim: Y-axis limits.
+        ylabel: Y-axis label.
+        xlabel: X-axis label.
+        legend_frame_alpha: Alpha value for the legend frame.
+        **kwargs: Additional keyword arguments passed to traces().
+
+    Returns:
+        A tuple containing the Figure and Axes objects.
+    """
     fig, ax = plt_utils.init_plot(figsize, title, fontsize, ax=ax, fig=fig)
 
     legends = legend if len(legend) == len(trace_groups) else ("",) * len(trace_groups)
@@ -1023,7 +1173,7 @@ def grouped_traces(
     else:
         raise ValueError(
             "`color` should be a single value, an iterable of length "
-            f"`traces.shape[0]`, or None. Got {color} of shape {np.shape(color)}."
+            f"`traces.shape[0]`, or None. Got {color} of shape {np.shape(color)}. "
             f"Expected {np.shape(trace_groups)}."
         )
 
@@ -1066,15 +1216,25 @@ def grouped_traces(
 
 
 # -- violins ----
+def get_violin_x_locations(
+    n_groups: int, n_random_variables: int, violin_width: float
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Calculate x-axis locations for violin plots.
 
+    Args:
+        n_groups: Number of groups.
+        n_random_variables: Number of random variables.
+        violin_width: Width of each violin plot.
 
-def get_violin_x_locations(n_groups, n_random_variables, violin_width):
+    Returns:
+        A tuple containing:
+        - np.ndarray: 2D array of violin locations.
+        - np.ndarray: 1D array of first violin locations.
+    """
     violin_locations = np.zeros([n_groups, n_random_variables])
-    # n_variable ticks are n_groups distance apart so that each violins width
-    # is between 0 and 1 in x-space
     first_violins_location = np.arange(0, n_groups * n_random_variables, n_groups)
     for j in range(n_groups):
-        # step by violin_width along x
         violin_locations[j] = first_violins_location + j * violin_width
 
     return violin_locations, first_violins_location
@@ -1082,8 +1242,18 @@ def get_violin_x_locations(n_groups, n_random_variables, violin_width):
 
 @dataclass
 class ViolinData:
-    # fig: Figure
-    # ax: Axis
+    """
+    Container for violin plot data.
+
+    Attributes:
+        data: np.ndarray
+            The data used for creating violin plots.
+        locations: np.ndarray
+            The x-axis locations of the violin plots.
+        colors: np.ndarray
+            The colors used for the violin plots.
+    """
+
     data: np.ndarray
     locations: np.ndarray
     colors: np.ndarray
@@ -1120,7 +1290,7 @@ def violin_groups(
     violin_alpha: float = 0.5,
     violin_marker_lw: float = 0.5,
     violin_marker_color: str = "k",
-    color_by: str = "groups",
+    color_by: Literal["groups", "experiments"] = "groups",
     zorder_mean_median: int = 5,
     zorder_min_max: int = 5,
     mean_median_linewidth: float = 0.5,
@@ -1187,11 +1357,13 @@ def violin_groups(
     if grid:
         ax.yaxis.grid(zorder=-100)
 
-    def plot_bar(X, values, color):
+    def plot_bar(X: float, values: np.ndarray, color: str) -> mpl.patches.Rectangle:
         handle = ax.bar(x=X, width=width, height=np.mean(values), color=color, zorder=1)
         return handle
 
-    def plot_violin(X, values, color):
+    def plot_violin(
+        X: float, values: np.ndarray, color: str
+    ) -> mpl.collections.PolyCollection:
         if isinstance(values, np.ma.core.MaskedArray):
             values = values[~values.mask]
 
@@ -1248,52 +1420,46 @@ def violin_groups(
     shape = np.array(values).shape
     n_random_variables, n_groups = shape[0], shape[1]
 
-    # Create matrix for x position for each bar.
     violin_locations, first_violins_location = get_violin_x_locations(
         n_groups, n_random_variables, violin_width=width
     )
     X = violin_locations.T
 
     if colors is None:
-        # Create matrix of colors.
         if color_by == "groups":
             C = np.asarray([cmap(cstart + i * cdist) for i in range(n_groups)]).reshape(
                 n_groups, 4
             )
-        if color_by == "experiments":
+        elif color_by == "experiments":
             C = np.asarray([
                 cmap(cstart + i * cdist) for i in range(n_random_variables)
             ]).reshape(n_random_variables, 4)
+        else:
+            raise ValueError("Invalid color_by option")
     elif isinstance(colors, Iterable):
-        if color_by == "groups":
-            if len(colors) == n_groups:
-                C = colors
-            else:
-                raise ValueError
-        if color_by == "experiments":
-            if len(colors) == n_random_variables:
-                C = colors
-            else:
-                raise ValueError
+        if (
+            color_by == "groups"
+            and len(colors) == n_groups
+            or color_by == "experiments"
+            and len(colors) == n_random_variables
+        ):
+            C = colors
+        else:
+            raise ValueError("Invalid colors length")
     else:
-        raise ValueError
+        raise ValueError("Invalid colors specification")
 
-    # Plot each violin or bar and optionally scatter.
     handles = []
 
     for i in range(n_random_variables):
         for j in range(n_groups):
-            if color_by == "experiments":
-                _color = C[i]
-            elif color_by == "groups":
-                _color = C[j]
-            else:
-                raise ValueError
+            _color = C[i] if color_by == "experiments" else C[j]
 
-            if as_bars:
-                h = plot_bar(X[i, j], values[i, j], _color)
-            else:
-                h = plot_violin(X[i, j], values[i, j], _color)
+            h = (
+                plot_bar(X[i, j], values[i, j], _color)
+                if as_bars
+                else plot_violin(X[i, j], values[i, j], _color)
+            )
             handles.append(h)
 
             if scatter:
@@ -1340,7 +1506,28 @@ def violin_groups(
 # ---- POLAR
 
 
-def plot_complex(z, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5):
+def plot_complex(
+    z: complex,
+    marker: str = "s",
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    figsize: Tuple[float, float] = (1, 1),
+    fontsize: int = 5,
+) -> Tuple[Figure, Axes]:
+    """
+    Plot a complex number on a polar plot.
+
+    Args:
+        z: Complex number to plot.
+        marker: Marker style for the point.
+        fig: Existing figure to plot on.
+        ax: Existing axes to plot on.
+        figsize: Size of the figure.
+        fontsize: Font size for text elements.
+
+    Returns:
+        A tuple containing the Figure and Axes objects.
+    """
     fig, ax = plt_utils.init_plot(
         figsize=figsize, projection="polar", fontsize=fontsize, fig=fig, ax=ax
     )
@@ -1353,8 +1540,29 @@ def plot_complex(z, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5):
 
 
 def plot_complex_vector(
-    z0, z1, marker="s", fig=None, ax=None, figsize=[1, 1], fontsize=5
-):
+    z0: complex,
+    z1: complex,
+    marker: str = "s",
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    figsize: Tuple[float, float] = (1, 1),
+    fontsize: int = 5,
+) -> Tuple[Figure, Axes]:
+    """
+    Plot a vector between two complex numbers on a polar plot.
+
+    Args:
+        z0: Starting complex number.
+        z1: Ending complex number.
+        marker: Marker style for the points.
+        fig: Existing figure to plot on.
+        ax: Existing axes to plot on.
+        figsize: Size of the figure.
+        fontsize: Font size for text elements.
+
+    Returns:
+        A tuple containing the Figure and Axes objects.
+    """
     fig, ax = plt_utils.init_plot(
         figsize=figsize, projection="polar", fontsize=fontsize, fig=fig, ax=ax
     )
@@ -1369,59 +1577,67 @@ def plot_complex_vector(
     return fig, ax
 
 
-def extend_arg(arg, argtype, r, default, dim=-1):
-    """Extend an argument to the correct length for a given dimension."""
-    r = np.asarray(r)
-
-    if isinstance(arg, argtype) and r.ndim > 1:
-        # Extend the arg to a list of r.shape[dim] times the same value
-        return [arg] * r.shape[dim]
-    elif isinstance(arg, Iterable) and len(arg) == r.shape[dim]:
-        # If it's already a list of the correct length, return it unchanged
-        return arg
-    elif r.ndim == 1 and np.asarray(arg).size == 1:
-        return arg
-    elif r.ndim == 1:
-        return default
-    else:
-        raise ValueError(
-            f"arg must be either an integer or a list of length {r.shape[-1]}."
-        )
-
-
 def polar(
-    theta,
-    r,
-    ax=None,
-    fig=None,
-    color="b",
-    linestyle="-",
-    marker="",
-    markersize=None,
-    label=None,
-    title="",
-    figsize=(5, 5),
-    fontsize=10,
-    xlabel="",
-    fontweight="normal",
-    anglepad=-2,
-    xlabelpad=-3,
-    linewidth=2,
-    ymin=None,
-    ymax=None,
-    stroke_kwargs={},
-    yticks_off=True,
-    zorder=100,
+    theta: NDArray,
+    r: NDArray,
+    ax: Optional[Axes] = None,
+    fig: Optional[Figure] = None,
+    color: Union[str, List[str]] = "b",
+    linestyle: str = "-",
+    marker: str = "",
+    markersize: Optional[float] = None,
+    label: Optional[str] = None,
+    title: str = "",
+    figsize: Tuple[float, float] = (5, 5),
+    fontsize: int = 10,
+    xlabel: str = "",
+    fontweight: Literal[
+        "normal", "bold", "light", "ultralight", "heavy", "black", "semibold"
+    ] = "normal",
+    anglepad: int = -2,
+    xlabelpad: int = -3,
+    linewidth: float = 2,
+    ymin: Optional[float] = None,
+    ymax: Optional[float] = None,
+    stroke_kwargs: dict = {},
+    yticks_off: bool = True,
+    zorder: Union[int, List[int]] = 100,
     **kwargs,
-):
-    """Polar tuning plot.
+) -> Tuple[Figure, Axes]:
+    """
+    Create a polar tuning plot.
 
     Args:
-        theta (array): angles or x in degree!
-        r (array): radius or y.
+        theta: Array of angles in degrees.
+        r: Array of radii.
+        ax: Matplotlib Axes object.
+        fig: Matplotlib Figure object.
+        color: Color(s) for the plot.
+        linestyle: Line style for the plot.
+        marker: Marker style for data points.
+        markersize: Size of markers.
+        label: Label for the plot.
+        title: Title of the plot.
+        figsize: Size of the figure.
+        fontsize: Font size for text elements.
+        xlabel: X-axis label.
+        fontweight: Font weight for labels.
+        anglepad: Padding for angle labels.
+        xlabelpad: Padding for x-axis label.
+        linewidth: Width of the plot lines.
+        ymin: Minimum y-axis value.
+        ymax: Maximum y-axis value.
+        stroke_kwargs: Keyword arguments for stroke effects.
+        yticks_off: Whether to turn off y-axis ticks.
+        zorder: Z-order for plot elements.
+        **kwargs: Additional keyword arguments.
 
     Returns:
-        [type]: [description]
+        A tuple containing the Figure and Axes objects.
+
+    Note:
+        This function creates a polar plot with various customization options.
+        It supports multiple traces and custom styling.
     """
     fig, ax = plt_utils.init_plot(
         figsize=figsize,
@@ -1433,7 +1649,7 @@ def polar(
     )
 
     if sum(theta) < 100:
-        logging.warning("using radians instead of degree?")
+        logging.warning("Using radians instead of degrees?")
 
     closed = theta[-1] % 360 == theta[0]
     theta = theta * np.pi / 180
@@ -1451,7 +1667,7 @@ def polar(
             path_effects.Normal(),
         ]
 
-    zorder = extend_arg(zorder, int, r, default=0, dim=-1)
+    zorder = plt_utils.extend_arg(zorder, int, r, default=0, dim=-1)
 
     if r.ndim == 2:
         for i, _r in enumerate(r.T):
@@ -1514,53 +1730,76 @@ def polar(
     return fig, ax
 
 
-def half_polar(theta, r, **kwargs):
-    """To plot orientation tuning from oriented bars."""
-
-    theta = np.append(theta, theta + 180)
-    r = np.append(r, r)
-
-    return polar(theta, r, **kwargs)
-
-
 def multi_polar(
-    theta,
-    r,
-    ax=None,
-    fig=None,
-    mean_color="b",
-    norm=True,
-    std=False,
-    color="b",
-    mean=False,
-    linestyle="-",
-    marker="",
-    label="",
-    legend=False,
-    title="",
-    figsize=(0.98, 2.38),
-    fontsize=5,
-    xlabel="",
-    fontweight="bold",
-    alpha=1,
-    anglepad=-6,
-    xlabelpad=-3,
-    linewidth=0.75,
-    ymin=None,
-    ymax=None,
-    zorder=None,
-    legend_kwargs=dict(fontsize=5),
-    rm_yticks=True,
-    **kwargs,
-):
-    """Polar tuning plot.
+    theta: np.ndarray,
+    r: np.ndarray,
+    ax: Optional[Axes] = None,
+    fig: Optional[Figure] = None,
+    mean_color: str = "b",
+    norm: bool = False,
+    std: bool = False,
+    color: Union[str, List[str], np.ndarray] = "b",
+    mean: bool = False,
+    linestyle: str = "-",
+    marker: str = "",
+    label: Union[str, List[str]] = "",
+    legend: bool = False,
+    title: str = "",
+    figsize: Tuple[float, float] = (0.98, 2.38),
+    fontsize: int = 5,
+    xlabel: str = "",
+    fontweight: str = "bold",
+    alpha: float = 1,
+    anglepad: int = -6,
+    xlabelpad: int = -3,
+    linewidth: float = 0.75,
+    ymin: Optional[float] = None,
+    ymax: Optional[float] = None,
+    zorder: Optional[Union[int, List[int], np.ndarray]] = None,
+    legend_kwargs: Dict[str, Any] = dict(fontsize=5),
+    rm_yticks: bool = True,
+    **kwargs: Any,
+) -> Tuple[Figure, Axes]:
+    """
+    Create a polar tuning plot.
 
     Args:
-        theta (array): angles or x.
-        r (array): radius or y, (nsamples, values).
+        theta: Angles in degrees.
+        r: Radius values. Shape (n_samples, n_values).
+        ax: Existing Axes object to plot on. Defaults to None.
+        fig: Existing Figure object to use. Defaults to None.
+        mean_color: Color for the mean line. Defaults to "b".
+        norm: Whether to normalize the radius values. Defaults to False.
+        std: Whether to plot standard deviation. Defaults to False.
+        color: Color(s) for the lines. Defaults to "b".
+        mean: Whether to plot the mean. Defaults to False.
+        linestyle: Style of the lines. Defaults to "-".
+        marker: Marker style for data points. Defaults to "".
+        label: Label(s) for the lines. Defaults to "".
+        legend: Whether to show a legend. Defaults to False.
+        title: Title of the plot. Defaults to "".
+        figsize: Size of the figure. Defaults to (0.98, 2.38).
+        fontsize: Font size for text elements. Defaults to 5.
+        xlabel: Label for the x-axis. Defaults to "".
+        fontweight: Font weight for labels. Defaults to "bold".
+        alpha: Alpha value for line transparency. Defaults to 1.
+        anglepad: Padding for angle labels. Defaults to -6.
+        xlabelpad: Padding for x-axis label. Defaults to -3.
+        linewidth: Width of the lines. Defaults to 0.75.
+        ymin: Minimum y-axis value. Defaults to None.
+        ymax: Maximum y-axis value. Defaults to None.
+        zorder: Z-order for drawing. Defaults to None.
+        legend_kwargs: Additional keyword arguments for legend.
+            Defaults to dict(fontsize=5).
+        rm_yticks: Whether to remove y-axis ticks. Defaults to True.
+        **kwargs: Additional keyword arguments.
 
     Returns:
-        [type]: [description]
+        A tuple containing the Figure and Axes objects.
+
+    Note:
+        This function creates a polar plot with multiple traces, optionally showing
+        mean and standard deviation.
     """
     fig, ax = plt_utils.init_plot(
         figsize=figsize,
@@ -1582,29 +1821,22 @@ def multi_polar(
         theta = np.append(theta, theta[0])
         r = np.append(r, np.expand_dims(r[:, 0], 1), axis=1)
 
-    if not isinstance(color, (list, np.ndarray)):
-        color = n_traces * (color,)
+    color = [color] * n_traces if not isinstance(color, (list, np.ndarray)) else color
+    label = [label] * n_traces if not isinstance(label, (list, np.ndarray)) else label
+    zorder = [100] * n_traces if not isinstance(zorder, (list, np.ndarray)) else zorder
 
-    if not isinstance(label, (list, np.ndarray)):
-        label = n_traces * (label,)
-
-    if not isinstance(zorder, (list, np.ndarray)):
-        zorder = n_traces * (100,)
-
-    # why?
-    if n_traces >= 1:
-        for i, _r in enumerate(r):
-            ax.plot(
-                theta,
-                _r,
-                linewidth=linewidth,
-                color=color[i],
-                linestyle=linestyle,
-                marker=marker,
-                label=label[i],
-                zorder=zorder[i],
-                alpha=alpha,
-            )
+    for i, _r in enumerate(r):
+        ax.plot(
+            theta,
+            _r,
+            linewidth=linewidth,
+            color=color[i],
+            linestyle=linestyle,
+            marker=marker,
+            label=label[i],
+            zorder=zorder[i],
+            alpha=alpha,
+        )
 
     if mean:
         ax.plot(
@@ -1655,187 +1887,54 @@ def multi_polar(
     return fig, ax
 
 
-def half_multi_polar(
-    theta,
-    r,
-    ax=None,
-    fig=None,
-    mean_color="b",
-    norm=True,
-    std=False,
-    color="b",
-    mean=False,
-    linestyle="-",
-    marker="",
-    label="",
-    legend=False,
-    title="",
-    figsize=(0.98, 2.38),
-    fontsize=5,
-    xlabel="",
-    fontweight="bold",
-    alpha=1,
-    anglepad=-6,
-    xlabelpad=-3,
-    linewidth=0.75,
-    ymin=None,
-    ymax=None,
-    zorder=None,
-    legend_kwargs=dict(fontsize=5),
-    rm_yticks=True,
-    **kwargs,
-):
-    """Polar tuning plot.
-
-    Args:
-        theta (array): angles or x.
-        r (array): radius or y, (nsamples, values).
-
-    Returns:
-        [type]: [description]
-    """
-    fig, ax = plt_utils.init_plot(
-        figsize=figsize,
-        title=title,
-        fontsize=fontsize,
-        ax=ax,
-        fig=fig,
-        projection="polar",
-    )
-
-    theta = np.append(theta, theta + 180)
-    r = np.atleast_2d(r)
-    r = np.append(r, r, axis=1)
-
-    n_traces = r.shape[0]
-
-    if norm:
-        r = r / (r.max(axis=1, keepdims=True) + 1e-15)
-
-    closed = theta[-1] % 360 == theta[0]
-    theta = theta * np.pi / 180
-    if not closed:
-        theta = np.append(theta, theta[0])
-        r = np.append(r, np.expand_dims(r[:, 0], 1), axis=1)
-
-    if not isinstance(color, (list, np.ndarray)):
-        color = n_traces * (color,)
-
-    if not isinstance(label, (list, np.ndarray)):
-        label = n_traces * (label,)
-
-    if not isinstance(zorder, (list, np.ndarray)):
-        zorder = n_traces * (100,)
-
-    # why?
-    if n_traces >= 1:
-        for i, _r in enumerate(r):
-            ax.plot(
-                theta,
-                _r,
-                linewidth=linewidth,
-                color=color[i],
-                linestyle=linestyle,
-                marker=marker,
-                label=label[i],
-                zorder=zorder[i],
-                alpha=alpha,
-            )
-
-    if mean:
-        ax.plot(
-            theta,
-            r.mean(0),
-            linewidth=linewidth,
-            color=mean_color,
-            linestyle=linestyle,
-            marker=marker,
-            label="average",
-            alpha=alpha,
-        )
-
-    if std:
-        ax.fill_between(
-            theta,
-            r.mean(0) - r.std(0),
-            r.mean(0) + r.std(0),
-            color="0.8",
-            alpha=0.5,
-            zorder=-1,
-        )
-
-    ax.tick_params(axis="both", which="major", labelsize=fontsize, pad=anglepad)
-    if rm_yticks:
-        ax.set_yticks([])
-        ax.set_yticklabels([])
-    ax.set_xticks([
-        0,
-        np.pi / 4,
-        np.pi / 2,
-        3 / 4 * np.pi,
-        np.pi,
-        5 / 4 * np.pi,
-        3 / 2 * np.pi,
-        7 / 4 * np.pi,
-    ])
-    ax.set_xticklabels(["0°", "45°", "90°", "", "", "", "", ""])
-
-    ax.set_xlabel(xlabel, fontsize=fontsize, labelpad=xlabelpad, fontweight=fontweight)
-    if all((val is not None for val in (ymin, ymax))):
-        ax.set_ylim((ymin, ymax))
-    plt.setp(ax.spines.values(), color="grey", linewidth=1)
-
-    if legend:
-        ax.legend(**legend_kwargs)
-
-    return fig, ax
-
-
-def stim_trace(time, stim, linewidth=1):
-    fig, ax = plt.subplots(figsize=[2, 0.1])
-    ax.plot(time, stim, "k", linewidth=linewidth)
-    plt_utils.rm_spines(ax)
-    return fig, ax
-
-
 def loss_curves(
-    losses,
-    smooth=0.05,
-    subsample=1,
-    mean=False,
-    grid=True,
-    colors=None,
-    cbar=False,
-    cmap=None,
-    norm=None,
-    fig=None,
-    ax=None,
-    xlabel=None,
-    ylabel=None,
-):
+    losses: List[np.ndarray],
+    smooth: float = 0.05,
+    subsample: int = 1,
+    mean: bool = False,
+    grid: bool = True,
+    colors: Optional[List[str]] = None,
+    cbar: bool = False,
+    cmap: Optional[mpl.colors.Colormap] = None,
+    norm: Optional[mpl.colors.Normalize] = None,
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+) -> Tuple[Figure, Axes]:
     """Plot loss traces.
 
     Args:
-        losses: tensor of shape (n_models, n_iters)
-        smooth: smoothing factor
-        subsample: subsample factor
-        mean: plot mean
-        grid: show grid
-        colors: list of colors
-        cbar: add colorbar
-        cmap: colormap
-        norm: normalization
-        fig: figure
-        ax: axis
+        losses: List of loss arrays, each of shape (n_iters,).
+        smooth: Smoothing factor for the loss curves.
+        subsample: Subsample factor for the loss curves.
+        mean: Whether to plot the mean loss curve.
+        grid: Whether to show grid lines.
+        colors: List of colors for the loss curves.
+        cbar: Whether to add a colorbar.
+        cmap: Colormap for the loss curves.
+        norm: Normalization for the colormap.
+        fig: Existing figure to plot on.
+        ax: Existing axes to plot on.
+        xlabel: Label for the x-axis.
+        ylabel: Label for the y-axis.
+
+    Returns:
+        A tuple containing the Figure and Axes objects.
+
+    Note:
+        This function plots loss curves for multiple models, with options for
+        smoothing, subsampling, and various visual customizations.
     """
     losses = np.array([loss[::subsample] for loss in losses])
 
-    max_n_iters = max([len(loss) for loss in losses])
+    max_n_iters = max(len(loss) for loss in losses)
 
-    _losses = np.zeros([len(losses), max_n_iters]) * np.nan
+    _losses = np.full((len(losses), max_n_iters), np.nan)
     for i, loss in enumerate(losses):
         n_iters = len(loss)
-        _losses[i, :n_iters] = loss[:]
+        _losses[i, :n_iters] = loss
+
     fig, ax, _, _ = traces(
         _losses[::-1],
         x=np.arange(max_n_iters) * subsample,
@@ -1844,7 +1943,7 @@ def loss_curves(
         smooth=smooth,
         fig=fig,
         ax=ax,
-        color=colors[::-1],
+        color=colors[::-1] if colors is not None else None,
         linewidth=0.5,
         highlight_mean=mean,
     )
@@ -1873,17 +1972,35 @@ def loss_curves(
 
 
 def histogram(
-    array,
-    bins=None,
-    fill=False,
-    histtype="step",
-    figsize=[1, 1],
-    fontsize=5,
-    fig=None,
-    ax=None,
-    xlabel=None,
-    ylabel=None,
-):
+    array: np.ndarray,
+    bins: Optional[Union[int, Sequence, str]] = None,
+    fill: bool = False,
+    histtype: Literal["bar", "barstacked", "step", "stepfilled"] = "step",
+    figsize: Tuple[float, float] = (1, 1),
+    fontsize: int = 5,
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+) -> Tuple[Figure, Axes]:
+    """
+    Create a histogram plot.
+
+    Args:
+        array: Input data to plot.
+        bins: Number of bins or bin edges. Defaults to len(array).
+        fill: Whether to fill the bars. Defaults to False.
+        histtype: Type of histogram to plot. Defaults to "step".
+        figsize: Size of the figure. Defaults to (1, 1).
+        fontsize: Font size for labels. Defaults to 5.
+        fig: Existing figure to plot on. Defaults to None.
+        ax: Existing axes to plot on. Defaults to None.
+        xlabel: Label for x-axis. Defaults to None.
+        ylabel: Label for y-axis. Defaults to None.
+
+    Returns:
+        A tuple containing the Figure and Axes objects.
+    """
     fig, ax = plt_utils.init_plot(figsize=figsize, fontsize=fontsize, fig=fig, ax=ax)
     ax.hist(
         array,
@@ -1898,29 +2015,53 @@ def histogram(
 
 
 def violins(
-    variable_names,
-    variable_values,
-    ylabel=None,
-    title=None,
-    max_per_ax=20,
-    colors=None,
-    cmap=plt.cm.viridis_r,
-    fontsize=5,
-    violin_width=0.7,
-    legend=None,
-    scatter_extent=[-0.35, 0.35],
-    figwidth=10,
-    fig=None,
-    axes=None,
-    ylabel_offset=0.2,
-    **kwargs,
-):
-    """ """
+    variable_names: List[str],
+    variable_values: np.ndarray,
+    ylabel: Optional[str] = None,
+    title: Optional[str] = None,
+    max_per_ax: Optional[int] = 20,
+    colors: Optional[Union[str, List[str]]] = None,
+    cmap: plt.cm = plt.cm.viridis_r,
+    fontsize: int = 5,
+    violin_width: float = 0.7,
+    legend: Optional[Union[str, List[str]]] = None,
+    scatter_extent: List[float] = [-0.35, 0.35],
+    figwidth: float = 10,
+    fig: Optional[Figure] = None,
+    axes: Optional[List[Axes]] = None,
+    ylabel_offset: float = 0.2,
+    **kwargs: Any,
+) -> Tuple[Figure, List[Axes]]:
+    """
+    Create violin plots for multiple variables across groups.
 
-    # variable first, samples second
+    Args:
+        variable_names: Names of the variables to plot.
+        variable_values: Array of values for each variable and group.
+        ylabel: Label for the y-axis.
+        title: Title of the plot.
+        max_per_ax: Maximum number of variables per axis.
+        colors: Colors for the violin plots.
+        cmap: Colormap to use if colors are not specified.
+        fontsize: Font size for labels and ticks.
+        violin_width: Width of each violin plot.
+        legend: Legend labels for groups.
+        scatter_extent: Extent of scatter points on violins.
+        figwidth: Width of the figure.
+        fig: Existing figure to plot on.
+        axes: Existing axes to plot on.
+        ylabel_offset: Offset for y-axis label.
+        **kwargs: Additional keyword arguments for violin_groups function.
+
+    Returns:
+        A tuple containing the Figure and list of Axes objects.
+
+    Note:
+        This function creates violin plots for multiple variables, potentially
+        across multiple groups, with optional scatter points on each violin.
+    """
     variable_values = variable_values.T
     if len(variable_values.shape) == 2:
-        # add empty group dimension
         variable_values = variable_values[:, None]
 
     n_variables, n_groups, n_samples = variable_values.shape
@@ -1930,7 +2071,6 @@ def violins(
     n_axes = int(n_variables / max_per_ax)
     max_per_ax += int(np.ceil((n_variables % max_per_ax) / n_axes))
 
-    # breakpoint()
     fig, axes, _ = plt_utils.get_axis_grid(
         gridheight=n_axes,
         gridwidth=1,
@@ -2002,7 +2142,6 @@ def violins(
             spinewidth=0.5,
         )
 
-    # since axes are split, we need to manually add the ylabel
     lefts, bottoms, rights, tops = np.array([ax.get_position().extents for ax in axes]).T
     fig.text(
         lefts.min() - ylabel_offset * lefts.min(),
@@ -2014,25 +2153,47 @@ def violins(
         va="center",
     )
 
-    # top axis gets the title
     axes[0].set_title(title, y=0.91, fontsize=fontsize)
 
     return fig, axes
 
 
 def plot_strf(
-    time,
-    rf,
-    hlines=True,
-    vlines=True,
-    time_axis=True,
-    fontsize=6,
-    fig=None,
-    axes=None,
-    figsize=[5, 1],
-    wspace=0,
-    y_offset_time_axis=0,
-):
+    time: np.ndarray,
+    rf: np.ndarray,
+    hlines: bool = True,
+    vlines: bool = True,
+    time_axis: bool = True,
+    fontsize: int = 6,
+    fig: Optional[Figure] = None,
+    axes: Optional[np.ndarray] = None,
+    figsize: List[float] = [5, 1],
+    wspace: float = 0,
+    y_offset_time_axis: float = 0,
+) -> Tuple[Figure, np.ndarray]:
+    """
+    Plot a Spatio-Temporal Receptive Field (STRF).
+
+    Args:
+        time: Array of time points.
+        rf: Receptive field array.
+        hlines: Whether to draw horizontal lines. Defaults to True.
+        vlines: Whether to draw vertical lines. Defaults to True.
+        time_axis: Whether to add a time axis. Defaults to True.
+        fontsize: Font size for labels and ticks.
+        fig: Existing figure to plot on.
+        axes: Existing axes to plot on.
+        figsize: Size of the figure as [width, height].
+        wspace: Width space between subplots.
+        y_offset_time_axis: Vertical offset for the time axis.
+
+    Returns:
+        A tuple containing the Figure and Axes objects.
+
+    Note:
+        This function creates a series of hexagonal plots representing the STRF
+        at different time points.
+    """
     max_extent = hex_utils.get_hextent(rf.shape[-1])
     t_steps = np.arange(0.0, 0.2, 0.01)[::2]
 
