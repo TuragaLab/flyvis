@@ -1,14 +1,13 @@
-# Notebook Per Model Help
+# Notebook Per Model
 
-Script: `scripts/scripts/notebook_per_model.py`
+`scripts/scripts/notebook_per_model.py`
 
 ```
 usage: notebook_per_model.py [-h] [--start START] [--end END] [--nP NP]
                              [--gpu GPU] [--q Q] --ensemble_id ENSEMBLE_ID
                              --task_name TASK_NAME
-                             [--notebook_script NOTEBOOK_SCRIPT]
-                             --notebook_path NOTEBOOK_PATH --output_path
-                             OUTPUT_PATH [--dry]
+                             [--notebook_per_model_path NOTEBOOK_PER_MODEL_PATH]
+                             [--dry]
 
 Run a notebook for each model of an ensemble on the cluster.
 
@@ -23,13 +22,8 @@ optional arguments:
                         Id of the ensemble, e.g. 0045.
   --task_name TASK_NAME
                         Name given to the task, e.g., flow.
-  --notebook_script NOTEBOOK_SCRIPT
-                        Script to run for executing notebooks.
-  --notebook_path NOTEBOOK_PATH
-                        Path of the notebook to execute, e.g.
-                        /path/to/__main__.ipynb.
-  --output_path OUTPUT_PATH
-                        Path for the output notebook.
+  --notebook_per_model_path NOTEBOOK_PER_MODEL_PATH
+                        Path of the notebook to execute.
   --dry                 Perform a dry run without actually launching jobs.
 
 ```

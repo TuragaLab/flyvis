@@ -1,12 +1,12 @@
-"""Script to run a notebook for each model of an ensemble."""
+"""Script to run a jupyter notebook for an ensemble."""
 
 import argparse
 import logging
+import sys
 from typing import List
 
 from flyvision import script_dir
-from flyvision.utils.compute_cloud_utils import launch_range
-from flyvision.utils.config_utils import HybridArgumentParser
+from flyvision.utils.compute_cloud_utils import launch_single
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
@@ -14,39 +14,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run_notebook_ensemble(args: argparse.Namespace, kwargs: List[str]) -> None:
+def run_ensemble_notebook(args: argparse.Namespace, kwargs: List[str]) -> None:
     """
-    Launch notebook jobs for an ensemble of models.
+    Launch ensemble notebook job.
 
     Args:
         args: Command-line arguments.
         kwargs: Additional keyword arguments as a list of strings.
     """
-    # remove conflicting argument
-    launch_range(
-        args.start,
-        args.end,
+    launch_single(
         args.ensemble_id,
         args.task_name,
         args.nP,
         args.gpu,
         args.q,
-        f"{str(script_dir)}/notebook.py",
+        args.notebook_script,
         args.dry,
-        # add hybrid argument
-        ["--notebook_per_model_path", args.notebook_per_model_path]
-        + ["notebook_per_model:bool=true"]
-        + kwargs,
+        ["--notebook_path", args.notebook_path] + ["per_ensemble:bool=true"] + kwargs,
     )
 
 
 if __name__ == "__main__":
-    parser = HybridArgumentParser(
-        hybrid_args=[],
-        description="Run a notebook for each model of an ensemble on the cluster.",
-    )
-    parser.add_argument("--start", type=int, default=0, help="Start id of ensemble.")
-    parser.add_argument("--end", type=int, default=50, help="End id of ensemble.")
+    parser = argparse.ArgumentParser(description="Run ensemble notebook on the cluster.")
     parser.add_argument("--nP", type=int, default=4, help="Number of processors.")
     parser.add_argument("--gpu", type=str, default="num=1", help="Number of GPUs.")
     parser.add_argument("--q", type=str, default="gpu_l4", help="Queue.")
@@ -63,10 +52,16 @@ if __name__ == "__main__":
         help="Name given to the task, e.g., flow.",
     )
     parser.add_argument(
-        "--notebook_per_model_path",
+        "--notebook_path",
         type=str,
-        default="examples/__main_per_model__.ipynb",
+        default="examples/__main__.ipynb",
         help="Path of the notebook to execute.",
+    )
+    parser.add_argument(
+        "--notebook_script",
+        type=str,
+        default=f"{str(script_dir)}/notebook.py",
+        help="Script to run for notebook execution.",
     )
     parser.add_argument(
         "--dry",
@@ -75,4 +70,4 @@ if __name__ == "__main__":
     )
 
     args, kwargs = parser.parse_known_intermixed_args()
-    run_notebook_ensemble(args, kwargs)
+    run_ensemble_notebook(args, sys.argv[1:])

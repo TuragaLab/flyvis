@@ -1,6 +1,6 @@
-# Validate Help
+# Validate
 
-Script: `scripts/scripts/validate.py`
+`scripts/scripts/validate.py`
 
 ```
 usage: validate.py [-h] [--start START] [--end END] [--nP NP] [--gpu GPU]

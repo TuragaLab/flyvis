@@ -27,7 +27,7 @@ def script_to_md(script_path: Path, output_dir: Path):
 
     # Write the help message to a markdown file
     with open(output_file, "w", encoding="utf-8") as f:
-        f.write(f"# {script_path.stem.replace('_', ' ').title()} Help\n\n")
+        f.write(f"# {script_path.stem.replace('_', ' ').title()}\n\n")
         f.write(f"`{doc_script_path}`\n\n")
         f.write("```\n" + help_output + "\n```")
 

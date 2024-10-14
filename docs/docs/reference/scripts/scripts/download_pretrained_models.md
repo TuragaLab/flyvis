@@ -1,6 +1,6 @@
-# Download Pretrained Models Help
+# Download Pretrained Models
 
-Script: `scripts/scripts/download_pretrained_models.py`
+`scripts/scripts/download_pretrained_models.py`
 
 ```
 usage: download_pretrained_models.py [-h] [--skip_large_files]

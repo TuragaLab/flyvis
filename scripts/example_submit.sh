@@ -229,3 +229,24 @@ python train_ensemble.py \
         --ensemble_id 0000 \
         --task_name flow \
         --launch_synthetic_recordings
+
+
+python pipeline_manager.py --ensemble_id 0000 --task_name flow \
+        --command record \
+        --start 0 --end 50 \
+        --notebook_path path/to/notebook.ipynb \
+        --output_path path/to/output.ipynb \
+        --dry
+
+
+python pipeline_manager.py --command record --ensemble_id 0000 --task_name flow
+
+python pipeline_manager.py --command validate --ensemble_id 0000 --task_name flow
+
+python pipeline_manager.py --command analysis --ensemble_id 0000 --task_name flow
+
+python pipeline_manager.py --command notebook_per_model --ensemble_id 0000 --task_name flow
+
+python pipeline_manager.py --command notebook --ensemble_id 0000 --task_name flow
+
+python pipeline_manager.py --command validate record notebook_per_model notebook --ensemble_id 0000 --task_name flow

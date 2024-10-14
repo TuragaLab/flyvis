@@ -1,6 +1,6 @@
-# Synthetic Recordings Single Help
+# Synthetic Recordings Single
 
-Script: `scripts/analysis/synthetic_recordings_single.py`
+`scripts/analysis/synthetic_recordings_single.py`
 
 ```
 usage: synthetic_recordings_single.py [-h] [--task_name TASK_NAME]

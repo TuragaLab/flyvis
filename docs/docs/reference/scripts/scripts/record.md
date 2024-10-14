@@ -1,6 +1,6 @@
-# Record Help
+# Record
 
-Script: `scripts/scripts/record.py`
+`scripts/scripts/record.py`
 
 ```
 usage: record.py [-h] [--start START] [--end END] [--nP NP] [--gpu GPU]

@@ -1,6 +1,6 @@
-# Train Help
+# Train
 
-Script: `scripts/scripts/train.py`
+`scripts/scripts/train.py`
 
 ```
 usage: train.py [-h] [--start START] [--end END] [--nP NP] [--gpu GPU] [--q Q]

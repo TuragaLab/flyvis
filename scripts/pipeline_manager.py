@@ -4,11 +4,15 @@
 Example usage:
     ```bash
     # Run a pipeline of operations
-    python ensemble_manager.py --ensemble_id 0045 --task_name flow \
-        --command train validate record analysis notebook_per_model notebook \
-        --start 0 --end 50 \
-        --notebook_path path/to/notebook.ipynb \
-        --output_path path/to/output.ipynb
+    python pipeline_manager.py \
+        --command train \
+            validate \
+            record \
+            analysis \
+            notebook_per_model \
+            notebook_per_ensemble \
+        --ensemble_id 0001 \
+        --task_name flow
     ```
 """
 
@@ -50,7 +54,7 @@ if __name__ == "__main__":
             "record",
             "analysis",
             "notebook_per_model",
-            "notebook",
+            "notebook_per_ensemble",
         ],
         required=True,
         help="Commands to run in order.",
@@ -66,7 +70,7 @@ validate            : Runs validate.py
 record              : Runs record.py
 analysis            : Runs analysis.py
 notebook_per_model  : Runs notebook_per_model.py
-notebook            : Runs notebook.py
+notebook_per_ensemble : Runs notebook_per_ensemble.py
 
 All arguments after --command are passed directly to the respective scripts.
 For detailed help on each command, run the individual script with --help.
@@ -75,4 +79,4 @@ For detailed help on each command, run the individual script with --help.
     args, remaining = parser.parse_known_args()
 
     for command in args.command:
-        run_script(f"{command}.py", sys.argv[2:])
+        run_script(f"{command}.py", sys.argv[1:])

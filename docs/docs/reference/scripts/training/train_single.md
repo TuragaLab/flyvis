@@ -1,6 +1,6 @@
-# Train Single Help
+# Train Single
 
-Script: `scripts/training/train_single.py`
+`scripts/training/train_single.py`
 
 ```
 == flyvis ==
@@ -19,7 +19,7 @@ Train the visual system model using the specified configuration.
   - save_environment (bool): Whether to save the source code and environment details
 
   Example:
-      Train a network for 1000 iterations and describe it as 'test':
+      Train a network for 1000 iterations (and add description 'test'):
       python train.py \
           ensemble_and_network_id=0045/000 \
           task_name=flow \
@@ -62,7 +62,7 @@ delete_if_exists: false
 save_environment: false
 network:
   connectome:
-    type: ConnectomeDir
+    type: ConnectomeFromAvgFilters
     file: fib25-fib19_v2.2.json
     extent: 15
     n_syn_fill: 1
@@ -98,13 +98,11 @@ network:
       type: SynapseCountScaling
       initial_dist: Value
       requires_grad: true
-      scale_chem: 0.01
-      scale_elec: 0.01
+      scale: 0.01
       clamp: non_negative
       groupby:
       - source_type
       - target_type
-      - edge_type
       penalize:
         function: weight_decay
         kwargs:
@@ -160,7 +158,6 @@ task:
     - 1
     - 2
     - 3
-    task_weights: null
   decoder:
     flow:
       type: DecoderGAVP
@@ -172,8 +169,8 @@ task:
       n_out_features: null
       p_dropout: 0.5
   loss:
-    flow:
-      type: l2norm
+    flow: l2norm
+  task_weights: null
   batch_size: 4
   n_iters: 250000
   n_folds: 4
@@ -193,6 +190,7 @@ penalizer:
     stop_iter: 150000
     below_baseline_penalty_weight: 1.0
     above_baseline_penalty_weight: 0.1
+  optim: SGD
 scheduler:
   lr_net:
     function: stepwise

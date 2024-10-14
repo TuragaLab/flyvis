@@ -34,27 +34,46 @@ def run_ensemble_analysis(args: argparse.Namespace, kwargs: List[str]) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run ensemble analysis on the cluster.")
-    parser.add_argument("--nP", type=int, default=4, help="Number of processors.")
-    parser.add_argument("--gpu", type=str, default="num=1", help="Number of GPUs.")
-    parser.add_argument("--q", type=str, default="gpu_l4", help="Queue.")
+    parser = argparse.ArgumentParser(
+        description="Run ensemble analysis on the cluster.",
+        epilog="""
+Examples:
+    python analysis.py --ensemble_id 0045 --task_name flow
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--nP", type=int, default=4, help="Number of processors to use (default: 4)."
+    )
+    parser.add_argument(
+        "--gpu", type=str, default="num=1", help="GPU configuration (default: 'num=1')."
+    )
+    parser.add_argument(
+        "--q",
+        type=str,
+        default="gpu_l4",
+        help="Queue to submit the job to.",
+    )
     parser.add_argument(
         "--ensemble_id",
         type=int,
         required=True,
-        help="Id of the ensemble, e.g. 0045.",
+        help="ID of the ensemble, e.g., 0045.",
     )
     parser.add_argument(
         "--task_name",
         type=str,
         required=True,
-        help="Name given to the task, e.g., flow.",
+        help="Name given to the task, e.g., 'flow', 'depth', 'lum'.",
     )
     parser.add_argument(
         "--ensemble_analysis_script",
         type=str,
         default=f"{str(script_dir)}/analysis/ensemble_analysis.py",
-        help="Script to run for ensemble analysis.",
+        help=(
+            "Script to run for ensemble analysis (default: "
+            f"{str(script_dir)}/analysis/ensemble_analysis.py)."
+        ),
     )
     parser.add_argument(
         "--dry",
