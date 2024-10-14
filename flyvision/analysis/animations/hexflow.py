@@ -1,6 +1,14 @@
 """Color coded flow-field animation."""
 
+from typing import List, Literal, Optional, Tuple, Union
+
 import numpy as np
+import torch
+from matplotlib.axes import Axes
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
+from matplotlib.text import Text
 
 from flyvision import utils
 
@@ -14,47 +22,64 @@ class HexFlow(Animation):
     """Hexscatter of a color encoded flow field.
 
     Args:
-        flow (array or tensor): optic flow of shape (n_samples, n_frames, 2,
-            n_input_elements).
-        fig (Figure): existing Figure instance or None.
-        ax (Axis): existing Axis instance or None.
-        batch_sample (int): batch sample to start from. Defaults to 0.
-        cmap (colormap): colormap for the hex-scatter. Defaults to
-            plt_utils.cm_uniform_2d (greyscale).
-        cwheel (bool): display colorwheel. Defaults to True.
-        cwheelxy (tuple): colorwheel offset x and y.
-        label (str): label of the animation. Defaults to 'Sample: {}\nFrame:{}',
-            which is formatted with the current sample and frame number per frame.
-        labelxy (tuple): normalized x and y location of the label. Defaults to
-            (0, 1), i.e. top-left corner.
-        update (bool): whether to update the canvas after an animation step.
-            Must be False if this animation is composed with others using Anim-
-            ationcollector. Defaults to False.
-        path (str): path to save the animation to. Defaults to None.
-        figsize (list): figure size. Defaults to [2, 2].
-        fontsize (float): fontsize. Defaults to 5.
+        flow: Optic flow of shape (n_samples, n_frames, 2, n_input_elements).
+        fig: Existing Figure instance or None.
+        ax: Existing Axis instance or None.
+        batch_sample: Batch sample to start from.
+        cmap: Colormap for the hex-scatter.
+        cwheel: Display colorwheel.
+        cwheelxy: Colorwheel offset x and y.
+        label: Label of the animation.
+        labelxy: Normalized x and y location of the label.
+        update: Whether to update the canvas after an animation step.
+        path: Path to save the animation to.
+        figsize: Figure size.
+        fontsize: Font size.
+        background_color: Background color of the figure and axis.
 
+    Attributes:
+        fig (Figure): Figure instance.
+        ax (Axes): Axis instance.
+        background_color (str): Background color of the figure and axis.
+        batch_sample (int): Batch sample to start from.
+        kwargs (dict): Additional keyword arguments.
+        update (bool): Whether to update the canvas after an animation step.
+            Must be False if this animation is composed with others using
+            AnimationCollector.
+        cmap: Colormap for the hex-scatter.
+        cwheel (bool): Display colorwheel.
+        cwheelxy (Tuple[float, float]): Colorwheel offset x and y.
+        label (str): Label of the animation.
+        labelxy (Tuple[float, float]): Normalized x and y location of the label.
+        label_text (Text): Text instance for the label.
+        sm (ScalarMappable): ScalarMappable instance for color mapping.
+        fontsize (float): Font size.
+        figsize (List[float, float]): Figure size.
+        flow (np.ndarray): Optic flow data.
+        n_samples (int): Number of samples in the flow data.
+        frames (int): Number of frames in the flow data.
+        extent (Tuple[float, float, float, float]): Extent of the hexagonal grid.
 
-    Kwargs:
-        passed to ~flyvision.plots.plots.hex_flow.
+    Note:
+        All kwargs are passed to ~flyvision.analysis.visualization.plots.hex_flow.
     """
 
     def __init__(
         self,
-        flow,
-        fig=None,
-        ax=None,
-        batch_sample=0,
-        cmap=plt_utils.cm_uniform_2d,
-        cwheel=False,
-        cwheelxy=(),
-        label="Sample: {}\nFrame: {}",
-        labelxy=(0, 1),
-        update=False,
-        path=None,
-        figsize=[2, 2],
-        fontsize=5,
-        background_color="none",
+        flow: Union[np.ndarray, "torch.Tensor"],
+        fig: Optional[Figure] = None,
+        ax: Optional[Axes] = None,
+        batch_sample: int = 0,
+        cmap: "Colormap" = plt_utils.cm_uniform_2d,
+        cwheel: bool = False,
+        cwheelxy: Tuple[float, float] = (),
+        label: str = "Sample: {}\nFrame: {}",
+        labelxy: Tuple[float, float] = (0, 1),
+        update: bool = False,
+        path: Optional[str] = None,
+        figsize: List[float] = [2, 2],
+        fontsize: float = 5,
+        background_color: Literal["none"] = "none",
         **kwargs,
     ):
         self.fig = fig
@@ -69,8 +94,8 @@ class HexFlow(Animation):
 
         self.label = label
         self.labelxy = labelxy
-        self.label_text = None
-        self.sm = None
+        self.label_text: Optional[Text] = None
+        self.sm: Optional[ScalarMappable] = None
         self.fontsize = fontsize
         self.figsize = figsize
 
@@ -80,7 +105,12 @@ class HexFlow(Animation):
         self.extent = utils.hex_utils.get_hextent(self.flow.shape[-1])
         super().__init__(path, self.fig)
 
-    def init(self, frame=0):
+    def init(self, frame: int = 0) -> None:
+        """Initialize the animation.
+
+        Args:
+            frame: Frame number to initialize with.
+        """
         u, v = utils.hex_utils.get_hex_coords(self.extent)
         self.fig, self.ax, (self.label_text, self.sm, _, _) = plots.hex_flow(
             u,
@@ -101,7 +131,12 @@ class HexFlow(Animation):
         self.fig.patch.set_facecolor(self.background_color)
         self.ax.patch.set_facecolor(self.background_color)
 
-    def animate(self, frame):
+    def animate(self, frame: int) -> None:
+        """Animate a single frame.
+
+        Args:
+            frame: Frame number to animate.
+        """
         flow = self.flow[self.batch_sample, frame]
 
         r = np.sqrt(flow[0] ** 2 + flow[1] ** 2)

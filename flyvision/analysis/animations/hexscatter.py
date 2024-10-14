@@ -1,6 +1,12 @@
 """HexScatter animation."""
 
+from typing import List, Optional, Tuple, Union
+
+import numpy as np
 from matplotlib import colormaps as cm
+from matplotlib.axes import Axes
+from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
 
 from flyvision import utils
 
@@ -13,64 +19,81 @@ __all__ = ["HexScatter"]
 class HexScatter(Animation):
     """Regular hex-scatter animation.
 
-    Note: for hexals not on a regular hex grid use the function
-    pad_to_regular_hex.
+    For hexals not on a regular hex grid, use the function pad_to_regular_hex.
 
     Args:
-        hexarray (array or tensor): shape (n_samples, n_frames, 1,
-            n_input_elements)
-        u (list): list of u coordinates of elements to plot. Defaults to None.
-        v (list): list of v coordinates of elements to plot. Defaults to None.
-        cranges (List[float]): color minimal and maximal abs value (n_samples).
+        hexarray: Shape (n_samples, n_frames, 1, n_input_elements).
+        u: List of u coordinates of elements to plot.
+        v: List of v coordinates of elements to plot.
+        cranges: Color minimal and maximal abs value (n_samples).
+        vmin: Color minimal value.
+        vmax: Color maximal value.
+        fig: Existing Figure instance or None.
+        ax: Existing Axis instance or None.
+        batch_sample: Batch sample to start from.
+        cmap: Colormap for the hex-scatter.
+        edgecolor: Edgecolor for the hexals. None for no edge.
+        update_edge_color: Whether to update the edgecolor after an animation step.
+        update: Whether to update the canvas after an animation step.
+            Must be False if this animation is composed with others using
+            AnimationCollector.
+        label: Label of the animation. Formatted with the current sample and
+            frame number per frame.
+        labelxy: Location of the label.
+        fontsize: Fontsize.
+        cbar: Display colorbar.
+        background_color: Background color.
+        midpoint: Midpoint for diverging colormaps.
 
-        vmin (float): color minimal value.
-        vmax (flot): color maximal value.
-        fig (Figure): existing Figure instance or None.
-        ax (Axis): existing Axis instance or None.
-        batch_sample (int): batch sample to start from. Defaults to 0.
-        cmap (colormap): colormap for the hex-scatter. Defaults to
-            cm.get_cmap("binary_r") (greyscale).
-        edgecolor (str): edgecolor for the hexals. Defaults to "k" displaying
-            edges. None for no edge.
-        update_edge_color (bool): whether to update the edgecolor after an
-            animation step. Defaults to True.
-        update (bool): whether to update the canvas after an animation step.
-            Must be False if this animation is composed with others using Anim-
-            ationcollector. Defaults to False.
-        label (str): label of the animation. Defaults to 'Sample: {}\nFrame:{}',
-            which is formatted with the current sample and frame number per frame.
-        labelxy (tuple): location of the label. Defaults to
-            (0.1, 0.95), i.e. top-left corner.
-        fontsize (float): fontsize. Defaults to 5.
-        cbar (bool): display colorbar. Defaults to True.
-        background_color (str): background color. Defaults to "none".
-        midpoint (float): midpoint for diverging colormaps. Defaults to None.
+    Attributes:
+        fig (Figure): Matplotlib figure instance.
+        ax (Axes): Matplotlib axes instance.
+        background_color (str): Background color.
+        hexarray (np.ndarray): Hex array data.
+        cranges (Optional[List[float]]): Color ranges.
+        vmin (Optional[float]): Minimum value for color mapping.
+        vmax (Optional[float]): Maximum value for color mapping.
+        midpoint (Optional[float]): Midpoint for diverging colormaps.
+        kwargs (dict): Additional keyword arguments.
+        batch_sample (int): Batch sample index.
+        cmap: Colormap for the hex-scatter.
+        update (bool): Whether to update the canvas after an animation step.
+        label (str): Label template for the animation.
+        labelxy (Tuple[float, float]): Label position.
+        label_text: Text object for the label.
+        n_samples (int): Number of samples.
+        frames (int): Number of frames.
+        extent (int): Hex extent.
+        edgecolor (Optional[str]): Edgecolor for the hexals.
+        update_edge_color (bool): Whether to update the edgecolor.
+        fontsize (float): Font size.
+        cbar (bool): Whether to display colorbar.
+        u (List[float]): U coordinates of elements to plot.
+        v (List[float]): V coordinates of elements to plot.
 
-    Kwargs:
-        passed to ~dvs.plots.plots.hex_scatter.
     """
 
     def __init__(
         self,
-        hexarray,
-        u=None,
-        v=None,
-        cranges=None,
-        vmin=None,
-        vmax=None,
-        fig=None,
-        ax=None,
-        batch_sample=0,
-        cmap=cm.get_cmap("binary_r"),
-        edgecolor=None,
-        update_edge_color=True,
-        update=False,
-        label="Sample: {}\nFrame: {}",
-        labelxy=(0.1, 0.95),
-        fontsize=5,
-        cbar=True,
-        background_color="none",
-        midpoint=None,
+        hexarray: np.ndarray,
+        u: Optional[List[float]] = None,
+        v: Optional[List[float]] = None,
+        cranges: Optional[List[float]] = None,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+        fig: Optional[Figure] = None,
+        ax: Optional[Axes] = None,
+        batch_sample: int = 0,
+        cmap: Union[str, Colormap] = cm.get_cmap("binary_r"),
+        edgecolor: Optional[str] = None,
+        update_edge_color: bool = True,
+        update: bool = False,
+        label: str = "Sample: {}\nFrame: {}",
+        labelxy: Tuple[float, float] = (0.1, 0.95),
+        fontsize: float = 5,
+        cbar: bool = True,
+        background_color: str = "none",
+        midpoint: Optional[float] = None,
         **kwargs,
     ):
         self.fig = fig
@@ -92,17 +115,21 @@ class HexScatter(Animation):
         self.extent = utils.hex_utils.get_hextent(hexarray.shape[-1])
         self.edgecolor = edgecolor
         self.update_edge_color = update_edge_color
-        path = None
         self.fontsize = fontsize
         self.cbar = cbar
         if u is None or v is None:
             u, v = utils.hex_utils.get_hex_coords(self.extent)
         self.u = u
         self.v = v
-        super().__init__(path, self.fig)
+        super().__init__(None, self.fig)
 
-    def init(self, frame=0):
-        # to allow negative indices
+    def init(self, frame: int = 0) -> None:
+        """Initialize the animation.
+
+        Args:
+            frame: Frame number to initialize.
+
+        """
         if frame < 0:
             frame += self.frames
         u, v = utils.hex_utils.get_hex_coords(self.extent)
@@ -154,7 +181,7 @@ class HexScatter(Animation):
         self.fig.patch.set_facecolor(self.background_color)
         self.ax.patch.set_facecolor(self.background_color)
         if self.cbar:
-            cbar = plt_utils.add_colorbar_to_fig(
+            plt_utils.add_colorbar_to_fig(
                 self.fig,
                 [self.ax],
                 label="",
@@ -170,10 +197,14 @@ class HexScatter(Animation):
                 n_ticks=5,
                 n_decimals=0,
             )
-        # self.fig.tight_layout()
 
-    def animate(self, frame):
-        # to allow negative indices
+    def animate(self, frame: int) -> None:
+        """Animate a single frame.
+
+        Args:
+            frame: Frame number to animate.
+
+        """
         if frame < 0:
             frame += self.frames
         _values = self.hexarray[self.batch_sample]
@@ -203,11 +234,10 @@ class HexScatter(Animation):
             midpoint=self.midpoint,
         )
         if self.cbar:
-            # r emove old cbars
             for ax in self.fig.axes:
                 if ax.get_label() == "cbar":
                     ax.remove()
-            cbar = plt_utils.add_colorbar_to_fig(
+            plt_utils.add_colorbar_to_fig(
                 self.fig,
                 [self.ax],
                 label="",

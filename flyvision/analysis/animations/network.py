@@ -1,8 +1,10 @@
+from typing import Any, Literal, Optional
+
 import matplotlib.pyplot as plt
 
 from flyvision.utils.activity_utils import LayerActivity
 
-from ..visualization.network import WholeNetworkFigure
+from ..visualization.network_fig import WholeNetworkFigure
 from .animations import Animation
 from .hexflow import HexFlow
 from .hexscatter import HexScatter
@@ -12,24 +14,52 @@ __all__ = ["WholeNetworkAnimation"]
 
 
 class WholeNetworkAnimation(Animation):
+    """
+    Create an animation of the whole network activity.
+
+    This class generates an animation that visualizes the activity of a neural network,
+    including input, rendering, predicted flow, and target flow if provided.
+
+    Attributes:
+        fig_backbone (WholeNetworkFigure): The backbone figure for the animation.
+        fig (matplotlib.figure.Figure): The main figure object.
+        ax_dict (dict): Dictionary of axes for different components of the animation.
+        batch_sample (int): The index of the batch sample to animate.
+        kwargs (dict): Additional keyword arguments.
+        update (bool): Whether to update the figure during animation.
+        label (str): Label format string for the animation.
+        labelxy (tuple[float, float]): Position of the label.
+        fontsize (int): Font size for labels.
+        cmap (matplotlib.colors.Colormap): Colormap for the animation.
+        n_samples (int): Number of samples in the responses.
+        frames (int): Number of frames in the responses.
+        responses (LayerActivity): Layer activity data.
+        cartesian_input (Optional[Any]): Cartesian input data.
+        rendered_input (Optional[Any]): Rendered input data.
+        predicted_flow (Optional[Any]): Predicted flow data.
+        target_flow (Optional[Any]): Target flow data.
+        color_norm_per (str): Color normalization method.
+        voltage_axes (list): List of voltage axes for different cell types.
+    """
+
     def __init__(
         self,
-        connectome,
-        responses,
-        cartesian_input=None,
-        rendered_input=None,
-        predicted_flow=None,
-        target_flow=None,
-        batch_sample=0,
-        update=False,
-        color_norm_per="batch",
-        label="Sample: {}\nFrame: {}",
-        cmap=plt.get_cmap("binary_r"),
-        labelxy=(0, 0.9),
-        titlepad=1,
-        fontsize=5,
-        **kwargs,
-    ):
+        connectome: Any,
+        responses: Any,
+        cartesian_input: Optional[Any] = None,
+        rendered_input: Optional[Any] = None,
+        predicted_flow: Optional[Any] = None,
+        target_flow: Optional[Any] = None,
+        batch_sample: int = 0,
+        update: bool = False,
+        color_norm_per: Literal["batch"] = "batch",
+        label: str = "Sample: {}\nFrame: {}",
+        cmap: Any = plt.get_cmap("binary_r"),
+        labelxy: tuple[float, float] = (0, 0.9),
+        titlepad: int = 1,
+        fontsize: int = 5,
+        **kwargs: Any,
+    ) -> None:
         self.fig_backbone = WholeNetworkFigure(
             connectome,
             video=cartesian_input is not None,
@@ -61,9 +91,14 @@ class WholeNetworkAnimation(Animation):
         path = None
         super().__init__(path, self.fig)
 
-    def init(self, frame=0):
+    def init(self, frame: int = 0) -> None:
+        """
+        Initialize the animation components.
+
+        Args:
+            frame: The initial frame number.
+        """
         if self.fig_backbone.video:
-            ## Video
             self.cartesian_input = Imshow(
                 self.cartesian_input,
                 vmin=0,
@@ -76,7 +111,6 @@ class WholeNetworkAnimation(Animation):
             self.cartesian_input.update = False
 
         if self.fig_backbone.rendering:
-            ## Rendering
             self.rendered_input = HexScatter(
                 self.rendered_input,
                 vmin=0,
@@ -93,7 +127,6 @@ class WholeNetworkAnimation(Animation):
             self.rendered_input.update = False
 
         if self.fig_backbone.decoded_motion:
-            # Predicted flow
             self.predicted_flow = HexFlow(
                 self.predicted_flow,
                 fig=self.fig,
@@ -107,7 +140,6 @@ class WholeNetworkAnimation(Animation):
             self.predicted_flow.update = False
 
         if self.fig_backbone.pixel_accurate_motion:
-            # Target flow
             self.target_flow = HexFlow(
                 self.target_flow,
                 fig=self.fig,
@@ -117,7 +149,6 @@ class WholeNetworkAnimation(Animation):
             self.target_flow.init(frame)
             self.target_flow.update = False
 
-        # responses
         self.voltage_axes = []
         for cell_type in self.fig_backbone.cell_types:
             voltage = self.responses[cell_type][:, :, None]
@@ -139,7 +170,13 @@ class WholeNetworkAnimation(Animation):
             anim.update = False
             self.voltage_axes.append(anim)
 
-    def animate(self, frame):
+    def animate(self, frame: int) -> None:
+        """
+        Update the animation for a given frame.
+
+        Args:
+            frame: The current frame number.
+        """
         if self.fig_backbone.video:
             self.cartesian_input.animate(frame)
         if self.fig_backbone.rendering:

@@ -1,7 +1,11 @@
 """Animations of traces."""
 
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
 from matplotlib import colormaps as cm
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from flyvision import utils
 
@@ -13,47 +17,65 @@ class Trace(Animation):
     """Animates a trace.
 
     Args:
-        trace: trace of shape (n_samples, n_frames).
-        dt (float): time step in seconds for accurate time axis. Defaults to 1.
-        fig (Figure): existing Figure instance or None.
-        ax (Axis): existing Axis instance or None.
-        update (bool): whether to update the canvas after an animation step.
+        trace: Trace of shape (n_samples, n_frames).
+        dt: Time step in seconds for accurate time axis.
+        fig: Existing Figure instance or None.
+        ax: Existing Axis instance or None.
+        update: Whether to update the canvas after an animation step.
             Must be False if this animation is composed with others.
-            Defaults to False.
-        color (str or array): optional color of the trace.
-        title (str): optional title of the animation.
-        batch_sample (int): batch sample to start from. Defaults to 0.
-        dynamic_ax_lims (bool): whether the ax limits of the trace are animated.
-            Defaults to True.
-        ylims (List[tuple]): static y-limits for the trace for each sample.
-        ylabel (str): optional y-label of the trace.
-        contour (array): optional background contour for trace in x direction.
-        label (str): label of the animation. Defaults to 'Sample: {}\nFrame:{}',
-            which is formatted with the current sample and frame number per frame.
-        labelxy (tuple): normalized x and y location of the label. Defaults to
-            (0.1, 0.95), i.e. top-left corner.
-        fontsize (float): fontsize. Defaults to 5.
-        figsize (list): figure size. Defaults to [2, 2].
+        color: Optional color of the trace.
+        title: Optional title of the animation.
+        batch_sample: Batch sample to start from.
+        dynamic_ax_lims: Whether the ax limits of the trace are animated.
+        ylims: Static y-limits for the trace for each sample.
+        ylabel: Optional y-label of the trace.
+        contour: Optional background contour for trace in x direction.
+        label: Label of the animation. Formatted with the current sample and frame number.
+        labelxy: Normalized x and y location of the label.
+        fontsize: Fontsize.
+        figsize: Figure size.
+
+    Attributes:
+        trace (np.ndarray): Trace data.
+        n_samples (int): Number of samples.
+        frames (int): Number of frames.
+        fig (Optional[Figure]): Figure instance.
+        ax (Optional[Axes]): Axes instance.
+        update (bool): Update flag.
+        color (Optional[Union[str, np.ndarray]]): Color of the trace.
+        label (str): Label format string.
+        labelxy (Tuple[float, float]): Label position.
+        label_text: Label text object.
+        batch_sample (int): Current batch sample.
+        fontsize (float): Font size.
+        dynamic_ax_lims (bool): Dynamic axis limits flag.
+        ylabel (str): Y-axis label.
+        ylims (Optional[List[Tuple[float, float]]]): Y-axis limits.
+        title (str): Plot title.
+        contour (Optional[np.ndarray]): Contour data.
+        contour_lims (Optional[np.ndarray]): Contour limits.
+        dt (float): Time step.
+        figsize (Tuple[float, float]): Figure size.
     """
 
     def __init__(
         self,
-        trace,
-        dt=1,
-        fig=None,
-        ax=None,
-        update=False,
-        color=None,
-        title="",
-        batch_sample=0,
-        dynamic_ax_lims=True,
-        ylims=None,
-        ylabel="",
-        contour=None,
-        label="Sample: {}\nFrame: {}",
-        labelxy=(0.1, 0.95),
-        fontsize=5,
-        figsize=(2, 2),
+        trace: np.ndarray,
+        dt: float = 1,
+        fig: Optional[Figure] = None,
+        ax: Optional[Axes] = None,
+        update: bool = False,
+        color: Optional[Union[str, np.ndarray]] = None,
+        title: str = "",
+        batch_sample: int = 0,
+        dynamic_ax_lims: bool = True,
+        ylims: Optional[List[Tuple[float, float]]] = None,
+        ylabel: str = "",
+        contour: Optional[np.ndarray] = None,
+        label: str = "Sample: {}\nFrame: {}",
+        labelxy: Tuple[float, float] = (0.1, 0.95),
+        fontsize: float = 5,
+        figsize: Tuple[float, float] = (2, 2),
     ):
         self.trace = utils.tensor_utils.to_numpy(trace)
         self.n_samples, self.frames = self.trace.shape
@@ -65,7 +87,6 @@ class Trace(Animation):
         self.labelxy = labelxy
         self.label_text = None
         self.batch_sample = batch_sample
-        path = None
         self.fontsize = fontsize
         self._initial_frame = 0
         self.dynamic_ax_lims = dynamic_ax_lims
@@ -79,9 +100,14 @@ class Trace(Animation):
             ])
         self.dt = dt
         self.figsize = figsize
-        super().__init__(path, self.fig)
+        super().__init__(None, self.fig)
 
-    def init(self, frame=0):
+    def init(self, frame: int = 0) -> None:
+        """Initialize the animation.
+
+        Args:
+            frame: Starting frame number.
+        """
         if frame < 0:
             frame += self.frames
         trace = self.trace[self.batch_sample, self._initial_frame : frame + 1]
@@ -115,7 +141,12 @@ class Trace(Animation):
 
         self._sample = self.batch_sample
 
-    def animate(self, frame):
+    def animate(self, frame: int) -> None:
+        """Animate a single frame.
+
+        Args:
+            frame: Current frame number.
+        """
         if frame < 0:
             frame += self.frames
         trace = self.trace[self.batch_sample, self._initial_frame : frame]
@@ -141,14 +172,13 @@ class Trace(Animation):
 
         self._sample = self.batch_sample
 
-    def _plot_contour(self):
+    def _plot_contour(self) -> None:
+        """Plot the contour if available."""
         if self.contour is None:
             return
 
         contour = self.contour[self.batch_sample]
 
-        # to remove all previously drawn contours to not stack them
-        # this somehow requires multiple calls of remove sometimes
         while self.ax.collections:
             for c in self.ax.collections:
                 c.remove()
@@ -174,48 +204,66 @@ class MultiTrace(Animation):
     """Animates multiple traces in single plot.
 
     Args:
-        trace: trace of shape (n_samples, n_frames, #traces)
-        dt (float): time step in seconds. Defaults to 1.
-        fig (Figure): existing Figure instance or None.
-        ax (Axis): existing Axis instance or None.
-        update (bool): whether to update the figure after each frame.
-            Defaults to False.
-        legend (List[str]): legends of the traces.
-        colors (List[str or array]): optional colors of the traces.
-        title (str): optional title of the animation.
-        batch_sample (int): batch sample to start from. Defaults to 0.
-        dynamic_ax_lims (bool): whether the ax limits of the trace are animated.
-            Defaults to True.
-        ylims (List[tuple]): static y-limits for the trace for each sample.
-        ylabel (str): optional y-label of the trace.
-        contour (array): optional background contour for trace in x direction.
-        label (str): label of the animation. Defaults to 'Sample: {}\nFrame:{}',
-            which is formatted with the current sample and frame number per frame.
-        labelxy (tuple): normalized x and y location of the label. Defaults to
-            (0.1, 0.95), i.e. top-left corner.
-        fontsize (float): fontsize. Defaults to 5.
-        path (Path): path object to save animation to.
+        trace: Trace of shape (n_samples, n_frames, n_traces).
+        dt: Time step in seconds.
+        fig: Existing Figure instance or None.
+        ax: Existing Axis instance or None.
+        update: Whether to update the figure after each frame.
+        legend: Legends of the traces.
+        colors: Optional colors of the traces.
+        title: Optional title of the animation.
+        batch_sample: Batch sample to start from.
+        dynamic_ax_lims: Whether the ax limits of the trace are animated.
+        ylims: Static y-limits for the trace for each sample.
+        ylabel: Optional y-label of the trace.
+        contour: Optional background contour for trace in x direction.
+        label: Label of the animation. Formatted with the current sample and frame number.
+        labelxy: Normalized x and y location of the label.
+        fontsize: Fontsize.
+        path: Path object to save animation to.
+
+    Attributes:
+        trace (np.ndarray): Trace data.
+        n_samples (int): Number of samples.
+        frames (int): Number of frames.
+        n_trace (int): Number of traces.
+        fig (Optional[Figure]): Figure instance.
+        ax (Optional[Axes]): Axes instance.
+        update (bool): Update flag.
+        colors (Optional[List[Union[str, np.ndarray]]]): Colors of the traces.
+        label (str): Label format string.
+        labelxy (Tuple[float, float]): Label position.
+        label_text: Label text object.
+        legend (Optional[List[str]]): Legend labels.
+        batch_sample (int): Current batch sample.
+        fontsize (float): Font size.
+        dynamic_ax_lims (bool): Dynamic axis limits flag.
+        ylabel (str): Y-axis label.
+        ylims (Optional[List[Tuple[float, float]]]): Y-axis limits.
+        title (str): Plot title.
+        contour (Optional[np.ndarray]): Contour data.
+        dt (float): Time step.
     """
 
     def __init__(
         self,
-        trace,
-        dt=1,
-        fig=None,
-        ax=None,
-        update=False,
-        legend=None,
-        colors=None,
-        title="",
-        batch_sample=0,
-        dynamic_ax_lims=True,
-        ylims=None,
-        ylabel="",
-        contour=None,
-        label="Sample: {}\nFrame: {}",
-        labelxy=(0.1, 0.95),
-        fontsize=5,
-        path=None,
+        trace: np.ndarray,
+        dt: float = 1,
+        fig: Optional[Figure] = None,
+        ax: Optional[Axes] = None,
+        update: bool = False,
+        legend: Optional[List[str]] = None,
+        colors: Optional[List[Union[str, np.ndarray]]] = None,
+        title: str = "",
+        batch_sample: int = 0,
+        dynamic_ax_lims: bool = True,
+        ylims: Optional[List[Tuple[float, float]]] = None,
+        ylabel: str = "",
+        contour: Optional[np.ndarray] = None,
+        label: str = "Sample: {}\nFrame: {}",
+        labelxy: Tuple[float, float] = (0.1, 0.95),
+        fontsize: float = 5,
+        path: Optional[str] = None,
     ):
         self.trace = utils.tensor_utils.to_numpy(trace)
         self.n_samples, self.frames, self.n_trace = self.trace.shape
@@ -238,7 +286,12 @@ class MultiTrace(Animation):
         self.dt = dt
         super().__init__(path, self.fig)
 
-    def init(self, frame=0):
+    def init(self, frame: int = 0) -> None:
+        """Initialize the animation.
+
+        Args:
+            frame: Starting frame number.
+        """
         self._initial_frame = frame
         trace = self.trace[self.batch_sample, frame]
         x = np.arange(frame + 1) * self.dt
@@ -270,7 +323,12 @@ class MultiTrace(Animation):
 
         self._sample = self.batch_sample
 
-    def animate(self, frame):
+    def animate(self, frame: int) -> None:
+        """Animate a single frame.
+
+        Args:
+            frame: Current frame number.
+        """
         trace = self.trace[self.batch_sample, self._initial_frame : frame]
         x = np.arange(self._initial_frame, frame) * self.dt
 

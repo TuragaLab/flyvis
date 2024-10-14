@@ -1,5 +1,8 @@
 """Animations of the Sintel data."""
 
+from typing import Optional, Tuple
+
+import numpy as np
 from matplotlib import colormaps
 
 from flyvision import utils
@@ -14,43 +17,52 @@ class SintelSample(AnimationCollector):
     """Sintel-specific animation of input, target, and groundtruth data.
 
     Args:
-        lum (array): input of shape (#samples, #frames, #hexals).
-        target (array): target of shape (#samples, #frames, #dims, #features).
-        prediction (array): optional prediction of shape (#samples, #frames, #dims,
-            #features).
-        fig (Figure): existing Figure instance or None.
-        batch_sample (int): batch sample to start from. Defaults to 0.
-        target_cmap (colormap): colormap for the target (depth). Defaults to
-            cm.get_cmap("binary") (inverse greyscale).
-        mode (str): mode for egomotion as target. Either 'translation' or 'rotation'.
-        figsize (list): size of initialied figure if no fig instance given.
-            Defaults to [10, 5].
-        axes (Axis): optional list of existing Axis instances or None.
-        figprops (dict): kwargs for plt_utils.figure.
-        update (bool): whether to update the canvas after an animation step.
-            Must be False if this animation is composed with others.
-            Defaults to False.
-        fontsize (float): fontsize. Defaults to 10.
-        labelxy (tuple): normalized x and y location of the label. Defaults to
-            (0, 1), i.e. top-left corner.
+        lum: Input of shape (n_samples, n_frames, n_hexals).
+        target: Target of shape (n_samples, n_frames, n_dims, n_features).
+        prediction: Optional prediction of shape
+            (n_samples, n_frames, n_dims, n_features).
+        target_cmap: Colormap for the target (depth).
+        fontsize: Font size for labels and titles.
+        labelxy: Normalized x and y location of the label.
+        max_figure_height_cm: Maximum figure height in centimeters.
+        panel_height_cm: Height of each panel in centimeters.
+        max_figure_width_cm: Maximum figure width in centimeters.
+        panel_width_cm: Width of each panel in centimeters.
+        title1: Title for the input panel.
+        title2: Title for the target panel.
+        title3: Title for the prediction panel.
+
+    Attributes:
+        fig (Figure): Matplotlib figure instance.
+        axes (List[Axes]): List of matplotlib axes instances.
+        lum (np.ndarray): Input data.
+        target (np.ndarray): Target data.
+        prediction (Optional[np.ndarray]): Prediction data.
+        extent (Tuple[float, float, float, float]): Extent of the hexagonal grid.
+        n_samples (int): Number of samples.
+        frames (int): Number of frames.
+        update (bool): Whether to update the canvas after an animation step.
+        labelxy (Tuple[float, float]): Normalized x and y location of the label.
+        animations (List): List of animation objects.
+        batch_sample (int): Batch sample to start from.
     """
 
     def __init__(
         self,
-        lum,
-        target,
-        prediction=None,
-        target_cmap=colormaps["binary_r"],
-        fontsize=5,
-        labelxy=(-0.1, 1),
-        max_figure_height_cm=22,
-        panel_height_cm=3,
-        max_figure_width_cm=18,
-        panel_width_cm=3.6,
-        title1="input",
-        title2="target",
-        title3="prediction",
-    ):
+        lum: np.ndarray,
+        target: np.ndarray,
+        prediction: Optional[np.ndarray] = None,
+        target_cmap: str = colormaps["binary_r"],
+        fontsize: float = 5,
+        labelxy: Tuple[float, float] = (-0.1, 1),
+        max_figure_height_cm: float = 22,
+        panel_height_cm: float = 3,
+        max_figure_width_cm: float = 18,
+        panel_width_cm: float = 3.6,
+        title1: str = "input",
+        title2: str = "target",
+        title3: str = "prediction",
+    ) -> None:
         figsize = figsize_utils.figsize_from_n_items(
             2 if prediction is None else 3,
             max_figure_height_cm=max_figure_height_cm,
@@ -65,8 +77,8 @@ class SintelSample(AnimationCollector):
             unmask_n=2 if prediction is None else 3,
         )
 
-        self.lum = lum  # lum[:, None, None]
-        self.target = target  # breakpoint()
+        self.lum = lum
+        self.target = target
         self.prediction = prediction
         self.extent = utils.hex_utils.get_hextent(self.lum.shape[-1])
 
@@ -129,7 +141,7 @@ class SintelSample(AnimationCollector):
                     labelxy=labelxy,
                 )
             )
-            if prediction:
+            if prediction is not None:
                 animations.append(
                     HexScatter(
                         self.prediction,

@@ -1,6 +1,6 @@
 """Animations of neural activations."""
 
-from typing import List
+from typing import List, Optional, Union
 
 import numpy as np
 from matplotlib import colormaps as cm
@@ -18,33 +18,47 @@ class StimulusResponse(AnimationCollector):
     """Hex-scatter animations for input and responses.
 
     Args:
-        stimulus (tensor): hexagonal input of shape
-            (n_samples, n_frames, n_input_elements).
-        responses (tensor or List[tensor]): hexagonal activation of particular
-            neuron type (n_samples, n_frames, n_input_elements).
-        batch_sample (int): batch sample to start from. Defaults to 0.
-        figsize (list): figure size in inches. Defaults to [2, 1].
-        fontsize (int): fontsize. Defaults to 5.
-        u (list): list of u coordinates of neurons to plot. Defaults to None.
-        v (list): list of v coordinates of neurons to plot. Defaults to None.
+        stimulus: Hexagonal input.
+        responses: Hexagonal activation of particular neuron type.
+        batch_sample: Batch sample to start from.
+        figsize_scale: Scale factor for figure size.
+        fontsize: Font size for the plot.
+        u: List of u coordinates of neurons to plot.
+        v: List of v coordinates of neurons to plot.
+        max_figure_height_cm: Maximum figure height in centimeters.
+        panel_height_cm: Height of each panel in centimeters.
+        max_figure_width_cm: Maximum figure width in centimeters.
+        panel_width_cm: Width of each panel in centimeters.
 
-    Note: if u and v are not specified, all neurons are plotted.
+    Attributes:
+        stimulus (np.ndarray): Numpy array of stimulus data.
+        responses (List[np.ndarray]): List of numpy arrays of response data.
+        update (bool): Flag to indicate if update is needed.
+        n_samples (int): Number of samples.
+        frames (int): Number of frames.
+        fig (matplotlib.figure.Figure): Matplotlib figure object.
+        axes (List[matplotlib.axes.Axes]): List of matplotlib axes objects.
+        animations (List[HexScatter]): List of HexScatter animation objects.
+        batch_sample (int): Batch sample index.
+
+    Note:
+        If u and v are not specified, all neurons are plotted.
     """
 
     def __init__(
         self,
-        stimulus,
-        responses,
-        batch_sample=0,
-        figsize_scale=1,
-        fontsize=5,
-        u=None,
-        v=None,
-        max_figure_height_cm=22,
-        panel_height_cm=3,
-        max_figure_width_cm=18,
-        panel_width_cm=3.6,
-    ):
+        stimulus: np.ndarray,
+        responses: Union[np.ndarray, List[np.ndarray]],
+        batch_sample: int = 0,
+        figsize_scale: float = 1,
+        fontsize: int = 5,
+        u: Optional[List[int]] = None,
+        v: Optional[List[int]] = None,
+        max_figure_height_cm: float = 22,
+        panel_height_cm: float = 3,
+        max_figure_width_cm: float = 18,
+        panel_width_cm: float = 3.6,
+    ) -> None:
         self.stimulus = utils.tensor_utils.to_numpy(stimulus)
 
         # case: multiple response
