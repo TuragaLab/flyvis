@@ -1,10 +1,7 @@
 # Visualization
 
-Visualization modules.
 
 ## flyvision.analysis.visualization.figsize_utils
-
-This module contains utilities for figsize_utils.
 
 
 ### Functions
@@ -33,7 +30,6 @@ This module contains utilities for figsize_utils.
 
 ## flyvision.analysis.visualization.network_fig
 
-This module contains utilities for network.
 
 ### Classes
 
@@ -53,7 +49,6 @@ This module contains utilities for network.
 
 ## flyvision.analysis.visualization.plots
 
-This module contains utilities for plots.
 
 
 ### Functions
@@ -150,7 +145,6 @@ This module contains utilities for plots.
 
 ## flyvision.analysis.visualization.plt_utils
 
-This module contains utilities for plt_utils.
 
 ### Functions
 

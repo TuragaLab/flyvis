@@ -2,7 +2,7 @@
 
 ## Local installation
 
-> Note: `flyvis` is not tested on Windows.
+> Note: `flyvis` is only tested on Linux.
 
 ### Create virtual environment
 #### Option 1: Using conda (recommended)

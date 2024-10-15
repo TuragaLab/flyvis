@@ -1,10 +1,6 @@
 # Utils
 
-Utility modules.
-
 ## flyvision.utils.activity_utils
-
-This module contains classes for handling various types of neural activity.
 
 ### Classes
 
@@ -26,8 +22,6 @@ This module contains classes for handling various types of neural activity.
 
 ## flyvision.utils.cache_utils
 
-This module provides utility functions for caching.
-
 ### Functions
 
 ::: flyvision.utils.cache_utils.context_aware_cache
@@ -40,7 +34,6 @@ This module provides utility functions for caching.
 
 ## flyvision.utils.chkpt_utils
 
-This module contains utilities for handling checkpoints.
 
 ### Classes
 
@@ -88,7 +81,6 @@ This module contains utilities for handling checkpoints.
 
 ## flyvision.utils.class_utils
 
-This module provides utility functions for working with classes.
 
 ### Functions
 
@@ -102,7 +94,6 @@ This module provides utility functions for working with classes.
 
 ## flyvision.utils.color_utils
 
-This module contains utilities for color manipulation and mapping.
 
 ### Classes
 
@@ -146,7 +137,6 @@ This module contains utilities for color manipulation and mapping.
 
 ## flyvision.utils.compute_cloud_utils
 
-This module provides utilities for managing cluster computations.
 
 ### Classes
 
@@ -202,7 +192,6 @@ This module provides utilities for managing cluster computations.
 
 ## flyvision.utils.config_utils
 
-This module provides utilities for configuration management.
 
 ### Classes
 
@@ -226,7 +215,6 @@ This module provides utilities for configuration management.
 
 ## flyvision.utils.dataset_utils
 
-This module contains utilities for dataset manipulation and loading.
 
 ### Classes
 
@@ -258,7 +246,6 @@ This module contains utilities for dataset manipulation and loading.
 
 ## flyvision.utils.df_utils
 
-This module provides utilities for working with pandas DataFrames.
 
 ### Functions
 
@@ -272,7 +259,6 @@ This module provides utilities for working with pandas DataFrames.
 
 ## flyvision.utils.hex_utils
 
-This module contains utilities for working with hexagonal grids.
 
 ### Classes
 
@@ -340,7 +326,6 @@ This module contains utilities for working with hexagonal grids.
 
 ## flyvision.utils.log_utils
 
-This module provides utilities for logging and status tracking.
 
 ### Classes
 
@@ -368,7 +353,6 @@ This module provides utilities for logging and status tracking.
 
 ## flyvision.utils.logging_utils
 
-This module contains additional logging utilities.
 
 ### Functions
 
@@ -386,7 +370,6 @@ This module contains additional logging utilities.
 
 ## flyvision.utils.nn_utils
 
-This module provides utilities for neural network operations.
 
 ### Classes
 
@@ -406,7 +389,6 @@ This module provides utilities for neural network operations.
 
 ## flyvision.utils.nodes_edges_utils
 
-This module contains utilities for working with graph nodes and edges.
 
 ### Classes
 
@@ -438,7 +420,6 @@ This module contains utilities for working with graph nodes and edges.
 
 ## flyvision.utils.tensor_utils
 
-This module provides utilities for tensor operations.
 
 ### Classes
 
@@ -502,7 +483,6 @@ This module provides utilities for tensor operations.
 
 ## flyvision.utils.type_utils
 
-This module provides utilities for type conversions.
 
 ### Functions
 
@@ -512,7 +492,6 @@ This module provides utilities for type conversions.
 
 ## flyvision.utils.xarray_joblib_backend
 
-This module contains backend utilities for xarray and joblib integration.
 
 ### Classes
 
@@ -522,7 +501,6 @@ This module contains backend utilities for xarray and joblib integration.
 
 ## flyvision.utils.xarray_utils
 
-This module provides utilities for working with xarray objects.
 
 ### Classes
 

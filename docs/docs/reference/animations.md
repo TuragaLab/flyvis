@@ -1,6 +1,35 @@
-# API Reference
+# Animations
 
-This is the API reference for the project.
+## flyvision.analysis.animations.imshow
+
+### Classes
+
+::: flyvision.analysis.animations.imshow.Imshow
+    options:
+      heading_level: 4
+
+## flyvision.analysis.animations.hexscatter
+### Classes
+
+::: flyvision.analysis.animations.hexscatter.HexScatter
+    options:
+      heading_level: 4
+
+## flyvision.analysis.animations.hexflow
+
+### Classes
+
+::: flyvision.analysis.animations.hexflow.HexFlow
+    options:
+      heading_level: 4
+
+## flyvision.analysis.animations.sintel
+
+### Classes
+
+::: flyvision.analysis.animations.sintel.SintelSample
+    options:
+      heading_level: 4
 
 ## flyvision.analysis.animations.activations
 
@@ -9,6 +38,15 @@ This is the API reference for the project.
 ::: flyvision.analysis.animations.activations.StimulusResponse
     options:
       heading_level: 4
+
+## flyvision.analysis.animations.network
+
+### Classes
+
+::: flyvision.analysis.animations.network.WholeNetworkAnimation
+    options:
+      heading_level: 4
+
 
 ## flyvision.analysis.animations.animations
 
@@ -28,45 +66,11 @@ This is the API reference for the project.
     options:
       heading_level: 4
 
-## flyvision.analysis.animations.hexflow
 
-### Classes
 
-::: flyvision.analysis.animations.hexflow.HexFlow
-    options:
-      heading_level: 4
 
-## flyvision.analysis.animations.hexscatter
 
-### Classes
 
-::: flyvision.analysis.animations.hexscatter.HexScatter
-    options:
-      heading_level: 4
-
-## flyvision.analysis.animations.imshow
-
-### Classes
-
-::: flyvision.analysis.animations.imshow.Imshow
-    options:
-      heading_level: 4
-
-## flyvision.analysis.animations.network
-
-### Classes
-
-::: flyvision.analysis.animations.network.WholeNetworkAnimation
-    options:
-      heading_level: 4
-
-## flyvision.analysis.animations.sintel
-
-### Classes
-
-::: flyvision.analysis.animations.sintel.SintelSample
-    options:
-      heading_level: 4
 
 ## flyvision.analysis.animations.traces
 
