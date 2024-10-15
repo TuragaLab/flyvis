@@ -1,0 +1,238 @@
+/* Grid layout */
+.md-grid {
+    max-width: 66rem;
+}
+
+/* Header styling */
+.md-header {
+    box-shadow: none;
+    /* background-color: transparent; */
+}
+
+/* [data-md-color-primary=black] .md-header {
+    background-color: transparent;
+} */
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+    fill: currentcolor;
+    display: block;
+    height: 3rem;
+    width: auto;
+}
+
+/* Light mode header icons */
+body[data-md-color-scheme="default"] .md-header__button[for="__search"] svg,
+body[data-md-color-scheme="default"] .md-header__button[for="__palette_0"] svg,
+body[data-md-color-scheme="default"] .md-header__button[for="__palette_1"] svg,
+body[data-md-color-scheme="default"] .md-header__button[for="__palette_2"] svg {
+    fill: black;
+}
+
+/* Dark mode header background */
+body[data-md-color-scheme="slate"] .md-header {
+    background-color: var(--md-default-bg-color-dark);
+}
+
+/* Light mode header background */
+body[data-md-color-scheme="default"] .md-header {
+    background-color: var(--md-default-bg-color);
+}
+
+/* Footer styling */
+.md-footer {
+    /* position: sticky; */
+    bottom: 0;
+    width: 100%;
+    background-color: var(--md-default-bg-color);
+    color: var(--md-default-fg-color);
+    /* box-shadow: 0px -2px 5px rgba(0, 0, 0, 0.1); */
+    /* Light shadow for footer */
+}
+
+/* Light mode footer background and text/icons in black */
+body[data-md-color-scheme="default"] .md-footer,
+.md-footer-meta {
+    background-color: var(--md-default-bg-color);
+    color: var(--md-default-fg-color);
+}
+
+body[data-md-color-scheme="default"] .md-footer a {
+    color: black;
+}
+
+body[data-md-color-scheme="default"] .md-copyright {
+    color: black;
+}
+
+body[data-md-color-scheme="default"] .md-copyright__highlight {
+    color: black;
+}
+
+body[data-md-color-scheme="default"] .md-copyright a {
+    color: black;
+}
+
+/* Dark mode footer background and text/icons in white */
+body[data-md-color-scheme="slate"] .md-footer,
+.md-footer-meta {
+    background-color: var(--md-default-bg-color-dark);
+    color: var(--md-default-fg-color);
+}
+
+/* body[data-md-color-scheme="slate"] .md-footer a {
+    color: white;
+} */
+
+body[data-md-color-scheme="slate"] .md-copyright {
+    color: white;
+}
+
+body[data-md-color-scheme="slate"] .md-copyright__highlight {
+    color: white;
+}
+
+/* body[data-md-color-scheme="slate"] .md-copyright a {
+    color: white;
+} */
+
+.md-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+/* centering the social media icons */
+.md-nav__social {
+    display: flex;
+    justify-content: left;
+    align-items: left;
+    flex-direction: row;
+}
+
+.md-social {
+    display: inline-flex;
+    gap: 0.4rem;
+    /* Double the padding between icons */
+    margin: 0 0.4rem;
+    padding: 0.2rem 0 0.6rem;
+}
+
+@media screen and (min-width:45em) {
+    .md-social {
+        padding: 0.6rem 0;
+    }
+}
+
+.md-social__link {
+    display: inline-block;
+    height: 1.6rem;
+    /* 20% smaller than previous 2rem */
+    width: 1.6rem;
+    /* 20% smaller than previous 2rem */
+    text-align: center;
+}
+
+.md-social__link:before {
+    line-height: 1.6rem;
+    /* Adjust line height to match new icon size */
+}
+
+.md-social__link svg {
+    fill: currentcolor;
+    max-height: 1.28rem;
+    /* 20% smaller than previous 1.6rem */
+    vertical-align: -5%;
+    /* Shift 5% upwards */
+}
+
+
+
+/* Copyright and footer content alignment */
+/* .md-copyright {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+    white-space: nowrap;
+}
+
+.md-copyright__highlight,
+.md-copyright a {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.md-copyright a {
+    margin-left: 5px;
+} */
+
+/* Dark mode colors */
+[data-md-color-scheme="slate"] {
+    --md-default-bg-color: #000000;
+    --md-default-fg-color: #ffffff;
+}
+
+/* Light mode colors */
+[data-md-color-scheme="default"] {
+    --md-default-bg-color: #ffffff;
+    --md-default-fg-color: #000000;
+}
+
+/* Logo handling */
+#flyvis-logo-dark,
+#flyvis-logo-dark-content,
+#flyvis-head-dark {
+    display: none;
+}
+
+body[data-md-color-scheme="slate"] {
+
+    #flyvis-logo-light,
+    #flyvis-logo-light-content,
+    #flyvis-head-light {
+        display: none;
+    }
+
+    #flyvis-logo-dark,
+    #flyvis-logo-dark-content,
+    #flyvis-head-dark {
+        display: block;
+    }
+}
+
+/* Invert images and videos in dark mode (slate) */
+@media (prefers-color-scheme: dark) {
+
+    body[data-md-color-scheme="slate"] img[src$=".png"],
+    body[data-md-color-scheme="slate"] video[src$=".webm"] {
+        filter: invert(1);
+    }
+}
+
+/* Ensure light mode does not apply the filter */
+@media (prefers-color-scheme: light) {
+
+    body[data-md-color-scheme="default"] img[src$=".png"],
+    body[data-md-color-scheme="default"] video[src$=".webm"] {
+        filter: none;
+    }
+}
+
+body[data-md-color-scheme="default"] .md-header {
+    background-color: transparent;
+}
+
+[data-md-color-scheme="slate"] .md-content h1,
+[data-md-color-scheme="slate"] .md-content h2,
+[data-md-color-scheme="slate"] .md-content h3 {
+    color: #FFD2C1;
+}
+
+[data-md-color-scheme="default"] .md-content h1,
+[data-md-color-scheme="default"] .md-content h2,
+[data-md-color-scheme="default"] .md-content h3 {
+    color: #002D3E;
+}
