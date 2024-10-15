@@ -63,7 +63,6 @@ def dataset():
             2,
             3,
         ],  # 2 and 3 with all rotation axes lead to redundant transforms
-        task_weights=None,
     )
 
 
@@ -205,7 +204,7 @@ def test_getitem(dataset):
 
 def test_apply_augmentation(dataset):
     dataset.augment = False
-    dataset.dt = 1 / dataset.framerate
+    dataset.dt = 1 / dataset.original_framerate
     data = dataset[0]
     data1 = dataset.apply_augmentation(data)
     assert set(data1.keys()) == set(data.keys())
@@ -246,10 +245,3 @@ def test_cartesian(dataset):
     assert cartesian["flow"].shape[0] == dataset.vertical_splits
     assert len(cartesian["depth"].shape) == 4
     assert cartesian["depth"].shape[0] == dataset.vertical_splits
-
-
-def test_original_train_and_validation_indices(dataset):
-    train_indices, val_indices = dataset.original_train_and_validation_indices()
-    # because unittest only renders 3 splits of first scene
-    assert train_indices == [0, 1, 2]
-    assert val_indices == []

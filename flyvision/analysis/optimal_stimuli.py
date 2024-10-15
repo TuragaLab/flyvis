@@ -8,21 +8,28 @@ import numpy as np
 import torch
 
 import flyvision
+from flyvision.analysis.visualization import plots, plt_utils
 from flyvision.datasets.datasets import StimulusDataset
 from flyvision.datasets.sintel import AugmentedSintel
-from flyvision.plots import plots, plt_utils
-from flyvision.stimulus import Stimulus
-from flyvision.utils import cache_utils, hex_utils, tensor_utils
-from flyvision.utils.activity_utils import CellTypeArray, LayerActivity
+from flyvision.network.stimulus import Stimulus
+from flyvision.utils import hex_utils, tensor_utils
+from flyvision.utils.activity_utils import LayerActivity
+
+__all__ = ["FindOptimalStimuli", "GenerateOptimalStimuli", "plot_stim_response"]
 
 
 class FindOptimalStimuli:
     """Methods to derive optimal stimuli for cells from stimuli dataset.
 
     Args:
-        network_view: network view.
-        stimuli: stimuli dataset.
-            Defaults to "default" (AugmentedSintelLum).
+        network_view: Network view.
+        stimuli: Stimuli dataset. "default" uses AugmentedSintelLum.
+
+    Attributes:
+        nv (flyvision.NetworkView): Network view.
+        network (flyvision.Network): Initialized network.
+        central_cells_index (list): Central cells index.
+        stimuli (StimulusDataset): Stimulus dataset.
     """
 
     def __init__(
@@ -40,80 +47,27 @@ class FindOptimalStimuli:
             if stimuli == "default"
             else stimuli
         )
-        self.cache = {}
-
-    def stored_responses(self):
-        try:
-            responses = self.nv.stored_responses("naturalistic_stimuli_responses")
-            return CellTypeArray(responses, self.nv.connectome)
-        except FileNotFoundError:
-            return None
-
-    def compute_responses_to_stimuli(
-        self,
-        dt=None,
-        batch_size=4,
-        t_pre=0,
-        t_fade_in=2.0,
-        indices=None,
-    ):
-        """Computes responses to naturalistic stimuli for central cells."""
-
-        cache_key = cache_utils.make_hashable(locals())
-
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-
-        def handle_network(network: flyvision.Network):
-            for _, resp in network.stimulus_response(
-                self.stimuli,
-                dt=dt or self.stimuli.dt,
-                indices=indices,
-                t_pre=t_pre,
-                t_fade_in=t_fade_in,
-                default_stim_key="lum",
-                batch_size=batch_size,
-            ):
-                yield resp[:, :, self.central_cells_index]
-
-        responses = np.stack(list(handle_network(self.network)))
-        responses = responses.reshape(-1, responses.shape[-2], responses.shape[-1])
-        responses = CellTypeArray(responses, self.network.connectome)
-        self.cache[cache_key] = responses
-        return responses
 
     def optimal_stimuli(
         self,
-        cell_type,
-        dt=1 / 100,
-        t_pre=0,
-        t_fade_in=2.0,
-        batch_size=4,
-        indices=None,
-        responses: CellTypeArray = None,
-    ):
+        cell_type: str,
+        dt: float = 1 / 100,
+        indices: list[int] | None = None,
+    ) -> OptimalStimulus:
         """Finds optimal stimuli for a given cell type in stimuli dataset.
 
         Args:
-            cell_type (str): node type.
-            dt (float, optional): time step. Defaults to 1 / 100.
-            t_pre (float, optional): pre-stimulus time. Defaults to 0.
-            t_fade_in (float, optional): fade-in time. Defaults to 2.0.
-            batch_size (int, optional): batch size. Defaults to 4.
-            indices (list, optional): indices of stimuli. Defaults to None.
-        """
-        responses = self.stored_responses()
-        if responses is None:
-            responses = self.compute_responses_to_stimuli(
-                dt=dt,
-                batch_size=batch_size,
-                t_pre=t_pre,
-                t_fade_in=t_fade_in,
-                indices=indices,
-            )
-        cell_responses = responses[cell_type]
+            cell_type: Node type.
+            dt: Time step.
+            indices: Indices of stimuli.
 
-        argmax = np.argmax(np.nanmax(cell_responses, axis=1))
+        Returns:
+            OptimalStimulus object containing the stimulus and response.
+        """
+        responses = self.nv.naturalistic_stimuli_responses()
+        cell_responses = responses['responses'].custom.where(cell_type=cell_type)
+
+        argmax = cell_responses.argmax(dim=("sample", "frame"))['sample'].item()
         if indices is not None:
             argmax = indices[argmax]
         nat_opt_stim = self.stimuli[argmax]["lum"]
@@ -132,44 +86,35 @@ class FindOptimalStimuli:
 
     def regularized_optimal_stimuli(
         self,
-        cell_type,
-        l2_act=1,
-        lr=1e-2,
-        l2_stim=1,
-        n_iters=100,
-        dt=1 / 100,
-        t_pre=0,
-        t_fade_in=2.0,
-        batch_size=4,
-        indices=None,
-        responses: CellTypeArray = None,
-    ):
-        """Regularizes the optimal stimulus such that the central node activity of the
-        given type remains but the mean square of the input pixels is minimized.
+        cell_type: str,
+        l2_act: float = 1,
+        lr: float = 1e-2,
+        l2_stim: float = 1,
+        n_iters: int = 100,
+        dt: float = 1 / 100,
+        indices: list[int] | None = None,
+    ) -> RegularizedOptimalStimulus:
+        """Regularizes the optimal stimulus for a given cell type.
+
+        Maintains central node activity while minimizing mean square of input pixels.
 
         Args:
-            cell_type (str): node type.
-            l2_act (float, optional): L2 regularization strength for the activity.
-            Defaults to 1.
-            lr (float, optional): learning rate. Defaults to 1e-2.
-            l2_stim (float, optional): L2 regularization strength for the stimulus.
-            Defaults to 1.
-            n_iters (int, optional): number of iterations. Defaults to 100.
-            dt (float, optional): time step. Defaults to 1 / 100.
-            t_pre (float, optional): pre-stimulus time. Defaults to 0.
-            t_fade_in (float, optional): fade-in time. Defaults to 2.0.
-            batch_size (int, optional): batch size. Defaults to 4.
-            indices (list, optional): indices of stimuli. Defaults to None.
+            cell_type: Node type.
+            l2_act: L2 regularization strength for the activity.
+            lr: Learning rate.
+            l2_stim: L2 regularization strength for the stimulus.
+            n_iters: Number of iterations.
+            dt: Time step.
+            indices: Indices of stimuli.
+
+        Returns:
+            RegularizedOptimalStimulus object.
         """
 
         optim_stimuli = self.optimal_stimuli(
             cell_type=cell_type,
             dt=dt,
-            t_pre=t_pre,
-            t_fade_in=t_fade_in,
-            batch_size=batch_size,
             indices=indices,
-            responses=responses,
         )
         non_nan = ~torch.isnan(
             optim_stimuli.stimulus[0, :, 0, optim_stimuli.stimulus.shape[-1] // 2]
@@ -214,7 +159,7 @@ class FindOptimalStimuli:
             loss = act_loss + stim_loss
             loss.backward(retain_graph=True)
             optim.step()
-            losses.append(loss.detach().cpu().numpy())
+            losses.append(loss.detach().cpu().numpy().item())
 
         stim.zero()
         reg_opt_stim.requires_grad = False
@@ -247,21 +192,31 @@ class GenerateOptimalStimuli:
 
     def artificial_optimal_stimuli(
         self,
-        cell_type,
-        t_stim=49 / 200,
-        dt=1 / 100,
-        lr=1e-2,
-        weight_central=1.0,
-        weight_mei=600 * 5,
-        n_iters=200,
-        random_seed=0,
-        last_only=True,
-    ):
-        """Artificial stimuli, maximally exciting the central node of a given type.
+        cell_type: str,
+        t_stim: float = 49 / 200,
+        dt: float = 1 / 100,
+        lr: float = 1e-2,
+        weight_central: float = 1.0,
+        weight_mei: float = 600 * 5,
+        n_iters: int = 200,
+        random_seed: int = 0,
+        last_only: bool = True,
+    ) -> GeneratedOptimalStimulus:
+        """Generate artificial stimuli maximally exciting the central node of a type.
+
+        Args:
+            cell_type: Node type.
+            t_stim: Stimulus duration.
+            dt: Time step.
+            lr: Learning rate.
+            weight_central: Weight for central node optimization.
+            weight_mei: Weight for MEI optimization.
+            n_iters: Number of iterations.
+            random_seed: Random seed for initialization.
+            last_only: If True, optimize only the last frame.
 
         Returns:
-            tensor: rectified input stimulus of shape #frames, 1, #hexals
-            tensor: node activity of shape 1, #frames, #hexals
+            GeneratedOptimalStimulus object.
         """
         n_frames = int(t_stim / dt)
         n_hexals = hex_utils.get_num_hexals(self.network.config.connectome.extent)
@@ -273,7 +228,7 @@ class GenerateOptimalStimuli:
 
         # Initialize maximally excitatory tensors per time bin.
         torch.manual_seed(random_seed)
-        art_opt_stim = torch.rand(1, n_frames, 1, n_hexals, device="cuda")
+        art_opt_stim = torch.rand(1, n_frames, 1, n_hexals, device=flyvision.device)
 
         art_opt_stim.data.clamp_(0, 1)
         art_opt_stim.requires_grad = True
@@ -333,12 +288,16 @@ class GenerateOptimalStimuli:
 
 @dataclass
 class OptimalStimulus:
+    """Optimal stimulus and response."""
+
     stimulus: np.ndarray
     response: np.ndarray
 
 
 @dataclass
 class RegularizedOptimalStimulus:
+    """Regularized optimal stimulus and related data."""
+
     stimulus: OptimalStimulus
     regularized_stimulus: np.ndarray
     response: np.ndarray
@@ -349,6 +308,8 @@ class RegularizedOptimalStimulus:
 
 @dataclass
 class GeneratedOptimalStimulus:
+    """Generated optimal stimulus, response, and optimization losses."""
+
     stimulus: np.ndarray
     response: np.ndarray
     losses: np.ndarray
@@ -356,6 +317,8 @@ class GeneratedOptimalStimulus:
 
 @dataclass
 class StimResponsePlot:
+    """Stimulus-response plot data and methods."""
+
     stim: np.ndarray
     response: np.ndarray
     dt: float
@@ -379,9 +342,17 @@ class StimResponsePlot:
     t_argmax: float
 
     def __iter__(self):
+        """Yield figure and axes."""
         yield from [self.fig, self.axes]
 
-    def add_to_trace_axis(self, other, color=None, label=None, linewidth=None):
+    def add_to_trace_axis(
+        self,
+        other: "StimResponsePlot",
+        color: str | None = None,
+        label: str | None = None,
+        linewidth: float | None = None,
+    ):
+        """Add another StimResponsePlot's trace to this plot's trace axis."""
         xticks = self.trace_axis.get_xticks()
         mask = (other.time >= other.t_step.min()) & (other.time <= other.t_step.max())
         time = np.linspace(xticks.min(), xticks.max(), mask.sum())
@@ -395,38 +366,74 @@ class StimResponsePlot:
 
 
 def plot_stim_response(
-    stim,
-    response,
-    dt,
-    u,
-    v,
-    max_extent=6,
-    subtract_baseline=True,
-    seconds=0.2,
-    steps=10,
-    columns=10,
-    suptitle="",
-    plot_resp=True,
-    hlines=True,
-    vlines=True,
-    time_axis=True,
-    peak_central=False,
-    wspace=-0.2,
-    peak_last=True,
-    fontsize=5,
-    ylabel="",
-    ylabelrotation=90,
-    figsize=[5, 1],
-    label_peak_response=False,
-    fig=None,
-    axes=None,
-    crange=None,
-    trace_axis=False,
-    trace_label=None,
-    trace_axis_offset=0.1,
-    trace_color=None,
-):
-    """Plots spatio-temporal stimulus and response on regular hex lattices."""
+    stim: np.ndarray,
+    response: np.ndarray,
+    dt: float,
+    u: np.ndarray,
+    v: np.ndarray,
+    max_extent: int = 6,
+    subtract_baseline: bool = True,
+    seconds: float = 0.2,
+    steps: int = 10,
+    columns: int = 10,
+    suptitle: str = "",
+    plot_resp: bool = True,
+    hlines: bool = True,
+    vlines: bool = True,
+    time_axis: bool = True,
+    peak_central: bool = False,
+    wspace: float = -0.2,
+    peak_last: bool = True,
+    fontsize: int = 5,
+    ylabel: str = "",
+    ylabelrotation: int = 90,
+    figsize: list[float] = [5, 1],
+    label_peak_response: bool = False,
+    fig: plt.Figure | None = None,
+    axes: np.ndarray | None = None,
+    crange: float | None = None,
+    trace_axis: bool = False,
+    trace_label: str | None = None,
+    trace_axis_offset: float = 0.1,
+    trace_color: str | None = None,
+) -> StimResponsePlot:
+    """Plot spatio-temporal stimulus and response on regular hex lattices.
+
+    Args:
+        stim: Stimulus array.
+        response: Response array.
+        dt: Time step.
+        u: Hexagonal u-coordinates.
+        v: Hexagonal v-coordinates.
+        max_extent: Maximum extent of the hexagonal grid.
+        subtract_baseline: Whether to subtract baseline from response.
+        seconds: Duration to plot in seconds.
+        steps: Number of time steps to plot.
+        columns: Number of columns in the plot.
+        suptitle: Super title for the plot.
+        plot_resp: Whether to plot response.
+        hlines: Whether to plot horizontal lines.
+        vlines: Whether to plot vertical lines.
+        time_axis: Whether to add a time axis.
+        peak_central: Whether to center the plot around the peak.
+        wspace: Width space between subplots.
+        peak_last: Whether to show the peak in the last frame.
+        fontsize: Font size for labels and titles.
+        ylabel: Y-axis label.
+        ylabelrotation: Rotation angle for y-axis label.
+        figsize: Figure size.
+        label_peak_response: Whether to label the peak response.
+        fig: Existing figure to plot on.
+        axes: Existing axes to plot on.
+        crange: Color range for the plot.
+        trace_axis: Whether to add a trace axis.
+        trace_label: Label for the trace.
+        trace_axis_offset: Offset for the trace axis.
+        trace_color: Color for the trace.
+
+    Returns:
+        StimResponsePlot object containing plot data and figure.
+    """
     stim = tensor_utils.to_numpy(stim).squeeze()
     mask = ~np.isnan(stim).any(axis=-1).squeeze()
     response = tensor_utils.to_numpy(response).squeeze()

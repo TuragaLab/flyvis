@@ -1,7 +1,7 @@
 """Utility function for operations on hexagonal lattices."""
 
 from numbers import Number
-from typing import Iterable, Tuple
+from typing import Iterable, Literal, Tuple
 
 import numpy as np
 import torch
@@ -12,21 +12,24 @@ import flyvision
 from flyvision.utils.tensor_utils import matrix_mask_by_sub
 
 
-def get_hex_coords(extent, astensor=False):
+def get_hex_coords(extent: int, astensor: bool = False) -> Tuple[NDArray, NDArray]:
     """Construct hexagonal coordinates for a regular hex-lattice with extent.
 
     Args:
-        extent (int): integer radius of hexagonal lattice. 0 returns the single
+        extent: Integer radius of hexagonal lattice. 0 returns the single
             center coordinate.
-        astensor (bool): if True, returns torch.Tensor, else np.array.
+        astensor: If True, returns torch.Tensor, else np.array.
 
     Returns:
-        u (array): hex-coordinates in u-direction.
-        v (array): hex-corrdinates in v-direction.
+        A tuple containing:
+            u: Hex-coordinates in u-direction.
+            v: Hex-coordinates in v-direction.
 
-    See also: https://www.redblobgames.com/grids/hexagons/#range-coordinate
+    Note:
+        Will return `get_num_hexals(extent)` coordinates.
 
-    Note: will return `get_num_hexals(extent)` coordinates.
+    See Also:
+        https://www.redblobgames.com/grids/hexagons/#range-coordinate
     """
     u = []
     v = []
@@ -39,21 +42,26 @@ def get_hex_coords(extent, astensor=False):
     return np.array(u), np.array(v)
 
 
-def hex_to_pixel(u, v, size=1, mode="default"):
-    """Returns a pixel coordinate from the hex coordinate.
+def hex_to_pixel(
+    u: NDArray,
+    v: NDArray,
+    size: float = 1,
+    mode: Literal["default", "flat", "pointy"] = "default",
+) -> Tuple[NDArray, NDArray]:
+    """Returns pixel coordinates from hex coordinates.
 
     Args:
-        u (array): hex-coordinates in u-direction.
-        v (array): hex-corrdinates in v-direction.
-        size (float): size of hexagon.
-        mode (str): coordinate system convention. Default is "default".
-            Other options are "flat", "pointy".
+        u: Hex-coordinates in u-direction.
+        v: Hex-coordinates in v-direction.
+        size: Size of hexagon.
+        mode: Coordinate system convention.
 
     Returns:
-        x (array): pixel-coordinates in x-direction.
-        y (array): pixel-corrdinates in y-direction.
+        A tuple containing:
+            x: Pixel-coordinates in x-direction.
+            y: Pixel-coordinates in y-direction.
 
-    Geometric explanations here:
+    See Also:
         https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
     """
     if isinstance(u, list) and isinstance(v, list):
@@ -69,8 +77,25 @@ def hex_to_pixel(u, v, size=1, mode="default"):
         raise ValueError(f"{mode} not recognized.")
 
 
-def hex_rows(n_rows, n_columns, eps=0.1, mode="pointy"):
-    """To return a hex grid in pixel coordinates."""
+def hex_rows(
+    n_rows: int,
+    n_columns: int,
+    eps: float = 0.1,
+    mode: Literal["pointy", "flat"] = "pointy",
+) -> Tuple[NDArray, NDArray]:
+    """Return a hex grid in pixel coordinates.
+
+    Args:
+        n_rows: Number of rows.
+        n_columns: Number of columns.
+        eps: Small offset to avoid overlapping hexagons.
+        mode: Orientation of hexagons.
+
+    Returns:
+        A tuple containing:
+            x: X-coordinates of hexagon centers.
+            y: Y-coordinates of hexagon centers.
+    """
     u = []
     v = []
     for r in range(n_rows):
@@ -85,21 +110,26 @@ def hex_rows(n_rows, n_columns, eps=0.1, mode="pointy"):
     return x, y
 
 
-def pixel_to_hex(x, y, size=1, mode="default"):
-    """Returns a hex coordinate from the pixel coordinate.
+def pixel_to_hex(
+    x: NDArray,
+    y: NDArray,
+    size: float = 1,
+    mode: Literal["default", "flat", "pointy"] = "default",
+) -> Tuple[NDArray, NDArray]:
+    """Returns hex coordinates from pixel coordinates.
 
     Args:
-        x (array): pixel-coordinates in x-direction.
-        y (array): pixel-corrdinates in y-direction.
-        size (float): size of hexagon.
-        mode (str): coordinate system convention. Default is "default".
-            Other options are "flat", "pointy".
+        x: Pixel-coordinates in x-direction.
+        y: Pixel-coordinates in y-direction.
+        size: Size of hexagon.
+        mode: Coordinate system convention.
 
     Returns:
-        u (array): hex-coordinates in u-direction.
-        v (array): hex-corrdinates in v-direction.
+        A tuple containing:
+            u: Hex-coordinates in u-direction.
+            v: Hex-coordinates in v-direction.
 
-    Geometric explanations here:
+    See Also:
         https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
     """
     if mode == "default":
@@ -118,32 +148,35 @@ def pad_to_regular_hex(
     values: NDArray,
     extent: int,
     value: float = np.nan,
-) -> Tuple[NDArray]:
-    """To pad hexals with coordinates to a regular hex lattice.
+) -> Tuple[NDArray, NDArray, NDArray]:
+    """Pad hexals with coordinates to a regular hex lattice.
 
     Args:
-        u: u-coordinate of hexal.
-        v: v-coordinate of hexal.
-        values: value of hexal with arbitray shape but last axis
+        u: U-coordinate of hexal.
+        v: V-coordinate of hexal.
+        values: Value of hexal with arbitrary shape but last axis
             must match the hexal dimension.
-        extent: extent of regular hex grid to pad to.
-        axis: the hexal dimension of values.
-        value: the pad value.
+        extent: Extent of regular hex grid to pad to.
+        value: The pad value.
 
     Returns:
-        u_padded: padded u-coordinate.
-        v_padded: padded v-coordinate.
-        values_padded: padded value.
+        A tuple containing:
+            u_padded: Padded u-coordinate.
+            v_padded: Padded v-coordinate.
+            values_padded: Padded value.
 
-    Note, the canonical use case here is to pad a filter, receptieve field, or
-    postsynaptic current field for visualization.
+    Note:
+        The canonical use case here is to pad a filter, receptive field, or
+        postsynaptic current field for visualization.
 
     Example:
+        ```python
         u = np.array([1, 0, -1, 0, 1, 2])
         v = np.array([-2, -1, 0, 0, 0, 0])
         values = np.array([0.05, 0.1, 0.3, 0.5, 0.7, 0.9])
         hexals = pad_to_regular_hex(u, v, values, 6)
         hex_scatter(*hexals, edgecolor='k', cmap=plt.cm.Blues, vmin=0, vmax=1)
+        ```
     """
     u_padded, v_padded = flyvision.utils.hex_utils.get_hex_coords(extent)
     slices = tuple()
@@ -161,16 +194,16 @@ def pad_to_regular_hex(
     return u_padded, v_padded, values_padded
 
 
-def max_extent_index(u, v, max_extent):
+def max_extent_index(u: NDArray, v: NDArray, max_extent: int) -> NDArray:
     """Returns a mask to constrain u and v axial-hex-coordinates by max_extent.
 
     Args:
-        u (array): hex-coordinates in u-direction.
-        v (array): hex-corrdinates in v-direction.
-        max_extent (int): maximal extent.
+        u: Hex-coordinates in u-direction.
+        v: Hex-coordinates in v-direction.
+        max_extent: Maximal extent.
 
     Returns:
-        mask (array): boolean mask.
+        Boolean mask.
     """
     return (
         (-max_extent <= u)
@@ -182,79 +215,86 @@ def max_extent_index(u, v, max_extent):
     )
 
 
-def get_num_hexals(extent):
+def get_num_hexals(extent: int) -> int:
     """Returns the absolute number of hexals in a hexagonal grid with extent.
 
     Args:
-        extent (int): extent of hex-lattice.
+        extent: Extent of hex-lattice.
 
     Returns:
-        num_hexals (int): number of hexals.
+        Number of hexals.
 
-    Note: inverse of get_hextent.
+    Note:
+        Inverse of get_hextent.
     """
     return 1 + 3 * extent * (extent + 1)
 
 
-def get_hextent(num_hexals):
+def get_hextent(num_hexals: int) -> int:
     """Computes the hex-lattice extent from the number of hexals.
 
     Args:
-        num_hexals (int): number of hexals.
+        num_hexals: Number of hexals.
 
     Returns:
-        extent (int): extent of hex-lattice.
+        Extent of hex-lattice.
 
-    Note: inverse of get_num_hexals.
+    Note:
+        Inverse of get_num_hexals.
     """
 
     return np.floor(np.sqrt(num_hexals / 3)).astype("int")
 
 
-def sort_u_then_v(u, v, values):
+def sort_u_then_v(
+    u: NDArray, v: NDArray, values: NDArray
+) -> Tuple[NDArray, NDArray, NDArray]:
     """Sorts u, v, and values by u and then v.
 
     Args:
-        u (array): u-coordinate of hexal.
-        v (array): v-coordinate of hexal.
-        values (array): value of hexal.
+        u: U-coordinate of hexal.
+        v: V-coordinate of hexal.
+        values: Value of hexal.
 
     Returns:
-        u (array): sorted u-coordinate of hexal.
-        v (array): sorted v-coordinate of hexal.
-        values (array): sorted value of hexal.
+        A tuple containing:
+            u: Sorted u-coordinate of hexal.
+            v: Sorted v-coordinate of hexal.
+            values: Sorted value of hexal.
     """
     index = np.lexsort((v, u))
     return u[index], v[index], values[index]
 
 
-def sort_u_then_v_index(u, v):
+def sort_u_then_v_index(u: NDArray, v: NDArray) -> NDArray:
     """Index to sort u, v by u and then v.
 
     Args:
-        u (array): u-coordinate of hexal.
-        v (array): v-coordinate of hexal.
+        u: U-coordinate of hexal.
+        v: V-coordinate of hexal.
 
     Returns:
-        index (array): index to sort u and v.
+        Index to sort u and v.
     """
     return np.lexsort((v, u))
 
 
-def get_extent(u, v, astype=int):
+def get_extent(u: NDArray, v: NDArray, astype: type = int) -> int:
     """Returns extent (integer distance to origin) of arbitrary u, v coordinates.
 
     Args:
-        u (array): u-coordinate of hexal.
-        v (array): v-coordinate of hexal.
-        astype (type): type to cast to.
+        u: U-coordinate of hexal.
+        v: V-coordinate of hexal.
+        astype: Type to cast to.
 
     Returns:
-        extent (int): extent of hex-lattice.
+        Extent of hex-lattice.
 
-    Note, if u and v are arrays, returns the maximum extent.
+    Note:
+        If u and v are arrays, returns the maximum extent.
 
-    See also https://www.redblobgames.com/grids/hexagons/#distances
+    See Also:
+        https://www.redblobgames.com/grids/hexagons/#distances
     """
     if isinstance(u, Number) and isinstance(v, Number):
         u, v = np.array((u,)), np.array((v,))
@@ -265,23 +305,50 @@ def get_extent(u, v, astype=int):
     return np.max(extent).astype(astype)
 
 
+def crop_to_extent(
+    u: NDArray, v: NDArray, color: NDArray, max_extent: int
+) -> Tuple[NDArray, NDArray, NDArray]:
+    """
+    Crop hexagonal grid data to a specified maximum extent.
+
+    Args:
+        u: Array of hex coordinates in u direction.
+        v: Array of hex coordinates in v direction.
+        color: Array of values associated with each (u, v) coordinate.
+        max_extent: Maximum extent to crop the hexagonal grid to.
+
+    Returns:
+        Tuple of cropped u, v, and color arrays.
+    """
+    extent_condition = (
+        (-max_extent <= u)
+        & (u <= max_extent)
+        & (-max_extent <= v)
+        & (v <= max_extent)
+        & (-max_extent <= u + v)
+        & (u + v <= max_extent)
+    )
+    return u[extent_condition], v[extent_condition], color[extent_condition]
+
+
 # -- Experimental explicit hex-datastructures ----------------------------------
 
 
 class Hexal:
     """Hexal representation containing u, v, z coordinates and value.
 
-    Args:
-        u : coordinate in u principal direction (0 degree axis).
-        v: coordinate in v principal direction (60 degree axis).
-        value: 'hexal' value.
-        u_stride (int): stride in u-direction.
-        v_stride (int): stride in v-direction.
-
-    Attributes: same as Args.
+    Attributes:
+        u: Coordinate in u principal direction (0 degree axis).
+        v: Coordinate in v principal direction (60 degree axis).
+        z: Coordinate in z principal direction (-60 degree axis).
+        value: 'Hexal' value.
+        u_stride: Stride in u-direction.
+        v_stride: Stride in v-direction.
     """
 
-    def __init__(self, u, v, value=np.nan, u_stride=1, v_stride=1):
+    def __init__(
+        self, u: int, v: int, value: float = np.nan, u_stride: int = 1, v_stride: int = 1
+    ):
         self.u = u
         self.v = v
         self.z = -(u + v)
@@ -477,7 +544,7 @@ class Hexal:
 class HexArray(np.ndarray):
     """Flat array holding Hexal's as elements.
 
-    Constructors:
+    Can be constructed with:
         HexArray(hexals: Iterable, values: Optional[np.nan])
         HexArray(u: Iterable, v: Iterable, values: Optional[np.nan])
     """
@@ -615,8 +682,11 @@ class HexLattice(HexArray):
     """Flat array of Hexals.
 
     Args:
-        extent (int): extent of the regular hexagon grid.
-        values (int or array): fill values.
+        extent: Extent of the regular hexagon grid.
+        hexals: Existing hexals to initialize with.
+        center: Center hexal of the lattice.
+        u_stride: Stride in u-direction.
+        v_stride: Stride in v-direction.
     """
 
     def __new__(
@@ -667,9 +737,9 @@ class HexLattice(HexArray):
         """Draws a circle in hex coordinates.
 
         Args:
-            radius (int): radius in columns of the circle.
-            center (Hexal): center of the circle.
-            as_lattice (bool): returns the circle on a constrained regular lattice.
+            radius: Radius in columns of the circle.
+            center: Center of the circle.
+            as_lattice: Returns the circle on a constrained regular lattice.
         """
         lattice = HexLattice(extent=max(radius or 0, self.extent), center=center)
         radius = radius or self.extent
@@ -688,9 +758,9 @@ class HexLattice(HexArray):
         """Draws a circle in hex coordinates.
 
         Args:
-            radius (int): radius in columns of the circle.
-            center (Hexal): center of the circle.
-            as_lattice (bool): returns the circle on a constrained regular lattice.
+            radius: Radius in columns of the circle.
+            center: Center of the circle.
+            as_lattice: Returns the circle on a constrained regular lattice.
         """
         lattice = HexLattice(extent=radius or 0, center=center)
         radius = radius
@@ -712,7 +782,7 @@ class HexLattice(HexArray):
         """Returns two points spanning a line with given angle wrt. origin.
 
         Args:
-            angle (float): in [0, np.pi]
+            angle: In [0, np.pi]
 
         Returns:
             HexArray
@@ -733,9 +803,9 @@ class HexLattice(HexArray):
         """Returns a line on a HexLattice or HexArray.
 
         Args:
-            angle (float): in [0, np.pi]
-            center (Hexal): midpoint of the line
-            as_lattice (bool): returns the ring on a constrained regular lattice.
+            angle: In [0, np.pi]
+            center: Midpoint of the line
+            as_lattice: Returns the ring on a constrained regular lattice.
 
         Returns:
             HexArray or constrained HexLattice
@@ -771,10 +841,13 @@ class HexLattice(HexArray):
 class LatticeMask:
     """Boolean masks for lattice dimension.
 
-    Args: ~ equivalent to HexLattice.
+    Args:
+        extent: Extent of the hexagonal lattice.
+        u_stride: Stride in u-direction.
+        v_stride: Stride in v-direction.
     """
 
-    def __init__(self, extent=15, u_stride=1, v_stride=1):
+    def __init__(self, extent: int = 15, u_stride: int = 1, v_stride: int = 1):
         self._lattice = HexLattice(extent=extent, u_stride=u_stride, v_stride=v_stride)
 
     @property

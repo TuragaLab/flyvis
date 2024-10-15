@@ -2,12 +2,12 @@ import numpy as np
 import pytest
 
 from flyvision import connectome_file
-from flyvision.connectome import ConnectomeDir
+from flyvision.connectome import ConnectomeFromAvgFilters
 
 
 @pytest.fixture(scope="session")
 def connectome(tmp_path_factory):
-    return ConnectomeDir(
+    return ConnectomeFromAvgFilters(
         tmp_path_factory.mktemp("tmp") / "test",
         dict(file=connectome_file, extent=1, n_syn_fill=1),
     )

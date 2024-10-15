@@ -4,3 +4,4 @@ activity_penalty:
   stop_iter: 150000
   below_baseline_penalty_weight: 1.0
   above_baseline_penalty_weight: 0.1
+optim: SGD

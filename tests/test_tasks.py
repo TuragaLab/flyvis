@@ -1,7 +1,7 @@
 import pytest
 from datamate import Namespace
 
-from flyvision.tasks import Task
+from flyvision.task.tasks import Task
 
 # add large_download mark to deselect this test in CI
 pytestmark = pytest.mark.require_large_download
@@ -43,7 +43,7 @@ def test_task(connectome):
                 p_dropout=0.5,
             )
         ),
-        loss=Namespace(flow=Namespace(type="L2Norm")),
+        loss=Namespace(flow="l2norm"),
         batch_size=4,
         num_workers=0,
         n_iters=250000,

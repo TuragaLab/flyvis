@@ -1,91 +1,97 @@
 [build-system]
-requires = [
-    "setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"
-]
 build-backend = "setuptools.build_meta"
+requires = ["setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"]
 
 [tool.setuptools_scm]
 write_to = "flyvision/version.py"
 
 [project]
-name = "flyvision"
-dynamic = ["version"]
-description = "Connectome and task-constrained vision models of the fruit fly."
 classifiers = [
-    "Intended Audience :: Developers",
-    "Intended Audience :: Education",
-    "Intended Audience :: Science/Research",
-    "Topic :: Adaptive Technologies",
-    "Topic :: Scientific/Engineering",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Mathematics",
-    """License :: OSI Approved :: APACHE 2.0""",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "Topic :: Adaptive Technologies",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  """License :: OSI Approved :: MIT License""",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Development Status :: 3 - Alpha",
 ]
-requires-python = ">=3.6"
-readme = "README.md"
 dependencies = [
-    "ipython",
-    "numba==0.55.2",
-    "datamate",
-    "scipy",
-    "matplotlib==3.7.1",
-    "networkx",
-    "scikit-learn==1.1.1",
-    "umap-learn==0.5.3",
-    "ffmpeg-python",
-    "black",
-    "pytest",
-    "torch",
-    "torchvision",
-    "python-dotenv",
-    "hydra-core",
-    "toolz",
-    "tqdm",
-    "requests",
-    "google-api-python-client"
+  "ipython",
+  "numba==0.55.2",
+  "datamate",
+  "scipy",
+  "matplotlib==3.7.1",
+  "networkx",
+  "scikit-learn==1.1.1",
+  "umap-learn==0.5.3",
+  "ffmpeg-python",
+  "pytest",
+  "torch",
+  "torchvision",
+  "python-dotenv",
+  "hydra-core",
+  "toolz",
+  "tqdm",
+  "requests",
+  "google-api-python-client",
+  "xarray==2023.7.0",
+  "pandas==2.2.2",
+  "joblib==1.3.2",
 ]
+description = "Connectome and task-constrained vision models of the fruit fly."
+dynamic = ["version"]
+name = "flyvision"
+readme = "README.md"
+requires-python = ">=3.6"
 
 [project.optional-dependencies]
 dev = [
-    # Lint
-    "pre-commit",
-    "ruff",
-    # Test
-    "pytest",
-    "jupyter",
-    "papermill"
+  # Lint
+  "pre-commit",
+  "ruff",       # Test
+  "pytest",
+  "jupyter",
+  "papermill",
 ]
 docs = [
-    # Documentation
-    "mkdocs",
-    "mkdocs-material",
-    "markdown-include",
-    "mkdocs-redirects",
-    "mkdocstrings[python] >= 0.18",
-    "jupyter",
-    "nbconvert",
+  # Documentation
+  "mkdocs",
+  "mkdocs-material",
+  "markdown-include",
+  "mkdocs-redirects",
+  "mkdocstrings[python] >= 0.18",
+  "jupyter",
+  "nbconvert",
+  "mike",
+  "mkdocs-macros-plugin",
 ]
-example = [# Examples
-    "jupyter"
-    ]
+example = [
+  # Examples
+  "jupyter",
+]
 no-version-pins = [
-    "numba",
-    "matplotlib",
-    "scikit-learn",
-    "umap-learn",
+  "numba",
+  "matplotlib",
+  "scikit-learn",
+  "umap-learn",
+  "xarray",
+  "pandas",
+  "joblib",
 ]
 
 # Package installation configuration
 [tool.setuptools.packages.find]
-where = ["."]  # list of folders that contain the packages (["."] by default)
-include = ["flyvision*"]  # package names should match these glob patterns (["*"] by default)
-exclude = []  # exclude packages matching these glob patterns (empty by default)
-namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
-
+exclude = [] # exclude packages matching these glob patterns (empty by default)
+include = [
+  "flyvision*",
+] # package names should match these glob patterns (["*"] by default)
+namespaces = false # to disable scanning PEP 420 namespaces (true by default)
+where = ["."] # list of folders that contain the packages (["."] by default)
 
 # ruff configs
 [tool.ruff]
@@ -94,16 +100,21 @@ line-length = 90
 
 [tool.ruff.lint]
 # pycodestyle, Pyflakes, pyupgrade, flake8-bugbear, flake8-simplify, isort
-select = ["E", "F", "W", "B", "SIM", "I"]
 ignore = [
-    "E731",  # allow naming lambda functions.
-    "B006",  # allow mutable default arguments.
-    "B008",  # allow function calls in default args.
-    "F841",  # allow unused variables.
+  "E731", # allow naming lambda functions.
+  "B006", # allow mutable default arguments.
+  "B008", # allow function calls in default args.
+  "F841", # allow unused variables.
 ]
+select = ["E", "F", "W", "B", "SIM", "I"]
 
 [tool.ruff.lint.extend-per-file-ignores]
-"__init__.py" = ["I001", "E402", "F401", "F403"]  # allow unused imports and undefined names
+"__init__.py" = [
+  "I001",
+  "E402",
+  "F401",
+  "F403",
+] # allow unused imports and undefined names
 "test_*.py" = ["F403", "F405"]
 
 [tool.ruff.lint.isort]
@@ -113,7 +124,7 @@ relative-imports-order = "furthest-to-closest"  # like isort default.
 known-first-party = ["flyvision", "tests", "examples", "scripts"]
 
 [tool.ruff.format]
-exclude = ["*.ipynb"]
+# exclude = ["*.ipynb"]
 preview = true
 quote-style = "preserve"
 
@@ -122,29 +133,26 @@ disable = """"""
 
 # Pytest configuration
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "gpu: marks tests that require a gpu (deselect with '-m \"not gpu\"')",
-    "require_large_download: tests that require large data downloads (deselect with '-m \"not require_large_download\"')",
-    "require_download: tests that require data downloads (deselect with '-m \"not require_download\"')"
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "gpu: marks tests that require a gpu (deselect with '-m \"not gpu\"')",
+  "require_large_download: tests that require large data downloads (deselect with '-m \"not require_large_download\"')",
+  "require_download: tests that require data downloads (deselect with '-m \"not require_download\"')",
 ]
-
+testpaths = ["tests"]
 
 # Pyright configuration
 [tool.pyright]
 exclude = [
-    "**/__pycache__",
-    "**/__node_modules__",
-    ".git",
-    "docs",
+  "**/__pycache__",
+  "**/__node_modules__",
+  ".git",
+  "docs",
   ".fonts",
   ".ruff_cache",
   "config",
   "data",
-  "images"
+  "images",
 ]
 ignore = []
 include = ["flyvision", "scripts", "tests", "examples"]

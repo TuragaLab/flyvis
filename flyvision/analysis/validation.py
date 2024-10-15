@@ -7,11 +7,14 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 import flyvision
-from flyvision import Network, NetworkView
 from flyvision.datasets import MultiTaskDataset
+from flyvision.network import Network, NetworkView
+from flyvision.task.objectives import epe, l2norm
 from flyvision.utils.class_utils import forward_subclass
 
 logging = logging.getLogger(__name__)
+
+__all__ = ["validate", "validate_all_checkpoints"]
 
 
 @torch.no_grad()
@@ -40,7 +43,7 @@ def validate(
         grad=False,
     )
     losses = {task: [] for task in dataset.tasks}  # type: Dict[str, List]
-    stimulus = flyvision.stimulus.Stimulus(network.connectome, 0, 0, _init=False)
+    stimulus = network.stimulus
 
     with dataset.augmentation(False):
         for _, data in enumerate(dataloader):
@@ -112,12 +115,13 @@ def validate_all_checkpoints(
     loss = []
     progress = tqdm(total=len(network_view.dir.chkpt_index))
     for chkpt in network_view.checkpoints.indices:
-        network_view.update_checkpoint(checkpoint=chkpt)
-        network = network_view.network
-        decoder = network_view.decoder
+        network = network_view.network(checkpoint=chkpt)
+        decoder = network_view.init_decoder(
+            checkpoint=chkpt, decoder=network_view.decoder
+        )
         loss.append(
             validate(
-                network=network,
+                network=network.network,
                 decoder=decoder,
                 dataloader=dataloader,
                 loss_fns=loss_fns,
@@ -131,12 +135,12 @@ def validate_all_checkpoints(
     loss = np.array(loss)
 
     for i, fn in enumerate(loss_fns):
-        network_view.dir[validation_subdir][fn.__class__.__name__] = loss[:, i]
+        network_view.dir[validation_subdir][fn.__name__] = loss[:, i]
 
     network_view.dir[validation_subdir].config = dict(
         dt=dt,
         t_pre=t_pre,
-        loss_fns=[fn.__class__.__name__ for fn in loss_fns],
+        loss_fns=[fn.__name__ for fn in loss_fns],
         validation_subdir=validation_subdir,
         validation_function=inspect.currentframe().f_code.co_name,
     )
@@ -147,7 +151,4 @@ def validate_all_checkpoints(
 def get_loss_fns(loss_fns):
     if loss_fns:
         return loss_fns
-    return [
-        flyvision.objectives.L2Norm(),
-        flyvision.objectives.EPE(),
-    ]
+    return [l2norm, epe]

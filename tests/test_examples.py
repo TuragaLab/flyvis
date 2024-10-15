@@ -1,9 +1,13 @@
+import os
+
+os.environ["TESTING"] = "true"
 from pathlib import Path
 
 import nbformat
 import papermill as pm
 import pytest
 
+pytestmark = pytest.mark.slow
 examples_path = Path(__file__).parent.parent / "examples"
 # List of notebook names
 notebooks = [
@@ -21,11 +25,23 @@ notebooks = [
         "05_flyvision_umap_and_clustering_models.ipynb",
         marks=pytest.mark.require_large_download,
     ),
-    # pytest.param("06_flyvision_tmy_predictions.ipynb"),
+    pytest.param(
+        "06_flyvision_maximally_excitatory_stimuli.ipynb",
+        marks=pytest.mark.require_large_download,
+    ),
     pytest.param(
         "07_flyvision_providing_custom_stimuli.ipynb",
         marks=pytest.mark.require_download,
     ),
+    pytest.param("figure_01_fly_visual_system.ipynb", marks=pytest.mark.require_download),
+    pytest.param(
+        "figure_02_simple_stimuli_responses.ipynb", marks=pytest.mark.require_download
+    ),
+    pytest.param(
+        "figure_03_naturalistic_stimuli_responses.ipynb",
+        marks=pytest.mark.require_download,
+    ),
+    pytest.param("figure_04_mechanisms.ipynb", marks=pytest.mark.require_download),
 ]
 
 

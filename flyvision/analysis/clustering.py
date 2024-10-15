@@ -2,7 +2,17 @@ import logging
 import pickle
 from dataclasses import dataclass
 from functools import wraps
-from typing import Iterable, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,39 +23,34 @@ from matplotlib.figure import Figure
 from sklearn.mixture import GaussianMixture
 from sklearn.preprocessing import MinMaxScaler
 
-# umap import slows down whole library import
-from umap.umap_ import UMAP
-from umap.utils import disconnected_vertices
-
 import flyvision
-from flyvision.datasets.sintel import AugmentedSintel
-from flyvision.plots import plt_utils
 from flyvision.utils.activity_utils import CentralActivity
 
-MARKERS = np.array(["o", "^", "s", "*", "+", "h", "p", "8"])
+from .stimulus_responses import naturalistic_stimuli_responses
+from .visualization import plt_utils
+from .visualization.plt_utils import check_markers
+
+__all__ = ["Embedding", "Clustering", "GaussianMixtureClustering", "EmbeddingPlot"]
+
 INVALID_INT = -99999
 
 logging = logging.getLogger(__name__)
-
-
-def check_markers(N):
-    """Check if the number of clusters is larger than the number of markers."""
-
-    if len(MARKERS) < N:
-        return [f"${i}$" for i in range(N)]
-    return MARKERS
-
-
-def scale_tensor(tensor):
-    """Scale tensor to range (0, 1)."""
-
-    s = MinMaxScaler(feature_range=(0, 1), copy=True, clip=False)
-    return s.fit_transform(tensor), s
+if TYPE_CHECKING:
+    from umap import UMAP
+else:
+    UMAP = TypeVar("UMAP")
 
 
 @dataclass
 class Embedding:
-    """Embedding of the ensemble responses."""
+    """
+    Embedding of the ensemble responses.
+
+    Attributes:
+        embedding (npt.NDArray): The embedded data.
+        mask (npt.NDArray): Mask for valid data points.
+        reducer (object): The reduction object used for embedding.
+    """
 
     embedding: npt.NDArray = None
     mask: npt.NDArray = None
@@ -53,30 +58,54 @@ class Embedding:
 
     @property
     def cluster(self) -> "Clustering":
+        """Returns a Clustering object for this embedding."""
         return Clustering(self)
 
     @property
     def embedding(self) -> npt.NDArray:  # noqa: F811
+        """Returns the embedded data."""
         return getattr(self, "_embedding", None)
 
     @embedding.setter
-    def embedding(self, value):
+    def embedding(self, value: npt.NDArray) -> None:
+        """
+        Sets the embedding and scales it to range (0, 1).
+
+        Args:
+            value: The embedding array to set.
+        """
         self._embedding, self.minmaxscaler = scale_tensor(value)
 
     def plot(
         self,
-        fig=None,
-        ax=None,
-        figsize=None,
-        plot_mode="paper",
-        fontsize=5,
-        colors=None,
+        fig: Figure = None,
+        ax: Axes = None,
+        figsize: tuple = None,
+        plot_mode: str = "paper",
+        fontsize: int = 5,
+        colors: npt.NDArray = None,
         **kwargs,
-    ):
-        """Plot the embedding."""
+    ) -> tuple[Figure, Axes]:
+        """
+        Plot the embedding.
 
+        Args:
+            fig: Existing figure to plot on.
+            ax: Existing axes to plot on.
+            figsize: Size of the figure.
+            plot_mode: Mode for plotting ('paper', 'small', or 'large').
+            fontsize: Font size for annotations.
+            colors: Colors for data points.
+            **kwargs: Additional arguments passed to plot_embedding.
+
+        Returns:
+            A tuple containing the figure and axes objects.
+
+        Raises:
+            AssertionError: If the embedding is not 2-dimensional.
+        """
         if self.embedding.shape[1] != 2:
-            raise AssertionError
+            raise AssertionError("Embedding must be 2-dimensional for plotting")
         if figsize is None:
             figsize = [0.94, 2.38]
         return plot_embedding(
@@ -97,9 +126,36 @@ class Embedding:
         )
 
 
+def scale_tensor(tensor: npt.NDArray) -> tuple[npt.NDArray, MinMaxScaler]:
+    """
+    Scale tensor to range (0, 1).
+
+    Args:
+        tensor: Input tensor to be scaled.
+
+    Returns:
+        A tuple containing the scaled tensor and the MinMaxScaler object.
+    """
+    s = MinMaxScaler(feature_range=(0, 1), copy=True, clip=False)
+    return s.fit_transform(tensor), s
+
+
 @dataclass
 class GaussianMixtureClustering:
-    """Gaussian Mixture Clustering of the embeddings."""
+    """
+    Gaussian Mixture Clustering of the embeddings.
+
+    Attributes:
+        embedding (Embedding): The embedding to cluster.
+        range_n_clusters (Iterable[int]): Range of number of clusters to try.
+        n_init (int): Number of initializations for GMM.
+        max_iter (int): Maximum number of iterations for GMM.
+        random_state (int): Random state for reproducibility.
+        labels (npt.NDArray): Cluster labels.
+        gm (object): Fitted GaussianMixture object.
+        scores (list): Scores for each number of clusters.
+        n_clusters (list): Number of clusters tried.
+    """
 
     embedding: Embedding = None
     range_n_clusters: Iterable[int] = None
@@ -113,12 +169,25 @@ class GaussianMixtureClustering:
 
     def __call__(
         self,
-        range_n_clusters=None,
-        n_init=1,
-        max_iter=1000,
-        random_state=0,
+        range_n_clusters: Iterable[int] = None,
+        n_init: int = 1,
+        max_iter: int = 1000,
+        random_state: int = 0,
         **kwargs,
-    ):
+    ) -> "GaussianMixtureClustering":
+        """
+        Perform Gaussian Mixture clustering.
+
+        Args:
+            range_n_clusters: Range of number of clusters to try.
+            n_init: Number of initializations for GMM.
+            max_iter: Maximum number of iterations for GMM.
+            random_state: Random state for reproducibility.
+            **kwargs: Additional arguments for gaussian_mixture function.
+
+        Returns:
+            Self with updated clustering results.
+        """
         self.labels, self.gm, self.scores, self.n_clusters = gaussian_mixture(
             self.embedding.embedding,
             self.embedding.mask,
@@ -135,24 +204,52 @@ class GaussianMixtureClustering:
         self.kwargs = kwargs
         return self
 
-    def task_error_sort_labels(self, task_error, mode="mean"):
+    def task_error_sort_labels(self, task_error: npt.NDArray, mode: str = "mean") -> None:
+        """
+        Sort cluster labels based on task error.
+
+        Args:
+            task_error: Array of task errors.
+            mode: Method to compute task error ('mean', 'min', or 'median').
+        """
         self.labels = task_error_sort_labels(task_error, self.labels, mode=mode)
 
     def plot(
         self,
-        task_error=None,
-        colors=None,
-        annotate=True,
-        annotate_scores=False,
-        fig=None,
-        ax=None,
-        figsize=None,
-        plot_mode="paper",
-        fontsize=5,
+        task_error: npt.NDArray = None,
+        colors: npt.NDArray = None,
+        annotate: bool = True,
+        annotate_scores: bool = False,
+        fig: Figure = None,
+        ax: Axes = None,
+        figsize: tuple = None,
+        plot_mode: str = "paper",
+        fontsize: int = 5,
         **kwargs,
-    ):
+    ) -> "EmbeddingPlot":
+        """
+        Plot the clustering results.
+
+        Args:
+            task_error: Array of task errors.
+            colors: Colors for data points.
+            annotate: Whether to annotate clusters.
+            annotate_scores: Whether to annotate BIC scores.
+            fig: Existing figure to plot on.
+            ax: Existing axes to plot on.
+            figsize: Size of the figure.
+            plot_mode: Mode for plotting ('paper', 'small', or 'large').
+            fontsize: Font size for annotations.
+            **kwargs: Additional arguments for plot_embedding function.
+
+        Returns:
+            An EmbeddingPlot object.
+
+        Raises:
+            AssertionError: If the embedding is not 2-dimensional.
+        """
         if self.embedding.embedding.shape[1] != 2:
-            raise AssertionError
+            raise AssertionError("Embedding must be 2-dimensional for plotting")
         if figsize is None:
             figsize = [0.94, 2.38]
         fig, ax = plot_embedding(
@@ -198,44 +295,58 @@ class EmbeddingPlot:
 
 @dataclass
 class Clustering:
+    """Clustering of the embedding.
+
+    Attributes:
+        embedding (Embedding): The embedding to be clustered.
+    """
+
     embedding: Embedding = None
-    """Clustering of the embedding."""
 
     @property
-    def gaussian_mixture(
-        self,
-    ) -> GaussianMixtureClustering:
-        """See gaussian_mixture for kwargs."""
+    def gaussian_mixture(self) -> GaussianMixtureClustering:
+        """Create a GaussianMixtureClustering object for the embedding.
+
+        Returns:
+            GaussianMixtureClustering: A clustering object for Gaussian mixture models.
+        """
         return GaussianMixtureClustering(self.embedding)
 
 
 def gaussian_mixture(
-    X,
-    mask,
-    range_n_clusters=None,
-    n_init=1,
-    max_iter=1000,
-    random_state=0,
-    criterion="bic",
+    X: np.ndarray,
+    mask: np.ndarray,
+    range_n_clusters: Optional[Union[List[int], np.ndarray]] = None,
+    n_init: int = 1,
+    max_iter: int = 1000,
+    random_state: int = 0,
+    criterion: str = "bic",
     **kwargs,
-):
+) -> Tuple[np.ndarray, GaussianMixture, np.ndarray, np.ndarray]:
+    """Fit Gaussian Mixtures to the data.
+
+    Args:
+        X: Input data with shape (n_samples, n_features).
+        mask: Boolean mask for valid samples.
+        range_n_clusters: Range of number of components to fit.
+        n_init: Number of initializations for each number of components.
+        max_iter: Maximum number of iterations for the fitting process.
+        random_state: Random state for reproducibility.
+        criterion: Criterion to use for selecting the number of components.
+            Options are "bic", "aic", or "score".
+        **kwargs: Additional keyword arguments for GaussianMixture.
+
+    Returns:
+        A tuple containing:
+
+        - labels: Cluster labels for each sample.
+        - gm: Fitted GaussianMixture object.
+        - metric: Metric values (BIC, AIC, or score) for each number of components.
+        - range_n_clusters: Range of number of components tried.
+
+    Raises:
+        ValueError: If an unknown criterion is provided.
     """
-    Fitting Gaussian Mixtures to the data.
-
-        Args:
-            X (Array): (#samples, here ensemble size, 2)
-            range_n_clusters (Array): (#components) range of components to fit
-            n_init (int): number of initializations
-            max_iter (int): maximum number of iterations
-            criterion (str): criterion to use for selecting the number of components
-
-        Returns:
-            labels (Array): (#samples) cluster labels
-            gm (object): GaussianMixture object
-            metric (Array): (#components) metric values
-            range_n_clusters (Array): (#components) range of components
-    """
-
     if range_n_clusters is None:
         range_n_clusters = np.array([1, 2, 3, 4, 5])
 
@@ -272,7 +383,7 @@ def gaussian_mixture(
     elif criterion == "score":
         metric = scores
     else:
-        raise ValueError(f"unknown criterion {criterion}")
+        raise ValueError(f"Unknown criterion: {criterion}")
 
     n_components = range_n_clusters[np.argmin(metric)]
     gm = GaussianMixture(
@@ -319,39 +430,56 @@ class EnsembleEmbedding:
 
 
 def umap_embedding(
-    X,
-    n_neighbors=5,
-    min_dist=0.12,
-    spread=9.0,
-    random_state=42,
-    n_components=2,
-    metric="correlation",
-    n_epochs=1500,
+    X: np.ndarray,
+    n_neighbors: int = 5,
+    min_dist: float = 0.12,
+    spread: float = 9.0,
+    random_state: int = 42,
+    n_components: int = 2,
+    metric: str = "correlation",
+    n_epochs: int = 1500,
     **kwargs,
-):
-    """Embedding of X using UMAP.
+) -> Tuple[np.ndarray, np.ndarray, UMAP]:
+    """
+    Perform UMAP embedding on input data.
 
     Args:
-        X (Array): (#samples, 2)
-        n_neighbors (int): number of neighbors
-        min_dist (float): minimum distance
-        spread (float): spread
-        random_state (int): random state
-        n_components (int): number of components
-        metric (str): metric
-        n_epochs (int): number of epochs
+        X: Input data with shape (n_samples, n_features).
+        n_neighbors: Number of neighbors to consider for each point.
+        min_dist: Minimum distance between points in the embedding space.
+        spread: Determines how spread out all embedded points are overall.
+        random_state: Random seed for reproducibility.
+        n_components: Number of dimensions in the embedding space.
+        metric: Distance metric to use.
+        n_epochs: Number of training epochs for embedding optimization.
+        **kwargs: Additional keyword arguments for UMAP.
+
+    Returns:
+        A tuple containing:
+        - embedding: The UMAP embedding.
+        - mask: Boolean mask for valid samples.
+        - reducer: The fitted UMAP object.
+
+    Raises:
+        ValueError: If n_components is too large relative to sample size.
+
+    Note:
+        This function handles reshaping of input data and removes constant rows.
     """
+    # umap import would slow down whole library import
+    from umap import UMAP
+    from umap.utils import disconnected_vertices
 
     if n_components > X.shape[0] - 2:
         raise ValueError(
-            "number of components must be 2 smaller than sample size."
-            " See: https://github.com/lmcinnes/umap/issues/201"
+            "number of components must be 2 smaller than sample size. "
+            "See: https://github.com/lmcinnes/umap/issues/201"
         )
 
     if len(X.shape) > 2:
         shape = X.shape
         X = X.reshape(X.shape[0], -1)
-        logging.info(f"reshaped X from {shape} to {X.shape}")
+        logging.info("reshaped X from %s to %s", shape, X.shape)
 
     embedding = np.ones([X.shape[0], n_components]) * np.nan
     # umap doesn't like contant rows
@@ -377,51 +505,72 @@ def umap_embedding(
 
 
 def plot_embedding(
-    X,
-    colors=None,
-    task_error=None,
-    labels=None,
-    gm=None,
-    mask=None,
-    fit_gaussians=True,
-    annotate=True,
-    contour_gaussians=True,
-    range_n_clusters=[1, 2, 3, 4, 5],
-    n_init_gaussian_mixture=10,
-    title="",
-    fig=None,
-    ax=None,
-    mode=None,
-    figsize=[3, 3],
-    s=20,
-    fontsize=5,
-    ax_lim_pad=0.2,  # relative
-    task_error_sort_mode="mean",
-    err_x_offset=0.025,
-    err_y_offset=-0.025,
-    gm_kwargs=None,
-):
+    X: np.ndarray,
+    colors: Optional[np.ndarray] = None,
+    task_error: Optional[np.ndarray] = None,
+    labels: Optional[np.ndarray] = None,
+    gm: Optional[GaussianMixture] = None,
+    mask: Optional[np.ndarray] = None,
+    fit_gaussians: bool = True,
+    annotate: bool = True,
+    contour_gaussians: bool = True,
+    range_n_clusters: List[int] = [1, 2, 3, 4, 5],
+    n_init_gaussian_mixture: int = 10,
+    title: str = "",
+    fig: Optional[Figure] = None,
+    ax: Optional[Axes] = None,
+    mode: Optional[str] = None,
+    figsize: List[float] = [3, 3],
+    s: float = 20,
+    fontsize: int = 5,
+    ax_lim_pad: float = 0.2,
+    task_error_sort_mode: str = "mean",
+    err_x_offset: float = 0.025,
+    err_y_offset: float = -0.025,
+    gm_kwargs: Optional[Dict] = None,
+) -> Tuple[Figure, Axes]:
     """
-    Args:
-        X (Array): (#samples, here ensemble size, 2)
-        colors (Array): (#samples) color values. Used to color the scatter points.
-            Optional.
-        task_error (Array): (#samples) task error values.
-            Used to sort the label id's and to annotate the clusters. Optional.
-        mask (Array): (#samples) Used to remove broken sampled.
-    """
+    Plot the embedding of data points with optional Gaussian mixture clustering.
 
-    # to remove broken samples (e.g. through disconnected vertices in umap or
-    # model responses in nullspace)
+    Args:
+        X: Input data with shape (n_samples, 2).
+        colors: Color values for each data point.
+        task_error: Task error values for each data point.
+        labels: Cluster labels for each data point.
+        gm: Fitted GaussianMixture object.
+        mask: Boolean mask for valid samples.
+        fit_gaussians: Whether to fit Gaussian mixtures.
+        annotate: Whether to annotate clusters with performance metrics.
+        contour_gaussians: Whether to plot contours for Gaussian mixtures.
+        range_n_clusters: Range of number of clusters to try.
+        n_init_gaussian_mixture: Number of initializations for Gaussian mixture.
+        title: Title of the plot.
+        fig: Existing figure to plot on.
+        ax: Existing axes to plot on.
+        mode: Plotting mode ('paper', 'small', or 'large').
+        figsize: Size of the figure.
+        s: Size of scatter points.
+        fontsize: Font size for annotations.
+        ax_lim_pad: Padding for axis limits.
+        task_error_sort_mode: Mode for sorting task errors ('mean' or 'min').
+        err_x_offset: X-offset for error annotations.
+        err_y_offset: Y-offset for error annotations.
+        gm_kwargs: Additional keyword arguments for Gaussian mixture.
+
+    Returns:
+        A tuple containing the figure and axes objects.
+
+    Note:
+        This function handles various plotting scenarios including Gaussian mixture
+        clustering and task error annotation.
+    """
     if mask is None:
         mask = slice(None)
 
-    # to keep colors optional init default if not given
     if colors is None:
         colors = np.array(X.shape[0] * ["#779eaa"])
     colors = colors[mask]
 
-    # to keep the task error optional
     if task_error is not None:
         task_error = task_error[mask]
 
@@ -571,13 +720,25 @@ def plot_embedding(
     return fig, ax
 
 
-def task_error_sort_labels(task_error, labels, mode="mean"):
+def task_error_sort_labels(
+    task_error: np.ndarray, labels: np.ndarray, mode: str = "mean"
+) -> np.ndarray:
     """
-    Permute the cluster label id's according to which cluster has the smallest
-    average task error.
+    Permute cluster label IDs based on task error.
 
-    We sort the labels such that the best
-    performing cluster has label 0, the second best label 1 and so on.
+    Args:
+        task_error: Array of task errors for each sample.
+        labels: Array of cluster labels.
+        mode: Method to compute task error. Options: "mean", "min", "median".
+
+    Returns:
+        Array of sorted labels.
+
+    Raises:
+        ValueError: If an invalid mode is provided.
+
+    Note:
+        Sorts labels so the best performing cluster has label 0, second best 1, etc.
     """
     sorted_labels = np.ones_like(labels, dtype=int) * INVALID_INT
 
@@ -590,7 +751,7 @@ def task_error_sort_labels(task_error, labels, mode="mean"):
         elif mode == "median":
             _error = np.median(task_error[labels == label_id])
         else:
-            raise ValueError
+            raise ValueError("Invalid mode for task error calculation")
         task_error_cluster.append(_error)
 
     for i, x in enumerate(np.argsort(task_error_cluster)):
@@ -599,31 +760,55 @@ def task_error_sort_labels(task_error, labels, mode="mean"):
     return sorted_labels
 
 
-def get_cluster_to_indices(mask, labels, task_error=None):
+def get_cluster_to_indices(
+    mask: np.ndarray, labels: np.ndarray, task_error: Optional[np.ndarray] = None
+) -> Dict[int, np.ndarray]:
+    """
+    Map cluster labels to corresponding indices.
+
+    Args:
+        mask: Boolean mask for valid samples.
+        labels: Array of cluster labels.
+        task_error: Optional array of task errors for sorting labels.
+
+    Returns:
+        Dictionary mapping cluster labels to arrays of indices.
+    """
     indices = np.arange(len(labels)).astype(int)
     if task_error is not None:
         labels = task_error_sort_labels(task_error.values, labels)
-    # to remove models from the index that are invalid
+
     indices = np.arange(len(labels))[mask]
     labels = labels[mask]
     cluster_indices = {
         label_id: indices[labels == label_id] for label_id in np.unique(labels)
     }
-    return dict(sorted({int(k): np.sort(v) for k, v in cluster_indices.items()}.items()))
+    return cluster_indices
 
 
 def compute_umap_and_clustering(
-    ensemble: "flyvision.EnsembleView",
+    ensemble: "flyvision.network.EnsembleView",
     cell_type: str,
-    dt=1 / 100,
-    batch_size=4,
-    embedding_kwargs=None,
-    gm_kwargs=None,
-    subdir="umap_and_clustering",
-    subdir_responses="naturalistic_stimuli_responses",
-):
-    """Compute UMAP embedding and Gaussian Mixture clustering of the responses."""
+    embedding_kwargs: Optional[Dict] = None,
+    gm_kwargs: Optional[Dict] = None,
+    subdir: str = "umap_and_clustering",
+) -> GaussianMixtureClustering:
+    """
+    Compute UMAP embedding and Gaussian Mixture clustering of responses.
 
+    Args:
+        ensemble: EnsembleView object.
+        cell_type: Type of cell to analyze.
+        embedding_kwargs: UMAP embedding parameters.
+        gm_kwargs: Gaussian Mixture clustering parameters.
+        subdir: Subdirectory for storing results.
+
+    Returns:
+        GaussianMixtureClustering object.
+
+    Note:
+        Results are cached to disk for faster subsequent access.
+    """
     if embedding_kwargs is None:
         embedding_kwargs = {
             "min_dist": 0.105,
@@ -647,54 +832,20 @@ def compute_umap_and_clustering(
         with open((destination / cell_type).with_suffix(".pickle"), "rb") as f:
             embedding_and_clustering = pickle.load(f)
 
-        logging.info(
-            "Loaded %s embedding and clustering from %s.", cell_type, destination
-        )
+        logging.info("Loaded %s embedding and clustering from %s", cell_type, destination)
         return embedding_and_clustering
 
-    # Load the embedding and clustering from disk if it exists
     if (destination / cell_type).with_suffix(".pickle").exists():
         return load_from_disk()
 
-    def load_naturalistic_stimulus_responses():
-        """Load or compute naturalistic stimulus responses."""
-        # this reads from disk or cache
-        responses = ensemble.stored_responses(subdir=subdir_responses)
-        if responses is None:
-            # otherwise compute responses
-            # TODO: could be cached if useful somewhere else too, but EnsembleEmbedding
-            # is cached already for this usecase
-            dataset = AugmentedSintel(
-                tasks=["flow"],
-                interpolate=False,
-                boxfilter=dict(extent=15, kernel_size=13),
-                temporal_split=True,
-                dt=dt,
-            )
-            responses = np.stack(
-                list(
-                    ensemble.simulate_from_dataset(
-                        dataset,
-                        dt=dt,
-                        batch_size=batch_size,
-                        central_cell_only=True,
-                    )
-                )
-            )
-        return responses
-
     def create_embedding_object(responses):
-        """Return embedding object from cache or create and write cache."""
-        if "ensemble_embedding_object" in ensemble.cache:
-            return ensemble.cache["ensemble_embedding_object"]
         central_responses = CentralActivity(
-            responses, ensemble[0].connectome, keepref=True
+            responses['responses'].values, ensemble[0].connectome, keepref=True
         )
         embeddings = EnsembleEmbedding(central_responses)
-        ensemble.cache["ensemble_embedding_object"] = embeddings
         return embeddings
 
-    responses = load_naturalistic_stimulus_responses()
+    responses = naturalistic_stimuli_responses(ensemble)
     embeddings = create_embedding_object(responses)
 
     embedding = embeddings.from_cell_type(cell_type, embedding_kwargs=embedding_kwargs)
@@ -703,7 +854,18 @@ def compute_umap_and_clustering(
 
 
 @wraps(compute_umap_and_clustering)
-def umap_and_clustering_generator(ensemble: "flyvision.EnsembleView", **kwargs):
-    """UMAP and clustering of all cell types."""
-    for cell_type in ensemble[0].cell_types_sorted:
+def umap_and_clustering_generator(
+    ensemble: "flyvision.network.EnsembleView", **kwargs
+) -> Generator[Tuple[str, GaussianMixtureClustering], None, None]:
+    """
+    Generate UMAP and clustering for all cell types.
+
+    Args:
+        ensemble: EnsembleView object.
+        **kwargs: Additional arguments for compute_umap_and_clustering.
+
+    Yields:
+        Tuple of cell type and corresponding GaussianMixtureClustering object.
+    """
+    for cell_type in ensemble[0].connectome_view.cell_types_sorted:
         yield cell_type, compute_umap_and_clustering(ensemble, cell_type, **kwargs)

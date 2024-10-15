@@ -1,13 +1,39 @@
-"""Script to store synthetic recordings in the way the paper does it.
+"""Script for precomputing synthetic recordings for a single network.
 
-Example usage:
-python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000
-python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=9998/000
---functions spatial_impulses_responses central_impulses_responses
+Example Usage:
+--------------
+1. Generate all default synthetic recordings for a specific network:
+   ```bash
+   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000
+   ```
+
+2. Generate only spatial and central impulse responses for a different network:
+   ```bash
+   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=9998/000 \
+   --functions spatial_impulses_responses central_impulses_responses
+   ```
+
+3. Generate default recordings with a custom batch size and delete existing recordings:
+   ```bash
+   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000 \
+   --batch_size 16 --delete_recordings
+   ```
+
+Available Functions:
+--------------------
+- flash_responses
+- moving_edge_responses
+- moving_edge_responses_currents
+- moving_bar_responses
+- naturalistic_stimuli_responses
+- spatial_impulses_responses
+- central_impulses_responses
 """
 
+# pyright: reportCallIssue=false
+
+import argparse
 import logging
-import shutil
 
 from flyvision import NetworkView
 from flyvision.utils.config_utils import HybridArgumentParser
@@ -18,78 +44,14 @@ logging.basicConfig(
 logging = logger = logging.getLogger(__name__)
 
 
-def delete_if_exists(network_view, subdir, delete_if_exists=True):
-    path = network_view.dir[subdir].path
-    if path.exists() and delete_if_exists:
-        shutil.rmtree(path)
-
-
-def extend_stored_activity(
-    network_view,
-    activity,
-    subdir,
-    config,
-    central=True,
-    filename="activity_central",
-    batch_size=1,
-):
-    """Stores activity in the directory of the network.
-
-    Extends along first axis when called multiple times with updated activity tensors.
-
-    Activity must be (n_samples, n_frames, n_neurons).
-    """
-
-    if central:
-        filename.replace("_central", "")
-        central_cells_index = network_view.network.connectome.central_cells_index[:]
-        activity = activity[:, :, central_cells_index]
-
-    # store activity, this stacks the activity along the first axis when called multiple
-    # times which is a datamate feature.
-    if batch_size == 1:
-        network_view.dir[subdir].network_states.nodes.extend(
-            filename, [activity[:].squeeze()]
-        )
-    else:
-        network_view.dir[subdir].network_states.nodes.extend(
-            filename, activity[:].squeeze()
-        )
-
-    # store config
-    if network_view.dir[subdir].meta.config is None:
-        network_view.dir[subdir].config = config
-
-
-def store_optimal_stimulus_results(
-    network_view,
-    optstim,
-    subdir,
-):
-    subdir_optstim = network_view.dir[subdir].optstims
-    subdir_regularized_optstim = network_view.dir[subdir].regularized_optstims
-
-    subdir_optstim[optstim["cell_type"]].stimulus = optstim["stimulus"]
-    subdir_optstim[optstim["cell_type"]].response = optstim["response"]
-    subdir_regularized_optstim[optstim["cell_type"]].stimulus = optstim[
-        "regularized_stimulus"
-    ]
-    subdir_regularized_optstim[optstim["cell_type"]].response = optstim[
-        "regularized_response"
-    ]
-    subdir_regularized_optstim[optstim["cell_type"]].central_predicted_activity = optstim[
-        "central_predicted_activity"
-    ]
-    subdir_regularized_optstim[optstim["cell_type"]].central_target_activity = optstim[
-        "central_target_activity"
-    ]
-    subdir_regularized_optstim[optstim["cell_type"]].losses = optstim["losses"]
-
-
 if __name__ == "__main__":
     parser = HybridArgumentParser(
-        hybrid_args=["task_name", "ensemble_and_network_id"],
+        hybrid_args={
+            "task_name": {"required": True},
+            "ensemble_and_network_id": {"required": True},
+        },
         description="Record synthetic responses.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--chkpt", type=str, default="best", help="checkpoint to evaluate."
@@ -102,16 +64,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--loss_file_name",
         type=str,
-        default="EPE",
+        default="epe",
     )
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--delete_recordings", action="store_true")
     default_functions = [
         "flash_responses",
-        "movingedge_responses",
-        "movingbar_responses",
+        "moving_edge_responses",
+        "moving_edge_responses_currents",
+        "moving_bar_responses",
         "naturalistic_stimuli_responses",
-        "optimal_stimulus_responses",
+        # "optimal_stimulus_responses",
         "spatial_impulses_responses",
         "central_impulses_responses",
     ]
@@ -121,115 +84,66 @@ if __name__ == "__main__":
         nargs="+",
         help="List of functions to run.",
         default=default_functions,
-        choices=default_functions,
     )
+    parser.epilog = __doc__
     args = parser.parse_with_hybrid_args()
 
     network_name = f"{args.task_name}/{args.ensemble_and_network_id}"
     network_view = NetworkView(
         network_name,
-        checkpoint=args.chkpt,
-        validation_subdir=args.validation_subdir,
-        loss_file_name=args.loss_file_name,
+        best_checkpoint_fn_kwargs={
+            "validation_subdir": args.validation_subdir,
+            "loss_file_name": args.loss_file_name,
+        },
     )
+    if args.delete_recordings:
+        network_view._clear_memory()
     network_view.init_network()
 
     if "flash_responses" in args.functions:
-        subdir = f"flash_responses/{network_view.checkpoints.current_chkpt_key}"
-        delete_if_exists(network_view, subdir, args.delete_recordings)
-        for result in network_view.flash_responses(batch_size=args.batch_size):
-            extend_stored_activity(
-                network_view,
-                result.responses,
-                subdir=subdir,
-                config=result.config,
-                batch_size=args.batch_size,
-            )
+        network_view.flash_responses(batch_size=args.batch_size)
         logging.info("Stored flash responses.")
 
-    if "movingedge_responses" in args.functions:
-        subdir = f"movingedge_responses/{network_view.checkpoints.current_chkpt_key}"
-        delete_if_exists(network_view, subdir, args.delete_recordings)
-        for result in network_view.movingedge_responses(batch_size=args.batch_size):
-            extend_stored_activity(
-                network_view,
-                result.responses,
-                subdir=subdir,
-                config=result.config,
-                batch_size=args.batch_size,
-            )
+    if "moving_edge_responses" in args.functions:
+        network_view.moving_edge_responses(batch_size=args.batch_size)
         logging.info("Stored moving edge responses.")
 
-    if "movingbar_responses" in args.functions:
-        subdir = f"movingbar_responses/{network_view.checkpoints.current_chkpt_key}"
-        delete_if_exists(network_view, subdir, args.delete_recordings)
-        for result in network_view.movingbar_responses(batch_size=args.batch_size):
-            extend_stored_activity(
-                network_view,
-                result.responses,
-                subdir=subdir,
-                config=result.config,
-                batch_size=args.batch_size,
-            )
+    if "moving_edge_responses_currents" in args.functions:
+        network_view.moving_edge_currents(
+            target_cell_types=[
+                "T4a",
+                "T4b",
+                "T4c",
+                "T4d",
+                "T5a",
+                "T5b",
+                "T5c",
+                "T5d",
+                "TmY3",
+            ]
+        )
+        logging.info("Stored moving edge currents.")
+
+    if "moving_bar_responses" in args.functions:
+        network_view.moving_bar_responses(batch_size=args.batch_size)
         logging.info("Stored moving bar responses.")
 
     if "naturalistic_stimuli_responses" in args.functions:
-        subdir = (
-            "naturalistic_stimuli_responses/"
-            f"{network_view.checkpoints.current_chkpt_key}"
-        )
-        delete_if_exists(network_view, subdir, args.delete_recordings)
-        for result in network_view.naturalistic_stimuli_responses(
-            batch_size=args.batch_size
-        ):
-            extend_stored_activity(
-                network_view,
-                result.responses,
-                subdir=subdir,
-                config=result.config,
-                batch_size=args.batch_size,
-            )
+        network_view.naturalistic_stimuli_responses(batch_size=args.batch_size)
         logging.info("Stored naturalistic stimuli responses.")
 
-        if "optimal_stimulus_responses" in args.functions:
-            delete_if_exists(network_view, f"{subdir}/optstims", args.delete_recordings)
-            delete_if_exists(
-                network_view, f"{subdir}/regularized_optstims", args.delete_recordings
-            )
-            for optstim in network_view.optimal_stimulus_responses():
-                store_optimal_stimulus_results(
-                    network_view,
-                    optstim,
-                    subdir,
-                )
-            logging.info("Stored maximally excitatory stimuli.")
+    # TODO: this implementation is currently inefficient as it reloads the cache
+    # for each cell type, but it's also uneccesary to store all of them because
+    # these can be computed at runtime relatively eaily for single networks
+    # if "optimal_stimulus_responses" in args.functions:
+    #     for cell_type in network_view.connectome_view.cell_types_sorted:
+    #         network_view.optimal_stimulus_responses(cell_type=cell_type)
+    #     logging.info("Stored maximally excitatory stimuli.")
 
     if "spatial_impulses_responses" in args.functions:
-        subdir = (
-            f"spatial_impulses_responses/{network_view.checkpoints.current_chkpt_key}"
-        )
-        delete_if_exists(network_view, subdir, args.delete_recordings)
-        for result in network_view.spatial_impulses_responses(batch_size=args.batch_size):
-            extend_stored_activity(
-                network_view,
-                result.responses,
-                subdir=subdir,
-                config=result.config,
-                batch_size=args.batch_size,
-            )
+        network_view.spatial_impulses_responses(batch_size=args.batch_size)
         logging.info("Stored spatial impulses responses.")
 
     if "central_impulses_responses" in args.functions:
-        subdir = (
-            f"central_impulses_responses/{network_view.checkpoints.current_chkpt_key}"
-        )
-        delete_if_exists(network_view, subdir, args.delete_recordings)
-        for result in network_view.central_impulses_responses(batch_size=args.batch_size):
-            extend_stored_activity(
-                network_view,
-                result.responses,
-                subdir=subdir,
-                config=result.config,
-                batch_size=args.batch_size,
-            )
+        network_view.central_impulses_responses(batch_size=args.batch_size)
         logging.info("Stored central impulses responses.")

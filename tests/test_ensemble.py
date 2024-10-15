@@ -8,9 +8,9 @@ import torch
 from datamate import Directory, Namespace
 
 from flyvision import results_dir
-from flyvision.ensemble import Ensemble, TaskError
-from flyvision.ensemble_view import EnsembleView
-from flyvision.network import IntegrationWarning, Network
+from flyvision.network.ensemble import Ensemble, TaskError
+from flyvision.network.ensemble_view import EnsembleView
+from flyvision.network.network import IntegrationWarning, Network
 
 pytestmark = pytest.mark.require_download
 
@@ -101,11 +101,10 @@ def test_task_error(ensemble):
     assert len(task_error.values) == len(task_error.colors)
 
 
-@pytest.mark.require_large_download
+@pytest.mark.slow
 def test_cluster_indices():
     ensemble = Ensemble(results_dir / "flow/0000")
-    network = next(ensemble.yield_networks())
-    for cell_type in network.cell_types:
+    for cell_type in ensemble.connectome.unique_cell_types[:].astype(str):
         cluster_indices = ensemble.cluster_indices(cell_type)
         assert isinstance(cluster_indices, dict)
         assert type(cluster_indices[0]) is np.ndarray

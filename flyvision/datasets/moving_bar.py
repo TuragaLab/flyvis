@@ -1,65 +1,85 @@
 import logging
 from itertools import product
 from numbers import Number
-from typing import Iterable
+from typing import Iterable, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 from datamate import Directory, Namespace, root
+from matplotlib.colors import Colormap
 from matplotlib.patches import RegularPolygon
 from tqdm.auto import tqdm
+from typing_extensions import Literal
 
+import flyvision
 from flyvision import renderings_dir
+from flyvision.analysis.visualization.plots import quick_hex_scatter
+from flyvision.analysis.visualization.plt_utils import init_plot
 from flyvision.datasets.datasets import StimulusDataset
-from flyvision.plots.plots import quick_hex_scatter
-from flyvision.plots.plt_utils import init_plot
-from flyvision.rendering import HexEye
-from flyvision.rendering.utils import pad, resample, shuffle
 
-logging = logging.getLogger()
+from .rendering import HexEye
+from .rendering.utils import pad, resample, shuffle
+
+logging = logging.getLogger(__name__)
+
+__all__ = ["RenderedOffsets", "MovingBar", "MovingEdge"]
 
 
 @root(renderings_dir)
 class RenderedOffsets(Directory):
     """Rendered offsets for the moving bar stimulus.
 
-    Note: This class is used to precompute the offsets for the moving bar (edge) stimuli
-    and store them in a directory. At runtime, the offsets are resampled to allow for
-    changing the time step and to save GB of storage.
+    This class precomputes the offsets for moving bar (edge) stimuli and stores them
+    in a directory. At runtime, the offsets are resampled to efficiently generate
+    stimuli with different durations and temporal resolutions.
+
+    Args:
+        offsets: List of offset values.
+        angles: List of angle values in degrees.
+        widths: List of width values.
+        intensities: List of intensity values.
+        led_width: Width of LED in radians.
+        height: Height of the bar in radians.
+        n_bars: Number of bars.
+        bg_intensity: Background intensity.
+        bar_loc_horizontal: Horizontal location of the bar in radians.
+
+    Attributes:
+        offsets (ArrayFile): Rendered offsets for different stimulus parameters.
     """
 
-    class Config(dict):
-        offsets: list = list(range(-10, 11))
-        angles: list = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
-        widths: list = [1, 2, 4]
-        intensities: list = [0, 1]
-        led_width: float = np.radians(2.25)
-        height: float = np.radians(2.25) * 9
-        n_bars: int = 1
-        bg_intensity: float = 0.5
-        bar_loc_horizontal: float = np.radians(90)
-
-    def __init__(self, config: Config):
+    def __init__(
+        self,
+        offsets: list[int] = list(range(-10, 11)),
+        angles: list[int] = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
+        widths: list[int] = [1, 2, 4],
+        intensities: list[int] = [0, 1],
+        led_width: float = np.radians(2.25),
+        height: float = np.radians(2.25) * 9,
+        n_bars: int = 1,
+        bg_intensity: float = 0.5,
+        bar_loc_horizontal: float = np.radians(90),
+    ):
         eye = HexEye(721, 25)
 
-        params = list(product(config.angles, config.widths, config.intensities))
+        params = list(product(angles, widths, intensities))
 
         sequences = {}
         _tqdm = tqdm(total=len(params), desc="building stimuli")
-        for angle in config.angles:
-            for width in config.widths:
-                for intensity in config.intensities:
-                    offset_bars = eye.offset_bars(
-                        bar_width_rad=width * config.led_width,
-                        bar_height_rad=config.height,
-                        n_bars=config.n_bars,
-                        offsets=np.array(config.offsets) * config.led_width,
+        for angle in angles:
+            for width in widths:
+                for intensity in intensities:
+                    offset_bars = eye.render_offset_bars(
+                        bar_width_rad=width * led_width,
+                        bar_height_rad=height,
+                        n_bars=n_bars,
+                        offsets=np.array(offsets) * led_width,
                         bar_intensity=intensity,
-                        bg_intensity=config.bg_intensity,
+                        bg_intensity=bg_intensity,
                         moving_angle=angle,
-                        bar_loc_horizontal=config.bar_loc_horizontal,
+                        bar_loc_horizontal=bar_loc_horizontal,
                     )
                     sequences[(angle, width, intensity)] = offset_bars
                     _tqdm.update()
@@ -72,69 +92,67 @@ class MovingBar(StimulusDataset):
     """Moving bar stimulus.
 
     Args:
-        widths: list of int, optional
-            Width of the bar in half ommatidia.
-        offsets: tuple of int, optional
-            Tuple of the first and last offset to the central column in half ommatidia.
-        intensities: list of int, optional
-            Intensity of the bar.
-        speeds: list of float, optional
-            Speed of the bar in half ommatidia per second.
-        height: int, optional
-            Height of the bar in half ommatidia.
-        dt: float, optional
-            Time step in seconds.
-        subdir: str, optional
-            Subdirectory where the stimulus is stored.
-        device: str, optional
-            Device to store the stimulus.
-        bar_loc_horizontal: float, optional
-            Horizontal location of the bar in radians from left to right of image plane.
-            Radians(90) is the center.
-        post_pad_mode: str, optional
-            Padding mode after the stimulus. One of 'continue', 'value', 'reflect'.
-            If 'value' the padding is filled with the value of `bg_intensity`.
-        t_pre: float, optional
-            Time before the stimulus in seconds.
-        t_post: float, optional
-            Time after the stimulus in seconds.
-        build_stim_on_init: bool, optional
-            Build the stimulus on initialization.
-        shuffle_offsets: bool, optional
-            Shuffle the offsets to remove spatio-temporal correlation.
-        seed: int, optional
-            Seed for the random state.
-        angles: list of int, optional
-            List of angles in degrees.
-    """
+        widths: Width of the bar in half ommatidia.
+        offsets: First and last offset to the central column in half ommatidia.
+        intensities: Intensity of the bar.
+        speeds: Speed of the bar in half ommatidia per second.
+        height: Height of the bar in half ommatidia.
+        dt: Time step in seconds.
+        device: Device to store the stimulus.
+        bar_loc_horizontal: Horizontal location of the bar in radians from left to
+            right of image plane. np.radians(90) is the center.
+        post_pad_mode: Padding mode after the stimulus. One of 'continue', 'value',
+            'reflect'. If 'value' the padding is filled with `bg_intensity`.
+        t_pre: Time before the stimulus in seconds.
+        t_post: Time after the stimulus in seconds.
+        build_stim_on_init: Build the stimulus on initialization.
+        shuffle_offsets: Shuffle the offsets to remove spatio-temporal correlation.
+        seed: Seed for the random state.
+        angles: List of angles in degrees.
 
-    augment = False
-    n_sequences = 0
-    framerate = None
+    Attributes:
+        config (Namespace): Configuration parameters.
+        omm_width (float): Width of ommatidium in radians.
+        led_width (float): Width of LED in radians.
+        angles (np.ndarray): Array of angles in degrees.
+        widths (np.ndarray): Array of widths in half ommatidia.
+        offsets (np.ndarray): Array of offsets in half ommatidia.
+        intensities (np.ndarray): Array of intensities.
+        speeds (np.ndarray): Array of speeds in half ommatidia per second.
+        bg_intensity (float): Background intensity.
+        n_bars (int): Number of bars.
+        bar_loc_horizontal (float): Horizontal location of bar in radians.
+        t_stim (np.ndarray): Stimulation times for each speed.
+        t_stim_max (float): Maximum stimulation time.
+        height (float): Height of bar in radians.
+        post_pad_mode (str): Padding mode after the stimulus.
+        arg_df (pd.DataFrame): DataFrame of stimulus parameters.
+        arg_group_df (pd.DataFrame): Grouped DataFrame of stimulus parameters.
+        device (str): Device for storing stimuli.
+        shuffle_offsets (bool): Whether to shuffle offsets.
+        randomstate (np.random.RandomState): Random state for shuffling.
+    """
 
     arg_df: pd.DataFrame = None
 
     def __init__(
         self,
-        widths=[1, 2, 4],  # in 1 * radians(2.25) led size
-        offsets=(-10, 11),  # in 1 * radians(2.25) led size
-        intensities=[0, 1],
-        speeds=[2.4, 4.8, 9.7, 13, 19, 25],  # in 1 * radians(5.8) / s
-        height=9,  # in 1 * radians(2.25) led size
-        dt=1 / 200,
-        subdir="movingbar",
-        device="cuda",
-        bar_loc_horizontal=np.radians(90),
-        post_pad_mode="value",
-        t_pre=1.0,
-        t_post=1.0,
-        build_stim_on_init=True,  # can speed up things downstream if only responses
-        # are needed
-        shuffle_offsets=False,  # shuffle offsets to remove spatio-temporal correlation
-        # -- can be used as stimulus to compute a baseline of motion selectivity
-        seed=0,  # only for shuffle_offsets
-        angles=[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-    ):
+        widths: list[int] = [1, 2, 4],
+        offsets: tuple[int, int] = (-10, 11),
+        intensities: list[float] = [0, 1],
+        speeds: list[float] = [2.4, 4.8, 9.7, 13, 19, 25],
+        height: int = 9,
+        dt: float = 1 / 200,
+        device: str = flyvision.device,
+        bar_loc_horizontal: float = np.radians(90),
+        post_pad_mode: Literal["continue", "value", "reflect"] = "value",
+        t_pre: float = 1.0,
+        t_post: float = 1.0,
+        build_stim_on_init: bool = True,
+        shuffle_offsets: bool = False,
+        seed: int = 0,
+        angles: list[int] = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
+    ) -> None:
         super().__init__()
         # HexEye parameter
         self.omm_width = np.radians(5.8)  # radians(5.8 degree)
@@ -209,8 +227,6 @@ class MovingBar(StimulusDataset):
             ["angle", "width", "intensity"], sort=False, as_index=False
         ).all()
 
-        self.subdir = subdir
-
         self.device = device
         self.shuffle_offsets = shuffle_offsets
         self.randomstate = None
@@ -226,26 +242,26 @@ class MovingBar(StimulusDataset):
             self._built = True
 
     @property
-    def dt(self):
+    def dt(self) -> float:
+        """Time step in seconds."""
         return getattr(self, "_dt", None)
 
     @dt.setter
-    def dt(self, value):
+    def dt(self, value: float) -> None:
         if self._dt == value:
             self._dt = value
             if self._built:
                 self._resample()
             return
         logging.warning(
-            f"Cannot override dt={value} because responses with dt={self._dt} are "
-            "initialized."
-            f" Keeping dt={self._dt}."
+            "Cannot override dt=%s because responses with dt=%s are initialized. "
+            "Keeping dt=%s.",
+            value,
+            self._dt,
+            self._dt,
         )
 
-    def __len__(self):
-        return len(self.arg_df)
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}\n"
             + "Config:\n"
@@ -255,14 +271,17 @@ class MovingBar(StimulusDataset):
         )
 
     @property
-    def t_pre(self):
+    def t_pre(self) -> float:
+        """Time before stimulus onset in seconds."""
         return self._t_pre
 
     @property
-    def t_post(self):
+    def t_post(self) -> float:
+        """Time after stimulus offset in seconds."""
         return self._t_post
 
-    def _build(self):
+    def _build(self) -> None:
+        """Build the stimulus."""
         self.wrap = RenderedOffsets(
             dict(
                 angles=self.angles,
@@ -280,7 +299,8 @@ class MovingBar(StimulusDataset):
         self._offsets = torch.tensor(self.wrap.offsets[:], device=self.device)
         self._built = True
 
-    def _resample(self):
+    def _resample(self) -> None:
+        """Resample the stimulus at runtime."""
         # resampling at runtime to allow for changing dt and to save GB of
         # storage.
         self.sequences = {}
@@ -327,7 +347,8 @@ class MovingBar(StimulusDataset):
             self.sequences[speed] = sequence
             self.indices[speed] = indices
 
-    def _key(self, angle, width, intensity, speed):
+    def _key(self, angle: float, width: float, intensity: float, speed: float) -> int:
+        """Get the key for a specific stimulus configuration."""
         try:
             return self.arg_df.query(
                 f"angle=={angle}"
@@ -341,30 +362,47 @@ class MovingBar(StimulusDataset):
                 f"speed: {speed} invalid."
             ) from None
 
-    def get_sequence_id_from_arguments(self, angle, width, intensity, speed):
-        # generic of _key
-        return self._get_sequence_id_from_arguments(locals())
+    def get_sequence_id_from_arguments(
+        self, angle: float, width: float, intensity: float, speed: float
+    ) -> int:
+        """Get sequence ID from stimulus arguments."""
+        return self.get_stimulus_index(locals())
 
-    def _params(self, key):
+    def _params(self, key: int) -> np.ndarray:
+        """Get parameters for a given key."""
         return self.arg_df.iloc[key].values
 
-    def _group_key(self, angle, width, intensity):
+    def _group_key(self, angle: float, width: float, intensity: float) -> int:
+        """Get group key for a specific stimulus configuration."""
         return self.arg_group_df.query(
             f"angle=={angle}" f" & width=={width}" f" & intensity == {intensity}"
         ).index.values.item()
 
-    def _group_params(self, key):
+    def _group_params(self, key: int) -> np.ndarray:
+        """Get group parameters for a given key."""
         return self.arg_group_df.iloc[key].values
 
-    def get(self, angle, width, intensity, speed):
+    def get(
+        self, angle: float, width: float, intensity: float, speed: float
+    ) -> torch.Tensor:
+        """Get stimulus for specific parameters."""
         key = self._key(angle, width, intensity, speed)
         return self[key]
 
-    def get_item(self, key):
+    def get_item(self, key: int) -> torch.Tensor:
+        """Get stimulus for a specific key."""
         angle, width, intensity, _, speed = self._params(key)
         return self.sequences[speed][self._group_key(angle, width, intensity)]
 
-    def mask(self, angle=None, width=None, intensity=None, speed=None, t_stim=None):
+    def mask(
+        self,
+        angle: Optional[float] = None,
+        width: Optional[float] = None,
+        intensity: Optional[float] = None,
+        speed: Optional[float] = None,
+        t_stim: Optional[float] = None,
+    ) -> np.ndarray:
+        """Create a mask for specific stimulus parameters."""
         # 22x faster than df.query
         values = self.arg_df.values
 
@@ -394,35 +432,32 @@ class MovingBar(StimulusDataset):
             condition = iterparam(speed, "speed", 4, condition)
         return condition
 
-    def time_window(
-        self,
-        speed,
-        from_column=-1,
-        to_column=2,  # , start=-10, end=11, t_pre=1
-    ):
-        return time_window(
-            speed, from_column, to_column, self.offsets[0], self.offsets[1]
-        )
-
-    def mask_between_seconds(self, t_start, t_end):
-        time = self.time
-        return (time >= t_start) & (time <= t_end)
-
     @property
-    def time(self):
+    def time(self) -> np.ndarray:
+        """Time array for the stimulus."""
         return np.arange(-self.t_pre, self.t_stim_max + self.t_post - self.dt, self.dt)
 
     def stimulus(
         self,
-        angle=None,
-        width=None,
-        intensity=None,
-        speed=None,
-        pre_stim=True,
-        post_stim=True,
-    ):
-        """
-        #TODO: docstring
+        angle: Optional[float] = None,
+        width: Optional[float] = None,
+        intensity: Optional[float] = None,
+        speed: Optional[float] = None,
+        pre_stim: bool = True,
+        post_stim: bool = True,
+    ) -> np.ndarray:
+        """Get stimulus for specific parameters.
+
+        Args:
+            angle: Angle of the bar.
+            width: Width of the bar.
+            intensity: Intensity of the bar.
+            speed: Speed of the bar.
+            pre_stim: Include pre-stimulus period.
+            post_stim: Include post-stimulus period.
+
+        Returns:
+            Stimulus array.
         """
         key = self._key(angle, width, intensity, speed)
         stim = self[key][:, 360].cpu().numpy()
@@ -432,7 +467,15 @@ class MovingBar(StimulusDataset):
             stim = filter_pre(stim[None], self.t_pre, self.dt).squeeze()
         return stim
 
-    def stimulus_parameters(self, angle=None, width=None, intensity=None, speed=None):
+    def stimulus_parameters(
+        self,
+        angle: Optional[float] = None,
+        width: Optional[float] = None,
+        intensity: Optional[float] = None,
+        speed: Optional[float] = None,
+    ) -> tuple[list, ...]:
+        """Get stimulus parameters."""
+
         def _number_to_list(*args):
             returns = tuple()
             for arg in args:
@@ -451,11 +494,12 @@ class MovingBar(StimulusDataset):
 
     def sample_shape(
         self,
-        angle=None,
-        width=None,
-        intensity=None,
-        speed=None,
-    ):
+        angle: Optional[float] = None,
+        width: Optional[float] = None,
+        intensity: Optional[float] = None,
+        speed: Optional[float] = None,
+    ) -> tuple[int, ...]:
+        """Get shape of stimulus sample for given parameters."""
         if isinstance(angle, Number):
             angle = [angle]
         if isinstance(width, Number):
@@ -476,16 +520,14 @@ class MovingBar(StimulusDataset):
         )
 
     def time_to_center(self, speed: float) -> float:
-        """Returns the time in s at which the bar reaches the center.
-
-        Note: time = distance / velocity, i.e.
-            time = (n_leds * led_width) / (speed * omm_width)
-            with speed in ommatidia / s.
-        """
+        """Calculate time for bar to reach center at given speed."""
+        # Note: time = distance / velocity, i.e.
+        #     time = (n_leds * led_width) / (speed * omm_width)
+        #     with speed in ommatidia / s.
         return np.abs(self.config.offsets[0]) * self.led_width / (speed * self.omm_width)
 
-    def get_time_with_origin_at_onset(self):
-        """Time with 0 at the onset of the stimulus."""
+    def get_time_with_origin_at_onset(self) -> np.ndarray:
+        """Get time array with origin at stimulus onset."""
         return np.linspace(
             -self.t_pre,
             self.t_stim_max - self.t_pre + self.t_post,
@@ -494,8 +536,8 @@ class MovingBar(StimulusDataset):
             + int(self.t_pre / self.dt),
         )
 
-    def get_time_with_origin_at_center(self, speed: float):
-        """Time with 0 where the bar reaches the central column."""
+    def get_time_with_origin_at_center(self, speed: float) -> np.ndarray:
+        """Get time array with origin where bar reaches central column."""
         time_to_center = self.time_to_center(speed)
         n_steps = (
             int(self.t_stim_max / self.dt)
@@ -510,22 +552,23 @@ class MovingBar(StimulusDataset):
 
     def stimulus_cartoon(
         self,
-        angle,
-        width,
-        intensity,
-        speed,
-        time_after_stimulus_onset=0.5,
-        fig=None,
-        ax=None,
-        facecolor="#000000",
-        cmap=plt.cm.bone,
-        alpha=0.5,
-        vmin=0,
-        vmax=1,
-        edgecolor="none",
-        central_hex_color="#2f7cb9",
+        angle: float,
+        width: float,
+        intensity: float,
+        speed: float,
+        time_after_stimulus_onset: float = 0.5,
+        fig: Optional[plt.Figure] = None,
+        ax: Optional[plt.Axes] = None,
+        facecolor: str = "#000000",
+        cmap: Colormap = plt.cm.bone,
+        alpha: float = 0.5,
+        vmin: float = 0,
+        vmax: float = 1,
+        edgecolor: str = "none",
+        central_hex_color: str = "#2f7cb9",
         **kwargs,
-    ):
+    ) -> tuple[plt.Figure, plt.Axes]:
+        """Create a cartoon representation of the stimulus."""
         fig, ax = init_plot(fig=fig, ax=ax)
 
         time = (
@@ -594,69 +637,53 @@ class MovingBar(StimulusDataset):
 class MovingEdge(MovingBar):
     """Moving edge stimulus.
 
+    This class creates a moving edge stimulus by using a very wide bar.
+
     Args:
-        offsets: tuple of int, optional
-            Tuple of the first and last offset to the central column in half ommatidia.
-        intensities: list of int, optional
-            Intensity of the bar.
-        speeds: list of float, optional
-            Speed of the bar in half ommatidia per second.
-        height: int, optional
-            Height of the bar in half ommatidia.
-        dt: float, optional
-            Time step in seconds.
-        subdir: str, optional
-            Subdirectory where the stimulus is stored.
-        device: str, optional
-            Device to store the stimulus.
-        post_pad_mode: str, optional
-            Padding mode after the stimulus. One of 'continue', 'value', 'reflect'.
-            If 'value' the padding is filled with the value of `bg_intensity`.
-        t_pre: float, optional
-            Time before the stimulus in seconds.
-        t_post: float, optional
-            Time after the stimulus in seconds.
-        build_stim_on_init: bool, optional
-            Build the stimulus on initialization.
-        shuffle_offsets: bool, optional
-            Shuffle the offsets to remove spatio-temporal correlation.
-        seed: int, optional
-            Seed for the random state.
-        angles: list of int, optional
-            List of angles in degrees.
+        offsets: First and last offset to the central column in half ommatidia.
+        intensities: Intensity of the edge.
+        speeds: Speed of the edge in half ommatidia per second.
+        height: Height of the edge in half ommatidia.
+        dt: Time step in seconds.
+        device: Device to store the stimulus.
+        post_pad_mode: Padding mode after the stimulus.
+        t_pre: Time before the stimulus in seconds.
+        t_post: Time after the stimulus in seconds.
+        build_stim_on_init: Build the stimulus on initialization.
+        shuffle_offsets: Shuffle the offsets to remove spatio-temporal correlation.
+        seed: Seed for the random state.
+        angles: List of angles in degrees.
+
+    Note:
+        This class uses a very wide bar (width=80) under the hood to render an
+        edge stimulus.
     """
 
     def __init__(
         self,
-        offsets=(-10, 11),  # in 1 * radians(2.25) led size
-        intensities=[0, 1],
-        speeds=[2.4, 4.8, 9.7, 13, 19, 25],  # in 1 * radians(5.8) / s
-        height=9,  # in 1 * radians(2.25) led size
-        dt=1 / 200,
-        subdir="movingbar",
-        device="cuda",
-        post_pad_mode="continue",
-        t_pre=1.0,
-        t_post=1.0,
-        build_stim_on_init=True,  # can speed up things downstream if only responses
-        # are needed
-        shuffle_offsets=False,  # shuffle offsets to remove spatio-temporal correlation
-        # -- can be used as stimulus to compute a baseline of motion selectivity
-        seed=0,  # only for shuffle_offsets
-        angles=[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
+        offsets: tuple[int, int] = (-10, 11),
+        intensities: list[float] = [0, 1],
+        speeds: list[float] = [2.4, 4.8, 9.7, 13, 19, 25],
+        height: int = 9,
+        dt: float = 1 / 200,
+        device: str = flyvision.device,
+        post_pad_mode: Literal["continue", "value", "reflect"] = "continue",
+        t_pre: float = 1.0,
+        t_post: float = 1.0,
+        build_stim_on_init: bool = True,
+        shuffle_offsets: bool = False,
+        seed: int = 0,
+        angles: list[int] = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(
-            # arbitrary large value to make the 'bar' wide enough to appear as an edge
             widths=[80],
             offsets=offsets,
             intensities=intensities,
             speeds=speeds,
             height=height,
             dt=dt,
-            subdir=subdir,
             device=device,
-            # the center of the bar will start at the left edge of the screen
             bar_loc_horizontal=np.radians(0),
             post_pad_mode=post_pad_mode,
             t_pre=t_pre,
@@ -668,23 +695,22 @@ class MovingEdge(MovingBar):
         )
 
 
-def filter_post(resp, t_post, dt):
-    """To remove the post stimulus time from responses.
+def filter_post(resp: np.ndarray, t_post: float, dt: float) -> np.ndarray:
+    """Remove post-stimulus time from responses.
 
-    Because we fix the distance that the bar moves but vary speeds we
-    have different stimulation times. To make all sequences equal
-    length for storing them in a single tensor, we pad them with nans
-    based on the maximal stimulation time (slowest speed).
+    Args:
+        resp: Response array of shape (n_samples, n_frames, ...).
+        t_post: Post-stimulus time in seconds.
+        dt: Time step in seconds.
 
-    The post stimulus time is per speed in
-    'first_nan - int(t_post / dt):first_nan'.
+    Returns:
+        Filtered response array.
 
-    Assuming resp can be partitioned along the temporal dimension as |pre stim|
-    stimulus   |    post stimulus       |        nan padding        |
-    |0:t_pre:|t_pre + t_stim:|t_pre + t_stim + t_post:|t_pre + t_stim_max +
-    t_post|
-
-    Args: resp of shape (n_samples, n_frames, ...)
+    Note:
+        The post stimulus time is per speed in 'first_nan - int(t_post / dt):first_nan'.
+        Assuming resp can be partitioned along the temporal dimension as:
+        |pre stim|stimulus|post stimulus|nan padding|
+        |0:t_pre:|t_pre + t_stim:|t_pre + t_stim + t_post:|t_pre + t_stim_max + t_post|
     """
     _resp = []
     # for each sample
@@ -709,41 +735,15 @@ def filter_post(resp, t_post, dt):
     return np.array(_resp)
 
 
-def filter_pre(resp, t_pre, dt):
-    """
-    Args: resp of shape (n_samples, n_frames, ...)
+def filter_pre(resp: np.ndarray, t_pre: float, dt: float) -> np.ndarray:
+    """Remove pre-stimulus time from responses.
+
+    Args:
+        resp: Response array of shape (n_samples, n_frames, ...).
+        t_pre: Pre-stimulus time in seconds.
+        dt: Time step in seconds.
+
+    Returns:
+        Filtered response array.
     """
     return resp[:, int(t_pre / dt) :]
-
-
-def time_window(speed, from_column=-1.5, to_column=1.5, start=-10, end=11):
-    """Calculate start and end time when the bar passes from_column to_column.
-
-    speed: in columns/s, i.e. 5.8deg / s
-    from_column: in columns, i.e. 5.8deg
-    to_column: in columns, ie. 5.8deg
-    start: in led, i.e. 2.25 deg
-    end: in led, i.e. 2.25 deg
-    """
-    start_in_columns = start * 2.25 / 5.8  # in 5.8deg
-    end_in_columns = end * 2.25 / 5.8  # in 5.8deg
-
-    # to make it symmetric around the central column, add a single led width
-    # i.e. 2.25 deg in units of columns
-    to_column += 2.25 / 5.8
-
-    assert abs(start_in_columns) >= abs(from_column)
-    assert abs(end_in_columns) >= abs(to_column)
-
-    # calculate when the edge is at the from_column
-    t_start = (abs(start_in_columns) - abs(from_column)) / speed
-    # to when it's at the to_column
-    t_end = t_start + (to_column - from_column) / speed
-    return t_start, t_end
-
-
-def mask_between_seconds(
-    t_start, t_end, time=None, t_pre=None, t_stim=None, t_post=None, dt=None
-):
-    time = time if time is not None else np.arange(-t_pre, t_stim + t_post - dt, dt)
-    return (time >= t_start) & (time <= t_end)

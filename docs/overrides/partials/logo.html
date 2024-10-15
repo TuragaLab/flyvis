@@ -1,0 +1,10 @@
+{#-
+This file was automatically generated - do not edit
+-#}
+{% if config.theme.logo %}
+<img id="flyvis-logo-light" src="{{ config.theme.logo_light | url }}" alt="logo">
+<img id="flyvis-logo-dark" src="{{ config.theme.logo_dark | url }}" alt="logo">
+{% else %}
+{% set icon = config.theme.icon.logo or "material/library" %}
+{% include ".icons/" ~ icon ~ ".svg" %}
+{% endif %}

@@ -11,13 +11,14 @@ pytestmark = pytest.mark.require_large_download
 @pytest.fixture(scope="module")
 def solver(tmp_path_factory) -> MultiTaskSolver:
     config = get_default_config(
-        config_name="solver",
+        path="../../config/solver.yaml",
         overrides=[
             "task_name=flow",
             "ensemble_and_network_id=0",
             "task.n_iters=50",
         ],
     )
+
     with set_root_context(str(tmp_path_factory.mktemp("tmp"))):
         solver = MultiTaskSolver("test", config)
     return solver
@@ -25,7 +26,7 @@ def solver(tmp_path_factory) -> MultiTaskSolver:
 
 def test_solver_config():
     config = get_default_config(
-        config_name="solver",
+        path="../../config/solver.yaml",
         overrides=[
             "task_name=flow",
             "ensemble_and_network_id=0",

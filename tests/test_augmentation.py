@@ -3,14 +3,14 @@ import math
 import numpy as np
 import torch
 
-from flyvision.augmentation.augmentation import Augmentation
-from flyvision.augmentation.hex import (
+from flyvision.datasets.augmentation.augmentation import Augmentation
+from flyvision.datasets.augmentation.hex import (
     ContrastBrightness,
     HexFlip,
     HexRotate,
     PixelNoise,
 )
-from flyvision.augmentation.temporal import (
+from flyvision.datasets.augmentation.temporal import (
     CropFrames,
     # InterpolateFrames,
     Interpolate,

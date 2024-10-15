@@ -26,7 +26,7 @@ def timetz(*args):
 
 logging.Formatter.converter = timetz
 logging.basicConfig(
-    format="[%(asctime)s] %(message)s",
+    format="[%(asctime)s] %(module)s:%(lineno)d %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.INFO,
 )
@@ -53,9 +53,17 @@ renderings_dir = root_dir / "renderings"
 sintel_dir = root_dir / "SintelDataSet"
 connectome_file = root_dir / "connectome/fib25-fib19_v2.2.json"
 source_dir = (repo_dir := Path(__file__).parent.parent) / "flyvision"
+config_dir = repo_dir / "config"
 script_dir = Path(__file__).parent.parent / "scripts"
+examples_dir = repo_dir / "examples"
 
 datamate.set_root_dir(root_dir)
 del datamate
 
-from flyvision._api import *
+from .utils import *
+from .connectome import *
+from .datasets import *
+from .network import *
+from .task import *
+from .analysis import *
+from .solver import *
