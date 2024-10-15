@@ -3,56 +3,9 @@
 %autoreload 2
 ```
 
-    The autoreload extension is already loaded. To reload it, use:
-      %reload_ext autoreload
-
-
 # Maximally excitatory stimuli from trained models
 
 This notebook illustrates how to compute the stimuli that maximally excite a specific neuron.
-
-**Select GPU runtime**
-
-To run the notebook on a GPU select Menu -> Runtime -> Change runtime type -> GPU.
-
-
-```python
-# @markdown **Check access to GPU**
-
-try:
-    import google.colab
-
-    IN_COLAB = True
-except ImportError:
-    IN_COLAB = False
-
-if IN_COLAB:
-    import torch
-
-    try:
-        cuda_name = torch.cuda.get_device_name()
-        print(f"Name of the assigned GPU / CUDA device: {cuda_name}")
-    except RuntimeError:
-        import warnings
-
-        warnings.warn(
-            "You have not selected Runtime Type: 'GPU' or Google could not assign you one. Please revisit the settings as described above or proceed on CPU (slow)."
-        )
-```
-
-**Install Flyvis**
-
-The notebook requires installing our package `flyvis`. You may need to restart your session after running the code block below with Menu -> Runtime -> Restart session. Then, imports from `flyvis` should succeed without issue.
-
-
-```python
-if IN_COLAB:
-    # @markdown **Install Flyvis**
-    %%capture
-    !git clone https://github.com/flyvis/flyvis-dev.git
-    %cd /content/flyvis-dev
-    !pip install -e .
-```
 
 
 ```python
@@ -76,7 +29,7 @@ the offset version of this stimulus would also maximally excite the equivalently
 
 
 ```python
-from flyvision import NetworkView, results_dir
+from flyvision import NetworkView
 from flyvision.datasets.sintel import AugmentedSintel
 from flyvision.analysis.optimal_stimuli import (
     FindOptimalStimuli,
@@ -89,10 +42,10 @@ from flyvision.analysis.optimal_stimuli import (
 ```python
 # let's load the dataset and the pretrained network
 dataset = AugmentedSintel(tasks=["lum"], temporal_split=True)
-network_view = NetworkView(results_dir / "flow/0000/000")
+network_view = NetworkView("flow/0000/000")
 ```
 
-    [2024-10-04 22:52:04] network:1008 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
+    [2024-10-14 23:30:04] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
 
 
 
@@ -100,8 +53,8 @@ network_view = NetworkView(results_dir / "flow/0000/000")
 findoptstim = FindOptimalStimuli(network_view, dataset)
 ```
 
-    [2024-10-04 22:52:13] network:258 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-04 22:52:13] chkpt_utils:72 Recovered network state.
+    [2024-10-14 23:30:12] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 23:30:12] chkpt_utils:35 Recovered network state.
 
 
 For the T4c neuron, we would expect that the maximally excitatory stimulus is an ON-edge
@@ -127,7 +80,7 @@ stim_resp_plot = plot_stim_response(
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_14_0.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_10_0.png)
 
 
 
@@ -154,7 +107,7 @@ stim_resp_plot = plot_stim_response(
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_17_0.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_13_0.png)
 
 
 
@@ -181,7 +134,7 @@ plt.ylabel("response")
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_19_1.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_15_1.png)
 
 
 
@@ -198,7 +151,7 @@ of ON-edge moving upwards.
 genoptstim = GenerateOptimalStimuli(network_view)
 ```
 
-    [2024-10-04 22:52:27] chkpt_utils:72 Recovered network state.
+    [2024-10-14 23:30:24] chkpt_utils:35 Recovered network state.
 
 
 
@@ -221,7 +174,7 @@ stim_resp_plot = plot_stim_response(
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_24_0.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_20_0.png)
 
 
 
@@ -249,13 +202,13 @@ plt.legend()
 
 
 
-    <matplotlib.legend.Legend at 0x7f9a60ea4e80>
+    <matplotlib.legend.Legend at 0x7fbc14900be0>
 
 
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_26_1.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_22_1.png)
 
 
 

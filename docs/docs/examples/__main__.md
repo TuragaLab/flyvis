@@ -1,26 +1,24 @@
-Main notebook containing relevant diagnostics and important figures for the manuscript.
+Main notebook containing relevant analysis steps, run for each ensemble.
 
-It is automatically copied from \_\_main\_\_.ipynb and executed for newly trained ensembles using papermill.
+The script `notebook_per_ensemble.py' automatically copies this notebook to an ensemble directory and executes it for newly trained ensembles using papermill.
 
-This can also be updated and then triggered again by using the script `execute_ensemble_notebook.py'.
+**Warning:** You can loose your work! Don't edit automatically created copies of this notebook within an ensemble directory. Those will be overwritten at a rerun. Create a copy instead.
+
+**Warning:** This notebook is not intended for standalone use. It is automatically copied to an ensemble directory and executed for newly trained ensembles using papermill. Adapt mindfully.
+
 
 
 ```
-from pathlib import Path
-import torch
-from torch import nn
-from torch.nn import functional as nnf
+import logging
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-from flyvision import results_dir
-from flyvision import EnsembleView
 
-import logging
+from flyvision import EnsembleView
 from flyvision.analysis.moving_bar_responses import plot_angular_tuning
-from flyvision.plots.plt_utils import add_cluster_marker, get_marker
-logging.disable(100)
+from flyvision.analysis.visualization.plt_utils import add_cluster_marker, get_marker
+
+logging.disable()
 
 
 mpl.rcParams["figure.dpi"] = 300
@@ -29,13 +27,9 @@ mpl.rcParams["figure.dpi"] = 300
 %autoreload 2
 ```
 
-    The autoreload extension is already loaded. To reload it, use:
-      %reload_ext autoreload
-
-
 
 ```
-ensemble_name = "flow/9997"  # type: str
+ensemble_name = "flow/0001"  # type: str
 ```
 
 
@@ -46,13 +40,13 @@ loss_file_name = "loss"
 
 
 ```
-ensemble = EnsembleView(ensemble_name,
-                        best_checkpoint_fn_kwargs=
-                        {
-                                                   "validation_subdir": validation_subdir,
-                                                   "loss_file_name": loss_file_name
-                                                   }
-                        )
+ensemble = EnsembleView(
+    ensemble_name,
+    best_checkpoint_fn_kwargs={
+        "validation_subdir": validation_subdir,
+        "loss_file_name": loss_file_name,
+    },
+)
 ```
 
 
@@ -61,7 +55,7 @@ ensemble = EnsembleView(ensemble_name,
 
 
 ```
-print(f"Description of experiment: {ensemble[0].dir.config.description}")
+print(f"Description of experiment: {getattr(ensemble[0].dir.config, 'description', '')}")
 ```
 
     Description of experiment: test
@@ -146,61 +140,209 @@ fig, axes = ensemble.edge_parameters("syn_strength")
 fig, ax, cbar, matrix = ensemble.dead_or_alive()
 ```
 
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
 
 
 
 
-![png](__main___files/__main___16_1.png)
+![png](__main___files/__main___16_50.png)
 
 
 
@@ -214,21 +356,9 @@ with ensemble.ratio(best=0.2):
     ensemble.flash_response_index()
 ```
 
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 
 
-
-
-![png](__main___files/__main___19_1.png)
+![png](__main___files/__main___19_0.png)
 
 
 
@@ -239,56 +369,8 @@ with ensemble.ratio(best=0.2):
 fig, ax = ensemble.flash_response_index()
 ```
 
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
+
+    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
 
 
 
@@ -307,21 +389,9 @@ with ensemble.ratio(best=0.2):
     ensemble.direction_selectivity_index()
 ```
 
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
 
 
-
-
-![png](__main___files/__main___24_1.png)
+![png](__main___files/__main___24_0.png)
 
 
 
@@ -332,68 +402,24 @@ with ensemble.ratio(best=0.2):
 ensemble.direction_selectivity_index()
 ```
 
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
+
+    Batch:   0%|          | 0/36 [00:00<?, ?it/s]
+
+
+
+    Batch:   0%|          | 0/36 [00:00<?, ?it/s]
 
 
 
 
 
-    (<Figure size 3000x360 with 2 Axes>, (<Axes: >, <Axes: >))
+    (<Figure size 3000x360 with 2 Axes>, array([<Axes: >, <Axes: >], dtype=object))
 
 
 
 
 
-![png](__main___files/__main___26_2.png)
+![png](__main___files/__main___26_3.png)
 
 
 
@@ -404,61 +430,10 @@ ensemble.direction_selectivity_index()
 
 ```
 task_error = ensemble.task_error()
-embeddingplot = ensemble.clustering("T4c").plot(task_error=task_error.values,
-                                                colors=task_error.colors)
+embeddingplot = ensemble.clustering("T4c").plot(
+    task_error=task_error.values, colors=task_error.colors
+)
 ```
-
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-    ___________________________________compute_responses cache loaded - 0.0s, 0.0min
-
 
     /home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/umap/umap_.py:1356: RuntimeWarning: divide by zero encountered in power
       return 1.0 / (1.0 + a * x ** (2 * b))
@@ -466,7 +441,7 @@ embeddingplot = ensemble.clustering("T4c").plot(task_error=task_error.values,
 
 
 
-![png](__main___files/__main___29_2.png)
+![png](__main___files/__main___29_1.png)
 
 
 

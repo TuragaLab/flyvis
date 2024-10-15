@@ -2,49 +2,6 @@
 
 Follow this notebook to learn how to use our models for generating hypothesis about neural computations with custom stimuli.
 
-**Select GPU runtime**
-
-To run the notebook on a GPU select Menu -> Runtime -> Change runtime type -> GPU.
-
-
-```python
-# @markdown **Check access to GPU**
-
-try:
-    import google.colab
-
-    IN_COLAB = True
-except ImportError:
-    IN_COLAB = False
-
-if IN_COLAB:
-    import torch
-
-    try:
-        cuda_name = torch.cuda.get_device_name()
-        print(f"Name of the assigned GPU / CUDA device: {cuda_name}")
-    except RuntimeError:
-        import warnings
-
-        warnings.warn(
-            "You have not selected Runtime Type: 'GPU' or Google could not assign you one. Please revisit the settings as described above or proceed on CPU (slow)."
-        )
-```
-
-**Install Flyvis**
-
-The notebook requires installing our package `flyvis`. You may need to restart your session after running the code block below with Menu -> Runtime -> Restart session. Then, imports from `flyvis` should succeed without issue.
-
-
-```python
-if IN_COLAB:
-    # @markdown **Install Flyvis**
-    %%capture
-    !git clone https://github.com/flyvis/flyvis-dev.git
-    %cd /content/flyvis-dev
-    !pip install -e .
-```
-
 ## Example dataset
 
 We take the public [Moving MNIST](https://www.cs.toronto.edu/~nitish/unsupervised_video/) sequence dataset as an example for a custom stimulus dataset.
@@ -91,7 +48,7 @@ animation.animate_in_notebook(samples=[0, 1, 2])
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_9_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_5_0.png)
 
 
 
@@ -115,7 +72,7 @@ animation.animate_in_notebook(samples=[0, 1, 2])
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_13_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_9_0.png)
 
 
 
@@ -143,7 +100,7 @@ fig = receptors.illustrate()
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_17_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_13_0.png)
 
 
 
@@ -181,7 +138,7 @@ _ = ax.set_title('example frame', fontsize=5)
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_21_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_17_0.png)
 
 
 
@@ -236,7 +193,7 @@ _ = ax.set_title("example frame rendered", fontsize=5)
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_25_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_21_0.png)
 
 
 
@@ -370,7 +327,7 @@ animation.animate_in_notebook()
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_34_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_30_0.png)
 
 
 
@@ -456,10 +413,15 @@ In this case, we inherit a SequenceDataset, that also obeys (and extends) the in
 
 
 ```python
+import pandas as pd
+```
+
+
+```python
 class CustomStimuli(SequenceDataset):
     # implementing the SequenceDataset interface
     dt = 1 / 100
-    framerate = 24
+    original_framerate = 24
     t_pre = 0.5
     t_post = 0.5
     n_sequences = None
@@ -469,6 +431,7 @@ class CustomStimuli(SequenceDataset):
         self.dir = RenderedData(rendered_data_config)
         self.sequences = torch.tensor(self.dir.sequences[:])
         self.n_sequences = self.sequences.shape[0]
+        self.arg_df = pd.DataFrame({"sequence_idx": np.arange(self.n_sequences)})
 
     def get_item(self, key):
         sequence = self.sequences[key]
@@ -486,25 +449,13 @@ data = CustomStimuli(dict(extent=15, kernel_size=13, subset_idx=[0, 1, 2, 3]))
 
 
 ```python
-data[0].shape
-```
-
-
-
-
-    torch.Size([84, 1, 721])
-
-
-
-
-```python
 animation = animations.HexScatter(data[0][None], vmin=0, vmax=1)
 animation.animate_in_notebook()
 ```
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_43_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_39_0.png)
 
 
 
@@ -592,6 +543,7 @@ class CustomStimuli(SequenceDataset):
         self.dir = RenderedData(rendered_data_config)
         self.sequences = torch.tensor(self.dir.sequences[:])
         self.n_sequences = self.sequences.shape[0]
+        self.arg_df = pd.DataFrame({"sequence_idx": np.arange(self.n_sequences)})
 
     def get_item(self, key):
         sequence = self.sequences[key]
@@ -682,10 +634,10 @@ We use the `NetworkView` class to point to a model. This object can implement pl
 
 
 ```python
-network_view = flyvision.network.NetworkView(flyvision.results_dir / "flow/0000/000")
+network_view = flyvision.NetworkView(flyvision.results_dir / "flow/0000/000")
 ```
 
-    [2024-10-04 16:51:36] network:1001 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
+    [2024-10-14 23:31:51] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
 
 
 
@@ -694,8 +646,8 @@ network_view = flyvision.network.NetworkView(flyvision.results_dir / "flow/0000/
 network = network_view.init_network()
 ```
 
-    [2024-10-04 16:51:46] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-04 16:51:46] chkpt_utils:72 Recovered network state.
+    [2024-10-14 23:31:59] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 23:31:59] chkpt_utils:35 Recovered network state.
 
 
 
@@ -711,7 +663,7 @@ movie_input.shape
 
 
 
-    torch.Size([84, 1, 721])
+    torch.Size([20, 1, 721])
 
 
 
@@ -747,7 +699,7 @@ responses.shape
 
 
 
-    torch.Size([1, 84, 45669])
+    torch.Size([1, 20, 45669])
 
 
 
@@ -775,7 +727,7 @@ anim.animate_in_notebook(frames=np.arange(anim.frames)[::2])
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_66_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_62_0.png)
 
 
 
@@ -804,7 +756,7 @@ ax.set_ylabel("central response (a.u.)", fontsize=5)
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_69_1.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_65_1.png)
 
 
 
@@ -893,6 +845,7 @@ class CustomStimuli(SequenceDataset):
         self.dir = RenderedData(rendered_data_config)
         self.sequences = torch.tensor(self.dir.sequences[:])
         self.n_sequences = self.sequences.shape[0]
+        self.arg_df = pd.DataFrame({"sequence_idx": np.arange(self.n_sequences)})
 
     def get_item(self, key):
         sequence = self.sequences[key]
@@ -921,7 +874,7 @@ ensemble = EnsembleView(flyvision.results_dir / "flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-04 16:52:11] ensemble:141 Loaded 50 networks.
+    [2024-10-14 23:32:25] ensemble:166 Loaded 50 networks.
 
 
 ##### Simulate responses for each network
@@ -944,57 +897,57 @@ responses = np.array(list(ensemble.simulate(movie_input[None], data.dt, fade_in=
     Simulating network:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-04 16:52:20] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-04 16:52:20] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:20] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:21] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:22] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:23] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:24] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:25] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:26] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:27] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:28] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:29] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:30] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:52:30] chkpt_utils:72 Recovered network state.
+    [2024-10-14 23:32:33] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:41] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:32:41] chkpt_utils:35 Recovered network state.
 
 
 
@@ -1006,7 +959,7 @@ responses.shape
 
 
 
-    (50, 1, 84, 45669)
+    (50, 1, 20, 45669)
 
 
 
@@ -1030,7 +983,7 @@ responses[cell_type].shape
 
 
 
-    (50, 1, 84, 721)
+    (50, 1, 20, 721)
 
 
 
@@ -1046,7 +999,7 @@ anim.animate_in_notebook(samples=model_index, frames=np.arange(anim.frames)[::10
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_88_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_84_0.png)
 
 
 
@@ -1065,7 +1018,7 @@ anim.animate_in_notebook(frames=np.arange(anim.frames)[::10])
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_90_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_86_0.png)
 
 
 
@@ -1106,7 +1059,7 @@ ax.set_title(f"{cell_type} responses across the ensemble", fontsize=5)
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_95_1.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_91_1.png)
 
 
 
@@ -1117,7 +1070,7 @@ From the above plot it seems like different models generate different prediction
 cluster_indices = ensemble.cluster_indices(cell_type)
 ```
 
-    [2024-10-04 16:52:49] clustering:643 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering.
+    [2024-10-14 23:33:03] clustering:835 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering
 
 
 
@@ -1137,19 +1090,19 @@ for cluster_id, model_idx in cluster_indices.items():
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_94_0.png)
 
 
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_1.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_94_1.png)
 
 
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_2.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_94_2.png)
 
 
 
@@ -1183,4 +1136,4 @@ anim.animate_in_notebook(frames=np.arange(anim.frames)[::5])
 
 
 
-![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_102_0.png)
+![png](07_flyvision_providing_custom_stimuli_files/07_flyvision_providing_custom_stimuli_98_0.png)

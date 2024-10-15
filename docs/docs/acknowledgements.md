@@ -1,6 +1,6 @@
 # Acknowledgements
 
-`flyvision` is built in a collaboration between the [Turaga Lab](https://www.janelia.org/lab/turaga-lab) at Janelia Research Campus and the [Macke Lab](mackelab.org) at Tübingen University.
+`flyvision` is built in the [Macke Lab](https://www.mackelab.org) at Tübingen University in collaboration with the [Turaga Lab](https://www.janelia.org/lab/turaga-lab) at Janelia Research Campus.
 
 ## Paper
 

@@ -19,7 +19,7 @@ ensemble = EnsembleView("flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-04 16:51:55] ensemble:141 Loaded 50 networks.
+    [2024-10-14 23:33:32] ensemble:166 Loaded 50 networks.
 
 
 
@@ -146,26 +146,11 @@ activations
 
 
 ```python
-from flyvision.connectome import ConnectomeDir
-from flyvision.plots import plt_utils
-from flyvision.plots.network import WholeNetworkFigure
+from flyvision.connectome import ConnectomeFromAvgFilters
+from flyvision.analysis.visualization import plt_utils
+from flyvision.analysis.visualization.network_fig import WholeNetworkFigure
 from flyvision.utils.color_utils import cell_type_colors
 ```
-
-
-    ---------------------------------------------------------------------------
-
-    ModuleNotFoundError                       Traceback (most recent call last)
-
-    Input In [12], in <cell line: 2>()
-          1 from flyvision.connectome import ConnectomeDir
-    ----> 2 from flyvision.plots import plt_utils
-          3 from flyvision.plots.network import WholeNetworkFigure
-          4 from flyvision.utils.color_utils import cell_type_colors
-
-
-    ModuleNotFoundError: No module named 'flyvision.plots'
-
 
 
 ```python
@@ -174,7 +159,7 @@ sequence = dataset[1]
 
 
 ```python
-ctome = ConnectomeDir()
+ctome = ConnectomeFromAvgFilters()
 ```
 
 
@@ -191,7 +176,8 @@ responses = (
 )
 ```
 
-    [2024-09-28 04:15:47] chkpt_utils:72 Recovered network state.
+    [2024-10-14 23:33:58] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 23:33:58] chkpt_utils:35 Recovered network state.
 
 
 

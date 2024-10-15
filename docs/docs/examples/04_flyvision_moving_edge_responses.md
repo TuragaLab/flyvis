@@ -7,49 +7,6 @@
 
 This notebook introduces moving edge responses and the direction selectivity index (DSI). The DSI measures motion selectivity of cells to visual input.
 
-**Select GPU runtime**
-
-To run the notebook on a GPU select Menu -> Runtime -> Change runtime type -> GPU.
-
-
-```python
-# @markdown **Check access to GPU**
-
-try:
-    import google.colab
-
-    IN_COLAB = True
-except ImportError:
-    IN_COLAB = False
-
-if IN_COLAB:
-    import torch
-
-    try:
-        cuda_name = torch.cuda.get_device_name()
-        print(f"Name of the assigned GPU / CUDA device: {cuda_name}")
-    except RuntimeError:
-        import warnings
-
-        warnings.warn(
-            "You have not selected Runtime Type: 'GPU' or Google could not assign you one. Please revisit the settings as described above or proceed on CPU (slow)."
-        )
-```
-
-**Install Flyvis**
-
-The notebook requires installing our package `flyvis`. You may need to restart your session after running the code block below with Menu -> Runtime -> Restart session. Then, imports from `flyvis` should succeed without issue.
-
-
-```python
-if IN_COLAB:
-    # @markdown **Install Flyvis**
-    %%capture
-    !git clone https://github.com/flyvis/flyvis-dev.git
-    %cd /content/flyvis-dev
-    !pip install -e .
-```
-
 
 ```python
 # basic imports
@@ -334,7 +291,7 @@ animation.animate_in_notebook()
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_11_0.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_7_0.png)
 
 
 
@@ -352,7 +309,7 @@ from flyvision.network import NetworkView
 network_view = NetworkView(results_dir / "flow/0000/000")
 ```
 
-    [2024-10-04 16:31:35] network:1001 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
+    [2024-10-14 21:01:17] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
 
 
 
@@ -383,7 +340,7 @@ ax.set_title("T4c responses to moving edge")
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_17_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_13_1.png)
 
 
 
@@ -470,7 +427,7 @@ plot_angular_tuning(stims_and_resps, cell_type="T4c", intensity=1)
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_27_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_23_1.png)
 
 
 
@@ -534,7 +491,7 @@ print(
 ```
 
     T4 tuning curve correlations: ['T4a' 'T4b' 'T4c' 'T4d']
-    [0.93699974 0.7194494  0.53721795 0.85661067]
+    [0.93699979 0.71944939 0.53721792 0.85661064]
 
 
 
@@ -545,7 +502,7 @@ print(
 ```
 
     T5 tuning curve correlations: ['T5a' 'T5b' 'T5c' 'T5d']
-    [0.8412543  0.90320944 0.94956462 0.90100514]
+    [0.84125431 0.90320943 0.94956469 0.90100505]
 
 
 So, the model yields accurate predictions for all T4 and T5 cell types.
@@ -567,14 +524,14 @@ ensemble = ensemble[ensemble.argsort()[:10]]
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-04 16:31:52] ensemble:141 Loaded 50 networks.
+    [2024-10-14 21:01:40] ensemble:166 Loaded 50 networks.
 
 
 
     Loading ensemble:   0%|          | 0/10 [00:00<?, ?it/s]
 
 
-    [2024-10-04 16:31:56] ensemble:141 Loaded 10 networks.
+    [2024-10-14 21:01:46] ensemble:166 Loaded 10 networks.
 
 
 
@@ -582,12 +539,6 @@ ensemble = ensemble[ensemble.argsort()[:10]]
 %%capture
 stims_and_resps = ensemble.moving_edge_responses(dataset=dataset)
 ```
-
-    [2024-10-04 16:32:05] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-04 16:32:05] chkpt_utils:72 Recovered network state.
-    [2024-10-04 16:32:05] network:751 Computing 24 stimulus responses.
-    [2024-10-04 16:32:10] xarray_joblib_backend:540 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/003/__cache__/flyvision/analysis/stimulus_responses/compute_responses/97a3d5ae41b64897bf8ef7f0064c1e4f/output.h5
-
 
 ### Response traces
 
@@ -631,7 +582,7 @@ responses.custom.where(
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_47_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_43_1.png)
 
 
 
@@ -663,7 +614,7 @@ ax.set_ylabel("Number of networks")
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_51_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_47_1.png)
 
 
 
@@ -671,9 +622,9 @@ Most networks in this group recover some direction selectivity for T4c. We can a
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import plot_dsis
+from flyvision.analysis.moving_bar_responses import dsi_violins_on_and_off
 
-fig, ax = plot_dsis(
+fig, ax = dsi_violins_on_and_off(
     dsis,
     dsis.cell_type,
     bold_output_type_labels=True,
@@ -690,7 +641,7 @@ fig, ax = plot_dsis(
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_53_0.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_49_0.png)
 
 
 
@@ -758,7 +709,7 @@ fig, ax, *_ = violin_groups(
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_59_0.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_55_0.png)
 
 
 

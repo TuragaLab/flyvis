@@ -22,7 +22,7 @@ ensemble = EnsembleView("flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-04 19:30:38] ensemble:142 Loaded 50 networks.
+    [2024-10-14 23:35:52] ensemble:166 Loaded 50 networks.
 
 
 ## b

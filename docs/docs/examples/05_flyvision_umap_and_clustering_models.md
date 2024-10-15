@@ -7,49 +7,6 @@
 
 This notebook illustrates how to cluster the models of an ensemble after nonlinear dimensionality reduction on their predicted responses to naturalistic stimuli. This can be done for any cell type. Here we provide a detailed example focusing on clustering based on T4c responses.
 
-**Select GPU runtime**
-
-To run the notebook on a GPU select Menu -> Runtime -> Change runtime type -> GPU.
-
-
-```python
-# @markdown **Check access to GPU**
-
-try:
-    import google.colab
-
-    IN_COLAB = True
-except ImportError:
-    IN_COLAB = False
-
-if IN_COLAB:
-    import torch
-
-    try:
-        cuda_name = torch.cuda.get_device_name()
-        print(f"Name of the assigned GPU / CUDA device: {cuda_name}")
-    except RuntimeError:
-        import warnings
-
-        warnings.warn(
-            "You have not selected Runtime Type: 'GPU' or Google could not assign you one. Please revisit the settings as described above or proceed on CPU (slow)."
-        )
-```
-
-**Install Flyvis**
-
-The notebook requires installing our package `flyvis`. You may need to restart your session after running the code block below with Menu -> Runtime -> Restart session. Then, imports from `flyvis` should succeed without issue.
-
-
-```python
-if IN_COLAB:
-    # @markdown **Install Flyvis**
-    %%capture
-    !git clone https://github.com/flyvis/flyvis-dev.git
-    %cd /content/flyvis-dev
-    !pip install -e .
-```
-
 
 ```python
 # basic imports
@@ -263,7 +220,7 @@ animation.animate_in_notebook(frames=np.arange(5))
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_13_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_9_0.png)
 
 
 
@@ -272,36 +229,421 @@ We compute the responses of all models in the stored ensemble to the augmented S
 
 
 ```python
-from flyvision import results_dir
-```
-
-
-```python
 # We load the ensemble trained on the optic flow task
-ensemble = flyvision.EnsembleView(results_dir / "flow/0000")
+ensemble = flyvision.EnsembleView("flow/0000")
 ```
 
 
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-04 22:47:37] ensemble:142 Loaded 50 networks.
+    [2024-10-14 21:02:31] ensemble:166 Loaded 50 networks.
 
 
 We use `ensemble.naturalistic_stimuli_responses` to return responses of all networks within the ensemble.
 
 
 ```python
+# alternatively, specify indices of sequences to load
+# stims_and_resps = ensemble.naturalistic_stimuli_responses(indices=np.arange(5))
+# or load all sequences
 stims_and_resps = ensemble.naturalistic_stimuli_responses()
 ```
 
+    [2024-10-14 21:02:41] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 21:02:41] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:02:46] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:06:00] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/007/__cache__/flyvision/analysis/stimulus_responses/compute_responses/62f12e60e448f187eb7c3c597ad40084/output.h5
+    [2024-10-14 21:06:07] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:06:11] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:09:23] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/008/__cache__/flyvision/analysis/stimulus_responses/compute_responses/57f443b19940e708cd13ea4c8c285770/output.h5
+    [2024-10-14 21:09:29] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:09:34] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:12:50] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/009/__cache__/flyvision/analysis/stimulus_responses/compute_responses/8c63fb5782e9c87881de4ef9f68a9794/output.h5
+    [2024-10-14 21:12:56] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:13:00] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:16:16] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/010/__cache__/flyvision/analysis/stimulus_responses/compute_responses/b70bd43513f96a8ca2149b4b707cf55b/output.h5
+    [2024-10-14 21:16:22] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:16:27] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:19:43] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/011/__cache__/flyvision/analysis/stimulus_responses/compute_responses/0a2bc829a7f7a299dd597db764831509/output.h5
+    [2024-10-14 21:19:49] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:19:53] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:23:09] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/012/__cache__/flyvision/analysis/stimulus_responses/compute_responses/89d8b0766a56e2e8c9ab4019b752b186/output.h5
+    [2024-10-14 21:23:15] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:23:19] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:26:32] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/013/__cache__/flyvision/analysis/stimulus_responses/compute_responses/8e4ab5f546dddc67d4e5d818a5ce98fb/output.h5
+    [2024-10-14 21:26:38] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:26:43] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:29:55] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/014/__cache__/flyvision/analysis/stimulus_responses/compute_responses/ec463cad10d3570261974dd49b2f39b4/output.h5
+    [2024-10-14 21:30:01] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:30:06] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:33:19] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/015/__cache__/flyvision/analysis/stimulus_responses/compute_responses/9f12efdac08bb4ec43d6cfa2b410cb84/output.h5
+    [2024-10-14 21:33:25] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:33:29] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:36:42] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/016/__cache__/flyvision/analysis/stimulus_responses/compute_responses/b766af72495270e849c173fe33059a52/output.h5
+    [2024-10-14 21:36:48] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:36:52] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:40:05] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/017/__cache__/flyvision/analysis/stimulus_responses/compute_responses/547d8627bc643f80104e95aa70946f87/output.h5
+    [2024-10-14 21:40:11] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:40:16] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:43:29] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/018/__cache__/flyvision/analysis/stimulus_responses/compute_responses/e8623ea69603f974a7b3b8d5eadb3673/output.h5
+    [2024-10-14 21:43:35] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:43:39] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:46:51] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/019/__cache__/flyvision/analysis/stimulus_responses/compute_responses/25481e4909d43c99cf38eadd2587310e/output.h5
+    [2024-10-14 21:46:57] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:47:02] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:50:15] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/020/__cache__/flyvision/analysis/stimulus_responses/compute_responses/fbfc463c7bc43fd02c29dd9d621674ac/output.h5
+    [2024-10-14 21:50:21] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:50:25] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:53:39] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/021/__cache__/flyvision/analysis/stimulus_responses/compute_responses/47879cefa1cb64fad137fa3abcef9f72/output.h5
+    [2024-10-14 21:53:45] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:53:49] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 21:57:01] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/022/__cache__/flyvision/analysis/stimulus_responses/compute_responses/a95a2b7ddef91af37031848d7003b1f3/output.h5
+    [2024-10-14 21:57:08] chkpt_utils:35 Recovered network state.
+    [2024-10-14 21:57:12] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:00:25] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/023/__cache__/flyvision/analysis/stimulus_responses/compute_responses/48f1e15295ea1bd1ecd10d16406b2290/output.h5
+    [2024-10-14 22:00:31] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:00:36] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:03:48] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/024/__cache__/flyvision/analysis/stimulus_responses/compute_responses/6174edb2564849ef913daa0a8b68b9ec/output.h5
+    [2024-10-14 22:03:54] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:03:58] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:07:11] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/025/__cache__/flyvision/analysis/stimulus_responses/compute_responses/dc7c7535c7861e19b3ecab2cf7122136/output.h5
+    [2024-10-14 22:07:17] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:07:22] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:10:36] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/026/__cache__/flyvision/analysis/stimulus_responses/compute_responses/0f442e5e698f56a7df6a03ed8f7000a9/output.h5
+    [2024-10-14 22:10:42] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:10:46] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:14:00] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/027/__cache__/flyvision/analysis/stimulus_responses/compute_responses/cca57252f75a3f13eb6d01f1bf8d47c7/output.h5
+    [2024-10-14 22:14:06] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:14:11] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:17:24] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/028/__cache__/flyvision/analysis/stimulus_responses/compute_responses/438a5c4c26cf00e96e592fa3b05b8d46/output.h5
+    [2024-10-14 22:17:30] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:17:35] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:20:48] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/029/__cache__/flyvision/analysis/stimulus_responses/compute_responses/04c9bf7d4e1e29bd6c0e192faa3be95e/output.h5
+    [2024-10-14 22:20:54] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:20:58] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:24:12] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/030/__cache__/flyvision/analysis/stimulus_responses/compute_responses/f8ad0bbdc84d745bd24435f409659e18/output.h5
+    [2024-10-14 22:24:18] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:24:24] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:27:38] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/031/__cache__/flyvision/analysis/stimulus_responses/compute_responses/feb22aa77c3a671a7742cd26d19729b5/output.h5
+    [2024-10-14 22:27:44] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:27:48] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:31:02] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/032/__cache__/flyvision/analysis/stimulus_responses/compute_responses/3b7c08a1383d3077532a4435c16e9132/output.h5
+    [2024-10-14 22:31:08] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:31:12] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:34:26] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/033/__cache__/flyvision/analysis/stimulus_responses/compute_responses/3e014da9460072b9e468d5d4db901c36/output.h5
+    [2024-10-14 22:34:32] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:34:36] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:37:49] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/034/__cache__/flyvision/analysis/stimulus_responses/compute_responses/2f053e975330c272ea7e10e3f096a66f/output.h5
+    [2024-10-14 22:37:55] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:38:00] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:41:12] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/035/__cache__/flyvision/analysis/stimulus_responses/compute_responses/ff0bbe4777ee636da504d0c4edfd5846/output.h5
+    [2024-10-14 22:41:19] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:41:23] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:44:35] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/036/__cache__/flyvision/analysis/stimulus_responses/compute_responses/a8e6ccb3a83d8ea15533bd088bd59ef2/output.h5
+    [2024-10-14 22:44:41] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:44:46] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:47:59] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/037/__cache__/flyvision/analysis/stimulus_responses/compute_responses/e7a08d9c9dc1504228836eb499c33fb1/output.h5
+    [2024-10-14 22:48:05] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:48:09] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:51:22] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/038/__cache__/flyvision/analysis/stimulus_responses/compute_responses/1ff54cbc099f81f052a5661fc26d000a/output.h5
+    [2024-10-14 22:51:28] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:51:32] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:54:46] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/039/__cache__/flyvision/analysis/stimulus_responses/compute_responses/50bc9a814ddfb1fd6f4ccb5a8093534d/output.h5
+    [2024-10-14 22:54:52] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:54:56] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 22:58:10] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/040/__cache__/flyvision/analysis/stimulus_responses/compute_responses/ac5a53daa316bd164892a45b48fbcbf3/output.h5
+    [2024-10-14 22:58:16] chkpt_utils:35 Recovered network state.
+    [2024-10-14 22:58:21] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:01:33] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/041/__cache__/flyvision/analysis/stimulus_responses/compute_responses/dea4830713214750326ad2c0f74f43b4/output.h5
+    [2024-10-14 23:01:39] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:01:44] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:04:57] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/042/__cache__/flyvision/analysis/stimulus_responses/compute_responses/28f107cb005216c0c70c85156602badb/output.h5
+    [2024-10-14 23:05:03] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:05:07] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:08:24] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/043/__cache__/flyvision/analysis/stimulus_responses/compute_responses/9a536865e85de3f3bf6c7c0f51c48a68/output.h5
+    [2024-10-14 23:08:30] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:08:35] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:11:47] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/044/__cache__/flyvision/analysis/stimulus_responses/compute_responses/9dadf5ce41ea13977a03bf250f47182a/output.h5
+    [2024-10-14 23:11:53] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:11:58] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:15:12] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/045/__cache__/flyvision/analysis/stimulus_responses/compute_responses/7c5005bd1893429e6cf5fbd05351bd85/output.h5
+    [2024-10-14 23:15:18] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:15:22] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:18:37] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/046/__cache__/flyvision/analysis/stimulus_responses/compute_responses/cf1f47a50bfb0f93400c60652dd8a353/output.h5
+    [2024-10-14 23:18:43] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:18:48] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:22:01] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/047/__cache__/flyvision/analysis/stimulus_responses/compute_responses/babe9286fd9940a1d8f3910e35d166cb/output.h5
+    [2024-10-14 23:22:07] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:22:12] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:25:24] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/048/__cache__/flyvision/analysis/stimulus_responses/compute_responses/e2331bf2e28ee218ea340438d3b3e966/output.h5
+    [2024-10-14 23:25:30] chkpt_utils:35 Recovered network state.
+    [2024-10-14 23:25:35] network:757 Computing 2268 stimulus responses.
+
+
+
+    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
+
+
+    [2024-10-14 23:28:47] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/049/__cache__/flyvision/analysis/stimulus_responses/compute_responses/2a0503ab856cbb6d9206e77684949b55/output.h5
+
+
 
 ```python
+# recommended to only run with precomputed responses using the record script
 norm = ensemble.responses_norm()
-```
-
-
-```python
 responses = stims_and_resps["responses"] / (norm + 1e-6)
 ```
 
@@ -323,7 +665,7 @@ ax.set_title("T4c responses to naturalistic stimuli")
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_21_1.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_15_1.png)
 
 
 
@@ -363,7 +705,7 @@ embedding = EnsembleEmbedding(central_responses)
 t4c_embedding = embedding("T4c", embedding_kwargs=embedding_kwargs)
 ```
 
-    [2024-10-04 22:47:52] clustering:349 reshaped X from (50, 2268, 80) to (50, 181440)
+    [2024-10-14 23:29:06] clustering:482 reshaped X from (50, 2268, 80) to (50, 181440)
     /home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/umap/umap_.py:1356: RuntimeWarning: divide by zero encountered in power
       return 1.0 / (1.0 + a * x ** (2 * b))
 
@@ -380,7 +722,7 @@ embeddingplot = t4c_embedding.plot(colors=task_error.colors)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_30_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_24_0.png)
 
 
 
@@ -413,7 +755,7 @@ embeddingplot = gm_clustering.plot(task_error=task_error.values, colors=task_err
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_34_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_28_0.png)
 
 
 
@@ -450,7 +792,7 @@ plt.subplots_adjust(wspace=0.3)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_38_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_32_0.png)
 
 
 
@@ -521,7 +863,7 @@ plt.subplots_adjust(wspace=0.3)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_48_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_42_0.png)
 
 
 
@@ -543,7 +885,7 @@ plot_angular_tuning(
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_49_1.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_43_1.png)
 
 
 
@@ -579,7 +921,7 @@ plt.subplots_adjust(wspace=0.5)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_50_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_44_0.png)
 
 
 
@@ -595,7 +937,7 @@ cell_type = "T4c"
 clustering = ensemble.clustering(cell_type)
 ```
 
-    [2024-10-04 22:49:49] clustering:643 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering.
+    [2024-10-14 23:29:47] clustering:835 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering
 
 
 
@@ -610,7 +952,7 @@ embeddingplot = clustering.plot(task_error=task_error.values, colors=task_error.
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_56_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_50_0.png)
 
 
 

@@ -1,62 +1,19 @@
-```
+```python
 %load_ext autoreload
 %autoreload 2
+
+import os
+
+os.environ["TESTING"] = "true"
 ```
-
-    The autoreload extension is already loaded. To reload it, use:
-      %reload_ext autoreload
-
 
 # Optic flow task
 
 
 This notebook illustrates the optic flow task and how to use it with our pretrained fly visual system model and decoder.
 
-**Select GPU runtime**
 
-To run the notebook on a GPU select Menu -> Runtime -> Change runtime type -> GPU.
-
-
-```
-# @markdown **Check access to GPU**
-
-try:
-    import google.colab
-
-    IN_COLAB = True
-except ImportError:
-    IN_COLAB = False
-
-if IN_COLAB:
-    import torch
-
-    try:
-        cuda_name = torch.cuda.get_device_name()
-        print(f"Name of the assigned GPU / CUDA device: {cuda_name}")
-    except RuntimeError:
-        import warnings
-
-        warnings.warn(
-            "You have not selected Runtime Type: 'GPU' or Google could not assign you one. Please revisit the settings as described above or proceed on CPU (slow)."
-        )
-```
-
-**Install Flyvis**
-
-The notebook requires installing our package `flyvis`. You may need to restart your session after running the code block below with Menu -> Runtime -> Restart session. Then, imports from `flyvis` should succeed without issue.
-
-
-```
-if IN_COLAB:
-    # @markdown **Install Flyvis**
-    %%capture
-    !git clone https://github.com/flyvis/flyvis-dev.git
-    %cd /content/flyvis-dev
-    !pip install -e .
-```
-
-
-```
+```python
 # basic imports
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,7 +27,7 @@ plt.rcParams['figure.dpi'] = 200
 We use the Sintel dataset to train out models as described in the paper. More infos about the Sintel dataset can be found on the official Sintel website: http://sintel.is.tue.mpg.de/.
 
 
-```
+```python
 import matplotlib.pyplot as plt
 import numpy as np
 from flyvision.datasets.sintel import MultiTaskSintel
@@ -89,7 +46,7 @@ The class `MultiTaskSintel` loads, preprocesses, renders, and augments the sinte
 This is the full setting:
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -113,6 +70,7 @@ dataset = MultiTaskSintel(
     interpolate=True,
     # We flip with equal probability (using one flip-axis).
     p_flip=0.5,
+    flip_axes=[0, 1],
     # We rotate with equal probability (using five fold rotation symmetry of the hex-grid).
     p_rot=5 / 6,
     # We randomly adjust contrast and brightness.
@@ -123,13 +81,11 @@ dataset = MultiTaskSintel(
     gamma_std=None,
     _init_cache=True,
     unittest=False,
-    flip_axes=[0, 1],
-    task_weights=None,
 )
 ```
 
 
-```
+```python
 # The `dataset.arg_df` tracks the sequence index, identity etc.
 dataset.arg_df
 ```
@@ -251,7 +207,7 @@ dataset.arg_df
 First, let's chunk this into smaller digestable pieces.
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -264,7 +220,7 @@ dataset = MultiTaskSintel(
 The first sample. For the target, the pixel-accurate motion vectors, the color indicates the direction of motion of the respective input pixel. The saturation indicates the magnitude of motion.
 
 
-```
+```python
 lum = dataset[0]["lum"]
 flow = dataset[0]["flow"]
 
@@ -274,14 +230,14 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_17_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_13_0.png)
 
 
 
 Sintel has more groundtruth annotations. We support depth and flow because we know with some confidence that these are relevant for the fly.
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["depth"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -292,7 +248,7 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 lum1 = dataset[0]["lum"]
 depth1 = dataset[0]["depth"]
 
@@ -302,7 +258,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_20_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_16_0.png)
 
 
 
@@ -315,12 +271,12 @@ We apply rich augmentations to the dataset of naturalistic sequences because the
 First, we split each sequence into three sequences vertically to leverage a wider extent of the video than if we would only render the center. We precompute these renderings.
 
 
-```
+```python
 from flyvision.analysis.visualization.plots import quick_hex_scatter
 ```
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -333,7 +289,7 @@ dataset = MultiTaskSintel(
 Sintel has 23 movie sequences originally.
 
 
-```
+```python
 len(np.unique(dataset.arg_df.original_index))
 ```
 
@@ -347,7 +303,7 @@ len(np.unique(dataset.arg_df.original_index))
 Each original sequence is 436 pixel in height times 1024 pixel in width in cartesian coordinates.
 
 
-```
+```python
 sequence = dataset.cartesian_sequence(0, vertical_splits=1, center_crop_fraction=1.0)
 print(sequence.shape)
 ```
@@ -358,7 +314,7 @@ print(sequence.shape)
 With the vertical crops, we end up with 3 * 23 sequences. The `dataset.arg_df` tracks the sequence index, identity etc.
 
 
-```
+```python
 dataset.arg_df
 ```
 
@@ -475,18 +431,18 @@ dataset.arg_df
 
 
 
-```
+```python
 _ = plt.imshow(sequence[0, 0], cmap=plt.cm.binary_r)
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_33_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_29_0.png)
 
 
 
 
-```
+```python
 fig, axes = plt.subplots(1, 3)
 _ = quick_hex_scatter(dataset[0]['lum'][0].flatten(), fig=fig, ax=axes[0], cbar=False)
 _ = quick_hex_scatter(dataset[1]['lum'][0].flatten(), fig=fig, ax=axes[1], cbar=False)
@@ -495,7 +451,7 @@ _ = quick_hex_scatter(dataset[2]['lum'][0].flatten(), fig=fig, ax=axes[2], cbar=
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_34_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_30_0.png)
 
 
 
@@ -504,7 +460,7 @@ _ = quick_hex_scatter(dataset[2]['lum'][0].flatten(), fig=fig, ax=axes[2], cbar=
 We train on 19 frames ~ 792ms movie. Most sequences have 49 frames. To use the whole temporal content, we stochastically sample start and end frame ~ ((1, 19), (2, 20), ..., (31, 49)).
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -525,21 +481,21 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 # These two samples from the same original sequence should have stochastically different start and end frames.
 lum1 = dataset[0]['lum']
 lum2 = dataset[0]['lum']
 ```
 
 
-```
+```python
 animation = SintelSample(lum1[None], lum2[None], title2="input")
 animation.animate_in_notebook()
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_39_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_35_0.png)
 
 
 
@@ -548,7 +504,7 @@ animation.animate_in_notebook()
 Next, we flip stochastically across 2 axes and or rotate a random number of times around the center. We implement this to be fast to do so at runtime.
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -569,28 +525,28 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 # These two samples from the same original sequence should have stochastically different orientation.
 lum1 = dataset[0]['lum']
 lum2 = dataset[0]['lum']
 ```
 
 
-```
+```python
 animation = SintelSample(lum1[None], lum2[None], title2="input")
 animation.animate_in_notebook()
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_44_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_40_0.png)
 
 
 
 Flow vectors need to be flipped and rotated accordingly.
 
 
-```
+```python
 # These two samples from the same original sequence should have stochastically different orientation.
 data = dataset[0]
 lum1 = data['lum']
@@ -598,14 +554,14 @@ flow1 = data['flow']
 ```
 
 
-```
+```python
 animation = SintelSample(lum1[None], flow1[None])
 animation.animate_in_notebook()
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_47_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_43_0.png)
 
 
 
@@ -614,7 +570,7 @@ animation.animate_in_notebook()
 Besides that, we also augment the input with random contrasts and brightnesses and random gaussian pixel noise, while the motion stays the same. This pretends that the same motion takes place under different illumination conditions and signal to noise ratios.
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -635,7 +591,7 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 # These two samples from the same original sequence have
 # stochastically different contrast, brightness and pixel-wise noise.
 lum1 = dataset[0]['lum']
@@ -643,14 +599,14 @@ lum2 = dataset[0]['lum']
 ```
 
 
-```
+```python
 animation = SintelSample(lum1[None], lum2[None], title2="input")
 animation.animate_in_notebook()
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_52_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_48_0.png)
 
 
 
@@ -659,7 +615,7 @@ animation.animate_in_notebook()
 The Sintel dataset is originally rendered at 24 frames per second, i.e., one frame every 42ms. The fruit fly neurons are able to respond to temporal differences as fast as 5-20ms. Therefore, we resample every frame multiple times to pretend that the movie was originally sampled at such a faster framerate. For the motion fields, we interpolate flow vectors in time instead of resampling them, which hopefully gives a better learning signal to the network. We have to trade-off speed of the numerical integration and memory consumption during optimization with the simulation accuracy by choosing time steps between 5-20ms. We chose to train networks at the upper bount of 20ms and evaluate them more accurately at 5-10ms.
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -673,7 +629,7 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 # Now, every input frame appears twice and target frames are interpolated.
 data = dataset[0]
 lum1 = data['lum']
@@ -681,14 +637,14 @@ flow1 = data['flow']
 ```
 
 
-```
+```python
 animation = SintelSample(lum1[None], flow1[None])
 animation.animate_in_notebook()
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_57_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_53_0.png)
 
 
 
@@ -697,7 +653,7 @@ animation.animate_in_notebook()
 Before we get to training a network, we look at a few responses to these type of sequences of individual neurons.
 
 
-```
+```python
 from flyvision.network import NetworkView, Network
 from flyvision.utils.activity_utils import LayerActivity
 
@@ -705,7 +661,7 @@ from flyvision.datasets.sintel import MultiTaskSintel
 ```
 
 
-```
+```python
 # new network instance
 network = Network()
 
@@ -714,16 +670,16 @@ network = Network()
 # network = network_view.init_network(network)
 ```
 
-    [2024-10-04 14:36:03] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 20:56:54] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
 
 
 
-```
+```python
 layer_activity = LayerActivity(None, network.connectome, keepref=True)
 ```
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -737,7 +693,7 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 stationary_state = network.fade_in_state(1.0, dataset.dt, dataset[0]["lum"][[0]])
 responses = network.simulate(
     dataset[0]["lum"][None], dataset.dt, initial_state=stationary_state
@@ -745,7 +701,7 @@ responses = network.simulate(
 ```
 
 
-```
+```python
 plt.figure(figsize=[3, 2])
 layer_activity.update(responses)
 r = layer_activity.central.T4c.squeeze().numpy()
@@ -765,7 +721,7 @@ plt.title("response of central T4c cell")
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_65_1.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_61_1.png)
 
 
 
@@ -774,26 +730,26 @@ plt.title("response of central T4c cell")
 We need to predict the pixel-accurate flow field that Sintel gives us. For that we decode the voltages of a bunch of cell types. The decoder and the network are trained end-to-end. Here an example of a forward pass through the whole pipeline in code.
 
 
-```
+```python
 from flyvision.datasets.sintel import MultiTaskSintel
 from flyvision.task.decoder import DecoderGAVP
 ```
 
 
-```
+```python
 network = Network()
 ```
 
-    [2024-10-04 14:37:42] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 20:57:10] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
 
 
 
-```
+```python
 decoder = DecoderGAVP(network.connectome, shape=[8, 2], kernel_size=5)
 ```
 
-    [2024-10-04 14:37:46] decoder:215 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
-    [2024-10-04 14:37:46] decoder:216 DecoderGAVP(
+    [2024-10-14 20:57:15] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
+    [2024-10-14 20:57:15] decoder:283 DecoderGAVP(
       (base): Sequential(
         (0): Conv2dHexSpace(34, 8, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
         (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
@@ -808,7 +764,7 @@ decoder = DecoderGAVP(network.connectome, shape=[8, 2], kernel_size=5)
 
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -822,7 +778,7 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 data = dataset[0]
 lum = data["lum"]
 flow = data["flow"]
@@ -832,7 +788,7 @@ responses = network.simulate(lum[None], dataset.dt, initial_state=stationary_sta
 ```
 
 
-```
+```python
 y_pred = decoder(responses)
 ```
 
@@ -840,26 +796,26 @@ We predict motion with an untrained decoder from an untrained network with rando
 We do not expect this to work.
 
 
-```
+```python
 animation = SintelSample(lum[None], flow[None], prediction=y_pred.detach().cpu())
 animation.animate_in_notebook(frames=np.arange(lum.shape[0])[::10])
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_74_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_70_0.png)
 
 
 
 
-```
+```python
 ((y_pred - flow) ** 2).sqrt().mean()
 ```
 
 
 
 
-    tensor(0.9850, device='cuda:0', grad_fn=<MeanBackward0>)
+    tensor(0.9801, device='cuda:0', grad_fn=<MeanBackward0>)
 
 
 
@@ -868,7 +824,7 @@ animation.animate_in_notebook(frames=np.arange(lum.shape[0])[::10])
 We now train the network on a single batch to validate that the pipeline works. We do not expect these networks to generalize their function.
 
 
-```
+```python
 from tqdm.notebook import tqdm
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -881,20 +837,20 @@ from flyvision.task.objectives import l2norm, epe
 ```
 
 
-```
+```python
 network = Network()
 ```
 
-    [2024-10-04 14:38:50] network:253 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 20:57:31] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
 
 
 
-```
+```python
 decoder = DecoderGAVP(network.connectome, shape=[8, 2], kernel_size=5)
 ```
 
-    [2024-10-04 14:38:54] decoder:215 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
-    [2024-10-04 14:38:54] decoder:216 DecoderGAVP(
+    [2024-10-14 20:57:36] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
+    [2024-10-14 20:57:36] decoder:283 DecoderGAVP(
       (base): Sequential(
         (0): Conv2dHexSpace(34, 8, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
         (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
@@ -909,7 +865,7 @@ decoder = DecoderGAVP(network.connectome, shape=[8, 2], kernel_size=5)
 
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -923,7 +879,7 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 t_pre = 0.5
 dt = 1 / 50
 batch_size = 4
@@ -931,22 +887,22 @@ train_loader = DataLoader(dataset, batch_size=batch_size)
 ```
 
 
-```
+```python
 optimizer = Adam((*network.parameters(), *decoder.parameters()), lr=1e-5)
 ```
 
 
-```
+```python
 batch = next(iter(train_loader))
 ```
 
 
-```
+```python
 loss_fn = epe
 ```
 
 
-```
+```python
 epochs = 1000
 
 errors = []
@@ -977,130 +933,130 @@ for e in tqdm(range(epochs)):
       0%|          | 0/1000 [00:00<?, ?it/s]
 
 
-    Epoch 0: 10.422589302062988
-    Epoch 10: 10.42231559753418
-    Epoch 20: 10.420804023742676
-    Epoch 30: 10.420122146606445
-    Epoch 40: 10.419205665588379
-    Epoch 50: 10.41639518737793
-    Epoch 60: 10.416065216064453
-    Epoch 70: 10.414222717285156
-    Epoch 80: 10.413128852844238
-    Epoch 90: 10.410683631896973
-    Epoch 100: 10.410036087036133
-    Epoch 110: 10.408438682556152
-    Epoch 120: 10.408326148986816
-    Epoch 130: 10.40695858001709
-    Epoch 140: 10.405557632446289
-    Epoch 150: 10.400578498840332
-    Epoch 160: 10.40015983581543
-    Epoch 170: 10.398872375488281
-    Epoch 180: 10.396742820739746
-    Epoch 190: 10.392280578613281
-    Epoch 200: 10.393349647521973
-    Epoch 210: 10.390533447265625
-    Epoch 220: 10.388550758361816
-    Epoch 230: 10.385358810424805
-    Epoch 240: 10.382622718811035
-    Epoch 250: 10.381763458251953
-    Epoch 260: 10.377959251403809
-    Epoch 270: 10.373452186584473
-    Epoch 280: 10.369023323059082
-    Epoch 290: 10.366665840148926
-    Epoch 300: 10.365363121032715
-    Epoch 310: 10.358964920043945
-    Epoch 320: 10.35590648651123
-    Epoch 330: 10.35021686553955
-    Epoch 340: 10.34598445892334
-    Epoch 350: 10.34181022644043
-    Epoch 360: 10.33405876159668
-    Epoch 370: 10.323880195617676
-    Epoch 380: 10.319880485534668
-    Epoch 390: 10.316190719604492
-    Epoch 400: 10.311019897460938
-    Epoch 410: 10.305534362792969
-    Epoch 420: 10.30172061920166
-    Epoch 430: 10.298951148986816
-    Epoch 440: 10.292269706726074
-    Epoch 450: 10.2912015914917
-    Epoch 460: 10.282553672790527
-    Epoch 470: 10.276850700378418
-    Epoch 480: 10.271702766418457
-    Epoch 490: 10.266114234924316
-    Epoch 500: 10.260465621948242
-    Epoch 510: 10.254273414611816
-    Epoch 520: 10.25048542022705
-    Epoch 530: 10.243037223815918
-    Epoch 540: 10.243624687194824
-    Epoch 550: 10.234699249267578
-    Epoch 560: 10.231546401977539
-    Epoch 570: 10.224716186523438
-    Epoch 580: 10.221471786499023
-    Epoch 590: 10.218791007995605
-    Epoch 600: 10.213826179504395
-    Epoch 610: 10.209129333496094
-    Epoch 620: 10.20657730102539
-    Epoch 630: 10.202775955200195
-    Epoch 640: 10.199694633483887
-    Epoch 650: 10.197911262512207
-    Epoch 660: 10.195591926574707
-    Epoch 670: 10.186054229736328
-    Epoch 680: 10.186713218688965
-    Epoch 690: 10.183159828186035
-    Epoch 700: 10.181544303894043
-    Epoch 710: 10.178598403930664
-    Epoch 720: 10.170660972595215
-    Epoch 730: 10.169751167297363
-    Epoch 740: 10.167207717895508
-    Epoch 750: 10.16340160369873
-    Epoch 760: 10.166637420654297
-    Epoch 770: 10.158493041992188
-    Epoch 780: 10.155372619628906
-    Epoch 790: 10.154718399047852
-    Epoch 800: 10.150259971618652
-    Epoch 810: 10.146480560302734
-    Epoch 820: 10.145279884338379
-    Epoch 830: 10.141718864440918
-    Epoch 840: 10.143719673156738
-    Epoch 850: 10.135321617126465
-    Epoch 860: 10.134828567504883
-    Epoch 870: 10.129217147827148
-    Epoch 880: 10.1298828125
-    Epoch 890: 10.130807876586914
-    Epoch 900: 10.124497413635254
-    Epoch 910: 10.12447738647461
-    Epoch 920: 10.120392799377441
-    Epoch 930: 10.114103317260742
-    Epoch 940: 10.114625930786133
-    Epoch 950: 10.111650466918945
-    Epoch 960: 10.110936164855957
-    Epoch 970: 10.106573104858398
-    Epoch 980: 10.10794448852539
-    Epoch 990: 10.11015510559082
+    Epoch 0: 10.713071823120117
+    Epoch 10: 10.694902420043945
+    Epoch 20: 10.680363655090332
+    Epoch 30: 10.666953086853027
+    Epoch 40: 10.656447410583496
+    Epoch 50: 10.645711898803711
+    Epoch 60: 10.63460636138916
+    Epoch 70: 10.62692642211914
+    Epoch 80: 10.619820594787598
+    Epoch 90: 10.611517906188965
+    Epoch 100: 10.607583045959473
+    Epoch 110: 10.601799964904785
+    Epoch 120: 10.597103118896484
+    Epoch 130: 10.589568138122559
+    Epoch 140: 10.583572387695312
+    Epoch 150: 10.573358535766602
+    Epoch 160: 10.557780265808105
+    Epoch 170: 10.541166305541992
+    Epoch 180: 10.5318603515625
+    Epoch 190: 10.528465270996094
+    Epoch 200: 10.524687767028809
+    Epoch 210: 10.522351264953613
+    Epoch 220: 10.519081115722656
+    Epoch 230: 10.51638412475586
+    Epoch 240: 10.513705253601074
+    Epoch 250: 10.510396957397461
+    Epoch 260: 10.509458541870117
+    Epoch 270: 10.505942344665527
+    Epoch 280: 10.504344940185547
+    Epoch 290: 10.500924110412598
+    Epoch 300: 10.499275207519531
+    Epoch 310: 10.497615814208984
+    Epoch 320: 10.495290756225586
+    Epoch 330: 10.495119094848633
+    Epoch 340: 10.489775657653809
+    Epoch 350: 10.48803997039795
+    Epoch 360: 10.486355781555176
+    Epoch 370: 10.485116958618164
+    Epoch 380: 10.482747077941895
+    Epoch 390: 10.482059478759766
+    Epoch 400: 10.478900909423828
+    Epoch 410: 10.47703742980957
+    Epoch 420: 10.475617408752441
+    Epoch 430: 10.47423267364502
+    Epoch 440: 10.472049713134766
+    Epoch 450: 10.471711158752441
+    Epoch 460: 10.46876049041748
+    Epoch 470: 10.466737747192383
+    Epoch 480: 10.466827392578125
+    Epoch 490: 10.46402359008789
+    Epoch 500: 10.464691162109375
+    Epoch 510: 10.46159553527832
+    Epoch 520: 10.460050582885742
+    Epoch 530: 10.460445404052734
+    Epoch 540: 10.458453178405762
+    Epoch 550: 10.456347465515137
+    Epoch 560: 10.454182624816895
+    Epoch 570: 10.452312469482422
+    Epoch 580: 10.451105117797852
+    Epoch 590: 10.449974060058594
+    Epoch 600: 10.449149131774902
+    Epoch 610: 10.447746276855469
+    Epoch 620: 10.445918083190918
+    Epoch 630: 10.444019317626953
+    Epoch 640: 10.442822456359863
+    Epoch 650: 10.440664291381836
+    Epoch 660: 10.440509796142578
+    Epoch 670: 10.437874794006348
+    Epoch 680: 10.436468124389648
+    Epoch 690: 10.434030532836914
+    Epoch 700: 10.432242393493652
+    Epoch 710: 10.429919242858887
+    Epoch 720: 10.428377151489258
+    Epoch 730: 10.425311088562012
+    Epoch 740: 10.422719955444336
+    Epoch 750: 10.421255111694336
+    Epoch 760: 10.418807029724121
+    Epoch 770: 10.415323257446289
+    Epoch 780: 10.412861824035645
+    Epoch 790: 10.40996265411377
+    Epoch 800: 10.408342361450195
+    Epoch 810: 10.405858993530273
+    Epoch 820: 10.403818130493164
+    Epoch 830: 10.40142822265625
+    Epoch 840: 10.397943496704102
+    Epoch 850: 10.394493103027344
+    Epoch 860: 10.390817642211914
+    Epoch 870: 10.38827133178711
+    Epoch 880: 10.383781433105469
+    Epoch 890: 10.382647514343262
+    Epoch 900: 10.379199981689453
+    Epoch 910: 10.374433517456055
+    Epoch 920: 10.372457504272461
+    Epoch 930: 10.37112045288086
+    Epoch 940: 10.366717338562012
+    Epoch 950: 10.36235237121582
+    Epoch 960: 10.36122989654541
+    Epoch 970: 10.356871604919434
+    Epoch 980: 10.3525390625
+    Epoch 990: 10.351277351379395
 
 
 
-```
+```python
 plt.plot(errors)
 ```
 
 
 
 
-    [<matplotlib.lines.Line2D at 0x7f7f5467f580>]
+    [<matplotlib.lines.Line2D at 0x7f15bb12f8b0>]
 
 
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_86_1.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_82_1.png)
 
 
 
 We expect that the prediction from this overfitted network on the sample it was trained on is ok.
 
 
-```
+```python
 data = dataset[0]
 lum = data["lum"]
 flow = data["flow"]
@@ -1110,38 +1066,38 @@ responses = network.simulate(lum[None], dataset.dt, initial_state=stationary_sta
 ```
 
 
-```
+```python
 y_pred = decoder(responses)
 ```
 
 
-```
+```python
 animation = SintelSample(lum[None], flow[None], prediction=y_pred.detach().cpu())
 animation.animate_in_notebook()
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_90_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_86_0.png)
 
 
 
 
-```
+```python
 ((y_pred - flow) ** 2).sqrt().mean()
 ```
 
 
 
 
-    tensor(0.8250, device='cuda:0', grad_fn=<MeanBackward0>)
+    tensor(0.7608, device='cuda:0', grad_fn=<MeanBackward0>)
 
 
 
 # Evaluating trained networks
 
 
-```
+```python
 from flyvision import results_dir
 from flyvision.network import NetworkView
 from flyvision.utils.activity_utils import LayerActivity
@@ -1151,31 +1107,51 @@ from flyvision.task.decoder import DecoderGAVP
 ```
 
 
-```
+```python
 # we load the best task-performing model from the presorted ensemble
 network_view = NetworkView(results_dir / "flow/0000/000")
 ```
 
-    [2024-09-23 15:54:46] network:1005 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000.
+    [2024-10-14 20:59:36] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
 
 
 
-```
+```python
 network = network_view.init_network()
 ```
 
-    [2024-09-23 15:54:55] network:252 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-09-23 15:54:55] chkpt_utils:72 Recovered network state.
+    [2024-10-14 20:59:44] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-10-14 20:59:44] chkpt_utils:35 Recovered network state.
 
 
 
+```python
+network_view.dir.config.task.decoder
 ```
+
+
+
+
+    Namespace(
+      flow = Namespace(
+        type = 'DecoderGAVP',
+        shape = [8, 2],
+        kernel_size = 5,
+        const_weight = 0.001,
+        n_out_features = None,
+        p_dropout = 0.5
+      )
+    )
+
+
+
+
+```python
 decoder = network_view.init_decoder()["flow"]
 ```
 
-    [2024-09-23 15:54:56] chkpt_utils:72 Recovered network state.
-    [2024-09-23 15:55:00] decoder:213 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
-    [2024-09-23 15:55:00] decoder:214 DecoderGAVP(
+    [2024-10-14 20:59:49] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
+    [2024-10-14 20:59:49] decoder:283 DecoderGAVP(
       (base): Sequential(
         (0): Conv2dHexSpace(34, 8, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
         (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
@@ -1187,11 +1163,11 @@ decoder = network_view.init_decoder()["flow"]
       )
       (head): Sequential()
     )
-    [2024-09-23 15:55:00] chkpt_utils:91 Recovered flow decoder state.
+    [2024-10-14 20:59:49] chkpt_utils:64 Recovered flow decoder state.
 
 
 
-```
+```python
 dataset = MultiTaskSintel(
     tasks=["flow"],
     boxfilter=dict(extent=15, kernel_size=13),
@@ -1206,7 +1182,7 @@ dataset = MultiTaskSintel(
 ```
 
 
-```
+```python
 data = [dataset[i] for i in range(4)]
 lum = torch.stack([d["lum"] for d in data])
 flow = torch.stack([d["flow"] for d in data])
@@ -1216,35 +1192,35 @@ responses = network.simulate(lum, dataset.dt, initial_state=stationary_state)
 ```
 
 
-```
+```python
 y_pred = decoder(responses)
 ```
 
 We expect this network to generalize across sequences. This network sees motion into all directions.
 
 
-```
+```python
 animation = SintelSample(lum, flow, prediction=y_pred.detach().cpu())
 animation.animate_in_notebook()
 ```
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_101_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_98_0.png)
 
 
 
 We expect the accuracy is not as good as the overfitted example because this network generalized across the whole-dataset.
 
 
-```
+```python
 ((y_pred - flow) ** 2).sqrt().mean()
 ```
 
 
 
 
-    tensor(6.4063, device='cuda:0', grad_fn=<MeanBackward0>)
+    tensor(6.4105, device='cuda:0', grad_fn=<MeanBackward0>)
 
 
 
@@ -1253,24 +1229,24 @@ We expect the accuracy is not as good as the overfitted example because this net
 Last, we evaluated the task error of the 50 trained networks on a held out set of sequences. We evaluated the task error across all checkpoints during training and show the minimal one in the histrogram below. This checkpoint we analyse with respect to it's tuning predictions as shown in the next notebooks.
 
 
-```
+```python
 from flyvision import EnsembleView
 ```
 
 
-```
-ensemble = EnsembleView(results_dir / "flow/0000")
+```python
+ensemble = EnsembleView("flow/0000")
 ```
 
 
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-09-23 15:57:24] ensemble:138 Loaded 50 networks.
+    [2024-10-14 21:00:15] ensemble:166 Loaded 50 networks.
 
 
 
-```
+```python
 ensemble.task_error_histogram()
 ```
 
@@ -1284,4 +1260,4 @@ ensemble.task_error_histogram()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_108_1.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_105_1.png)

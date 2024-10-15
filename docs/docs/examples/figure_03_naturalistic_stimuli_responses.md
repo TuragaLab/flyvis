@@ -17,7 +17,7 @@ ensemble = EnsembleView("flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-04 19:36:22] ensemble:142 Loaded 50 networks.
+    [2024-10-14 23:36:32] ensemble:166 Loaded 50 networks.
 
 
 ## a
@@ -32,7 +32,7 @@ task_error = ensemble.task_error()
 embedding_and_clustering = ensemble.clustering("T4c")
 ```
 
-    [2024-10-04 19:36:24] clustering:643 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering.
+    [2024-10-14 23:36:38] clustering:835 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering
 
 
 

@@ -1,3 +1,12 @@
+```python
+%load_ext autoreload
+%autoreload 2
+
+import os
+
+os.environ["TESTING"] = "true"
+```
+
 # Flash responses
 
 This notebook introduces flash responses and the flash response index (FRI).
@@ -6,57 +15,8 @@ The FRI measures whether a cell depolarizes to bright or to dark increments in a
 
 ##### You can skip the next cells if you are not on google colab but run this locally
 
-**Select GPU runtime**
 
-Only for usage on google colab: to run the notebook on a GPU select Menu -> Runtime -> Change runtime type -> GPU.
-
-
-```
-%load_ext autoreload
-%autoreload 2
-```
-
-
-```
-# @markdown **Check access to GPU**
-
-try:
-    import google.colab
-
-    IN_COLAB = True
-except ImportError:
-    IN_COLAB = False
-
-if IN_COLAB:
-    import torch
-
-    try:
-        cuda_name = torch.cuda.get_device_name()
-        print(f"Name of the assigned GPU / CUDA device: {cuda_name}")
-    except RuntimeError:
-        import warnings
-
-        warnings.warn(
-            "You have not selected Runtime Type: 'GPU' or Google could not assign you one. Please revisit the settings as described above or proceed on CPU (slow)."
-        )
-```
-
-**Install Flyvis**
-
-The notebook requires installing our package `flyvis`. You may need to restart your session after running the code block below with Menu -> Runtime -> Restart session. Then, imports from `flyvis` should succeed without issue.
-
-
-```
-if IN_COLAB:
-    # @markdown **Install Flyvis**
-    %%capture
-    !git clone https://github.com/flyvis/flyvis-dev.git
-    %cd /content/flyvis-dev
-    !pip install -e .
-```
-
-
-```
+```python
 # basic imports
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,14 +32,14 @@ plt.rcParams['figure.dpi'] = 200
 To elicit flash responses, experimenters show a flashing dot to the subject in the center of their field of view. We generate and render these stimuli with the `Flashes` dataset.
 
 
-```
+```python
 # import dataset and visualization helper
 from flyvision.analysis.animations.hexscatter import HexScatter
 from flyvision.datasets.flashes import Flashes
 ```
 
 
-```
+```python
 # initialize dataset
 dataset = Flashes(
     dynamic_range=[0, 1],  # min and max pixel intensity values, must be in range [0, 1]
@@ -92,7 +52,7 @@ dataset = Flashes(
 ```
 
 
-```
+```python
 # view stimulus parameters
 dataset.arg_df
 # the dataset has four samples, one corresponding to each row
@@ -156,7 +116,7 @@ dataset.arg_df
 
 
 
-```
+```python
 # visualize single sample
 animation = HexScatter(
     dataset[3][None, ::50, None], vmin=0, vmax=1
@@ -166,7 +126,7 @@ animation.animate_in_notebook()
 
 
 
-![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_12_0.png)
+![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_8_0.png)
 
 
 
@@ -175,9 +135,9 @@ animation.animate_in_notebook()
 Now that we have generated the stimulus, we can use it to drive a trained connectome-constrained network.
 
 
-```
+```python
 from flyvision import results_dir
-from flyvision.network import NetworkView
+from flyvision import NetworkView
 
 # model are already sorted by task error
 # we take the best task-performing model from the pre-sorted ensemble
@@ -185,12 +145,12 @@ network_view = NetworkView(results_dir / "flow/0000/000")
 ```
 
 
-```
+```python
 stims_and_resps = network_view.flash_responses(dataset=dataset)
 ```
 
 
-```
+```python
 stims_and_resps['responses'].custom.where(cell_type="L1", radius=6).custom.plot_traces(
     x='time'
 )
@@ -207,7 +167,7 @@ fig.axes[-1].set_title("L1 flash responses")
 
 
 
-![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_16_1.png)
+![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_12_1.png)
 
 
 
@@ -230,17 +190,17 @@ The flash response index can take on values between $-1$, when the off response 
 For the L1 cell plotted before, we can see that it displays a positive response to off flashes and a negative response to on flashes, so we expect a negative flash response index.
 
 
-```
+```python
 from flyvision.analysis.flash_responses import flash_response_index
 ```
 
 
-```
+```python
 fris = flash_response_index(stims_and_resps, radius=6)
 ```
 
 
-```
+```python
 fris.custom.where(cell_type="L1")
 ```
 
@@ -611,17 +571,19 @@ dl.xr-attrs {
   fill: currentColor;
 }
 </style><pre class='xr-text-repr-fallback'>&lt;xarray.DataArray &#x27;responses&#x27; (network_id: 1, sample: 1, neuron: 1)&gt;
-array([[[-0.33354017]]], dtype=float32)
+array([[[-0.3335401]]], dtype=float32)
 Coordinates:
-    baseline     (sample) float64 0.5
-    radius       (sample) int32 6
-  * neuron       (neuron) int64 8
-    cell_type    (neuron) &lt;U8 &#x27;L1&#x27;
-    u            (neuron) int32 0
-    v            (neuron) int32 0
-    checkpoints  (network_id) object /groups/turaga/home/lappalainenj/FlyVis/...
-Dimensions without coordinates: network_id, sample</pre><div class='xr-wrap' style='display:none'><div class='xr-header'><div class='xr-obj-type'>xarray.DataArray</div><div class='xr-array-name'>'responses'</div><ul class='xr-dim-list'><li><span>network_id</span>: 1</li><li><span>sample</span>: 1</li><li><span class='xr-has-index'>neuron</span>: 1</li></ul></div><ul class='xr-sections'><li class='xr-section-item'><div class='xr-array-wrap'><input id='section-2063a976-47bc-4b36-a1bd-ecd94498b9a0' class='xr-array-in' type='checkbox' checked><label for='section-2063a976-47bc-4b36-a1bd-ecd94498b9a0' title='Show/hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-array-preview xr-preview'><span>-0.3335</span></div><div class='xr-array-data'><pre>array([[[-0.33354017]]], dtype=float32)</pre></div></div></li><li class='xr-section-item'><input id='section-26e7ff6c-915c-40c5-b4bd-ffe361bd70cf' class='xr-section-summary-in' type='checkbox'  checked><label for='section-26e7ff6c-915c-40c5-b4bd-ffe361bd70cf' class='xr-section-summary' >Coordinates: <span>(7)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span>baseline</span></div><div class='xr-var-dims'>(sample)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>0.5</div><input id='attrs-41768298-8080-4658-acc8-40aed8eb08bf' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-41768298-8080-4658-acc8-40aed8eb08bf' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-0ef01749-bbe2-46ac-8035-1a692f136eb6' class='xr-var-data-in' type='checkbox'><label for='data-0ef01749-bbe2-46ac-8035-1a692f136eb6' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([0.5])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>radius</span></div><div class='xr-var-dims'>(sample)</div><div class='xr-var-dtype'>int32</div><div class='xr-var-preview xr-preview'>6</div><input id='attrs-1cfecd03-0349-4aff-ad8e-62b6d27338a9' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-1cfecd03-0349-4aff-ad8e-62b6d27338a9' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-fae6f75b-6d1f-44bc-84b5-6e74c75d9c7d' class='xr-var-data-in' type='checkbox'><label for='data-fae6f75b-6d1f-44bc-84b5-6e74c75d9c7d' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([6], dtype=int32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>neuron</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>8</div><input id='attrs-8397e149-482a-431b-ba81-5ed6a070d177' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-8397e149-482a-431b-ba81-5ed6a070d177' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-b50656ac-67aa-46f2-8aa1-e5f09cdff185' class='xr-var-data-in' type='checkbox'><label for='data-b50656ac-67aa-46f2-8aa1-e5f09cdff185' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([8])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>cell_type</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>&lt;U8</div><div class='xr-var-preview xr-preview'>&#x27;L1&#x27;</div><input id='attrs-4771db33-ccb8-45c4-9c33-2842dc5b401e' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-4771db33-ccb8-45c4-9c33-2842dc5b401e' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-f379191f-ed5c-46e4-a8b1-8c433c0c4f27' class='xr-var-data-in' type='checkbox'><label for='data-f379191f-ed5c-46e4-a8b1-8c433c0c4f27' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([&#x27;L1&#x27;], dtype=&#x27;&lt;U8&#x27;)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>u</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>int32</div><div class='xr-var-preview xr-preview'>0</div><input id='attrs-bc6a0fcc-81c5-4af6-8458-a0e57fc5158b' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-bc6a0fcc-81c5-4af6-8458-a0e57fc5158b' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-021d9297-d323-452e-bf9e-c60877685091' class='xr-var-data-in' type='checkbox'><label for='data-021d9297-d323-452e-bf9e-c60877685091' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([0], dtype=int32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>v</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>int32</div><div class='xr-var-preview xr-preview'>0</div><input id='attrs-6b1539ab-c923-4c5b-89c6-5d9e69a742d9' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-6b1539ab-c923-4c5b-89c6-5d9e69a742d9' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-2ff123e4-62a5-44f5-8f2d-356ee140c602' class='xr-var-data-in' type='checkbox'><label for='data-2ff123e4-62a5-44f5-8f2d-356ee140c602' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([0], dtype=int32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>checkpoints</span></div><div class='xr-var-dims'>(network_id)</div><div class='xr-var-dtype'>object</div><div class='xr-var-preview xr-preview'>/groups/turaga/home/lappalainenj...</div><input id='attrs-6ddaa6e6-4be7-40a3-8876-362ca972442e' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-6ddaa6e6-4be7-40a3-8876-362ca972442e' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-cc3e3e9d-c45a-41a6-a9a3-239f494f7733' class='xr-var-data-in' type='checkbox'><label for='data-cc3e3e9d-c45a-41a6-a9a3-239f494f7733' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([PosixPath(&#x27;/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/chkpts/chkpt_00000&#x27;)],
-      dtype=object)</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-4ecf6afb-b4c7-487f-8210-d55239ab21dd' class='xr-section-summary-in' type='checkbox'  ><label for='section-4ecf6afb-b4c7-487f-8210-d55239ab21dd' class='xr-section-summary' >Indexes: <span>(1)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-index-name'><div>neuron</div></div><div class='xr-index-preview'>PandasIndex</div><div></div><input id='index-b7ea5a2f-5307-4986-9fda-16defaafbe40' class='xr-index-data-in' type='checkbox'/><label for='index-b7ea5a2f-5307-4986-9fda-16defaafbe40' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([8], dtype=&#x27;int64&#x27;, name=&#x27;neuron&#x27;))</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-c690130b-b185-4da6-b60d-3521f89bbd39' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-c690130b-b185-4da6-b60d-3521f89bbd39' class='xr-section-summary'  title='Expand/collapse section'>Attributes: <span>(0)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'></dl></div></li></ul></div></div>
+    baseline      (sample) float64 0.5
+    radius        (sample) int32 6
+  * neuron        (neuron) int64 8
+    cell_type     (neuron) &lt;U8 &#x27;L1&#x27;
+    u             (neuron) int32 0
+    v             (neuron) int32 0
+  * network_id    (network_id) int64 0
+    network_name  (network_id) &lt;U13 &#x27;flow/0000/000&#x27;
+    checkpoints   (network_id) object /groups/turaga/home/lappalainenj/FlyVis...
+Dimensions without coordinates: sample</pre><div class='xr-wrap' style='display:none'><div class='xr-header'><div class='xr-obj-type'>xarray.DataArray</div><div class='xr-array-name'>'responses'</div><ul class='xr-dim-list'><li><span class='xr-has-index'>network_id</span>: 1</li><li><span>sample</span>: 1</li><li><span class='xr-has-index'>neuron</span>: 1</li></ul></div><ul class='xr-sections'><li class='xr-section-item'><div class='xr-array-wrap'><input id='section-e107b6a6-903f-44ce-8711-bab2ce3cc0a3' class='xr-array-in' type='checkbox' checked><label for='section-e107b6a6-903f-44ce-8711-bab2ce3cc0a3' title='Show/hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-array-preview xr-preview'><span>-0.3335</span></div><div class='xr-array-data'><pre>array([[[-0.3335401]]], dtype=float32)</pre></div></div></li><li class='xr-section-item'><input id='section-6b1a6525-272d-4d84-b126-14631b3ce5a0' class='xr-section-summary-in' type='checkbox'  checked><label for='section-6b1a6525-272d-4d84-b126-14631b3ce5a0' class='xr-section-summary' >Coordinates: <span>(9)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span>baseline</span></div><div class='xr-var-dims'>(sample)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>0.5</div><input id='attrs-b3707fdd-532f-4562-859a-d715724baf8e' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-b3707fdd-532f-4562-859a-d715724baf8e' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-77dd34b7-eef1-4b5d-bc4c-0656b198682f' class='xr-var-data-in' type='checkbox'><label for='data-77dd34b7-eef1-4b5d-bc4c-0656b198682f' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([0.5])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>radius</span></div><div class='xr-var-dims'>(sample)</div><div class='xr-var-dtype'>int32</div><div class='xr-var-preview xr-preview'>6</div><input id='attrs-ee81b968-d613-4b5c-8174-65cd762a3eb9' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-ee81b968-d613-4b5c-8174-65cd762a3eb9' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-a372199e-79f9-4389-a1b4-4627bd2dcc07' class='xr-var-data-in' type='checkbox'><label for='data-a372199e-79f9-4389-a1b4-4627bd2dcc07' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([6], dtype=int32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>neuron</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>8</div><input id='attrs-f1960877-8683-40a9-b446-e5e437072fa8' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-f1960877-8683-40a9-b446-e5e437072fa8' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-a0e0b2c4-e350-4996-ad9f-f72af7e8ca7b' class='xr-var-data-in' type='checkbox'><label for='data-a0e0b2c4-e350-4996-ad9f-f72af7e8ca7b' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([8])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>cell_type</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>&lt;U8</div><div class='xr-var-preview xr-preview'>&#x27;L1&#x27;</div><input id='attrs-ee9a8b7f-edd7-4fa5-a106-d853077b555e' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-ee9a8b7f-edd7-4fa5-a106-d853077b555e' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-9f8f8d1b-5e95-44cf-a566-f5ce1c06ff31' class='xr-var-data-in' type='checkbox'><label for='data-9f8f8d1b-5e95-44cf-a566-f5ce1c06ff31' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([&#x27;L1&#x27;], dtype=&#x27;&lt;U8&#x27;)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>u</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>int32</div><div class='xr-var-preview xr-preview'>0</div><input id='attrs-77a36bf5-cf58-4a77-80d9-590ce118cb82' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-77a36bf5-cf58-4a77-80d9-590ce118cb82' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-c5ad40a5-e587-446c-afa0-9ca72461abef' class='xr-var-data-in' type='checkbox'><label for='data-c5ad40a5-e587-446c-afa0-9ca72461abef' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([0], dtype=int32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>v</span></div><div class='xr-var-dims'>(neuron)</div><div class='xr-var-dtype'>int32</div><div class='xr-var-preview xr-preview'>0</div><input id='attrs-40979c06-b7fa-443e-9f12-486877090ebd' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-40979c06-b7fa-443e-9f12-486877090ebd' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-c573e56d-cc61-48f7-9ef7-e38bf1c3fd59' class='xr-var-data-in' type='checkbox'><label for='data-c573e56d-cc61-48f7-9ef7-e38bf1c3fd59' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([0], dtype=int32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>network_id</span></div><div class='xr-var-dims'>(network_id)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>0</div><input id='attrs-aa9ba0c4-5e22-454f-bc8f-730e47d1f0f7' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-aa9ba0c4-5e22-454f-bc8f-730e47d1f0f7' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-1b9d827d-ac98-4bb3-8bbd-32dd4223e2fb' class='xr-var-data-in' type='checkbox'><label for='data-1b9d827d-ac98-4bb3-8bbd-32dd4223e2fb' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([0])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>network_name</span></div><div class='xr-var-dims'>(network_id)</div><div class='xr-var-dtype'>&lt;U13</div><div class='xr-var-preview xr-preview'>&#x27;flow/0000/000&#x27;</div><input id='attrs-e633e02e-a1b0-4d88-87eb-43cfc110fb0d' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-e633e02e-a1b0-4d88-87eb-43cfc110fb0d' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-7b624c38-0cbe-4a47-9e1c-1a61c3b5de19' class='xr-var-data-in' type='checkbox'><label for='data-7b624c38-0cbe-4a47-9e1c-1a61c3b5de19' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([&#x27;flow/0000/000&#x27;], dtype=&#x27;&lt;U13&#x27;)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>checkpoints</span></div><div class='xr-var-dims'>(network_id)</div><div class='xr-var-dtype'>object</div><div class='xr-var-preview xr-preview'>/groups/turaga/home/lappalainenj...</div><input id='attrs-206932fa-3e27-4d82-8f29-ea1a8dccfb90' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-206932fa-3e27-4d82-8f29-ea1a8dccfb90' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-e144c121-1621-4080-a5ba-f83e909c5d02' class='xr-var-data-in' type='checkbox'><label for='data-e144c121-1621-4080-a5ba-f83e909c5d02' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([PosixPath(&#x27;/groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000/chkpts/chkpt_00000&#x27;)],
+      dtype=object)</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-ce04b2c4-42b8-47ec-8e5a-f06a69a311a3' class='xr-section-summary-in' type='checkbox'  ><label for='section-ce04b2c4-42b8-47ec-8e5a-f06a69a311a3' class='xr-section-summary' >Indexes: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-index-name'><div>neuron</div></div><div class='xr-index-preview'>PandasIndex</div><div></div><input id='index-71c51e01-385b-4abf-a735-0e44b88c3f86' class='xr-index-data-in' type='checkbox'/><label for='index-71c51e01-385b-4abf-a735-0e44b88c3f86' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([8], dtype=&#x27;int64&#x27;, name=&#x27;neuron&#x27;))</pre></div></li><li class='xr-var-item'><div class='xr-index-name'><div>network_id</div></div><div class='xr-index-preview'>PandasIndex</div><div></div><input id='index-e416428e-fb3e-4c76-8fc7-3c4660ff157d' class='xr-index-data-in' type='checkbox'/><label for='index-e416428e-fb3e-4c76-8fc7-3c4660ff157d' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([0], dtype=&#x27;int64&#x27;, name=&#x27;network_id&#x27;))</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-ef7a686b-1111-4b6f-931f-f6de7c816fad' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-ef7a686b-1111-4b6f-931f-f6de7c816fad' class='xr-section-summary'  title='Expand/collapse section'>Attributes: <span>(0)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'></dl></div></li></ul></div></div>
 
 
 
@@ -630,18 +592,18 @@ Dimensions without coordinates: network_id, sample</pre><div class='xr-wrap' sty
 Since the tuning of some cell types have been determined experimentally, we can then compare our model to experimental findings by computing the correlation between the model FRIs for known cell types with their expected tuning.
 
 
-```
+```python
 from flyvision.analysis.flash_responses import fri_correlation_to_known
 from flyvision.utils.groundtruth_utils import polarity
 ```
 
 
-```
+```python
 fri_corr = fri_correlation_to_known(fris)
 ```
 
 
-```
+```python
 # manually extract model and true FRIs for plotting
 known_cell_types = [k for k, v in polarity.items() if v != 0]
 model_fris = [fris.custom.where(cell_type=k).item() for k in known_cell_types]
@@ -668,7 +630,7 @@ plt.show()
 
 
 
-![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_25_0.png)
+![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_21_0.png)
 
 
 
@@ -679,7 +641,7 @@ As we can see, for all except two cell types, the model correctly predicts the c
 Now we can compare tuning properties across an ensemble of trained models. First we need to again simulate the network responses.
 
 
-```
+```python
 from flyvision import EnsembleView
 
 ensemble = EnsembleView("flow/0000")
@@ -690,20 +652,16 @@ ensemble = EnsembleView("flow/0000")
 
 
 
-```
+```python
 stims_and_resps = ensemble.flash_responses(dataset=dataset)
 ```
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
 
 ### Response traces
 
 We can once again plot response traces for a single cell type. We subtract the initial value of each trace to center the data before plotting, as the network neuron activities are in arbitrary units.
 
 
-```
+```python
 centered = (
     stims_and_resps['responses']
     - stims_and_resps['responses'].custom.where(time=0.0).values
@@ -711,7 +669,7 @@ centered = (
 ```
 
 
-```
+```python
 centered.sel(network_id=ensemble.argsort()[:10]).custom.where(
     cell_type="L1", radius=6, intensity=1
 ).custom.plot_traces(x='time', plot_kwargs=dict(color='orange', linewidth=0.5))
@@ -731,7 +689,7 @@ ax.set_title("L1 flash responses")
 
 
 
-![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_32_1.png)
+![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_28_1.png)
 
 
 
@@ -742,7 +700,7 @@ Though the scaling varies, all networks predict depolarization to OFF-flashes fo
 We can also compute flash response indices for each network in the ensemble.
 
 
-```
+```python
 # get FRI for L1 cell
 
 fri_l1 = (
@@ -753,61 +711,21 @@ fri_l1 = (
 print(fri_l1.squeeze().values)
 ```
 
-    [-0.33354017 -0.28763247 -0.3258682  -0.20794408 -0.33343363 -0.32148352
-     -0.13273893 -0.35656792 -0.2945736  -0.33286038]
+    [-0.3335401  -0.28763247 -0.32586825 -0.20794411 -0.3334335  -0.32148358
+     -0.13273886 -0.35656807 -0.2945736  -0.3328606 ]
 
 
 All models recover similar flash response indices for this cell type. We can also plot the distribution of FRIs per cell type across the ensemble.
 
 
-```
+```python
 with ensemble.select_items(ensemble.argsort()[:10]):
     ensemble.flash_response_index()
 ```
 
 
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
 
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-    Batch:   0%|          | 0/1 [00:00<?, ?it/s]
-
-
-
-
-![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_37_10.png)
+![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_33_0.png)
 
 
 
@@ -816,17 +734,17 @@ with ensemble.select_items(ensemble.argsort()[:10]):
 Lastly, we look at the correlations to ground-truth tuning across the ensemble.
 
 
-```
+```python
 from flyvision.analysis.flash_responses import flash_response_index
 ```
 
 
-```
+```python
 fris = flash_response_index(stims_and_resps, radius=6)
 ```
 
 
-```
+```python
 from flyvision.analysis.visualization.plots import violin_groups
 
 # compute correlation
@@ -846,7 +764,7 @@ fig, ax, *_ = violin_groups(
 
 
 
-![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_41_0.png)
+![png](03_flyvision_flash_responses_files/03_flyvision_flash_responses_37_0.png)
 
 
 
