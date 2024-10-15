@@ -11,7 +11,7 @@ from googleapiclient.http import MediaIoBaseDownload
 
 checksums: Dict[str, str] = {
     "results_pretrained_models.zip": (
-        "49134ff89dd396d8a58686cf565e55adb59416fc1c602042f680e2cc0642a440"
+        "71c78d4070556a536b13b23ee3139cd2788aa2a9d07d430a223b4edead281db1"
     ),
     "results_umap_and_clustering.zip": (
         "372ffcb1b8af59974ac21e56ca989f72d499605f049c36fc6f460ba402ceb08c"

@@ -178,7 +178,7 @@ class VirtualClusterManager(ClusterManager):
         self, job_name: str, n_cpus: int, output_file: str, gpu: str, queue: str
     ) -> str:
         return (
-            f"(echo 'Running {job_name} locally' && "
+            f"echo 'Running {job_name} locally' && "
             f"echo 'CPUs: {n_cpus}, GPU: {gpu}, Queue: {queue}' && "
         )
 
