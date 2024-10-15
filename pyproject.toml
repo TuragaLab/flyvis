@@ -117,11 +117,11 @@ select = ["E", "F", "W", "B", "SIM", "I"]
 ] # allow unused imports and undefined names
 "test_*.py" = ["F403", "F405"]
 
-[tool.ruff.lint.isort]
-case-sensitive = true
-lines-between-types = 0  # like isort default.
-relative-imports-order = "furthest-to-closest"  # like isort default.
-known-first-party = ["flyvision", "tests", "examples", "scripts"]
+# [tool.ruff.lint.isort]
+# case-sensitive = true
+# lines-between-types = 0  # like isort default.
+# relative-imports-order = "furthest-to-closest"  # like isort default.
+# known-first-party = ["flyvision", "tests", "examples", "scripts"]
 
 [tool.ruff.format]
 # exclude = ["*.ipynb"]
