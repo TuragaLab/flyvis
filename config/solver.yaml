@@ -42,7 +42,7 @@ hydra:
         - save_environment (bool): Whether to save the source code and environment details
 
         Example:
-            Train a network for 1000 iterations and describe it as 'test':
+            Train a network for 1000 iterations (and add description 'test'):
             python train.py \
                 ensemble_and_network_id=0045/000 \
                 task_name=flow \

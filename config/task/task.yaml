@@ -1,7 +1,7 @@
 dataset:
-  type: 'MultiTaskSintel'
+  type: MultiTaskSintel
   tasks:
-    - 'flow'
+    - flow
   boxfilter:
     extent: 15
     kernel_size: 13
@@ -29,7 +29,7 @@ dataset:
     - 3
 decoder:
   flow:
-    type: 'DecoderGAVP'
+    type: DecoderGAVP
     shape:
       - 8
       - 2
@@ -38,8 +38,7 @@ decoder:
     n_out_features: null
     p_dropout: 0.5
 loss:
-  flow:
-    type: 'l2norm'
+  flow: l2norm
 task_weights: null
 batch_size: 4
 n_iters: 250000
