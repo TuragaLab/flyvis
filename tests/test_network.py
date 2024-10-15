@@ -1,9 +1,13 @@
+from dataclasses import dataclass
+
+import numpy as np
 import pytest
 import torch
 from datamate import Namespace
 
 import flyvision
 from flyvision import Network
+from flyvision.connectome.connectome import init_connectome, register_connectome
 from flyvision.network.network import IntegrationWarning
 from flyvision.utils.tensor_utils import AutoDeref
 
@@ -12,7 +16,10 @@ from flyvision.utils.tensor_utils import AutoDeref
 def network() -> Network:
     network = Network(
         connectome=Namespace(
-            type="ConnectomeDir", file="fib25-fib19_v2.2.json", extent=15, n_syn_fill=1
+            type="ConnectomeFromAvgFilters",
+            file="fib25-fib19_v2.2.json",
+            extent=15,
+            n_syn_fill=1,
         ),
         dynamics=Namespace(type="PPNeuronIGRSynapses", activation=Namespace(type="relu")),
         node_config=Namespace(
@@ -54,10 +61,9 @@ def network() -> Network:
                 type="SynapseCountScaling",
                 initial_dist="Value",
                 requires_grad=True,
-                scale_elec=0.01,
-                scale_chem=0.01,
+                scale=0.01,
                 clamp="non_negative",
-                groupby=["source_type", "target_type", "edge_type"],
+                groupby=["source_type", "target_type"],
             ),
         ),
     )
@@ -73,8 +79,6 @@ def test_init(network):
     assert hasattr(network, "config")
     assert hasattr(network, "symmetry_config")
     assert hasattr(network, "clamp_config")
-    assert hasattr(network, "_elec_indices")
-    assert hasattr(network, "_chem_indices")
     assert hasattr(network, "_state_hooks")
     assert hasattr(network, "num_parameters")
     assert hasattr(network, "stimulus")
@@ -202,3 +206,29 @@ def test_fade_in_state(network):
     assert steady_state["nodes"]["activity"].shape == (2, network.n_nodes)
     assert steady_state["sources"]["activity"].shape == (2, network.n_edges)
     assert steady_state["targets"]["activity"].shape == (2, network.n_edges)
+
+
+@register_connectome
+class DiagonalConnectome:
+    @dataclass
+    class nodes:
+        index = np.arange(100)
+
+    @dataclass
+    class edges:
+        source_index = np.arange(100)
+        target_index = np.arange(100)
+
+
+def test_connectome_protocol():
+    connectome = init_connectome(type="DiagonalConnectome")
+    assert isinstance(connectome, DiagonalConnectome)
+
+    network = Network(
+        connectome=Namespace(type="DiagonalConnectome"),
+        dynamics=Namespace(),
+        node_config=Namespace(),
+        edge_config=Namespace(),
+        stimulus_config=Namespace(),
+    )
+    assert isinstance(network, Network)

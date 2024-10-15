@@ -6,7 +6,7 @@ from datamate import Namespace
 from toolz import valmap
 from torch.utils.data import DataLoader, sampler
 
-from flyvision.connectome import ConnectomeDir
+from flyvision.connectome import ConnectomeFromAvgFilters
 from flyvision.datasets.datasets import MultiTaskDataset
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.dataset_utils import IndexSampler
@@ -69,7 +69,7 @@ class Task:
 
         # Initialize dataset.
         self.dataset = forward_subclass(MultiTaskDataset, dataset)
-        self.task_weights = self.init_task_weights(task_weights)
+        self.task_weights, self.task_weights_sum = self.init_task_weights(task_weights)
 
         self.losses = Namespace({
             task: getattr(objectives, config) for task, config in loss.items()
@@ -120,7 +120,9 @@ class Task:
         # Initialize overfitting loader.
         self.overfit_data = DataLoader(self.dataset, sampler=IndexSampler([0]))
 
-    def init_decoder(self, connectome: ConnectomeDir) -> Dict[str, ActivityDecoder]:
+    def init_decoder(
+        self, connectome: ConnectomeFromAvgFilters
+    ) -> Dict[str, ActivityDecoder]:
         """Initialize the decoder.
 
         Args:
@@ -157,22 +159,18 @@ class Task:
         Returns:
             A dictionary of task weights.
         """
-        return (
+        task_weights = (
             task_weights
             if task_weights is not None
             else {task: 1 for task in self.dataset.tasks}
         )
 
-    def task_weights_sum(self) -> float:
-        """Returns the sum of task weights.
-
-        Returns:
-            The sum of task weights.
-        """
-        return sum(self.task_weights.values())
+        return task_weights, sum(task_weights.values())
 
 
-def init_decoder(config: Dict, connectome: ConnectomeDir) -> Dict[str, ActivityDecoder]:
+def init_decoder(
+    config: Dict, connectome: ConnectomeFromAvgFilters
+) -> Dict[str, ActivityDecoder]:
     """Initialize decoders.
 
     Args:

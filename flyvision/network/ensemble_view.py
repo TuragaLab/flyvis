@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from functools import wraps
-from os import PathLike
+from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ from flyvision.analysis.moving_bar_responses import (
     dsi_violins_on_and_off,
 )
 from flyvision.analysis.visualization import plots
-from flyvision.connectome import flyvision_connectome
+from flyvision.connectome import get_avgfilt_connectome
 from flyvision.utils.chkpt_utils import (
     best_checkpoint_default_fn,
     recover_network,
@@ -57,10 +57,10 @@ class EnsembleView(Ensemble):
 
     def __init__(
         self,
-        path: Union[str, PathLike, Iterable, EnsembleDir, Ensemble],
+        path: Union[str, Path, Iterable, EnsembleDir, Ensemble],
         network_class: nn.Module = Network,
-        root_dir: PathLike = flyvision.results_dir,
-        connectome_getter: Callable = flyvision_connectome,
+        root_dir: Path = flyvision.results_dir,
+        connectome_getter: Callable = get_avgfilt_connectome,
         checkpoint_mapper: Callable = resolve_checkpoints,
         best_checkpoint_fn: Callable = best_checkpoint_default_fn,
         best_checkpoint_fn_kwargs: dict = {
@@ -70,20 +70,20 @@ class EnsembleView(Ensemble):
         recover_fn: Callable = recover_network,
         try_sort: bool = False,
     ):
-        init_args = {
-            "path": path,
-            "network_class": network_class,
-            "root_dir": root_dir,
-            "connectome_getter": connectome_getter,
-            "checkpoint_mapper": checkpoint_mapper,
-            "best_checkpoint_fn": best_checkpoint_fn,
-            "best_checkpoint_fn_kwargs": best_checkpoint_fn_kwargs,
-            "recover_fn": recover_fn,
-            "try_sort": try_sort,
-        }
+        init_args = (
+            path,
+            network_class,
+            root_dir,
+            connectome_getter,
+            checkpoint_mapper,
+            best_checkpoint_fn,
+            best_checkpoint_fn_kwargs,
+            recover_fn,
+            try_sort,
+        )
         if isinstance(path, Ensemble):
             init_args = path._init_args
-        super().__init__(**init_args)
+        super().__init__(*init_args)
 
     @wraps(plots.loss_curves)
     def training_loss(self, **kwargs) -> Tuple[plt.Figure, plt.Axes]:

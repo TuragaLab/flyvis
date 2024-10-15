@@ -5,14 +5,11 @@
 </p>
 </h1>
 
-
 A connectome constrained deep mechanistic network (DMN) model of the fruit fly visual system in Pytorch as discovery tool for generating
 and testing hypotheses about neural computations with connectomes.
 
-It's our official implementation of [Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
+It's our official implementation of [Connectome-constrained networks predict neural activity across the fly visual system. Nature 1–9 (2024).](https://www.nature.com/articles/s41586-024-07939-3)
 
-Besides pretrained models and analyses, the library includes abstractions and
-extension points for building DMNs and dynamic stimulus datasets in Pytorch.
 
 ## Quickstart
 

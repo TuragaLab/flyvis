@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import wraps
-from os import PathLike
 from pathlib import Path
 from typing import (
     Callable,
@@ -42,7 +41,7 @@ from flyvision.analysis.clustering import (
     get_cluster_to_indices,
 )
 from flyvision.analysis.visualization import plots
-from flyvision.connectome import flyvision_connectome
+from flyvision.connectome import get_avgfilt_connectome
 from flyvision.utils.cache_utils import context_aware_cache
 from flyvision.utils.chkpt_utils import (
     best_checkpoint_default_fn,
@@ -55,7 +54,8 @@ from flyvision.utils.nn_utils import simulation
 
 from .directories import EnsembleDir, NetworkDir
 from .initialization import Parameter
-from .network import Network, NetworkView
+from .network import Network
+from .network_view import NetworkView
 
 logging = logging.getLogger(__name__)
 
@@ -104,10 +104,10 @@ class Ensemble(dict):
 
     def __init__(
         self,
-        path: Union[str, PathLike, Iterable, "EnsembleDir"],
+        path: Union[str, Path, Iterable, "EnsembleDir"],
         network_class: nn.Module = Network,
-        root_dir: PathLike = flyvision.results_dir,
-        connectome_getter: Callable = flyvision_connectome,
+        root_dir: Path = flyvision.results_dir,
+        connectome_getter: Callable = get_avgfilt_connectome,
         checkpoint_mapper: Callable = resolve_checkpoints,
         best_checkpoint_fn: Callable = best_checkpoint_default_fn,
         best_checkpoint_fn_kwargs: dict = {
@@ -117,13 +117,11 @@ class Ensemble(dict):
         recover_fn: Callable = recover_network,
         try_sort: bool = False,
     ):
-        # self.model_paths, self.path = model_paths_from_parent(path)
-
         if isinstance(path, EnsembleDir):
             path = path.path
             self.model_paths, self.path = model_paths_from_parent(path)
             self.dir = path
-        elif isinstance(path, PathLike):
+        elif isinstance(path, Path):
             self.model_paths, self.path = model_paths_from_parent(path)
             self.dir = EnsembleDir(self.path)
         elif isinstance(path, str):

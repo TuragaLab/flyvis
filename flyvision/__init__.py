@@ -53,7 +53,9 @@ renderings_dir = root_dir / "renderings"
 sintel_dir = root_dir / "SintelDataSet"
 connectome_file = root_dir / "connectome/fib25-fib19_v2.2.json"
 source_dir = (repo_dir := Path(__file__).parent.parent) / "flyvision"
+config_dir = repo_dir / "config"
 script_dir = Path(__file__).parent.parent / "scripts"
+examples_dir = repo_dir / "examples"
 
 datamate.set_root_dir(root_dir)
 del datamate

@@ -309,6 +309,7 @@ class MultiTaskSintel(MultiTaskDataset):
             augment=augment,
             all_frames=all_frames,
             resampling=resampling,
+            random_temporal_crop=random_temporal_crop,
             boxfilter=boxfilter,
             vertical_splits=vertical_splits,
             p_flip=p_flip,
@@ -318,6 +319,7 @@ class MultiTaskSintel(MultiTaskDataset):
             gaussian_white_noise=gaussian_white_noise,
             gamma_std=gamma_std,
             center_crop_fraction=center_crop_fraction,
+            flip_axes=flip_axes,
         )
 
         self.arg_df = pd.DataFrame(
@@ -340,8 +342,17 @@ class MultiTaskSintel(MultiTaskDataset):
                 for key, val in self.rendered(seq_id).items()
                 if key in self.data_keys
             }
-            for seq_id in range(self)
+            for seq_id in range(len(self))
         ]
+
+    def __repr__(self) -> str:
+        repr = f"{self.__class__.__name__} with {len(self)} sequences.\n"
+        repr += "See docs, arg_df and meta for more details.\n"
+        return repr
+
+    @property
+    def docs(self) -> str:
+        print(self.__doc__)
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Custom attribute setter to handle special cases and update augmentation.
@@ -735,6 +746,7 @@ class AugmentedSintel(MultiTaskSintel):
         gaussian_white_noise: Standard deviation of the pixel-wise gaussian white noise.
         gamma_std: Standard deviation of the gamma augmentation.
         center_crop_fraction: Fraction of the image to keep after cropping.
+        indices: Indices of the sequences to include.
         unittest: If True, only renders a single sequence.
 
     Attributes:
@@ -775,6 +787,7 @@ class AugmentedSintel(MultiTaskSintel):
         gaussian_white_noise: Optional[float] = None,
         gamma_std: Optional[float] = None,
         center_crop_fraction: float = 0.7,
+        indices: Optional[List[int]] = None,
         unittest: bool = False,
         **kwargs,
     ):
@@ -805,10 +818,17 @@ class AugmentedSintel(MultiTaskSintel):
             unittest=unittest,
             _init_cache=True,
         )
-
+        self.indices = np.array(indices) if indices is not None else None
         self.flip_axes = flip_axes
         self.n_rotations = n_rotations
         self.temporal_split = temporal_split
+
+        self.config.update({
+            'flip_axes': self.flip_axes,
+            'n_rotations': self.n_rotations,
+            'temporal_split': self.temporal_split,
+            'indices': self.indices,
+        })
 
         self._built = False
         if build_stim_on_init:
@@ -875,6 +895,11 @@ class AugmentedSintel(MultiTaskSintel):
                 for key, value in self.cached_sequences[sample].items()
             }
         self.cached_sequences = cached_sequences
+
+        if self.indices is not None:
+            self.cached_sequences = [self.cached_sequences[i] for i in self.indices]
+            self.arg_df = self.arg_df.iloc[self.indices]
+            self.params = [self.params[i] for i in self.indices]
 
         # disable deterministically applied augmentation, such that in case
         # self.augment is True, the other augmentation types can be applied

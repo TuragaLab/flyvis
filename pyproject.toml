@@ -1,10 +1,6 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = [
-  "setuptools>=65",
-  "wheel",
-  "setuptools_scm[toml]>=3.4",
-]
+requires = ["setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"]
 
 [tool.setuptools_scm]
 write_to = "flyvision/version.py"
@@ -34,7 +30,6 @@ dependencies = [
   "scikit-learn==1.1.1",
   "umap-learn==0.5.3",
   "ffmpeg-python",
-  "black",
   "pytest",
   "torch",
   "torchvision",
@@ -58,7 +53,7 @@ requires-python = ">=3.6"
 dev = [
   # Lint
   "pre-commit",
-  "ruff", # Test
+  "ruff",       # Test
   "pytest",
   "jupyter",
   "papermill",
@@ -73,6 +68,7 @@ docs = [
   "jupyter",
   "nbconvert",
   "mike",
+  "mkdocs-macros-plugin",
 ]
 example = [
   # Examples
@@ -91,7 +87,9 @@ no-version-pins = [
 # Package installation configuration
 [tool.setuptools.packages.find]
 exclude = [] # exclude packages matching these glob patterns (empty by default)
-include = ["flyvision*"] # package names should match these glob patterns (["*"] by default)
+include = [
+  "flyvision*",
+] # package names should match these glob patterns (["*"] by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 where = ["."] # list of folders that contain the packages (["."] by default)
 
@@ -111,7 +109,12 @@ ignore = [
 select = ["E", "F", "W", "B", "SIM", "I"]
 
 [tool.ruff.lint.extend-per-file-ignores]
-"__init__.py" = ["I001", "E402", "F401", "F403"] # allow unused imports and undefined names
+"__init__.py" = [
+  "I001",
+  "E402",
+  "F401",
+  "F403",
+] # allow unused imports and undefined names
 "test_*.py" = ["F403", "F405"]
 
 # [tool.ruff.lint.isort]
@@ -136,9 +139,7 @@ markers = [
   "require_large_download: tests that require large data downloads (deselect with '-m \"not require_large_download\"')",
   "require_download: tests that require data downloads (deselect with '-m \"not require_download\"')",
 ]
-testpaths = [
-  "tests",
-]
+testpaths = ["tests"]
 
 # Pyright configuration
 [tool.pyright]

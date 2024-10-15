@@ -169,7 +169,6 @@ cython_debug/
 *.code-workspace
 *.egg-info
 .pytest_cache
-animations
 .ruff_cache
 .fonts
 *.log
@@ -180,3 +179,5 @@ flyvision/version.py
 debug
 .env.dev
 prepare_api_reference.py
+profile_imports.py
+import_profile*

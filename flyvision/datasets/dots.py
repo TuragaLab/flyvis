@@ -94,8 +94,8 @@ class Dots(StimulusDataset):
         )
 
         self.t_stim = t_stim
-        self._t_pre = t_pre
-        self._t_post = t_post
+        self.t_pre = t_pre
+        self.t_post = t_post
 
         self.n_ommatidia = n_ommatidia
         self.offsets = np.arange(self.n_ommatidia)

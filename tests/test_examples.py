@@ -1,9 +1,13 @@
+import os
+
+os.environ["TESTING"] = "true"
 from pathlib import Path
 
 import nbformat
 import papermill as pm
 import pytest
 
+pytestmark = pytest.mark.slow
 examples_path = Path(__file__).parent.parent / "examples"
 # List of notebook names
 notebooks = [

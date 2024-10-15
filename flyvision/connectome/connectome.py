@@ -4,11 +4,22 @@ import json
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    Type,
+    Union,
+)
 
 import matplotlib.path as mp
 import numpy as np
-from datamate import Directory, Namespace, root
+from datamate import ArrayFile, Directory, Namespace, root
 from matplotlib import colormaps as cm
 from matplotlib.axes import Axes
 from matplotlib.colors import Colormap
@@ -20,21 +31,81 @@ from toolz import groupby, valmap
 import flyvision
 from flyvision.analysis.visualization import plots, plt_utils
 from flyvision.analysis.visualization.figsize_utils import figsize_from_n_items
-from flyvision.analysis.visualization.network import WholeNetworkFigure
+from flyvision.analysis.visualization.network_fig import WholeNetworkFigure
 from flyvision.utils import df_utils, hex_utils, nodes_edges_utils
 
 __all__ = [
-    "ConnectomeDir",
+    "ConnectomeFromAvgFilters",
     "ConnectomeView",
     "ReceptiveFields",
     "ProjectiveFields",
-    "flyvision_connectome",
+    "init_connectome",
+    "get_avgfilt_connectome",
 ]
 
 
+class Connectome(Protocol):
+    """Protocol for connectome classes compatible with flyvision.network.Network.
+
+    Note:
+        Nodes and edges have additional attributes that require compatibility
+        with `Parameter` class implementations. For instance, when a parameter
+        for edges is derived from synapse counts, the edges have an `n_syn`
+        attribute (ArrayFile or np.ndarray).
+    """
+
+    class nodes:
+        index: Union[np.ndarray, ArrayFile]
+        ...
+
+    class edges:
+        source_index: Union[np.ndarray, ArrayFile]
+        target_index: Union[np.ndarray, ArrayFile]
+        ...
+
+
+AVAILABLE_CONNECTOMES: Dict[str, Type[Connectome]] = {}
+
+
+def register_connectome(
+    cls: Optional[Type[Connectome]] = None,
+) -> Union[Callable[[Type[Connectome]], Type[Connectome]], Type[Connectome]]:
+    """
+    Register a new connectome class.
+
+    Args:
+        cls: The connectome class to register (optional when used as a decorator).
+
+    Returns:
+        Registered class or decorator function.
+
+    Example:
+        As a standalone function: register_connectome(name, cls)
+        ```python
+        class CustomConnectome(Connectome):
+            ...
+        register_connectome("CustomConnectome", CustomConnectome)
+        ```
+
+        As a decorator:
+        ```python
+        @register_connectome("CustomConnectome")
+        class CustomConnectome(Connectome):
+            ...
+        ```
+    """
+
+    def decorator(cls: Type[Connectome]) -> Type[Connectome]:
+        AVAILABLE_CONNECTOMES[cls.__name__] = cls
+        return cls
+
+    return decorator if cls is None else decorator(cls)
+
+
 # -- `Connectome` --------------------------------------------------------------
+@register_connectome
 @root(flyvision.root_dir / "connectome")
-class ConnectomeDir(Directory):
+class ConnectomeFromAvgFilters(Directory):
     """Compiles a connectome graph from average convolutional filters.
 
     The graph consists of cells (nodes) and synapse sets (edges).
@@ -75,9 +146,9 @@ class ConnectomeDir(Directory):
                 "offsets": [[
                     [<du:int>, <dv:int>],
                     <n_synapses:number>
-                ]*],
-                "edge_type": "chem" | "elec"
-            }*]
+                    ]*],
+                }*]
+            }
         }
         ```
 
@@ -90,17 +161,12 @@ class ConnectomeDir(Directory):
         ```
     """
 
-    class Config:
-        file: str
-        "The name of a JSON connectome file"
-        extent: int
-        "The array radius, in columns"
-        n_syn_fill: int
-        "The number of synapses to assume in data gaps"
-
     def __init__(self, file=flyvision.connectome_file, extent=15, n_syn_fill=1) -> None:
+        if not Path(file).exists():
+            file = flyvision.root_dir / "connectome" / file
+
         # Load the connectome spec.
-        spec = json.loads(Path(self.path.parent / file).read_text())
+        spec = json.loads(Path(file).read_text())
 
         # Store unique cell types and layout variables.
         self.unique_cell_types = np.bytes_([n["name"] for n in spec["nodes"]])
@@ -157,6 +223,7 @@ class ConnectomeDir(Directory):
 
         # Store the graph.
         self.nodes = dict(  # type: ignore
+            index=np.int64([n.id for n in nodes]),
             type=np.bytes_([n.type for n in nodes]),
             u=np.int32([n.u for n in nodes]),
             v=np.int32([n.v for n in nodes]),
@@ -178,7 +245,6 @@ class ConnectomeDir(Directory):
             target_v=np.int32([e.target.v for e in edges]),
             du=np.int32([e.target.u - e.source.u for e in edges]),
             dv=np.int32([e.target.v - e.source.v for e in edges]),
-            edge_type=np.bytes_([e.type for e in edges]),
             n_syn_certainty=np.float32([e.n_syn_certainty for e in edges]),
         )
 
@@ -227,8 +293,6 @@ class Node:
 
 class NodeDir(Directory):
     """Stored data of the compiled Connectome describing the nodes."""
-
-    pass
 
 
 def add_nodes(seq: List[Node], node_spec: dict, extent: int) -> None:
@@ -318,15 +382,12 @@ class Edge:
     "+1 (excitatory) or -1 (inhibitory)"
     n_syn: float
     "synapse count"
-    type: str
-    "synapse type"
     n_syn_certainty: float
+    "certainty of synapse count"
 
 
 class EdgeDir(Directory):
     """Stored data of the compiled Connectome describing the edges."""
-
-    pass
 
 
 def add_edges(
@@ -357,7 +418,6 @@ def add_edges(
             e["tar"],
             e["alpha"],
             offsets,
-            e["edge_type"],
             e["lambda_mult"],
         )
 
@@ -407,7 +467,6 @@ def add_conv_edges(
     target_typ: str,
     sign: int,
     offsets: List[list],
-    type: str,
     n_syn_certainty: float,
 ) -> None:
     """Construct a connection set with convolutional weight symmetry.
@@ -419,7 +478,6 @@ def add_conv_edges(
         target_typ: Target cell type.
         sign: +1 (excitatory) or -1 (inhibitory).
         offsets: List of edge offsets.
-        type: Synapse type.
         n_syn_certainty: Certainty of synapse count.
     """
     for (du, dv), n_syn in offsets:
@@ -428,7 +486,7 @@ def add_conv_edges(
             v_tgt = src.v + dv
             with suppress(KeyError):
                 tgt = node_index[target_typ, u_tgt, v_tgt][0]
-                seq.append(Edge(len(seq), src, tgt, sign, n_syn, type, n_syn_certainty))
+                seq.append(Edge(len(seq), src, tgt, sign, n_syn, n_syn_certainty))
 
 
 # -- ConnectomeView ------------------------------------------------------------
@@ -442,7 +500,7 @@ class ConnectomeView:
         groups: Regular expressions to sort the nodes by.
 
     Attributes:
-        dir (ConnectomeDir): Connectome directory.
+        dir (ConnectomeFromAvgFilters): Connectome directory.
         edges (Directory): Edge table.
         nodes (Directory): Node table.
         cell_types_unsorted (List[str]): Unsorted list of cell types.
@@ -454,7 +512,7 @@ class ConnectomeView:
 
     def __init__(
         self,
-        connectome: ConnectomeDir,
+        connectome: ConnectomeFromAvgFilters,
         groups: List[str] = [
             r"R\d",
             r"L\d",
@@ -670,7 +728,7 @@ class ConnectomeView:
         fig, ax, _ = plots.hex_scatter(
             u,
             v,
-            color=1,
+            values=1,
             label=label,
             fig=fig,
             ax=ax,
@@ -1294,7 +1352,7 @@ def _projective_fields_edge_dfs(
     return cls
 
 
-def flyvision_connectome(config: dict) -> ConnectomeView:
+def get_avgfilt_connectome(config: dict) -> ConnectomeView:
     """Create a ConnectomeView instance from a network directory.
 
     Args:
@@ -1303,4 +1361,71 @@ def flyvision_connectome(config: dict) -> ConnectomeView:
     Returns:
         ConnectomeView instance.
     """
-    return ConnectomeView(ConnectomeDir(config))
+    return ConnectomeView(ConnectomeFromAvgFilters(**config))
+
+
+def is_connectome_protocol(obj: Any) -> bool:
+    """
+    Check if an object implements the Connectome(Protocol).
+
+    Args:
+        obj: The object to check.
+
+    Returns:
+        bool: True if the object implements the Connectome(Protocol), False otherwise.
+
+    Note:
+        The Connectome(Protocol) requires the following attributes:
+        - nodes.index: Union[np.ndarray, ArrayFile]
+        - edges.source_index: Union[np.ndarray, ArrayFile]
+        - edges.target_index: Union[np.ndarray, ArrayFile]
+    """
+    if not hasattr(obj, 'nodes'):
+        return False, "Missing 'nodes' attribute"
+    if not hasattr(obj.nodes, 'index'):
+        return False, "Missing 'nodes.index' attribute"
+    if not isinstance(obj.nodes.index, (np.ndarray, ArrayFile)):
+        return False, "'nodes.index' is not of type np.ndarray or ArrayFile"
+    if not hasattr(obj, 'edges'):
+        return False, "Missing 'edges' attribute"
+    if not hasattr(obj.edges, 'source_index'):
+        return False, "Missing 'edges.source_index' attribute"
+    if not isinstance(obj.edges.source_index, (np.ndarray, ArrayFile)):
+        return False, "'edges.source_index' is not of type np.ndarray or ArrayFile"
+    if not hasattr(obj.edges, 'target_index'):
+        return False, "Missing 'edges.target_index' attribute"
+    if not isinstance(obj.edges.target_index, (np.ndarray, ArrayFile)):
+        return False, "'edges.target_index' is not of type np.ndarray or ArrayFile"
+    return True, ""
+
+
+def init_connectome(**kwargs) -> Connectome:
+    """Initialize a Connectome instance from a config dictionary.
+
+    Args:
+        config: A dictionary containing the connectome configuration.
+
+    Returns:
+        An instance of a class implementing the Connectome(Protocol).
+
+    Raises:
+        KeyError: If the specified connectome type is not available.
+
+    Example:
+        ```python
+        config = {
+            "type": "ConnectomeFromAvgFilters",
+            **config
+        }
+        connectome = init_connectome(**config)
+        ```
+    """
+    connectome_class = AVAILABLE_CONNECTOMES[kwargs.pop("type")]
+
+    connectome = connectome_class(**kwargs)
+    is_valid, error_msg = is_connectome_protocol(connectome)
+    assert is_valid, (
+        f"Connectome class {connectome} does "
+        f"not implement the Connectome(Protocol): {error_msg}"
+    )
+    return connectome

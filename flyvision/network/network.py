@@ -6,56 +6,36 @@ Deep mechanistic network module.
 from __future__ import annotations
 
 import logging
-import os
 import warnings
 from contextlib import contextmanager
-from dataclasses import dataclass
-from functools import wraps
-from os import PathLike
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Literal, Optional, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
-import xarray as xr
-from cachetools import FIFOCache
-from datamate import Directory, Namespace, namespacify, set_root_context
-from joblib import Memory
+from datamate import Namespace, namespacify
 from toolz import valmap
 from torch import Tensor
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-import flyvision
-from flyvision.analysis import (
-    optimal_stimuli,
-    stimulus_responses,
-    stimulus_responses_currents,
+from flyvision.connectome import (
+    init_connectome,
 )
-from flyvision.connectome import ConnectomeDir, ConnectomeView, flyvision_connectome
 from flyvision.datasets.datasets import SequenceDataset
-from flyvision.task.decoder import init_decoder
 from flyvision.utils.activity_utils import LayerActivity
-from flyvision.utils.cache_utils import context_aware_cache, make_hashable
-from flyvision.utils.chkpt_utils import (
-    best_checkpoint_default_fn,
-    recover_decoder,
-    recover_network,
-    resolve_checkpoints,
-)
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.dataset_utils import IndexSampler
 from flyvision.utils.nn_utils import n_params, simulation
 from flyvision.utils.tensor_utils import AutoDeref, RefTensor
 
-from .directories import NetworkDir
 from .dynamics import NetworkDynamics
 from .initialization import Parameter
-from .stimulus import Stimulus
+from .stimulus import init_stimulus
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["Network", "NetworkView", "CheckpointedNetwork"]
+__all__ = ["Network"]
 
 
 class Network(nn.Module):
@@ -68,7 +48,7 @@ class Network(nn.Module):
         edge_config: Edge parameter configuration.
 
     Attributes:
-        connectome (ConnectomeDir): Connectome directory.
+        connectome (Connectome): Connectome directory.
         dynamics (NetworkDynamics): Network dynamics.
         node_params (Namespace): Node parameters.
         edge_params (Namespace): Edge parameters.
@@ -86,13 +66,16 @@ class Network(nn.Module):
 
     def __init__(
         self,
-        connectome: Namespace = Namespace(
-            file="fib25-fib19_v2.2.json", extent=15, n_syn_fill=1
+        connectome: Dict[str, Any] = Namespace(
+            type="ConnectomeFromAvgFilters",
+            file="fib25-fib19_v2.2.json",
+            extent=15,
+            n_syn_fill=1,
         ),
-        dynamics: Namespace = Namespace(
+        dynamics: Dict[str, Any] = Namespace(
             type="PPNeuronIGRSynapses", activation=Namespace(type="relu")
         ),
-        node_config: Namespace = Namespace(
+        node_config: Dict[str, Any] = Namespace(
             bias=Namespace(
                 type="RestingPotential",
                 groupby=["type"],
@@ -112,7 +95,7 @@ class Network(nn.Module):
                 requires_grad=True,
             ),
         ),
-        edge_config: Namespace = Namespace(
+        edge_config: Dict[str, Any] = Namespace(
             sign=Namespace(
                 type="SynapseSign",
                 initial_dist="Value",
@@ -131,33 +114,24 @@ class Network(nn.Module):
                 type="SynapseCountScaling",
                 initial_dist="Value",
                 requires_grad=True,
-                scale_elec=0.01,
-                scale_chem=0.01,
+                scale=0.01,
                 clamp="non_negative",
-                groupby=["source_type", "target_type", "edge_type"],
+                groupby=["source_type", "target_type"],
             ),
         ),
+        stimulus_config: Dict[str, Any] = Namespace(type="Stimulus", init_buffer=False),
     ):
         super().__init__()
 
-        # Call deepcopy to alter passed configs without upstream effects
-        connectome = namespacify(connectome).deepcopy()
-        dynamics = namespacify(dynamics).deepcopy()
-        node_config = namespacify(node_config).deepcopy()
-        edge_config = namespacify(edge_config).deepcopy()
-        self.config = namespacify(
-            dict(
-                connectome=connectome,
-                dynamics=dynamics,
-                node_config=node_config,
-                edge_config=edge_config,
+        # Prepare configs.
+        connectome, dynamics, node_config, edge_config, stimulus_config, self.config = (
+            self.prepare_configs(
+                connectome, dynamics, node_config, edge_config, stimulus_config
             )
-        ).deepcopy()
+        )
 
         # Store the connectome, dynamics, and parameters.
-        # TODO: make this type configuration based for generality
-        self.connectome = ConnectomeDir(connectome)
-        self.cell_types = self.connectome.unique_cell_types[:].astype(str)
+        self.connectome = init_connectome(**connectome)
         self.dynamics = forward_subclass(NetworkDynamics, dynamics)
 
         # Load constant indices into memory.
@@ -165,8 +139,8 @@ class Network(nn.Module):
         self._source_indices = torch.tensor(self.connectome.edges.source_index[:])
         self._target_indices = torch.tensor(self.connectome.edges.target_index[:])
 
-        self.n_nodes = len(self.connectome.nodes.type)
-        self.n_edges = len(self.connectome.edges.edge_type)
+        self.n_nodes = len(self.connectome.nodes.index)
+        self.n_edges = len(self.connectome.edges.source_index)
 
         # Optional way of parameter sharing is averaging at every call across
         # precomputed masks. This can be useful for e.g. symmetric electrical
@@ -240,24 +214,33 @@ class Network(nn.Module):
                 param_config, "clamp", None
             )
 
-        # Store chem/elec indices for electrical compartments specified by
-        # the connectome.
-        self._elec_indices = torch.tensor(
-            np.nonzero(self.connectome.edges.edge_type[:] == b"elec")[0]
-        ).long()
-        self._chem_indices = torch.tensor(
-            np.nonzero(self.connectome.edges.edge_type[:] == b"chem")[0]
-        ).long()
-
         self.num_parameters = n_params(self)
         self._state_hooks = tuple()
 
-        self.stimulus = Stimulus(self.connectome, _init=False)
+        self.stimulus = init_stimulus(self.connectome, **stimulus_config)
 
-        logger.info(f"Initialized network with {self.num_parameters} parameters.")
+        logger.info("Initialized network with %s parameters.", self.num_parameters)
 
     def __repr__(self):
         return self.config.__repr__().replace("Namespace", "Network", 1)
+
+    def prepare_configs(
+        self, connectome, dynamics, node_config, edge_config, stimulus_config
+    ):
+        """Prepare configs for network initialization."""
+        connectome = namespacify(connectome).deepcopy()
+        dynamics = namespacify(dynamics).deepcopy()
+        node_config = namespacify(node_config).deepcopy()
+        edge_config = namespacify(edge_config).deepcopy()
+        stimulus_config = namespacify(stimulus_config).deepcopy()
+        config = Namespace(
+            connectome=connectome,
+            dynamics=dynamics,
+            node_config=node_config,
+            edge_config=edge_config,
+            stimulus_config=stimulus_config,
+        ).deepcopy()
+        return connectome, dynamics, node_config, edge_config, stimulus_config, config
 
     def param_api(self) -> Dict[str, Dict[str, Tensor]]:
         """Param api for inspection.
@@ -309,9 +292,7 @@ class Network(nn.Module):
                 # route one of ("nodes", "sources", "target", "edges")
                 params[route][param_name] = RefTensor(values, indices)
         # Add derived parameters.
-        self.dynamics.write_derived_params(
-            params, chem_indices=self._chem_indices, elec_indices=self._elec_indices
-        )
+        self.dynamics.write_derived_params(params)
         for k, v in params.nodes.items():
             if k not in params.sources:
                 params.sources[k] = self._source_gather(v)
@@ -496,65 +477,34 @@ class Network(nn.Module):
         if clear:
             self._state_hooks = tuple()
 
-    def simulate(
-        self,
-        movie_input: torch.Tensor,
-        dt: float,
-        initial_state: Union[AutoDeref, None, Literal["auto"]] = "auto",
-        as_states: bool = False,
-        as_layer_activity: bool = False,
-    ) -> Union[torch.Tensor, AutoDeref, LayerActivity]:
-        """Simulate the network activity from movie input.
+    def clamp(self):
+        """Clamp free parameters to their range specified in their config.
 
-        Args:
-            movie_input: Tensor of shape (batch_size, n_frames, 1, hexals).
-            dt: Integration time constant. Warns if dt > 1/50.
-            initial_state: Network activity at the beginning of the simulation.
-                Use fade_in_state or steady_state to compute the initial state from grey
-                input or from ramping up the contrast of the first movie frame.
-                Defaults to "auto", which uses the steady_state after 1s of grey input.
-            as_states: If True, return the states as AutoDeref dictionary instead of
-                a tensor. Defaults to False.
-            as_layer_activity: If True, return a LayerActivity object. Defaults to False.
+        Valid configs are `non_negative` to clamp at zero and tuple of the form
+        (min, max) to clamp to an arbitrary range.
 
-        Returns:
-            Activity tensor of shape (batch_size, n_frames, #neurons),
-            or AutoDeref dictionary if `as_states` is True,
-            or LayerActivity object if `as_layer_activity` is True.
-
-        Raises:
-            ValueError: If the movie_input is not four-dimensional.
-            ValueError: If the integration time step is bigger than 1/50.
-            ValueError: If the network is not in evaluation mode or any
-                parameters require grad.
+        Note:
+            This function also enforces symmetry constraints.
         """
-        if len(movie_input.shape) != 4:
-            raise ValueError("requires shape (sample, frame, 1, hexals)")
+        # clamp parameters
+        for param_name, mode in self.clamp_config.items():
+            param = getattr(self, param_name)
+            if param.requires_grad:
+                if mode is None:
+                    pass
+                elif mode == "non_negative":
+                    param.data.clamp_(0)
+                elif isinstance(mode, Iterable) and len(mode) == 2:
+                    param.data.clamp_(*mode)
+                else:
+                    raise NotImplementedError(f"Clamping mode {mode} not implemented.")
 
-        if dt > 1 / 50:
-            warnings.warn(
-                f"dt={dt} is very large for integration. "
-                "Better choose a smaller dt (<= 1/50 to avoid this warning)",
-                IntegrationWarning,
-                stacklevel=2,
-            )
-
-        batch_size, n_frames = movie_input.shape[:2]
-        if initial_state == "auto":
-            initial_state = self.steady_state(1.0, dt, batch_size)
-        with simulation(self):
-            assert self.training is False and all(
-                not p.requires_grad for p in self.parameters()
-            )
-            self.stimulus.zero(batch_size, n_frames)
-            self.stimulus.add_input(movie_input)
-            if as_layer_activity:
-                return LayerActivity(
-                    self.forward(self.stimulus(), dt, initial_state, as_states).cpu(),
-                    self.connectome,
-                    keepref=True,
-                )
-            return self.forward(self.stimulus(), dt, initial_state, as_states)
+        # enforce symmetry constraints
+        for param_name, masks in self.symmetry_config.items():
+            param = getattr(self, param_name)
+            if param.requires_grad:
+                for symmetry in masks:
+                    param.data[symmetry] = param.data[symmetry].mean()
 
     def forward(
         self, x: Tensor, dt: float, state: AutoDeref = None, as_states: bool = False
@@ -675,34 +625,75 @@ class Network(nn.Module):
         with self.enable_grad(grad):
             return self(self.stimulus(), dt, as_states=True, state=state)[-1]
 
-    def clamp(self):
-        """Clamp free parameters to their range specified in their config.
+    def simulate(
+        self,
+        movie_input: torch.Tensor,
+        dt: float,
+        initial_state: Union[AutoDeref, None, Literal["auto"]] = "auto",
+        as_states: bool = False,
+        as_layer_activity: bool = False,
+    ) -> Union[torch.Tensor, AutoDeref, LayerActivity]:
+        """Simulate the network activity from movie input.
 
-        Valid configs are `non_negative` to clamp at zero and tuple of the form
-        (min, max) to clamp to an arbitrary range.
+        Args:
+            movie_input: Tensor of shape (batch_size, n_frames, 1, hexals).
+            dt: Integration time constant. Warns if dt > 1/50.
+            initial_state: Network activity at the beginning of the simulation.
+                Use fade_in_state or steady_state to compute the initial state from grey
+                input or from ramping up the contrast of the first movie frame.
+                Defaults to "auto", which uses the steady_state after 1s of grey input.
+            as_states: If True, return the states as AutoDeref dictionary instead of
+                a tensor. Defaults to False.
+            as_layer_activity: If True, return a LayerActivity object. Defaults to False.
+                Currently only supported for ConnectomeFromAvgFilters.
 
-        Note:
-            This function also enforces symmetry constraints.
+        Returns:
+            Activity tensor of shape (batch_size, n_frames, #neurons),
+            or AutoDeref dictionary if `as_states` is True,
+            or LayerActivity object if `as_layer_activity` is True.
+
+        Raises:
+            ValueError: If the movie_input is not four-dimensional.
+            ValueError: If the integration time step is bigger than 1/50.
+            ValueError: If the network is not in evaluation mode or any
+                parameters require grad.
         """
-        # clamp parameters
-        for param_name, mode in self.clamp_config.items():
-            param = getattr(self, param_name)
-            if param.requires_grad:
-                if mode is None:
-                    pass
-                elif mode == "non_negative":
-                    param.data.clamp_(0)
-                elif isinstance(mode, Iterable) and len(mode) == 2:
-                    param.data.clamp_(*mode)
-                else:
-                    raise NotImplementedError(f"Clamping mode {mode} not implemented.")
+        if len(movie_input.shape) != 4:
+            raise ValueError("requires shape (sample, frame, 1, hexals)")
 
-        # enforce symmetry constraints
-        for param_name, masks in self.symmetry_config.items():
-            param = getattr(self, param_name)
-            if param.requires_grad:
-                for symmetry in masks:
-                    param.data[symmetry] = param.data[symmetry].mean()
+        if (
+            as_layer_activity
+            and not self.connectome.__class__.__name__ == "ConnectomeFromAvgFilters"
+        ):
+            raise ValueError(
+                "as_layer_activity is currently only supported for "
+                "ConnectomeFromAvgFilters"
+            )
+
+        if dt > 1 / 50:
+            warnings.warn(
+                f"dt={dt} is very large for integration. "
+                "Better choose a smaller dt (<= 1/50 to avoid this warning)",
+                IntegrationWarning,
+                stacklevel=2,
+            )
+
+        batch_size, n_frames = movie_input.shape[:2]
+        if initial_state == "auto":
+            initial_state = self.steady_state(1.0, dt, batch_size)
+        with simulation(self):
+            assert self.training is False and all(
+                not p.requires_grad for p in self.parameters()
+            )
+            self.stimulus.zero(batch_size, n_frames)
+            self.stimulus.add_input(movie_input)
+            if as_layer_activity:
+                return LayerActivity(
+                    self.forward(self.stimulus(), dt, initial_state, as_states).cpu(),
+                    self.connectome,
+                    keepref=True,
+                )
+            return self.forward(self.stimulus(), dt, initial_state, as_states)
 
     @contextmanager
     def enable_grad(self, grad: bool = True):
@@ -763,7 +754,7 @@ class Network(nn.Module):
         initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
 
         with self.enable_grad(grad):
-            logger.info(f"Computing {len(indices)} stimulus responses.")
+            logger.info("Computing %s stimulus responses.", len(indices))
             for stim in tqdm(
                 stim_loader, desc="Batch", total=len(stim_loader), leave=False
             ):
@@ -848,7 +839,7 @@ class Network(nn.Module):
         stimulus = self.stimulus
         initial_state = self.steady_state(t_pre, dt, batch_size=1, value=0.5)
         with torch.no_grad():
-            logger.info(f"Computing {len(indices)} stimulus responses.")
+            logger.info("Computing %d stimulus responses.", len(indices))
             for stim in stim_loader:
                 if isinstance(stim, dict):
                     stim = stim[default_stim_key].squeeze(-2)
@@ -890,454 +881,5 @@ class Network(nn.Module):
                 yield handle_stim(stim, fade_in_state)
 
 
-@dataclass
-class CheckpointedNetwork:
-    """A network representation with checkpoint that can be pickled.
-
-    Attributes:
-        network_class: Network class (e.g., flyvision.Network).
-        config: Configuration for the network.
-        name: Name of the network.
-        checkpoint: Checkpoint path.
-        recover_fn: Function to recover the network.
-        network: Network instance to avoid reinitialization.
-    """
-
-    network_class: Any
-    config: Dict
-    name: str
-    checkpoint: PathLike
-    recover_fn: Any = recover_network
-    network: Optional[Network] = None
-
-    def init(self, eval: bool = True) -> Network:
-        """Initialize the network.
-
-        Args:
-            eval: Whether to set the network in evaluation mode.
-
-        Returns:
-            The initialized network.
-        """
-        if self.network is None:
-            self.network = self.network_class(**self.config)
-        if eval:
-            self.network.eval()
-        return self.network
-
-    def recover(self, checkpoint: Optional[PathLike] = None) -> Network:
-        """Recover the network from the checkpoint.
-
-        Args:
-            checkpoint: Path to the checkpoint. If None, uses the default checkpoint.
-
-        Returns:
-            The recovered network.
-
-        Note:
-            Initializes the network if it hasn't been initialized yet.
-        """
-        if self.network is None:
-            self.init()
-        return self.recover_fn(self.network, checkpoint or self.checkpoint)
-
-    def __hash__(self):
-        return hash((
-            self.network_class,
-            make_hashable(self.config),
-            self.checkpoint,
-        ))
-
-    # Equality check based on hashable elements.
-    def __eq__(self, other):
-        if not isinstance(other, CheckpointedNetwork):
-            return False
-        return (
-            self.network_class == other.network_class
-            and make_hashable(self.config) == make_hashable(other.config)
-            and self.checkpoint == other.checkpoint
-        )
-
-    # Custom reduce method to make the object compatible with joblib's pickling.
-    # This ensures the 'network' attribute is never pickled.
-    # Return a tuple containing:
-    # 1. A callable that will recreate the object (here, the class itself)
-    # 2. The arguments required to recreate the object (excluding the network)
-    # 3. The state, excluding the 'network' attribute
-    def __reduce__(self):
-        state = self.__dict__.copy()
-        state["network"] = None  # Exclude the complex network from being pickled
-
-        return (
-            self.__class__,  # The callable (class itself)
-            (
-                self.network_class,
-                self.config,
-                self.checkpoint,
-                self.recover_fn,
-                None,
-            ),  # Arguments to reconstruct the object
-            state,  # State without the 'network' attribute
-        )
-
-    # Restore the object's state, but do not load the network from the state.
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.network = None
-
-
-class NetworkView:
-    """IO interface for network.
-
-    Args:
-        network_dir: Directory of the network.
-        network_class: Network class. Defaults to Network.
-        root_dir: Root directory. Defaults to flyvision.results_dir.
-        connectome_getter: Function to get the connectome.
-            Defaults to flyvision_connectome.
-        checkpoint_mapper: Function to map checkpoints. Defaults to resolve_checkpoints.
-        best_checkpoint_fn: Function to get the best checkpoint. Defaults to
-            best_checkpoint_default_fn.
-        best_checkpoint_fn_kwargs: Keyword arguments for best_checkpoint_fn. Defaults to
-            {"validation_subdir": "validation", "loss_file_name": "loss"}.
-        recover_fn: Function to recover the network. Defaults to recover_network.
-
-    Attributes:
-        network_class (nn.Module): Network class.
-        dir (Directory): Network directory.
-        name (str): Network name.
-        root_dir (PathLike): Root directory.
-        connectome_getter (Callable): Function to get the connectome.
-        checkpoint_mapper (Callable): Function to map checkpoints.
-        connectome_view (ConnectomeView): Connectome view.
-        connectome (Directory): Connectome directory.
-        checkpoints: Mapped checkpoints.
-        memory (Memory): Joblib memory cache.
-        best_checkpoint_fn (Callable): Function to get the best checkpoint.
-        best_checkpoint_fn_kwargs (dict): Keyword arguments for best_checkpoint_fn.
-        recover_fn (Callable): Function to recover the network.
-        _network (CheckpointedNetwork): Checkpointed network instance.
-        decoder: Decoder instance.
-        _initialized (dict): Initialization status for network and decoder.
-        cache (FIFOCache): Cache for storing results.
-    """
-
-    def __init__(
-        self,
-        network_dir: Union[str, PathLike, NetworkDir],
-        network_class: nn.Module = Network,
-        root_dir: PathLike = flyvision.results_dir,
-        connectome_getter: Callable = flyvision_connectome,
-        checkpoint_mapper: Callable = resolve_checkpoints,
-        best_checkpoint_fn: Callable = best_checkpoint_default_fn,
-        best_checkpoint_fn_kwargs: dict = {
-            "validation_subdir": "validation",
-            "loss_file_name": "loss",
-        },
-        recover_fn: Callable = recover_network,
-    ):
-        self.network_class = network_class
-        self.dir, self.name = self._resolve_dir(network_dir, root_dir)
-        self.root_dir = root_dir
-        self.connectome_getter = connectome_getter
-        self.checkpoint_mapper = checkpoint_mapper
-        self.connectome_view: ConnectomeView = connectome_getter(
-            self.dir.config.network.connectome
-        )
-        self.connectome = self.connectome_view.dir
-        self.checkpoints = checkpoint_mapper(self.dir)
-        self.memory = Memory(
-            location=self.dir.path / "__cache__", verbose=0, backend="xarray_dataset_h5"
-        )
-        self.best_checkpoint_fn = best_checkpoint_fn
-        self.best_checkpoint_fn_kwargs = best_checkpoint_fn_kwargs
-        self.recover_fn = recover_fn
-        self._network = CheckpointedNetwork(
-            self.network_class,
-            self.dir.config.network.to_dict(),
-            self.name,
-            self.get_checkpoint("best"),
-            self.recover_fn,
-            network=None,
-        )
-        self.decoder = None
-        self._initialized = {"network": None, "decoder": None}
-        self.cache = FIFOCache(maxsize=3)
-        logging.info("Initialized network view at %s", str(self.dir.path))
-
-    def _clear_cache(self):
-        """Clear the FIFO cache."""
-        self.cache = self.cache.__class__(maxsize=self.cache.maxsize)
-
-    def _clear_memory(self):
-        """Clear the joblib memory cache."""
-        self.memory.clear()
-
-    # --- ConnectomeView API for static code analysis
-    # pylint: disable=missing-function-docstring
-    @wraps(ConnectomeView.connectivity_matrix)
-    def connectivity_matrix(self, *args, **kwargs):
-        return self.connectome_view.connectivity_matrix(*args, **kwargs)
-
-    connectivity_matrix.__doc__ = ConnectomeView.connectivity_matrix.__doc__
-
-    @wraps(ConnectomeView.network_layout)
-    def network_layout(self, *args, **kwargs):
-        return self.connectome_view.network_layout(*args, **kwargs)
-
-    network_layout.__doc__ = ConnectomeView.network_layout.__doc__
-
-    @wraps(ConnectomeView.hex_layout)
-    def hex_layout(self, *args, **kwargs):
-        return self.connectome_view.hex_layout(*args, **kwargs)
-
-    hex_layout.__doc__ = ConnectomeView.hex_layout.__doc__
-
-    @wraps(ConnectomeView.hex_layout_all)
-    def hex_layout_all(self, *args, **kwargs):
-        return self.connectome_view.hex_layout_all(*args, **kwargs)
-
-    hex_layout_all.__doc__ = ConnectomeView.hex_layout_all.__doc__
-
-    @wraps(ConnectomeView.get_uv)
-    def get_uv(self, *args, **kwargs):
-        return self.connectome_view.get_uv(*args, **kwargs)
-
-    get_uv.__doc__ = ConnectomeView.get_uv.__doc__
-
-    @wraps(ConnectomeView.sources_list)
-    def sources_list(self, *args, **kwargs):
-        return self.connectome_view.sources_list(*args, **kwargs)
-
-    sources_list.__doc__ = ConnectomeView.sources_list.__doc__
-
-    @wraps(ConnectomeView.targets_list)
-    def targets_list(self, *args, **kwargs):
-        return self.connectome_view.targets_list(*args, **kwargs)
-
-    targets_list.__doc__ = ConnectomeView.targets_list.__doc__
-
-    @wraps(ConnectomeView.receptive_field)
-    def receptive_field(self, *args, **kwargs):
-        return self.connectome_view.receptive_field(*args, **kwargs)
-
-    receptive_field.__doc__ = ConnectomeView.receptive_field.__doc__
-
-    @wraps(ConnectomeView.receptive_fields_grid)
-    def receptive_fields_grid(self, *args, **kwargs):
-        return self.connectome_view.receptive_fields_grid(*args, **kwargs)
-
-    receptive_fields_grid.__doc__ = ConnectomeView.receptive_fields_grid.__doc__
-
-    @wraps(ConnectomeView.projective_field)
-    def projective_field(self, *args, **kwargs):
-        return self.connectome_view.projective_field(*args, **kwargs)
-
-    projective_field.__doc__ = ConnectomeView.projective_field.__doc__
-
-    @wraps(ConnectomeView.projective_fields_grid)
-    def projective_fields_grid(self, *args, **kwargs):
-        return self.connectome_view.projective_fields_grid(*args, **kwargs)
-
-    projective_fields_grid.__doc__ = ConnectomeView.projective_fields_grid.__doc__
-
-    @wraps(ConnectomeView.receptive_fields_df)
-    def receptive_fields_df(self, *args, **kwargs):
-        return self.connectome_view.receptive_fields_df(*args, **kwargs)
-
-    receptive_fields_df.__doc__ = ConnectomeView.receptive_fields_df.__doc__
-
-    @wraps(ConnectomeView.receptive_fields_sum)
-    def receptive_fields_sum(self, *args, **kwargs):
-        return self.connectome_view.receptive_fields_sum(*args, **kwargs)
-
-    receptive_fields_sum.__doc__ = ConnectomeView.receptive_fields_sum.__doc__
-
-    @wraps(ConnectomeView.projective_fields_df)
-    def projective_fields_df(self, *args, **kwargs):
-        return self.connectome_view.projective_fields_df(*args, **kwargs)
-
-    projective_fields_df.__doc__ = ConnectomeView.projective_fields_df.__doc__
-
-    @wraps(ConnectomeView.projective_fields_sum)
-    def projective_fields_sum(self, *args, **kwargs):
-        return self.connectome_view.projective_fields_sum(*args, **kwargs)
-
-    projective_fields_sum.__doc__ = ConnectomeView.projective_fields_sum.__doc__
-
-    # --- own API
-
-    def get_checkpoint(self, checkpoint="best"):
-        """Return the best checkpoint index.
-
-        Args:
-            checkpoint: Checkpoint identifier. Defaults to "best".
-
-        Returns:
-            str: Path to the checkpoint.
-        """
-        if checkpoint == "best":
-            return self.best_checkpoint_fn(
-                self.dir.path,
-                **self.best_checkpoint_fn_kwargs,
-            )
-        return self.checkpoints.paths[checkpoint]
-
-    def network(
-        self, checkpoint="best", network: Optional[Any] = None, lazy=False
-    ) -> CheckpointedNetwork:
-        """Lazy loading of network instance.
-
-        Args:
-            checkpoint: Checkpoint identifier. Defaults to "best".
-            network: Existing network instance to use. Defaults to None.
-            lazy: If True, don't recover the network immediately. Defaults to False.
-
-        Returns:
-            CheckpointedNetwork: Checkpointed network instance.
-        """
-        self._network = CheckpointedNetwork(
-            self.network_class,
-            self.dir.config.network.to_dict(),
-            self.name,
-            self.get_checkpoint(checkpoint),
-            self.recover_fn,
-            network=network or self._network.network,
-        )
-        if self._network.network is not None and not lazy:
-            self._network.recover()
-        return self._network
-
-    def init_network(self, checkpoint="best", network: Optional[Any] = None) -> Network:
-        """Initialize the network.
-
-        Args:
-            checkpoint: Checkpoint identifier. Defaults to "best".
-            network: Existing network instance to use. Defaults to None.
-
-        Returns:
-            Network: Initialized network instance.
-        """
-        checkpointed_network = self.network(checkpoint=checkpoint, network=network)
-
-        if checkpointed_network.network is not None:
-            return checkpointed_network.network
-        checkpointed_network.init()
-        return checkpointed_network.recover()
-
-    def init_decoder(self, checkpoint="best", decoder=None):
-        """Initialize the decoder.
-
-        Args:
-            checkpoint: Checkpoint identifier. Defaults to "best".
-            decoder: Existing decoder instance to use. Defaults to None.
-
-        Returns:
-            Decoder: Initialized decoder instance.
-        """
-        checkpointed_network = self.network(checkpoint=checkpoint)
-        if (
-            self._initialized["decoder"] == checkpointed_network.checkpoint
-            and decoder is None
-        ):
-            return self.decoder
-        self.decoder = decoder or init_decoder(
-            self.dir.config.task.decoder, self.connectome
-        )
-        recover_decoder(self.decoder, checkpointed_network.checkpoint)
-        self._initialized["decoder"] = checkpointed_network.checkpoint
-        return self.decoder
-
-    def _resolve_dir(self, network_dir, root_dir):
-        """Resolve the network directory.
-
-        Args:
-            network_dir: Network directory path or Directory instance.
-            root_dir: Root directory path.
-
-        Returns:
-            tuple: (Directory, str) - Network directory and name.
-
-        Raises:
-            ValueError: If the directory is not a NetworkDir.
-        """
-        if isinstance(network_dir, (PathLike, str)):
-            with set_root_context(root_dir):
-                network_dir = Directory(network_dir)
-        if not network_dir.config.type == "NetworkDir":
-            raise ValueError(
-                f"Expected NetworkDir, found {network_dir.config.type} "
-                f"at {network_dir.path}."
-            )
-        name = os.path.sep.join(network_dir.path.parts[-3:])
-        return network_dir, name
-
-    # --- stimulus responses
-
-    @wraps(stimulus_responses.flash_responses)
-    @context_aware_cache
-    def flash_responses(self, *args, **kwargs) -> xr.Dataset:
-        """Generate flash responses."""
-        return stimulus_responses.flash_responses(self, *args, **kwargs)
-
-    @wraps(stimulus_responses.moving_edge_responses)
-    @context_aware_cache
-    def moving_edge_responses(self, *args, **kwargs) -> xr.Dataset:
-        """Generate moving edge responses."""
-        return stimulus_responses.moving_edge_responses(self, *args, **kwargs)
-
-    @wraps(stimulus_responses_currents.moving_edge_currents)
-    @context_aware_cache
-    def moving_edge_currents(
-        self, *args, **kwargs
-    ) -> List[stimulus_responses_currents.ExperimentData]:
-        """Generate moving edge currents."""
-        return stimulus_responses_currents.moving_edge_currents(self, *args, **kwargs)
-
-    @wraps(stimulus_responses.moving_bar_responses)
-    @context_aware_cache
-    def moving_bar_responses(self, *args, **kwargs) -> xr.Dataset:
-        """Generate moving bar responses."""
-        return stimulus_responses.moving_bar_responses(self, *args, **kwargs)
-
-    @wraps(stimulus_responses.naturalistic_stimuli_responses)
-    @context_aware_cache
-    def naturalistic_stimuli_responses(self, *args, **kwargs) -> xr.Dataset:
-        """Generate naturalistic stimuli responses."""
-        return stimulus_responses.naturalistic_stimuli_responses(self, *args, **kwargs)
-
-    @wraps(stimulus_responses.central_impulses_responses)
-    @context_aware_cache
-    def central_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
-        """Generate central ommatidium impulses responses."""
-        return stimulus_responses.central_impulses_responses(self, *args, **kwargs)
-
-    @wraps(stimulus_responses.spatial_impulses_responses)
-    @context_aware_cache
-    def spatial_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
-        """Generate spatial ommatidium impulses responses."""
-        return stimulus_responses.spatial_impulses_responses(self, *args, **kwargs)
-
-    @wraps(stimulus_responses.optimal_stimulus_responses)
-    @context_aware_cache
-    def optimal_stimulus_responses(
-        self, cell_type, *args, **kwargs
-    ) -> optimal_stimuli.RegularizedOptimalStimulus:
-        """Generate optimal stimuli responses."""
-        return stimulus_responses.optimal_stimulus_responses(
-            self, cell_type, *args, **kwargs
-        )
-
-
 class IntegrationWarning(Warning):
     """Warning for integration-related issues."""
-
-    pass
-
-
-if __name__ == "__main__":
-    nv = NetworkView("flow/9998/000")
-    network = nv.network("best")
-    network.init()
-    network.recover()
-    print(hash(network))

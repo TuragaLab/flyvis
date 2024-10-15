@@ -11,7 +11,8 @@ from datamate import Directory, Namespace
 from toolz import valfilter, valmap
 from torch import nn
 
-from flyvision.network.network import Network, NetworkDir
+from flyvision.network.directories import NetworkDir
+from flyvision.network.network import Network
 from flyvision.task.tasks import Task
 from flyvision.utils.chkpt_utils import (
     recover_decoder,
@@ -158,7 +159,7 @@ class MultiTaskSolver:
         initialized = []
 
         if init_network:
-            self.network = Network(self.config.network)
+            self.network = Network(**self.config.network)
             initialized.append("network")
 
         if init_task:
@@ -253,7 +254,6 @@ class MultiTaskSolver:
             dir / activity_max.h5
             ```
         """
-        # pdb.set_trace()
         # return if iterations have already been trained.
         if self.iteration >= self.task.n_iters:
             return
@@ -653,6 +653,7 @@ class Penalty:
             stop_iter: 150000
             below_baseline_penalty_weight: 1.0
             above_baseline_penalty_weight: 0.1
+        optim: SGD
         ```
 
     Note: Default config in config/network/node_config/bias/bias.yaml
@@ -693,26 +694,13 @@ class Penalty:
         ```python
         # Example 1: Penalize the resting potential of all cell types.
         bias = Namespace(
-            type="RestingPotential",
-            groupby=["type"],
-            initial_dist="Normal",
-            mode="sample",
-            requires_grad=True,
-            mean=0.5,
-            std=0.05,
+            ... (other parameters)
             penalize=Namespace(activity=True),
-            seed=0,
         )
 
         # Example 2: add a weight decay penalty to all synapse strengths.
         syn_strength = Namespace(
-            type="SynapseCountScaling",
-            initial_dist="Value",
-            requires_grad=True,
-            scale_elec=0.01,
-            scale_chem=0.01,
-            clamp="non_negative",
-            groupby=["source_type", "target_type", "edge_type"],
+            ... (other parameters)
             penalize=Namespace(function="weight_decay", kwargs=dict(lambda=1e-3,)),
         )
         ```
@@ -724,6 +712,8 @@ class Penalty:
         self.central_cells_index = self.network.connectome.central_cells_index[:]
 
         self.parameter_config = self.get_network_param_penalty_configs()
+        self.optim_class = getattr(torch.optim, getattr(self.config, "optim", "SGD"))
+        self.parameter_optim, self.activity_optim = None, None
         self.init_optim()
         self.init_hparams()
 
@@ -760,14 +750,14 @@ class Penalty:
                 self.param_list_act_pen.append(name)
 
         if self.param_list_func_pen:
-            self.parameter_optim = self.default_optim(
+            self.parameter_optim = self.optim_class(
                 (getattr(self.network, param) for param in self.param_list_func_pen),
                 lr=1e-3,
             )  # LR is overwritten by scheduler.
             self.optimizers.update(dict(parameter_optim=self.parameter_optim))
 
         if self.param_list_act_pen:
-            self.activity_optim = self.default_optim(
+            self.activity_optim = self.optim_class(
                 (getattr(self.network, param) for param in self.param_list_act_pen),
                 lr=1e-3,
             )  # LR is overwritten by scheduler.
@@ -814,7 +804,8 @@ class Penalty:
             f"activity_baseline={self.activity_baseline}, "
             f"activity_penalty_stop_iter={self.activity_penalty_stop_iter}, "
             f"below_baseline_penalty_weight={self.below_baseline_penalty_weight}, "
-            f"above_baseline_penalty_weight={self.above_baseline_penalty_weight}"
+            f"above_baseline_penalty_weight={self.above_baseline_penalty_weight}, "
+            f"optim_class={self.optim_class}"
             f")"
         )
 

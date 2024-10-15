@@ -19,7 +19,7 @@ nav:
     - Figure 3: examples/figure_03_naturalistic_stimuli_responses.md
     - Figure 4: examples/figure_04_mechanisms.md
   - API Reference:
-    - "Connectome": reference/connectome.md
+    - "Connectomes": reference/connectome.md
     - "Network": reference/network.md
     - "NetworkView": reference/network_view.md
     - "EnsembleView": reference/ensemble_view.md
@@ -36,7 +36,7 @@ nav:
       - "Hex Augmentations": reference/augmentation.md
       - "Datasets": reference/datasets.md
       - "Utils": reference/utils.md
-      - "Visualizations": reference/visualizations.md
+      - "Visualizations": reference/visualization.md
       - "Animations": reference/animations.md
     - "Scripts":
       - "Data Download": reference/scripts/scripts/download_pretrained_models.md
@@ -147,6 +147,7 @@ extra_javascript:
 plugins:
   - search
   - mike
+  - macros
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -168,11 +169,11 @@ extra_css:
   - custom.css
 
 
-copyright: Janne Kristian Lappalainen &copy 2024
+copyright: Lappalainen &copy 2024
 extra:
   social:
     - icon: fontawesome/solid/envelope
-      link: mailto:lappalainenjk@gmail.com,jakob.macke@uni-tuebingen.de,turagas@janelia.hhmi.org
+      link: mailto:lappalainenjk@gmail.com?cc=jakob.macke@uni-tuebingen.de,turagas@janelia.hhmi.org
     - icon: fontawesome/brands/github
       link: https://github.com/turagalab/flyvis
     - icon: fontawesome/solid/newspaper

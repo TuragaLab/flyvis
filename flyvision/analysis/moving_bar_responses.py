@@ -235,7 +235,7 @@ def dsi_violins(
     cell_types,
     scatter_best=False,
     scatter_all=True,
-    cmap=plt.cm.Greens_r,
+    cmap=None,
     colors=None,
     color="b",
     figsize=[10, 1],
@@ -245,6 +245,7 @@ def dsi_violins(
     sorted_type_list=None,
     sort_descending=False,
     known_on_off_first=True,
+    scatter_kwargs={},
     **kwargs,
 ):
     """
@@ -265,8 +266,7 @@ def dsi_violins(
         sorted_type_list: List of cell types in desired order.
         sort_descending: Whether to sort DSIs in descending order.
         known_on_off_first: Whether to sort known ON/OFF types first.
-        **kwargs: Additional keyword arguments for violin_groups and
-            scatter_on_violins_with_best.
+        **kwargs: Additional keyword arguments for violin_groups.
 
     Returns:
         Tuple of (figure, axis, colors, prepared DSIs)
@@ -300,7 +300,7 @@ def dsi_violins(
 
     if dsis.shape[1] == 1:
         plt_utils.scatter_on_violins_with_best(
-            dsis.T.squeeze(), ax, scatter_best, scatter_all, **kwargs
+            dsis.T.squeeze(), ax, scatter_best, scatter_all, **scatter_kwargs
         )
 
     return fig, ax, colors, dsis
@@ -309,7 +309,7 @@ def dsi_violins(
 def dsi_violins_on_and_off(
     dsis: xr.DataArray,
     cell_types: xr.DataArray,
-    scatter_best=True,
+    scatter_best=False,
     scatter_all=True,
     bold_output_type_labels=False,
     output_cell_types=None,
@@ -350,15 +350,13 @@ def dsi_violins_on_and_off(
         dsis = dsis[None, :]
 
     if fig is None or axes is None:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize, sharex=True)
-        plt_utils.rm_spines(ax1, spines=("bottom",))
-    else:
-        ax1, ax2 = axes
+        fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=True)
+        plt_utils.rm_spines(axes[0], spines=("bottom",))
 
     for i, intensity in enumerate([1, 0]):
         color = ON if intensity == 1 else OFF
         _, ax, *_ = dsi_violins(
-            dsis=dsis.sel(intensity=intensity).values,
+            dsis=dsis.sel(intensity=intensity).values.T,
             cell_types=cell_types.values,
             color=color,
             fig=fig,
@@ -385,12 +383,12 @@ def dsi_violins_on_and_off(
             plt_utils.color_labels(["T4a", "T4b", "T4c", "T4d"], ON, ax)
             plt_utils.color_labels(["T5a", "T5b", "T5c", "T5d"], OFF, ax)
 
-    ax1.set_xticks([])
-    ax1.set_yticks(np.arange(0, 1.2, 0.2))
-    ax2.set_yticks(np.arange(0, 1.2, 0.2))
-    ax2.invert_yaxis()
+    # axes[0].set_xticks([])
+    axes[0].set_yticks(np.arange(0, 1.2, 0.5))
+    axes[1].set_yticks(np.arange(0, 1.2, 0.5))
+    axes[1].invert_yaxis()
 
-    return fig, (ax1, ax2)
+    return fig, axes
 
 
 def dsi_correlation_to_known(

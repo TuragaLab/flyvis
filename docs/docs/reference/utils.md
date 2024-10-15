@@ -1,6 +1,6 @@
 # Utils
 
-Utility modules and functions.
+Utility modules.
 
 ## flyvision.utils.activity_utils
 

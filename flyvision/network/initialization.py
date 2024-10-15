@@ -4,10 +4,6 @@ type on its own, because different parameters are shared differently. These
 types handle the initialization of indices to perform gather and scatter opera-
 tions. Parameter types can be initialized from a range of initial distribution
 types.
-
-Note:
-    To maintain compatibility with old configurations, e.g. to reinitialize
-    a trained network, be careful when refactoring any of these types or syntax.
 """
 
 import functools
@@ -23,7 +19,7 @@ from datamate import Namespace
 from torch import Tensor
 
 from flyvision import device
-from flyvision.connectome import ConnectomeDir
+from flyvision.connectome import ConnectomeFromAvgFilters
 from flyvision.utils.class_utils import forward_subclass
 from flyvision.utils.tensor_utils import atleast_column_vector, where_equal_rows
 from flyvision.utils.type_utils import byte_to_str
@@ -42,13 +38,6 @@ __all__ = [
     "Normal",
     "Lognormal",
 ]
-
-# --- Supplementary Error types -------------------------------------------------
-
-
-class ParameterConfigError(ValueError):
-    pass
-
 
 # --- Initial distribution types ------------------------------------------------
 
@@ -82,9 +71,6 @@ class InitialDistribution:
 
     raw_values: Tensor
     readers: Dict[str, Tensor]
-
-    # def __new__(cls, param_config: Namespace, *args, **kwargs):
-    #     return forward_subclass(cls, param_config, subclass_key="initial_dist")
 
     @property
     def semantic_values(self):
@@ -133,13 +119,6 @@ class Value(InitialDistribution):
         )
         ```
     """
-
-    # def __init__(self, param_config: Namespace) -> None:
-    #     _values = torch.tensor(param_config.value).float()
-    #     _values = self.clamp(_values, param_config)
-    #     self.raw_values = nn.Parameter(
-    #         _values, requires_grad=param_config.requires_grad
-    #     )
 
     def __init__(self, value, requires_grad, clamp=False, **kwargs) -> None:
         _values = torch.tensor(value).float()
@@ -217,8 +196,6 @@ class Lognormal(Normal):
         ```
     """
 
-    # __init__ = Normal.__init__
-
     @property
     def semantic_values(self):
         """n_syn ~ self._values.exp()."""
@@ -252,7 +229,7 @@ class Parameter:
 
     Args:
         param_config (Namespace): Namespace containing parameter configuration.
-        connectome (ConnectomeDir): Connectome object.
+        connectome (Connectome): Connectome object.
 
     Attributes:
         parameter (InitialDistribution): InitialDistribution object.
@@ -284,7 +261,7 @@ class Parameter:
 
         ```python
         @deepcopy_config
-        def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
+        def __init__(self, param_config: Namespace, connectome: Connectome):
             # Update param_config based on connectome data
             # ...
 
@@ -304,7 +281,7 @@ class Parameter:
     keys: List[Any]
 
     @deepcopy_config
-    def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
+    def __init__(self, param_config: Namespace, connectome: ConnectomeFromAvgFilters):
         pass
 
     def __repr__(self):
@@ -359,7 +336,7 @@ class RestingPotential(Parameter):
     """Initialize resting potentials a.k.a. biases for cell types."""
 
     @deepcopy_config
-    def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
+    def __init__(self, param_config: Namespace, connectome: ConnectomeFromAvgFilters):
         nodes_dir = connectome.nodes
 
         nodes = pd.DataFrame({
@@ -385,7 +362,7 @@ class TimeConstant(Parameter):
     """Initialize time constants for cell types."""
 
     @deepcopy_config
-    def __init__(self, param_config: Namespace, connectome: ConnectomeDir):
+    def __init__(self, param_config: Namespace, connectome: ConnectomeFromAvgFilters):
         nodes_dir = connectome.nodes
 
         nodes = pd.DataFrame({
@@ -413,7 +390,9 @@ class SynapseSign(Parameter):
     """Initialize synapse signs for edge types."""
 
     @deepcopy_config
-    def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
+    def __init__(
+        self, param_config: Namespace, connectome: ConnectomeFromAvgFilters
+    ) -> None:
         edges_dir = connectome.edges
 
         edges = pd.DataFrame({
@@ -444,7 +423,9 @@ class SynapseCount(Parameter):
     """Initialize synapse counts for edge types."""
 
     @deepcopy_config
-    def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
+    def __init__(
+        self, param_config: Namespace, connectome: ConnectomeFromAvgFilters
+    ) -> None:
         mode = param_config.get("mode", "")
         if mode != "mean":
             raise NotImplementedError(
@@ -499,13 +480,14 @@ class SynapseCountScaling(Parameter):
     1. $\\alpha_{t_it_j}$ is the synapse strength between neurons $i$ and $j$.
     2. $\\langle N \\rangle_{t_it_j}$ is the average synapse count for the edge type
         across columnar offsets $u_i-u_j$ and $v_i-v_j$
-    3. $\\rho_{\\text{chem}}$ and $\\rho_{\\text{elec}}$ are scaling factors for chemical
-       and electrical synapses, respectively (default: 0.01)
+    3. $\\rho$ is a scaling factor (default: 0.01)
 
     """
 
     @deepcopy_config
-    def __init__(self, param_config: Namespace, connectome: ConnectomeDir) -> None:
+    def __init__(
+        self, param_config: Namespace, connectome: ConnectomeFromAvgFilters
+    ) -> None:
         edges_dir = connectome.edges
 
         edges = pd.DataFrame({
@@ -515,17 +497,8 @@ class SynapseCountScaling(Parameter):
             param_config.groupby, as_index=False, sort=False
         ).mean()
 
-        # to initialize synapse strengths with 1/<N>_rf
-        syn_strength = 1 / grouped_edges.n_syn.values  # 1/<N>_rf
-
-        # scale synapse strengths of chemical and electrical synapses
-        # individually
-        syn_strength[grouped_edges[grouped_edges.edge_type == "chem"].index] *= getattr(
-            param_config, "scale_chem", 0.01
-        )
-        syn_strength[grouped_edges[grouped_edges.edge_type == "elec"].index] *= getattr(
-            param_config, "scale_elec", 0.01
-        )
+        # to initialize synapse strengths with scale/<N>_rf
+        syn_strength = param_config.get("scale", 0.01) / grouped_edges.n_syn.values
 
         param_config.target_type = grouped_edges.target_type.values
         param_config.source_type = grouped_edges.source_type.values
@@ -638,3 +611,10 @@ def symmetry_masks(
                 f"for parameter with keys {keys}: {e}"
             ) from e
     return symmetry_masks
+
+
+# --- Supplementary Error types -------------------------------------------------
+
+
+class ParameterConfigError(ValueError):
+    pass

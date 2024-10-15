@@ -108,7 +108,7 @@ def compute_responses(
 
 def generic_responses(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset,
     dataset_config: Dict,
@@ -120,7 +120,7 @@ def generic_responses(
 ) -> xr.Dataset:
     """Return responses for a given dataset as an xarray Dataset."""
     # Handle both single and multiple NetworkViews
-    if isinstance(network_view_or_ensemble, flyvision.network.NetworkView):
+    if isinstance(network_view_or_ensemble, flyvision.NetworkView):
         network_views = [network_view_or_ensemble]
     else:
         network_views = list(network_view_or_ensemble.values())
@@ -260,7 +260,7 @@ def generic_responses(
 # TODO: with network_view pickable, could mem cache this directly.
 def flash_responses(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset: Optional[Flashes] = None,
     radius=(-1, 6),
@@ -291,7 +291,7 @@ def flash_responses(
 
 def moving_edge_responses(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset: Optional[MovingEdge] = None,
     speeds=(2.4, 4.8, 9.7, 13, 19, 25),
@@ -326,7 +326,7 @@ def moving_edge_responses(
 
 def moving_bar_responses(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset: Optional[MovingBar] = None,
     dt=1 / 200,
@@ -360,11 +360,12 @@ def moving_bar_responses(
 
 def naturalistic_stimuli_responses(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset: Optional[AugmentedSintel] = None,
     dt=1 / 100,
     batch_size=4,
+    indices: Optional[np.ndarray] = None,
 ) -> xr.Dataset:
     default_dataset_config = {
         'tasks': ["lum"],
@@ -372,6 +373,7 @@ def naturalistic_stimuli_responses(
         'boxfilter': {'extent': 15, 'kernel_size': 13},
         'temporal_split': True,
         'dt': dt,
+        'indices': indices,
     }
     return generic_responses(
         network_view_or_ensemble,
@@ -389,7 +391,7 @@ def naturalistic_stimuli_responses(
 
 def central_impulses_responses(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset: Optional[CentralImpulses] = None,
     intensity=1,
@@ -427,7 +429,7 @@ def central_impulses_responses(
 
 def spatial_impulses_responses(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.network.Ensemble"
+        "flyvision.NetworkView", "flyvision.network.Ensemble"
     ],
     dataset: Optional[SpatialImpulses] = None,
     intensity=1,
@@ -476,7 +478,7 @@ def compute_optimal_stimulus_responses(
     This function is compatible with joblib caching.
     """
     # Create a dummy NetworkView for FindOptimalStimuli
-    network_view = flyvision.network.NetworkView(network_dir=network.name)
+    network_view = flyvision.NetworkView(network_dir=network.name)
 
     # Prepare dataset configuration
     stimuli_dataset = dataset_class(**dataset_config)
@@ -487,7 +489,7 @@ def compute_optimal_stimulus_responses(
 
 
 def optimal_stimulus_responses(
-    network_view: "flyvision.network.NetworkView",
+    network_view: "flyvision.NetworkView",
     cell_type: str,
     dataset: Optional[StimulusDataset] = AugmentedSintel,
     dt=1 / 100,
@@ -518,7 +520,7 @@ if __name__ == '__main__':
     # Example usage
     import time
 
-    nv = flyvision.network.NetworkView("flow/0000/000")
+    nv = flyvision.NetworkView("flow/0000/000")
     start = time.time()
     # ds = nv.naturalistic_stimuli_responses()
     # print(ds)

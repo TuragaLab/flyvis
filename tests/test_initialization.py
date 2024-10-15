@@ -13,7 +13,7 @@ groupby = {
     "TimeConstant": ["type"],
     "SynapseSign": ["source_type", "target_type"],
     "SynapseCount": ["source_type", "target_type", "du", "dv"],
-    "SynapseCountScaling": ["source_type", "target_type", "edge_type"],
+    "SynapseCountScaling": ["source_type", "target_type"],
 }
 
 
@@ -122,7 +122,7 @@ def test_initial_distributions(initial_dist_config):
 
 def test_parameter(param_config, connectome):
     if param_config.type == "SynapseCount" and param_config.mode == "sample":
-        pytest.skip("SynapseCount does not support sampling")
+        pytest.skip("SynapseCount does currently not support sampling")
 
     param = forward_subclass(
         Parameter,

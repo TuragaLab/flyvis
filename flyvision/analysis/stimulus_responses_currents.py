@@ -104,7 +104,7 @@ def compute_currents(
 
 def generic_currents(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.ensemble.Ensemble"
+        "flyvision.NetworkView", "flyvision.ensemble.Ensemble"
     ],
     dataset,
     dataset_config: Dict,
@@ -116,7 +116,7 @@ def generic_currents(
 ) -> List[ExperimentData]:
     """Return responses for a given dataset as an xarray Dataset."""
     # Handle both single and multiple NetworkViews
-    if isinstance(network_view_or_ensemble, flyvision.network.NetworkView):
+    if isinstance(network_view_or_ensemble, flyvision.NetworkView):
         network_views = [network_view_or_ensemble]
     else:
         network_views = list(network_view_or_ensemble.values())
@@ -187,7 +187,7 @@ def generic_currents(
 
 def moving_edge_currents(
     network_view_or_ensemble: Union[
-        "flyvision.network.NetworkView", "flyvision.ensemble.Ensemble"
+        "flyvision.NetworkView", "flyvision.ensemble.Ensemble"
     ],
     target_cell_types: Optional[List[str]] = [
         "T4a",

@@ -183,18 +183,24 @@ body[data-md-color-scheme="slate"] .md-copyright__highlight {
 
 /* Logo handling */
 #flyvis-logo-dark,
-#flyvis-logo-dark-content {
+#flyvis-logo-dark-content,
+#flyvis-head-dark {
     display: none;
 }
 
-body[data-md-color-scheme="slate"] #flyvis-logo-light,
-body[data-md-color-scheme="slate"] #flyvis-logo-light-content {
-    display: none;
-}
+body[data-md-color-scheme="slate"] {
 
-body[data-md-color-scheme="slate"] #flyvis-logo-dark,
-body[data-md-color-scheme="slate"] #flyvis-logo-dark-content {
-    display: block;
+    #flyvis-logo-light,
+    #flyvis-logo-light-content,
+    #flyvis-head-light {
+        display: none;
+    }
+
+    #flyvis-logo-dark,
+    #flyvis-logo-dark-content,
+    #flyvis-head-dark {
+        display: block;
+    }
 }
 
 /* Invert images and videos in dark mode (slate) */

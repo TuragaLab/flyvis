@@ -1,19 +1,70 @@
-"""Interface to control the cell-specific stimulus for the network."""
+"""Interface to control the cell-specific stimulus buffer for the network."""
 
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional, Protocol, Type, Union, runtime_checkable
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
 from torch import Tensor
 
-from flyvision.connectome import ConnectomeDir
+from flyvision.connectome import ConnectomeFromAvgFilters
 
 __all__ = ["Stimulus"]
 
 
+@runtime_checkable
+class StimulusProtocol(Protocol):
+    """Protocol for the Stimulus class."""
+
+    def __call__(self) -> Tensor: ...
+    def add_input(self, x: Tensor, **kwargs) -> None: ...
+    def add_pre_stim(self, x: Tensor, **kwargs) -> None: ...
+    def zero(self, **kwargs) -> None: ...
+    def nonzero(self) -> bool: ...
+
+
+AVAILABLE_STIMULI: Dict[str, Type[StimulusProtocol]] = {}
+
+
+def register_stimulus(
+    cls: Optional[Type[StimulusProtocol]] = None,
+) -> Union[
+    Callable[[Type[StimulusProtocol]], Type[StimulusProtocol]], Type[StimulusProtocol]
+]:
+    """Register a stimulus class.
+
+    Args:
+        cls: The stimulus class to register (optional when used as a decorator).
+
+    Returns:
+        Registered class or decorator function.
+
+    Example:
+        As a standalone function:
+        ```python
+        register_stimulus(CustomStimulus)
+        ```
+
+        As a decorator:
+        ```python
+        @register_stimulus
+        class CustomStimulus(StimulusProtocol): ...
+        ```
+    """
+
+    def decorator(cls: Type[StimulusProtocol]) -> Type[StimulusProtocol]:
+        AVAILABLE_STIMULI[cls.__name__] = cls
+        return cls
+
+    if cls is None:
+        return decorator
+    else:
+        return decorator(cls)
+
+
+@register_stimulus
 class Stimulus:
-    """Interface to control the cell-specific stimulus for the network.
+    """Interface to control the cell-specific stimulus buffer for the network.
 
     Creates a buffer and maps standard video input to the photoreceptors
     but can map input to any other cell as well, e.g. to do perturbation
@@ -24,7 +75,7 @@ class Stimulus:
             buffer at the respective cell positions.
         n_samples: Number of samples to initialize the buffer with.
         n_frames: Number of frames to initialize the buffer with.
-        _init: If False, do not initialize the stimulus buffer.
+        init_buffer: If False, do not initialize the stimulus buffer.
 
     Attributes:
         layer_index (Dict[str, NDArray]): Dictionary of cell type to index array.
@@ -59,10 +110,10 @@ class Stimulus:
 
     def __init__(
         self,
-        connectome: ConnectomeDir,
+        connectome: ConnectomeFromAvgFilters,
         n_samples: int = 1,
         n_frames: int = 1,
-        _init: bool = True,
+        init_buffer: bool = True,
     ):
         self.layer_index = {
             cell_type: index[:]
@@ -85,7 +136,7 @@ class Stimulus:
             len(connectome.nodes.type),
         )
         self.connectome = connectome
-        if _init:
+        if init_buffer:
             self.zero()
 
     def zero(
@@ -202,3 +253,14 @@ class Stimulus:
             torch.Tensor: The stimulus buffer.
         """
         return self.buffer
+
+
+def is_stimulus_protocol(obj: Any) -> bool:
+    return isinstance(obj, StimulusProtocol)
+
+
+def init_stimulus(connectome: ConnectomeFromAvgFilters, **kwargs) -> StimulusProtocol:
+    if "type" not in kwargs:
+        return None
+    stimulus_class = AVAILABLE_STIMULI[kwargs.pop("type")]
+    return stimulus_class(connectome, **kwargs)

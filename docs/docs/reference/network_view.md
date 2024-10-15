@@ -1,5 +1,5 @@
 ::: flyvision.network.directories.NetworkDir
 
-::: flyvision.network.NetworkView
+::: flyvision.network.network_view.NetworkView
 
-::: flyvision.network.CheckpointedNetwork
+::: flyvision.network.network_view.CheckpointedNetwork

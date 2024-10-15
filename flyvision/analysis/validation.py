@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 
 import flyvision
 from flyvision.datasets import MultiTaskDataset
-from flyvision.network import Network, NetworkView, Stimulus
+from flyvision.network import Network, NetworkView
 from flyvision.task.objectives import epe, l2norm
 from flyvision.utils.class_utils import forward_subclass
 
@@ -43,7 +43,7 @@ def validate(
         grad=False,
     )
     losses = {task: [] for task in dataset.tasks}  # type: Dict[str, List]
-    stimulus = Stimulus(network.connectome, 0, 0, _init=False)
+    stimulus = network.stimulus
 
     with dataset.augmentation(False):
         for _, data in enumerate(dataloader):

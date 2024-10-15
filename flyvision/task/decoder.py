@@ -10,7 +10,7 @@ from datamate import Namespace
 from torch import nn
 
 from flyvision import device
-from flyvision.connectome import ConnectomeDir
+from flyvision.connectome import ConnectomeFromAvgFilters
 from flyvision.utils.activity_utils import LayerActivity
 from flyvision.utils.hex_utils import get_hex_coords
 from flyvision.utils.nn_utils import n_params
@@ -38,7 +38,7 @@ class ActivityDecoder(nn.Module):
 
     dvs_channels: Union[Dict[str, torch.Tensor], LayerActivity]
 
-    def __init__(self, connectome: ConnectomeDir):
+    def __init__(self, connectome: ConnectomeFromAvgFilters):
         super().__init__()
         self.dvs_channels = LayerActivity(None, connectome, use_central=False)
         self.num_parameters = n_params(self)
@@ -215,7 +215,7 @@ class DecoderGAVP(ActivityDecoder):
 
     def __init__(
         self,
-        connectome: ConnectomeDir,
+        connectome: ConnectomeFromAvgFilters,
         shape: List[int],
         kernel_size: int,
         p_dropout: float = 0.5,
@@ -332,7 +332,9 @@ class DecoderGAVP(ActivityDecoder):
         return out
 
 
-def init_decoder(decoder_config: Namespace, connectome: ConnectomeDir) -> nn.Module:
+def init_decoder(
+    decoder_config: Namespace, connectome: ConnectomeFromAvgFilters
+) -> nn.Module:
     """
     Initialize a decoder based on the provided configuration.
 

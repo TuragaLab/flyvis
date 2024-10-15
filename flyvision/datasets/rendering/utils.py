@@ -50,6 +50,8 @@ def median(
                 x.unsqueeze_(0).unsqueeze_(0)
             elif len(shape) == 3:
                 x.unsqueeze_(0)
+            elif len(shape) == 4:
+                pass
             else:
                 raise ValueError(f"Invalid shape: {shape}")
             assert len(x.shape) == 4
