@@ -3,11 +3,12 @@
 # See the documentation under https://www.turagalab.github.io/flyvis for details of script usage
 # and command line arguments.
 
-# Example 1: Full pipeline for an ensemble 0001 on the flow task with defaults
+# Example 1: Full pipeline for an ensemble 0001 on the flow task with defaults (dry run)
 python pipeline_manager.py \
     --command train validate record analysis notebook_per_model notebook_per_ensemble \
     --ensemble_id 0001 \
     --task_name flow
+    --dry
 
 
 # Example 2: Run analysis and generate notebooks for an existing ensemble 0003 with defaults

@@ -1,8 +1,12 @@
 import logging
+import multiprocessing
+import os
 import re
+import signal
 import socket
 import subprocess
 import sys
+import warnings
 from abc import ABC, abstractmethod
 from time import sleep
 from typing import Dict, List
@@ -137,6 +141,48 @@ class SLURMManager(ClusterManager):
         )
 
 
+class VirtualClusterManager(ClusterManager):
+    """Simulated cluster manager for local execution."""
+
+    def __init__(self):
+        warnings.warn(
+            "VirtualClusterManager is being used. This is not recommended for "
+            "production use and may not accurately represent cluster behavior.",
+            UserWarning,
+            stacklevel=2,
+        )
+        self.running_jobs = {}
+
+    def run_job(self, command: str) -> str:
+        job_id = str(len(self.running_jobs) + 1)
+        process = multiprocessing.Process(target=os.system, args=(command,))
+        process.start()
+        self.running_jobs[job_id] = process
+        return job_id
+
+    def is_running(self, job_id: str) -> bool:
+        return job_id in self.running_jobs and self.running_jobs[job_id].is_alive()
+
+    def kill_job(self, job_id: str) -> str:
+        if job_id in self.running_jobs:
+            process = self.running_jobs[job_id]
+            os.kill(process.pid, signal.SIGTERM)
+            process.join(timeout=5)
+            if process.is_alive():
+                os.kill(process.pid, signal.SIGKILL)
+            del self.running_jobs[job_id]
+            return f"Job {job_id} terminated"
+        return f"Job {job_id} not found"
+
+    def get_submit_command(
+        self, job_name: str, n_cpus: int, output_file: str, gpu: str, queue: str
+    ) -> str:
+        return (
+            f"(echo 'Running {job_name} locally' && "
+            f"echo 'CPUs: {n_cpus}, GPU: {gpu}, Queue: {queue}' && "
+        )
+
+
 def get_cluster_manager() -> ClusterManager:
     """
     Autodetect the cluster type and return the appropriate ClusterManager.
@@ -152,9 +198,14 @@ def get_cluster_manager() -> ClusterManager:
     elif subprocess.getoutput("command -v sbatch"):
         return SLURMManager()
     else:
-        raise RuntimeError(
-            "Unable to detect cluster type. Neither LSF nor SLURM commands found."
+        warnings.warn(
+            "No cluster management system detected. Using VirtualClusterManager for "
+            "local execution. "
+            "This is not recommended for production use.",
+            UserWarning,
+            stacklevel=2,
         )
+        return VirtualClusterManager()
 
 
 class LazyClusterManager:
