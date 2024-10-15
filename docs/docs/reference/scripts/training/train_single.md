@@ -1,6 +1,6 @@
-# Train Single
+# Run Training for Single Model
 
-`scripts/training/train_single.py`
+`training/train_single.py`
 
 ```
 == flyvis ==

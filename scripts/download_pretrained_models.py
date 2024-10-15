@@ -115,7 +115,8 @@ def main() -> None:
         "1. results_pretrained_models.zip: Contains pretrained neural networks.\n"
         "2. results_umap_and_clustering.zip: Contains UMAP embeddings and "
         "clustering.\n"
-        "The files are downloaded to the 'data' directory in the project root.",
+        "The files are downloaded and unpacked to the 'data' directory in the "
+        "project root.",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     arg_parser.add_argument(

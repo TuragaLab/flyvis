@@ -2,6 +2,8 @@
 
 ## Local installation
 
+> Note: `flyvis` is not tested on Windows.
+
 ### Create virtual environment
 #### Option 1: Using conda (recommended)
 
@@ -11,9 +13,7 @@
 #### Option 2: Using venv
 
 1. Create a new virtual environment: `python -m venv flyvision_env`
-2. Activate the virtual environment:
-   - On Windows: `flyvision_env\Scripts\activate`
-   - On macOS and Linux: `source flyvision_env/bin/activate`
+2. Activate the virtual environment: `source flyvision_env/bin/activate`
 
 ### Clone repo and install
 

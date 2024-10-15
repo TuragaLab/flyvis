@@ -5,6 +5,9 @@ requires = ["setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"]
 [tool.setuptools_scm]
 write_to = "flyvision/version.py"
 
+[tool.setuptools]
+include-package-data = true
+
 [project]
 classifiers = [
   "Intended Audience :: Developers",

@@ -1,6 +1,6 @@
-# Ensemble Analysis
+# Run Ensemble Analysis
 
-`scripts/analysis/ensemble_analysis.py`
+`analysis/ensemble_analysis.py`
 
 ```
 usage: ensemble_analysis.py [-h] [--task_name TASK_NAME]

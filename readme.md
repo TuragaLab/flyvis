@@ -1,73 +1,84 @@
-# Flyvision
-
-A connectome constrained deep mechanistic network (DMN) model of the fruit fly visual system in Pytorch as discovery tool for generating
-and testing hypotheses about neural computations with connectomes.
-
-It's our official implementation of [Connectome-constrained deep mechanistic networks predict neural responses across the fly visual system at single-neuron resolution](https://www.biorxiv.org/content/10.1101/2023.03.11.532232v1).
-
-Besides pretrained models and analyses, the library includes abstractions and
-extension points for building DMNs and dynamic stimulus datasets in Pytorch.
-
-## Quickstart
-
-Try the models and code inside our Google Colab notebooks for a quickstart.
-
-- [Explore the connectome](https://colab.research.google.com/drive/16xi96XS3whNhwMNeFihBNNgADVh60XHH?usp=sharing)
-- [Provide custom stimuli](https://colab.research.google.com/drive/1xBJ-xLgmLGhXgkf8XLw2PRRlDrYQ1Hhv?usp=sharing)
-- [Optic flow task]()
-- [Flash responses]()
-- [Moving edge responses]()
-- [Umap and clustering]()
-- [Maximally excitatory stimuli]()
-
-## Local installation
-
-1. create a new conda environment `conda create --name flyvision -y`
-2. activate the new conda environment `conda activate flyvision`
-3. install python `conda install "python>=3.7.11,<3.10.0"`
-4. clone the repository `git clone https://github.com/TuragaLab/flyvis.git`
-5. navigate to the repo `cd flyvis` and install in developer mode `pip install -e .`
-
-## Download pretrained models
-
-1. run `python scripts/download_pretrained_models.py` from active conda environment
-
-
-## Background
-
-How useful is a connectome? We show that you can predict quite a bit about the neural activity of a circuit from just measurements of its connectivity.
-
-<p style="text-align:center;">
-<img src="images/tweet_1_intro.png"  width="60%" height="30%">
+<h1>
+<p style="text-align:left;">
+    <img src="docs/docs/images/flyvis_logo_light@150ppi.webp" width="50%" alt="Flyvis Logo">
 </p>
+</h1>
 
-We built a convolutional recurrent network of the fly visual system--on a hexagonal grid, matching the columnar structure of the optic lobe. Weights (connections + filter weights) come from the connectome: A deep neural network which precisely maps onto a real brain circuit!
+A connectome-constrained deep mechanistic network (DMN) model of the fruit fly visual system in PyTorch.
 
-<p style="text-align:center;">
-<img src="images/tweet_4_network.gif"  width="60%" height="30%" class="center">
-</p>
+- Explore connectome-constrained models of the fruit fly visual system.
+- Generate and test hypotheses about neural computations.
+- Try pretrained models on your data.
+- Develop custom models using our framework.
 
-Our connectome-constrained “deep mechanistic network” (DMN) has 64 identified cell-types, 44K neurons + over 1 Mio. connections.
-We trained its free parameters (single-cell + synapse dynamics) on optic flow
-computation from naturalistic movie inputs.
+Flyvis is our official implementation of
+[Lappalainen et al., "Connectome-constrained networks predict neural activity across the fly visual system." Nature (2024).](https://www.nature.com/articles/s41586-024-07939-3)
 
-<p style="text-align:center;">
-<img src="images/tweet_5_training_light.gif"  width="60%" height="30%" class="center">
-</p>
+## Documentation
+
+For detailed documentation, installation instructions, tutorials, and API reference, visit our [documentation website](https://turagalab.github.io/flyvis/).
+
+## Tutorials
+
+Explore our tutorials to get started with flyvis. You can run them locally or try them for a quick start in Google Colab:
+
+1. Explore the Connectome
+   - [Tutorial](https://turagalab.github.io/flyvis/examples/01_flyvision_connectome/)
+   - [Google Colab](https://colab.research.google.com/drive/16xi96XS3whNhwMNeFihBNNgADVh60XHH?usp=sharing)
+
+2. Train the Network on the Optic Flow Task
+   - [Tutorial](https://turagalab.github.io/flyvis/examples/02_flyvision_optic_flow_task/)
+   - [Google Colab]() <!-- Add Colab link when available -->
+
+3. Flash Responses
+   - [Tutorial](https://turagalab.github.io/flyvis/examples/03_flyvision_flash_responses/)
+   - [Google Colab]() <!-- TODO: add link when available -->
+
+4. Moving Edge Responses
+   - [Tutorial](https://turagalab.github.io/flyvis/examples/04_flyvision_moving_edge_responses/)
+   - [Google Colab]() <!-- TODO: add link when available -->
+
+5. Ensemble Clustering
+   - [Tutorial](https://turagalab.github.io/flyvis/examples/05_flyvision_umap_and_clustering_models/)
+   - [Google Colab]() <!-- TODO: add link when available -->
+
+6. Maximally Excitatory Stimuli
+   - [Tutorial](https://turagalab.github.io/flyvis/examples/06_flyvision_maximally_excitatory_stimuli/)
+   - [Google Colab]() <!-- TODO: add link when available -->
+
+7. Custom Stimuli
+   - [Tutorial](https://turagalab.github.io/flyvis/examples/07_flyvision_providing_custom_stimuli/)
+   - [Google Colab](https://colab.research.google.com/drive/1xBJ-xLgmLGhXgkf8XLw2PRRlDrYQ1Hhv?usp=sharing)
+
+Note: Some Google Colab links are still being prepared and will be added soon.
+
+## Main Results
+
+- [Fig. 1: Connectome-constrained and task-optimized models of the fly visual system](https://turagalab.github.io/flyvis/examples/figure_01_fly_visual_system/)
+- [Fig. 2: Ensembles of DMNs predict tuning properties](https://turagalab.github.io/flyvis/examples/figure_02_simple_stimuli_responses/)
+- [Fig. 3: Cluster analysis of DMN ensembles enables hypothesis generation and suggests experimental tests](https://turagalab.github.io/flyvis/examples/figure_03_naturalistic_stimuli_responses/)
+- [Fig. 4: Task-optimal DMNs largely recapitulate known mechanisms of motion computation](https://turagalab.github.io/flyvis/examples/figure_04_mechanisms/)
 
 ## Citation
 
 ```
-@article{lappalainen2023connectome,
-  title={Connectome-constrained deep mechanistic networks predict neural
-  responses across the fly visual system at single-neuron resolution},
-  author={Lappalainen, Janne K and Tschopp, Fabian D and Prakhya, Sridhama and
-  McGill, Mason and Nern, Aljoscha and Shinomiya, Kazunori and Takemura, Shin-ya
-   and Gruntman, Eyal and Macke, Jakob H and Turaga, Srinivas C},
-  journal={bioRxiv},
-  year={2023}
+@article{lappalainen2024connectome,
+	title = {Connectome-constrained networks predict neural activity across the fly visual system},
+	issn = {1476-4687},
+	url = {https://doi.org/10.1038/s41586-024-07939-3},
+	doi = {10.1038/s41586-024-07939-3},
+	journal = {Nature},
+	author = {Lappalainen, Janne K. and Tschopp, Fabian D. and Prakhya, Sridhama and McGill, Mason and Nern, Aljoscha and Shinomiya, Kazunori and Takemura, Shin-ya and Gruntman, Eyal and Macke, Jakob H. and Turaga, Srinivas C.},
+	month = sep,
+	year = {2024},
 }
 ```
 
+## Links
+
+- [Nature Article](https://www.nature.com/articles/s41586-024-07939-3)
+- [Documentation](https://turagalab.github.io/flyvis/)
+
 ## Correspondence
-[mailto:lappalainenjk@gmail.com](mailto:lappalainenjk@gmail.com)
+
+For questions or inquiries, [please contact us.](mailto:janne.lappalainen@uni-tuebingen.de?cc=jakob.macke@uni-tuebingen.de,turagas@janelia.hhmi.org)

@@ -21,6 +21,15 @@ import subprocess
 import sys
 from typing import List
 
+SCRIPTS_DIR = {
+    "train": "training/train.py",
+    "validate": "validation/validate.py",
+    "record": "analysis/record.py",
+    "analysis": "analysis/analysis.py",
+    "notebook_per_model": "analysis/notebook_per_model.py",
+    "notebook_per_ensemble": "analysis/notebook_per_ensemble.py",
+}
+
 
 def run_script(script_name: str, args: List[str]) -> None:
     """
@@ -65,12 +74,12 @@ Runs multiple operations on an ensemble of models.
 This is to pipeline jobs on the cluster.
 Each command corresponds to a script that launches required jobs.
 
-train               : Runs train.py
-validate            : Runs validate.py
-record              : Runs record.py
-analysis            : Runs analysis.py
-notebook_per_model  : Runs notebook_per_model.py
-notebook_per_ensemble : Runs notebook_per_ensemble.py
+train               : Runs training/train.py
+validate            : Runs validation/validate.py
+record              : Runs analysis/record.py
+analysis            : Runs analysis/analysis.py
+notebook_per_model  : Runs analysis/notebook_per_model.py
+notebook_per_ensemble : Runs analysis/notebook_per_ensemble.py
 
 All arguments after --command are passed directly to the respective scripts.
 For detailed help on each command, run the individual script with --help.
@@ -79,4 +88,4 @@ For detailed help on each command, run the individual script with --help.
     args, remaining = parser.parse_known_args()
 
     for command in args.command:
-        run_script(f"{command}.py", sys.argv[1:])
+        run_script(f"{SCRIPTS_DIR[command]}", sys.argv[1:])

@@ -31,7 +31,7 @@ def run_notebook_ensemble(args: argparse.Namespace, kwargs: List[str]) -> None:
         args.nP,
         args.gpu,
         args.q,
-        f"{str(script_dir)}/notebook.py",
+        f"{str(script_dir)}/analysis/notebook.py",
         args.dry,
         # add hybrid argument
         ["--notebook_per_model_path", args.notebook_per_model_path]

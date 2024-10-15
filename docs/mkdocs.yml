@@ -40,19 +40,22 @@ nav:
       - "Animations": reference/animations.md
     - "Scripts":
       - "Data Download": reference/scripts/scripts/download_pretrained_models.md
-      - "Training": reference/scripts/training/train_single.md
-      - "Validation": reference/scripts/validation/val_single.md
+      - "Training":
+        - "Run Training for Single Model": reference/scripts/training/train_single.md
+        - "Launch Ensemble Training on Cluster": reference/scripts/training/train.md
+      - "Validation":
+        - "Run Validation for Single Model": reference/scripts/validation/val_single.md
+        - "Launch Ensemble Validation on Cluster": reference/scripts/validation/validate.md
       - "Analysis":
-        - "Ensemble Analysis": reference/scripts/analysis/ensemble_analysis.md
-        - "Synthetic Recordings": reference/scripts/analysis/synthetic_recordings_single.md
-      - "Notebook": reference/scripts/scripts/notebook.md
-      - "Cluster Submissions":
-        - "Pipeline Manager": reference/scripts/scripts/pipeline_manager.md
-        - "Train": reference/scripts/scripts/train.md
-        - "Validate": reference/scripts/scripts/validate.md
-        - "Record": reference/scripts/scripts/record.md
-        - "Analysis": reference/scripts/scripts/analysis.md
-        - "Notebook per Model": reference/scripts/scripts/notebook_per_model.md
+        - "Run Synthetic Recordings": reference/scripts/analysis/synthetic_recordings_single.md
+        - "Launch Synthetic Recordings on Cluster": reference/scripts/analysis/record.md
+        - "Run Ensemble Analysis": reference/scripts/analysis/ensemble_analysis.md
+        - "Launch Ensemble Analysis on Cluster": reference/scripts/analysis/analysis.md
+      - "Notebook":
+        - "Run Notebook": reference/scripts/analysis/notebook.md
+        - "Launch Notebook Per Ensemble on Cluster": reference/scripts/analysis/notebook_per_ensemble.md
+        - "Launch Notebook Per Model on Cluster": reference/scripts/analysis/notebook_per_model.md
+      - "Pipeline Manager": reference/scripts/scripts/pipeline_manager.md
   - Contributing: contribute.md
   - FAQ: faq.md
   - Acknowledgements: acknowledgements.md
@@ -175,7 +178,7 @@ copyright: Lappalainen &copy 2024
 extra:
   social:
     - icon: fontawesome/solid/envelope
-      link: mailto:lappalainenjk@gmail.com?cc=jakob.macke@uni-tuebingen.de,turagas@janelia.hhmi.org
+      link: mailto:janne.lappalainen@uni-tuebingen.de?cc=jakob.macke@uni-tuebingen.de,turagas@janelia.hhmi.org
     - icon: fontawesome/brands/github
       link: https://github.com/turagalab/flyvis
     - icon: fontawesome/solid/newspaper

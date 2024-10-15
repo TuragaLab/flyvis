@@ -1,0 +1,3 @@
+include data/connectome/fib25-fib19_v2.2.json
+include examples/__main__.ipynb
+include examples/__main_per_model__.ipynb

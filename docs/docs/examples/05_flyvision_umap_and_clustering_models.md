@@ -1,8 +1,3 @@
-```python
-%load_ext autoreload
-%autoreload 2
-```
-
 # Cluster analysis based on naturalistic stimuli responses
 
 This notebook illustrates how to cluster the models of an ensemble after nonlinear dimensionality reduction on their predicted responses to naturalistic stimuli. This can be done for any cell type. Here we provide a detailed example focusing on clustering based on T4c responses.

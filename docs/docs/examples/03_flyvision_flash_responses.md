@@ -1,12 +1,3 @@
-```python
-%load_ext autoreload
-%autoreload 2
-
-import os
-
-os.environ["TESTING"] = "true"
-```
-
 # Flash responses
 
 This notebook introduces flash responses and the flash response index (FRI).

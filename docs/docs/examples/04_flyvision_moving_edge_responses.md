@@ -1,8 +1,3 @@
-```python
-%load_ext autoreload
-%autoreload 2
-```
-
 # Moving edge responses
 
 This notebook introduces moving edge responses and the direction selectivity index (DSI). The DSI measures motion selectivity of cells to visual input.

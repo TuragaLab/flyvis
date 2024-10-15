@@ -28,7 +28,7 @@ def run_ensemble_notebook(args: argparse.Namespace, kwargs: List[str]) -> None:
         args.nP,
         args.gpu,
         args.q,
-        args.notebook_script,
+        f"{str(script_dir)}/analysis/notebook.py",
         args.dry,
         ["--notebook_path", args.notebook_path] + ["per_ensemble:bool=true"] + kwargs,
     )
@@ -56,12 +56,6 @@ if __name__ == "__main__":
         type=str,
         default="examples/__main__.ipynb",
         help="Path of the notebook to execute.",
-    )
-    parser.add_argument(
-        "--notebook_script",
-        type=str,
-        default=f"{str(script_dir)}/notebook.py",
-        help="Script to run for notebook execution.",
     )
     parser.add_argument(
         "--dry",

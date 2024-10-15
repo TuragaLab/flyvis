@@ -1,8 +1,3 @@
-```python
-%load_ext autoreload
-%autoreload 2
-```
-
 # Maximally excitatory stimuli from trained models
 
 This notebook illustrates how to compute the stimuli that maximally excite a specific neuron.

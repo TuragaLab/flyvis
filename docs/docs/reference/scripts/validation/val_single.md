@@ -1,6 +1,6 @@
-# Val Single
+# Run Validation for Single Model
 
-`scripts/validation/val_single.py`
+`validation/val_single.py`
 
 ```
 usage: val_single.py [-h] [--ensemble_and_network_id ENSEMBLE_AND_NETWORK_ID]
