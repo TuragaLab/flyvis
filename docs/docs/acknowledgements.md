@@ -1,6 +1,6 @@
 # Acknowledgements
 
-`flyvision` was developed at the [Macke Lab](https://www.mackelab.org) at the University of Tübingen and at the [Turaga Lab](https://www.janelia.org/lab/turaga-lab) at Janelia Research Campus.
+`flyvision` is developed at the [Macke Lab](https://www.mackelab.org) at the University of Tübingen and at the [Turaga Lab](https://www.janelia.org/lab/turaga-lab) at Janelia Research Campus.
 
 ## Paper
 
