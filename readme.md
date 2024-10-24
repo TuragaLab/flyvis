@@ -24,31 +24,31 @@ Explore our tutorials to get started with flyvis. You can run them locally or tr
 
 1. Explore the Connectome
    - [Tutorial](https://turagalab.github.io/flyvis/examples/01_flyvision_connectome/)
-   - [Google Colab](https://colab.research.google.com/drive/16xi96XS3whNhwMNeFihBNNgADVh60XHH?usp=sharing)
+   - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/01_flyvision_connectome.ipynb)
 
 2. Train the Network on the Optic Flow Task
    - [Tutorial](https://turagalab.github.io/flyvis/examples/02_flyvision_optic_flow_task/)
-   - [Google Colab]() <!-- Add Colab link when available -->
+   - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/02_flyvision_optic_flow_task.ipynb)
 
 3. Flash Responses
    - [Tutorial](https://turagalab.github.io/flyvis/examples/03_flyvision_flash_responses/)
-   - [Google Colab]() <!-- TODO: add link when available -->
+   - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/03_flyvision_flash_responses.ipynb)
 
 4. Moving Edge Responses
    - [Tutorial](https://turagalab.github.io/flyvis/examples/04_flyvision_moving_edge_responses/)
-   - [Google Colab]() <!-- TODO: add link when available -->
+   - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/04_flyvision_moving_edge_responses.ipynb)
 
 5. Ensemble Clustering
    - [Tutorial](https://turagalab.github.io/flyvis/examples/05_flyvision_umap_and_clustering_models/)
-   - [Google Colab]() <!-- TODO: add link when available -->
+   - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/05_flyvision_umap_and_clustering_models.ipynb)
 
 6. Maximally Excitatory Stimuli
    - [Tutorial](https://turagalab.github.io/flyvis/examples/06_flyvision_maximally_excitatory_stimuli/)
-   - [Google Colab]() <!-- TODO: add link when available -->
+   - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/06_flyvision_maximally_excitatory_stimuli.ipynb)
 
 7. Custom Stimuli
    - [Tutorial](https://turagalab.github.io/flyvis/examples/07_flyvision_providing_custom_stimuli/)
-   - [Google Colab](https://colab.research.google.com/drive/1xBJ-xLgmLGhXgkf8XLw2PRRlDrYQ1Hhv?usp=sharing)
+   - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/07_flyvision_providing_custom_stimuli.ipynb)
 
 Note: Some Google Colab links are still being prepared and will be added soon.
 
