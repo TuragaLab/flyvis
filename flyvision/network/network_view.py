@@ -328,10 +328,7 @@ class NetworkView:
             with set_root_context(root_dir):
                 network_dir = Directory(network_dir)
         if not network_dir.config.type == "NetworkDir":
-            raise ValueError(
-                f"Expected NetworkDir, found {network_dir.config.type} "
-                f"at {network_dir.path}."
-            )
+            raise ValueError(f"NetworkDir not found at {network_dir.path}.")
         name = os.path.sep.join(network_dir.path.parts[-3:])
         return network_dir, name
 

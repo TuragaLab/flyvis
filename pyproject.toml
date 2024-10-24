@@ -8,6 +8,7 @@ write_to = "flyvision/version.py"
 [tool.setuptools]
 include-package-data = true
 
+
 [project]
 classifiers = [
   "Intended Audience :: Developers",
@@ -92,6 +93,7 @@ no-version-pins = [
 exclude = [] # exclude packages matching these glob patterns (empty by default)
 include = [
   "flyvision*",
+  "flyvis*",
 ] # package names should match these glob patterns (["*"] by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 where = ["."] # list of folders that contain the packages (["."] by default)
