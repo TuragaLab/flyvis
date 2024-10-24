@@ -11,7 +11,6 @@ from datamate import Directory, Namespace, root
 from tqdm import tqdm
 
 from flyvision import renderings_dir
-from flyvision.utils.dataset_utils import download_sintel
 
 from .augmentation.hex import (
     ContrastBrightness,
@@ -28,6 +27,7 @@ from .datasets import MultiTaskDataset
 from .rendering import BoxEye
 from .rendering.utils import split
 from .sintel_utils import (
+    download_sintel,
     load_sequence,
     original_train_and_validation_indices,
     sample_depth,

@@ -1,3 +1,5 @@
+import logging
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -7,8 +9,11 @@ import torch
 from PIL import Image
 
 import flyvision
+from flyvision.utils.dataset_utils import download_url_to_file
 
 from .rendering.utils import split
+
+logger = logging.getLogger(__name__)
 
 
 def load_sequence(
@@ -285,3 +290,55 @@ def original_train_and_validation_indices(
     val_indices.remove(37)
     val_indices.remove(38)
     return train_indices, val_indices
+
+
+def download_sintel(delete_if_exists: bool = False, depth: bool = False) -> Path:
+    """Download the sintel dataset.
+
+    Args:
+        delete_if_exists: If True, delete the dataset if it exists and download again.
+        depth: If True, download the depth dataset as well.
+
+    Returns:
+        Path to the sintel dataset.
+    """
+    sintel_dir = flyvision.sintel_dir
+    sintel_dir.mkdir(parents=True, exist_ok=True)
+
+    def exists(depth: bool = False) -> bool:
+        try:
+            assert sintel_dir.exists()
+            assert (sintel_dir / "training").exists()
+            assert (sintel_dir / "test").exists()
+            assert (sintel_dir / "training/flow").exists()
+            if depth:
+                assert (sintel_dir / "training/depth").exists()
+            return True
+        except AssertionError:
+            return False
+
+    def download_and_extract(url: str, depth: bool = False) -> None:
+        sintel_zip = sintel_dir / Path(url).name
+
+        if not exists(depth=depth) or delete_if_exists:
+            logger.info("Downloading Sintel dataset.")
+            assert not sintel_zip.exists()
+            download_url_to_file(url, sintel_zip)
+            logger.info("Extracting Sintel dataset.")
+            with zipfile.ZipFile(sintel_zip, "r") as zip_ref:
+                zip_ref.extractall(sintel_dir)
+        else:
+            logger.info("Found Sintel at %s", sintel_dir)
+
+    download_and_extract(
+        "http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip", depth=False
+    )
+    if depth:
+        download_and_extract(
+            "http://files.is.tue.mpg.de/jwulff/sintel/MPI-Sintel-depth-training-20150305.zip",
+            depth=True,
+        )
+
+    assert exists(depth)
+
+    return sintel_dir

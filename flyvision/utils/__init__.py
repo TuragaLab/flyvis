@@ -41,8 +41,10 @@ def setup_xarray_accessors():
     import xarray as xr
     from . import xarray_utils
 
-    xr.register_dataarray_accessor("custom")(xarray_utils.CustomAccessor)
-    xr.register_dataset_accessor("custom")(xarray_utils.CustomAccessor)
+    if not hasattr(xr.DataArray, "custom"):
+        xr.register_dataarray_accessor("custom")(xarray_utils.CustomAccessor)
+    if not hasattr(xr.Dataset, "custom"):
+        xr.register_dataset_accessor("custom")(xarray_utils.CustomAccessor)
 
 
 def setup_joblib_backend():

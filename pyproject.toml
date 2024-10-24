@@ -54,14 +54,7 @@ readme = "README.md"
 requires-python = ">=3.6"
 
 [project.optional-dependencies]
-dev = [
-  # Lint
-  "pre-commit",
-  "ruff",       # Test
-  "pytest",
-  "jupyter",
-  "papermill",
-]
+dev = ["pre-commit", "ruff", "pytest", "jupyter", "papermill"]
 docs = [
   # Documentation
   "mkdocs",
@@ -69,15 +62,13 @@ docs = [
   "markdown-include",
   "mkdocs-redirects",
   "mkdocstrings[python] >= 0.18",
-  "jupyter",
   "nbconvert",
   "mike",
   "mkdocs-macros-plugin",
-]
-example = [
-  # Examples
   "jupyter",
+  "tabulate",
 ]
+examples = ["jupyter", "tabulate"]
 no-version-pins = [
   "numba",
   "matplotlib",
