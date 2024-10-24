@@ -1353,10 +1353,10 @@ def _projective_fields_edge_dfs(
 
 
 def get_avgfilt_connectome(config: dict) -> ConnectomeView:
-    """Create a ConnectomeView instance from a network directory.
+    """Create a ConnectomeView instance from a config for ConnectomeFromAvgFilters.
 
     Args:
-        network_dir: Directory containing network configuration.
+        config: Containing ConnectomeFromAvgFilters configuration.
 
     Returns:
         ConnectomeView instance.

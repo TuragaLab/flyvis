@@ -236,9 +236,6 @@
     options:
       heading_level: 4
 
-::: flyvision.utils.dataset_utils.download_sintel
-    options:
-      heading_level: 4
 
 ::: flyvision.utils.dataset_utils.get_random_data_split
     options:
