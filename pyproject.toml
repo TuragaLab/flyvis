@@ -54,9 +54,17 @@ readme = "README.md"
 requires-python = ">=3.6"
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ruff", "pytest", "jupyter", "papermill"]
+dev = [
+  "pre-commit",
+  "ruff",
+  "pytest",
+  "jupyter",
+  "papermill",
+  "tabulate",
+  "tqdm",
+  "ipywidgets",
+]
 docs = [
-  # Documentation
   "mkdocs",
   "mkdocs-material",
   "markdown-include",
@@ -67,8 +75,10 @@ docs = [
   "mkdocs-macros-plugin",
   "jupyter",
   "tabulate",
+  "tqdm",
+  "ipywidgets",
 ]
-examples = ["jupyter", "tabulate"]
+examples = ["jupyter", "tabulate", "tqdm", "ipywidgets"]
 no-version-pins = [
   "numba",
   "matplotlib",

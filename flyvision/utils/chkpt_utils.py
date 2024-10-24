@@ -1,4 +1,5 @@
 import logging
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
@@ -135,7 +136,11 @@ def get_from_state_dict(state_dict: Union[Dict, Path, str], key: str) -> Dict:
     if state_dict is None:
         return None
     if isinstance(state_dict, (Path, str)):
-        state = torch.load(state_dict, map_location=flyvision.device).pop(key, None)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            state = torch.load(
+                state_dict, map_location=flyvision.device, weights_only=False
+            ).pop(key, None)
     elif isinstance(state_dict, dict):
         state = state_dict.get(key, None)
     else:
