@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from flyvision.task.objectives import epe, l2norm
+from flyvis.task.objectives import epe, l2norm
 
 
 @pytest.mark.parametrize("objective", [l2norm, epe])

@@ -5,8 +5,8 @@ import logging
 import sys
 from typing import List
 
-from flyvision import script_dir
-from flyvision.utils.compute_cloud_utils import launch_single
+from flyvis import script_dir
+from flyvis.utils.compute_cloud_utils import launch_single
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO

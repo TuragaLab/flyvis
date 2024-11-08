@@ -175,7 +175,7 @@ cython_debug/
 **/__pycache__
 **/**/__pycache__
 .coverage
-flyvision/version.py
+**/version.py
 debug
 .env.dev
 prepare_api_reference.py

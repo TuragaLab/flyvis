@@ -7,10 +7,10 @@ import pytest
 import torch
 from datamate import Directory, Namespace
 
-from flyvision import results_dir
-from flyvision.network.ensemble import Ensemble, TaskError
-from flyvision.network.ensemble_view import EnsembleView
-from flyvision.network.network import IntegrationWarning, Network
+from flyvis import results_dir
+from flyvis.network.ensemble import Ensemble, TaskError
+from flyvis.network.ensemble_view import EnsembleView
+from flyvis.network.network import IntegrationWarning, Network
 
 pytestmark = pytest.mark.require_download
 
@@ -103,7 +103,7 @@ def test_task_error(ensemble):
 
 @pytest.mark.slow
 def test_cluster_indices():
-    ensemble = Ensemble(results_dir / "flow/0000")
+    ensemble = Ensemble("flow/0000")
     for cell_type in ensemble.connectome.unique_cell_types[:].astype(str):
         cluster_indices = ensemble.cluster_indices(cell_type)
         assert isinstance(cluster_indices, dict)
@@ -121,6 +121,7 @@ def test_loss_histogram(ensemble: Ensemble):
     plt.close(fig)
 
 
+@pytest.mark.slow
 def test_responses():
     ensemble = Ensemble(
         results_dir / "flow/0000",

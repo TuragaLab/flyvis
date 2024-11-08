@@ -1,8 +1,8 @@
 import pytest
 from datamate import set_root_context
 
-from flyvision.solver import MultiTaskSolver
-from flyvision.utils.config_utils import get_default_config
+from flyvis.solver import MultiTaskSolver
+from flyvis.utils.config_utils import get_default_config
 
 # add large_download mark to deselect this test in CI
 pytestmark = pytest.mark.require_large_download
@@ -36,6 +36,7 @@ def test_solver_config():
     assert config.ensemble_and_network_id == 0
 
 
+@pytest.mark.slow
 def test_solver_init(solver):
     assert isinstance(solver, MultiTaskSolver)
     assert solver.dir.path.exists()

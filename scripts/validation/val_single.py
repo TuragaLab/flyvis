@@ -1,6 +1,6 @@
-from flyvision import NetworkView
-from flyvision.analysis.validation import validate_all_checkpoints
-from flyvision.utils.config_utils import HybridArgumentParser
+from flyvis import NetworkView
+from flyvis.analysis.validation import validate_all_checkpoints
+from flyvis.utils.config_utils import HybridArgumentParser
 
 
 def main():

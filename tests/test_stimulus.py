@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from flyvision.network.stimulus import Stimulus
+from flyvis.network.stimulus import Stimulus
 
 
 @pytest.fixture

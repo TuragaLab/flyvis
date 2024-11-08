@@ -13,9 +13,9 @@ Example:
 import logging
 import pickle
 
-from flyvision import Ensemble
-from flyvision.analysis.clustering import umap_and_clustering_generator
-from flyvision.utils.config_utils import HybridArgumentParser
+from flyvis import Ensemble
+from flyvis.analysis.clustering import umap_and_clustering_generator
+from flyvis.utils.config_utils import HybridArgumentParser
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO

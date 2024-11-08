@@ -7,8 +7,8 @@ import tempfile
 
 import papermill as pm
 
-import flyvision
-from flyvision.utils.config_utils import HybridArgumentParser
+import flyvis
+from flyvis.utils.config_utils import HybridArgumentParser
 
 if __name__ == "__main__":
     parser = HybridArgumentParser(
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         if args.notebook_per_model:
             input_path = args.notebook_per_model_path
             output_path = (
-                flyvision.results_dir
+                flyvis.results_dir
                 / f"{args.task_name}/{args.ensemble_and_network_id}"
                 / args.notebook_per_model_path.split(os.sep)[-1]
             )
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         elif args.per_ensemble:
             input_path = args.notebook_path
             output_path = (
-                flyvision.results_dir
+                flyvis.results_dir
                 / f"{args.task_name}/{args.ensemble_id:04}"
                 / args.notebook_path.split(os.sep)[-1]
             )
@@ -119,7 +119,7 @@ if __name__ == "__main__":
             output_path = args.output_path or f.name
         logging.info("Output will be saved to %s.", output_path)
         pm.execute_notebook(
-            flyvision.repo_dir / input_path,
+            flyvis.repo_dir / input_path,
             output_path,
             parameters=args.__dict__,
         )

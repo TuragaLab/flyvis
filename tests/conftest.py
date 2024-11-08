@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from flyvision import connectome_file
-from flyvision.connectome import ConnectomeFromAvgFilters
+from flyvis import connectome_file
+from flyvis.connectome import ConnectomeFromAvgFilters
 
 
 @pytest.fixture(scope="session")

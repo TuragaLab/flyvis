@@ -1,8 +1,8 @@
 import pytest
 
-from flyvision.network import dynamics
-from flyvision.network.dynamics import NetworkDynamics, activation_fns
-from flyvision.utils.class_utils import forward_subclass
+from flyvis.network import dynamics
+from flyvis.network.dynamics import NetworkDynamics, activation_fns
+from flyvis.utils.class_utils import forward_subclass
 
 
 @pytest.fixture(

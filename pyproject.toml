@@ -3,7 +3,7 @@ build-backend = "setuptools.build_meta"
 requires = ["setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"]
 
 [tool.setuptools_scm]
-write_to = "flyvision/version.py"
+write_to = "flyvis/version.py"
 
 [tool.setuptools]
 include-package-data = true
@@ -49,7 +49,7 @@ dependencies = [
 ]
 description = "Connectome and task-constrained vision models of the fruit fly."
 dynamic = ["version"]
-name = "flyvision"
+name = "flyvis"
 readme = "README.md"
 requires-python = ">=3.6"
 
@@ -93,7 +93,6 @@ no-version-pins = [
 [tool.setuptools.packages.find]
 exclude = [] # exclude packages matching these glob patterns (empty by default)
 include = [
-  "flyvision*",
   "flyvis*",
 ] # package names should match these glob patterns (["*"] by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
@@ -127,7 +126,7 @@ select = ["E", "F", "W", "B", "SIM", "I"]
 # case-sensitive = true
 # lines-between-types = 0  # like isort default.
 # relative-imports-order = "furthest-to-closest"  # like isort default.
-# known-first-party = ["flyvision", "tests", "examples", "scripts"]
+# known-first-party = ["flyvis", "tests", "examples", "scripts"]
 
 [tool.ruff.format]
 # exclude = ["*.ipynb"]
@@ -161,6 +160,6 @@ exclude = [
   "images",
 ]
 ignore = []
-include = ["flyvision", "scripts", "tests", "examples"]
+include = ["flyvis", "scripts", "tests", "examples"]
 python_version = "3.x"
 reportUnsupportedDunderAll = false

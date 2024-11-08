@@ -42,9 +42,9 @@ import hydra
 from datamate import set_root_context
 from omegaconf import OmegaConf
 
-from flyvision import results_dir, source_dir
-from flyvision.solver import MultiTaskSolver
-from flyvision.utils.logging_utils import save_conda_environment
+from flyvis import results_dir, source_dir
+from flyvis.solver import MultiTaskSolver
+from flyvis.utils.logging_utils import save_conda_environment
 
 logging = logger = logging.getLogger(__name__)
 

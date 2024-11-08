@@ -5,11 +5,11 @@ import pytest
 import torch
 from datamate import Namespace
 
-import flyvision
-from flyvision import Network
-from flyvision.connectome.connectome import init_connectome, register_connectome
-from flyvision.network.network import IntegrationWarning
-from flyvision.utils.tensor_utils import AutoDeref
+import flyvis
+from flyvis import Network
+from flyvis.connectome.connectome import init_connectome, register_connectome
+from flyvis.network.network import IntegrationWarning
+from flyvis.utils.tensor_utils import AutoDeref
 
 
 @pytest.fixture(scope="module")
@@ -93,7 +93,7 @@ def test_param_api(network):
     assert param_api.get("targets", None) is not None
     assert isinstance(
         param_api.get("nodes").get(list(param_api.get("nodes").keys())[0], None),
-        flyvision.utils.tensor_utils.RefTensor,
+        flyvis.utils.tensor_utils.RefTensor,
     )
     assert len(param_api.sources.bias) == network.n_edges
     assert len(param_api.targets.bias) == network.n_edges

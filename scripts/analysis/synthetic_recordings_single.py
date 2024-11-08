@@ -35,8 +35,8 @@ Available Functions:
 import argparse
 import logging
 
-from flyvision import NetworkView
-from flyvision.utils.config_utils import HybridArgumentParser
+from flyvis import NetworkView
+from flyvis.utils.config_utils import HybridArgumentParser
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO

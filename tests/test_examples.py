@@ -46,6 +46,7 @@ notebooks = [
 
 
 # Define a parameterized test using pytest
+@pytest.mark.slow
 @pytest.mark.parametrize("notebook", notebooks)
 def test_notebook_execution(notebook, tmpdir):
     notebook_path = str(examples_path / notebook)
