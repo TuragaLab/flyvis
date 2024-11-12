@@ -47,7 +47,7 @@ For detailed information about flyvis' components and functions, please refer to
 ### Scripts
 
 We also provide a set of scripts for various tasks, including data download, training, validation, and analysis. You can start with the [Scripts](reference/scripts/scripts/download_pretrained_models.md) section of our documentation.
-A good starting point is also the [pipeline manager](reference/scripts/scripts/pipeline_manager.md) to run the scripts in sequence on either LSF or SLURM compute clouds.
+A good starting point is also the [pipeline manager](reference/scripts/scripts/flyvis.md) to run the scripts in sequence on either LSF or SLURM compute clouds.
 
 ## Installation
 

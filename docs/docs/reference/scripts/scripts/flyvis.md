@@ -1,9 +1,9 @@
-# Pipeline Manager to Launch Multiple Scripts on Cluster
+# Pipeline Manager
 
-`pipeline_manager.py`
+`scripts/scripts/flyvis.py`
 
 ```
-usage: pipeline_manager.py [-h] --ensemble_id ENSEMBLE_ID --task_name
+usage: flyvis.py [-h] --ensemble_id ENSEMBLE_ID --task_name
                            TASK_NAME --command
                            {train,validate,record,analysis,notebook_per_model,notebook_per_ensemble}
                            [{train,validate,record,analysis,notebook_per_model,notebook_per_ensemble} ...]
@@ -23,12 +23,12 @@ Runs multiple operations on an ensemble of models.
 This is to pipeline jobs on the cluster.
 Each command corresponds to a script that launches required jobs.
 
-train               : Runs training/train.py
-validate            : Runs validation/validate.py
-record              : Runs analysis/record.py
-analysis            : Runs analysis/analysis.py
-notebook_per_model  : Runs analysis/notebook_per_model.py
-notebook_per_ensemble : Runs analysis/notebook_per_ensemble.py
+train               : Runs train.py
+validate            : Runs validate.py
+record              : Runs record.py
+analysis            : Runs analysis.py
+notebook_per_model  : Runs notebook_per_model.py
+notebook_per_ensemble : Runs notebook_per_ensemble.py
 
 All arguments after --command are passed directly to the respective scripts.
 For detailed help on each command, run the individual script with --help.

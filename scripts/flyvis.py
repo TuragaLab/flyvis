@@ -4,7 +4,7 @@
 Example usage:
     ```bash
     # Run a pipeline of operations
-    python pipeline_manager.py \
+    python flyvis.py \
         --command train \
             validate \
             record \
@@ -43,7 +43,7 @@ def run_script(script_name: str, args: List[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Manage ensemble operations.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -89,3 +89,9 @@ For detailed help on each command, run the individual script with --help.
 
     for command in args.command:
         run_script(f"{SCRIPTS_DIR[command]}", sys.argv[1:])
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

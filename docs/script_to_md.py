@@ -4,7 +4,7 @@ from pathlib import Path
 
 HEADERS = {
     "download_pretrained_models.py": "Download Pretrained Models",
-    "pipeline_manager.py": "Pipeline Manager to Launch Multiple Scripts on Cluster",
+    "flyvis.py": "Pipeline Manager to Launch Multiple Scripts on Cluster",
     "training/train_single.py": "Run Training for Single Model",
     "training/train.py": "Launch Ensemble Training on Cluster",
     "validation/val_single.py": "Run Validation for Single Model",

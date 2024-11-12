@@ -55,7 +55,7 @@ nav:
         - "Run Notebook": reference/scripts/analysis/notebook.md
         - "Launch Notebook Per Ensemble on Cluster": reference/scripts/analysis/notebook_per_ensemble.md
         - "Launch Notebook Per Model on Cluster": reference/scripts/analysis/notebook_per_model.md
-      - "Pipeline Manager": reference/scripts/scripts/pipeline_manager.md
+      - "Pipeline Manager": reference/scripts/scripts/flyvis.md
   - Contributing: contribute.md
   - FAQ: faq.md
   - Acknowledgements: acknowledgements.md
