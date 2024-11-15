@@ -10,7 +10,7 @@ Info: Rationale
 import logging
 import os
 import warnings
-from typing import Any, List, Optional
+from typing import Any, List
 
 import xarray as xr
 from joblib._store_backends import CacheWarning, FileSystemStoreBackend
@@ -28,7 +28,7 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
         location (str): The base directory for storing items.
     """
 
-    def dump_item(self, path: List[str], item: Any, verbose: int = 1) -> None:
+    def dump_item(self, path: List[str], item: Any, *args, **kwargs) -> None:
         """Dump an item to the store.
 
         If the item is an xarray.Dataset or the path ends with '.h5', use
@@ -37,7 +37,8 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
         Args:
             path: The identifier for the item in the store.
             item: The item to be stored.
-            verbose: Verbosity level.
+            *args: Variable positional arguments passed to parent class or to_netcdf
+            **kwargs: Variable keyword arguments passed to parent class or to_netcdf
         """
         is_dataset = isinstance(item, xr.Dataset)
         is_h5_file = path[-1].endswith('.h5') if path else False
@@ -46,13 +47,16 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
             item_path = os.path.join(self.location, *path)
             nc_path = item_path if is_h5_file else os.path.join(item_path, 'output.h5')
 
+            verbose = kwargs.get('verbose', 1)
             if verbose > 10:
                 logger.info('Persisting Dataset to h5 at %s', nc_path)
 
             try:
                 self.create_location(os.path.dirname(nc_path))
                 logger.info("Store item %s", nc_path)
-                item.to_netcdf(nc_path, mode='w')
+                # Ensure mode='w' by default but allow override through kwargs
+                kwargs.setdefault('mode', 'w')
+                item.to_netcdf(nc_path)
             except Exception as e:
                 warnings.warn(
                     f"Unable to cache Dataset to h5. Exception: {e}.",
@@ -60,11 +64,9 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
                     stacklevel=2,
                 )
         else:
-            super().dump_item(path, item, verbose)
+            super().dump_item(path, item, *args, **kwargs)
 
-    def load_item(
-        self, path: List[str], verbose: int = 1, msg: Optional[str] = None
-    ) -> Any:
+    def load_item(self, path: List[str], *args, **kwargs) -> Any:
         """Load an item from the store.
 
         If the path ends with '.h5' or the store contains a h5 file, use
@@ -72,8 +74,8 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
 
         Args:
             path: The identifier for the item in the store.
-            verbose: Verbosity level.
-            msg: Additional message for logging (not used here).
+            *args: Variable positional arguments passed to parent class or xr.open_dataset
+            **kwargs: Variable keyword arguments passed to parent class or xr.open_dataset
 
         Returns:
             The loaded item, either an xarray.Dataset or the original object.
@@ -84,8 +86,9 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
             if path[-1].endswith('.h5')
             else os.path.join(item_path, 'output.h5')
         )
-
+        print(nc_path)
         if self._item_exists(nc_path):
+            verbose = kwargs.get('verbose', 1)
             if verbose > 1:
                 logger.info('Loading Dataset from h5 at %s', nc_path)
             try:
@@ -96,7 +99,7 @@ class H5XArrayDatasetStoreBackend(FileSystemStoreBackend):
                     CacheWarning,
                     stacklevel=2,
                 )
-        return super().load_item(path, verbose, msg)
+        return super().load_item(path, *args, **kwargs)
 
     def contains_item(self, path: List[str]) -> bool:
         """Check if there is an item at the given path.
