@@ -1,15 +1,6 @@
-"""Store analysis results of an ensemble.
+"""Store analysis results of an ensemble."""
 
-Example:
-    Compute UMAP and clustering for the ensemble 0000:
-    ```bash
-    python ensemble_analysis.py \
-        task_name=flow \
-        ensemble_and_network_id=0000/000 \
-        --functions umap_and_clustering_main
-    ```
-"""
-
+import argparse
 import logging
 import pickle
 
@@ -29,9 +20,21 @@ if __name__ == "__main__":
             "ensemble_id": {"required": True},
         },
         description="Analysis for ensemble.",
-    )
-    parser.add_argument(
-        "--chkpt", type=str, default="best", help="checkpoint to evaluate."
+        formatter_class=argparse.RawTextHelpFormatter,
+        usage=(
+            "\nflyvis ensemble_analysis [-h] [...] --ensemble_id ENSEMBLE_ID "
+            "--task_name TASK_NAME [ensemble_analysis_script_options...]\n"
+            "       or\n"
+            "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "[hydra_options...]\n"
+            "\n"
+            "Example:\n"
+            "    Compute UMAP and clustering for the ensemble 0000:\n"
+            "    flyvis ensemble_analysis\n"
+            "        task_name=flow\n"
+            "        ensemble_and_network_id=0000/000\n"
+            "        --functions umap_and_clustering_main\n"
+        ),
     )
     parser.add_argument(
         "--validation_subdir",
@@ -58,10 +61,11 @@ if __name__ == "__main__":
         "--delete_umap_and_clustering",
         action="store_true",
     )
-    parser.epilog = __doc__
+
     args = parser.parse_with_hybrid_args()
 
     ensemble_name = f"{args.task_name}/{args.ensemble_id}"
+    # TODO: add logic to pass different methods for checkpoint selection
     ensemble = Ensemble(
         ensemble_name,
         best_checkpoint_fn_kwargs={

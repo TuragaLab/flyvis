@@ -1,11 +1,12 @@
-"""Script to validate an each model of an ensemble on the cluster."""
+"""Script to run a jupyter notebook for an ensemble."""
 
 import argparse
 import logging
+import sys
 from typing import List
 
 from flyvis import script_dir
-from flyvis.utils.compute_cloud_utils import launch_range
+from flyvis.utils.compute_cloud_utils import launch_single
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
@@ -13,34 +14,37 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def validate_models(args: argparse.Namespace, kwargs: List[str]) -> None:
+def run_ensemble_notebook(args: argparse.Namespace, kwargs: List[str]) -> None:
     """
-    Launch validation jobs for an ensemble of models.
+    Launch ensemble notebook job.
 
     Args:
         args: Command-line arguments.
         kwargs: Additional keyword arguments as a list of strings.
     """
-    launch_range(
-        args.start,
-        args.end,
+    launch_single(
         args.ensemble_id,
         args.task_name,
         args.nP,
         args.gpu,
         args.q,
-        args.val_script,
+        f"{str(script_dir)}/analysis/notebook.py",
         args.dry,
-        kwargs,
+        ["--notebook_path", args.notebook_path] + ["per_ensemble:bool=true"] + kwargs,
     )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Validate each model of an ensemble on the cluster."
+        description="Run ensemble notebook on the compute cloud.",
+        usage=(
+            "\nflyvis notebook_per_ensemble [-h] [...] --ensemble_id ENSEMBLE_ID "
+            "--task_name TASK_NAME --notebook_path PATH\n"
+            "       or\n"
+            "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "--notebook_path PATH\n"
+        ),
     )
-    parser.add_argument("--start", type=int, default=0, help="Start id of ensemble.")
-    parser.add_argument("--end", type=int, default=50, help="End id of ensemble.")
     parser.add_argument("--nP", type=int, default=4, help="Number of processors.")
     parser.add_argument("--gpu", type=str, default="num=1", help="Number of GPUs.")
     parser.add_argument("--q", type=str, default="gpu_l4", help="Queue.")
@@ -57,10 +61,10 @@ if __name__ == "__main__":
         help="Name given to the task, e.g., flow.",
     )
     parser.add_argument(
-        "--val_script",
+        "--notebook_path",
         type=str,
-        default=f"{str(script_dir)}/validation/val_single.py",
-        help="Script to run for validation.",
+        default="examples/__main__.ipynb",
+        help="Path of the notebook to execute.",
     )
     parser.add_argument(
         "--dry",
@@ -69,4 +73,4 @@ if __name__ == "__main__":
     )
 
     args, kwargs = parser.parse_known_intermixed_args()
-    validate_models(args, kwargs)
+    run_ensemble_notebook(args, sys.argv[1:])

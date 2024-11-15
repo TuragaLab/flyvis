@@ -95,6 +95,7 @@ pretrained = [
 exclude = [] # exclude packages matching these glob patterns (empty by default)
 include = [
   "flyvis*",
+  "flyvis_cli*",
 ] # package names should match these glob patterns (["*"] by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 where = ["."] # list of folders that contain the packages (["."] by default)
@@ -161,9 +162,9 @@ exclude = [
   "images",
 ]
 ignore = []
-include = ["flyvis", "scripts", "tests", "examples"]
+include = ["flyvis", "flyvis_cli", "tests", "examples"]
 python_version = "3.x"
 reportUnsupportedDunderAll = false
 
 [project.scripts]
-flyvis = "flyvis.scripts.flyvis:main"
+flyvis = "flyvis_cli.flyvis:main"

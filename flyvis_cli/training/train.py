@@ -43,6 +43,19 @@ if __name__ == "__main__":
             "the cluster."
         ),
         drop_disjoint_from="../../config/solver.yaml",
+        formatter_class=argparse.RawTextHelpFormatter,
+        usage=(
+            "\nflyvis train [-h] [--start START] [--end END] [...] "
+            "--ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "[hydra_options...]\n"
+            "       or\n"
+            "%(prog)s [-h] [--start START] [--end END] [...] "
+            "--ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "[hydra_options...]\n"
+            "\n"
+            "For a full list of hydra options and default arguments, run: "
+            "flyvis train_single --help"
+        ),
     )
     parser.add_argument("--start", type=int, default=0, help="Start id of ensemble.")
     parser.add_argument("--end", type=int, default=50, help="End id of ensemble.")
@@ -61,11 +74,12 @@ if __name__ == "__main__":
         required=True,
         help="Name given to the task, e.g., flow.",
     )
+    DEFAULT_SCRIPT = f"{str(script_dir)}/training/train_single.py"
     parser.add_argument(
         "--train_script",
         type=str,
-        default=f"{str(script_dir)}/training/train_single.py",
-        help="Script to run for training.",
+        default=DEFAULT_SCRIPT,
+        help=f"Script to run for training. Default: {DEFAULT_SCRIPT}",
     )
     parser.add_argument(
         "--dry",

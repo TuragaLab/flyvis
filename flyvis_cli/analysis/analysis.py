@@ -35,12 +35,23 @@ def run_ensemble_analysis(args: argparse.Namespace, kwargs: List[str]) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Run ensemble analysis on the cluster.",
-        epilog="""
-Examples:
-    python analysis.py --ensemble_id 0045 --task_name flow
-        """,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=(
+            "Run ensemble analysis on the compute cloud. Launches a single job "
+            "to analyze "
+            "all models in the ensemble."
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+        usage=(
+            "\nflyvis analysis [-h] [...] --ensemble_id ENSEMBLE_ID "
+            "--task_name TASK_NAME "
+            "[ensemble_analysis_script_options...]\n"
+            "       or\n"
+            "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "[ensemble_analysis_script_options...]\n"
+            "\n"
+            "For a full list of options and default arguments, run: "
+            "flyvis ensemble_analysis --help"
+        ),
     )
     parser.add_argument(
         "--nP", type=int, default=4, help="Number of processors to use (default: 4)."
@@ -66,14 +77,12 @@ Examples:
         required=True,
         help="Name given to the task, e.g., 'flow', 'depth', 'lum'.",
     )
+    DEFAULT_SCRIPT = f"{str(script_dir)}/analysis/ensemble_analysis.py"
     parser.add_argument(
         "--ensemble_analysis_script",
         type=str,
-        default=f"{str(script_dir)}/analysis/ensemble_analysis.py",
-        help=(
-            "Script to run for ensemble analysis (default: "
-            f"{str(script_dir)}/analysis/ensemble_analysis.py)."
-        ),
+        default=DEFAULT_SCRIPT,
+        help=(f"Script to run for ensemble analysis. Default: {DEFAULT_SCRIPT}"),
     )
     parser.add_argument(
         "--dry",

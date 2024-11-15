@@ -1,34 +1,4 @@
-"""Script for precomputing synthetic recordings for a single network.
-
-Example Usage:
---------------
-1. Generate all default synthetic recordings for a specific network:
-   ```bash
-   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000
-   ```
-
-2. Generate only spatial and central impulse responses for a different network:
-   ```bash
-   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=9998/000 \
-   --functions spatial_impulses_responses central_impulses_responses
-   ```
-
-3. Generate default recordings with a custom batch size and delete existing recordings:
-   ```bash
-   python synthetic_recordings_single.py task_name=flow ensemble_and_network_id=0000/000 \
-   --batch_size 16 --delete_recordings
-   ```
-
-Available Functions:
---------------------
-- flash_responses
-- moving_edge_responses
-- moving_edge_responses_currents
-- moving_bar_responses
-- naturalistic_stimuli_responses
-- spatial_impulses_responses
-- central_impulses_responses
-"""
+"""Script for precomputing synthetic recordings for a single network."""
 
 # pyright: reportCallIssue=false
 
@@ -47,14 +17,41 @@ logging = logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     parser = HybridArgumentParser(
         hybrid_args={
-            "task_name": {"required": True},
-            "ensemble_and_network_id": {"required": True},
+            "task_name": {
+                "required": True,
+                "help": "Name of the task (e.g., 'flow', 'depth')",
+            },
+            "ensemble_and_network_id": {
+                "required": True,
+                "help": "ID in the format XXXX/YYY (ensemble/network)",
+            },
         },
-        description="Record synthetic responses.",
+        description=(
+            "This script generates and stores various types of synthetic responses for a "
+            "given network, such as flash responses, moving edge responses, and impulse "
+            "responses. The responses are automatically cached for later use in analysis."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--chkpt", type=str, default="best", help="checkpoint to evaluate."
+        usage=(
+            "\nflyvis synthetic_recordings [-h] task_name=TASK "
+            "ensemble_and_network_id=XXXX/YYY [options]\n"
+            "       or\n"
+            "%(prog)s [-h] task_name=TASK ensemble_and_network_id=XXXX/YYY [options]\n"
+        ),
+        epilog="""
+Examples:
+--------
+1. Generate all default synthetic recordings:
+   flyvis synthetic_recordings task_name=flow ensemble_and_network_id=0000/000
+
+2. Generate only specific response types:
+   flyvis synthetic_recordings task_name=flow ensemble_and_network_id=0000/000 \\
+       --functions spatial_impulses_responses central_impulses_responses
+
+3. Generate with custom batch size and clear existing recordings:
+   flyvis synthetic_recordings task_name=flow ensemble_and_network_id=0000/000 \\
+       --batch_size 16 --delete_recordings
+""",
     )
     parser.add_argument(
         "--validation_subdir",
@@ -85,10 +82,10 @@ if __name__ == "__main__":
         help="List of functions to run.",
         default=default_functions,
     )
-    parser.epilog = __doc__
     args = parser.parse_with_hybrid_args()
 
     network_name = f"{args.task_name}/{args.ensemble_and_network_id}"
+    # TODO: add logic to pass different checkpoint selection methods
     network_view = NetworkView(
         network_name,
         best_checkpoint_fn_kwargs={

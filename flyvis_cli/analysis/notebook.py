@@ -1,5 +1,6 @@
 """Script to run a jupyter notebook for a particular model."""
 
+import argparse
 import logging
 import os
 import sys
@@ -57,6 +58,37 @@ if __name__ == "__main__":
             "Required arguments depend on the specific notebook. "
             "Pass any additional arguments as key:type=value triplets."
         ),
+        usage=(
+            "\nflyvis notebook [-h] --notebook_path PATH [options] [hybrid_args...]\n"
+            "       or\n"
+            "%(prog)s [-h] --notebook_path PATH [options] [hybrid_args...]\n"
+            "\n"
+            "There are three modes of operation:\n"
+            "1. Basic: Only requires --notebook_path\n"
+            "2. Per-model: Requires --notebook_per_model_path, "
+            "--notebook_per_model=true, --ensemble_and_network_id\n"
+            "3. Per-ensemble: Requires --notebook_path, --per_ensemble=true, "
+            "--task_name, --ensemble_id\n"
+        ),
+        epilog="""
+        Examples:
+            # Basic usage
+            flyvis notebook --notebook_path notebooks/analysis.ipynb
+            # Per-model analysis
+            flyvis notebook --notebook_per_model_path notebooks/per_model.ipynb \\
+                            notebook_per_model=true \\
+                            ensemble_and_network_id=flow/0045/000
+            # Per-ensemble analysis
+            flyvis notebook --notebook_path notebooks/ensemble.ipynb \\
+                            per_ensemble=true \\
+                            task_name=flow \\
+                            ensemble_id=45
+            # With additional parameters passed to the notebook
+            flyvis notebook --notebook_path notebooks/analysis.ipynb \\
+                            param1:str=value1 \\
+                            param2:int=42
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--notebook_path",
@@ -77,7 +109,7 @@ if __name__ == "__main__":
         default=None,
         help=(
             "Path for the output notebook. If not provided, a temporary file "
-            "will be used."
+            "will be used and deleted after execution."
         ),
     )
     parser.add_argument(

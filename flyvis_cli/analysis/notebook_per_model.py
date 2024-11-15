@@ -43,7 +43,14 @@ def run_notebook_ensemble(args: argparse.Namespace, kwargs: List[str]) -> None:
 if __name__ == "__main__":
     parser = HybridArgumentParser(
         hybrid_args=[],
-        description="Run a notebook for each model of an ensemble on the cluster.",
+        description="Run a notebook for each model of an ensemble on the compute cloud.",
+        usage=(
+            "\nflyvis notebook_per_model [-h] [...] --ensemble_id ENSEMBLE_ID "
+            "--task_name TASK_NAME --notebook_per_model_path PATH\n"
+            "       or\n"
+            "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "--notebook_per_model_path PATH\n"
+        ),
     )
     parser.add_argument("--start", type=int, default=0, help="Start id of ensemble.")
     parser.add_argument("--end", type=int, default=50, help="End id of ensemble.")

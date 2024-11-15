@@ -38,8 +38,18 @@ def run_synthetic_recordings(args: argparse.Namespace, kwargs: List[str]) -> Non
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Run synthetic recordings for each model of an ensemble on the " "cluster."
-        )
+            "Run synthetic recordings for each model of an ensemble on the compute cloud."
+        ),
+        usage=(
+            "\nflyvis record [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "[options] [synthetic_recordings_script_args...]\n"
+            "       or\n"
+            "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
+            "[options] [synthetic_recordings_script_args...]\n"
+            "\n"
+            "For a full list of options and default arguments, run: "
+            "flyvis synthetic_recordings_single --help"
+        ),
     )
     parser.add_argument("--start", type=int, default=0, help="Start id of ensemble.")
     parser.add_argument("--end", type=int, default=50, help="End id of ensemble.")
@@ -58,11 +68,12 @@ if __name__ == "__main__":
         required=True,
         help="Name given to the task, e.g., flow.",
     )
+    DEFAULT_SCRIPT = f"{str(script_dir)}/analysis/synthetic_recordings_single.py"
     parser.add_argument(
         "--synthetic_recordings_script",
         type=str,
-        default=f"{str(script_dir)}/analysis/synthetic_recordings_single.py",
-        help="Script to run for synthetic recordings.",
+        default=DEFAULT_SCRIPT,
+        help=f"Script to run for synthetic recordings. Default: {DEFAULT_SCRIPT}",
     )
     parser.add_argument(
         "--dry",
