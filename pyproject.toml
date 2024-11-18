@@ -168,4 +168,4 @@ python_version = "3.x"
 reportUnsupportedDunderAll = false
 
 [project.scripts]
-flyvis = "flyvis_cli.flyvis:main"
+flyvis = "flyvis_cli.flyvis_cli:main"

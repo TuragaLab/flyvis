@@ -1,6 +1,10 @@
 # Launch Notebook Per Model on Compute Cloud
 
-`analysis/notebook_per_model.py`
+
+::: flyvis_cli.analysis.notebook_per_model
+    options:
+      heading_level: 4
+
 
 ```
 usage:

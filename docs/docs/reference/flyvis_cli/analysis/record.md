@@ -1,6 +1,10 @@
 # Launch Synthetic Recordings on Compute Cloud
 
-`analysis/record.py`
+
+::: flyvis_cli.analysis.record
+    options:
+      heading_level: 4
+
 
 ```
 usage:

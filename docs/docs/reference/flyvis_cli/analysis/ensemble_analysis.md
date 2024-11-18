@@ -1,6 +1,10 @@
 # Run Ensemble Analysis
 
-`analysis/ensemble_analysis.py`
+
+::: flyvis_cli.analysis.ensemble_analysis
+    options:
+      heading_level: 4
+
 
 ```
 usage:

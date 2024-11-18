@@ -1,6 +1,10 @@
 # Run Notebook
 
-`analysis/notebook.py`
+
+::: flyvis_cli.analysis.notebook
+    options:
+      heading_level: 4
+
 
 ```
 usage:

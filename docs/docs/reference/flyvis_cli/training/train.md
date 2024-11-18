@@ -1,6 +1,10 @@
 # Launch Ensemble Training on Compute Cloud
 
-`training/train.py`
+
+::: flyvis_cli.training.train
+    options:
+      heading_level: 4
+
 
 ```
 usage:

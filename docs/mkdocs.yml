@@ -41,7 +41,7 @@ nav:
       - Animations: reference/animations.md
     - CLI Reference:
       - Command Line Interface: reference/cli.md
-      - CLI Entry Point: reference/flyvis_cli/flyvis.md
+      - CLI Entry Point: reference/flyvis_cli/flyvis_cli.md
       - Training:
         - Run Training for Single Model: reference/flyvis_cli/training/train_single.md
         - Launch Ensemble Training on Compute Cloud: reference/flyvis_cli/training/train.md

@@ -1,6 +1,10 @@
 # Run Training for Single Model
 
-`training/train_single.py`
+
+::: flyvis_cli.training.train_single
+    options:
+      heading_level: 4
+
 
 ```
 

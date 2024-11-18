@@ -1,6 +1,10 @@
 # Run Synthetic Recordings
 
-`analysis/synthetic_recordings_single.py`
+
+::: flyvis_cli.analysis.synthetic_recordings_single
+    options:
+      heading_level: 4
+
 
 ```
 usage:

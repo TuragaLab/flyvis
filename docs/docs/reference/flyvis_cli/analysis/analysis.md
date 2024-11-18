@@ -1,6 +1,10 @@
 # Launch Ensemble Analysis on Compute Cloud
 
-`analysis/analysis.py`
+
+::: flyvis_cli.analysis.analysis
+    options:
+      heading_level: 4
+
 
 ```
 usage:

@@ -1,10 +1,14 @@
 # Command Line Interface Entry Point
 
-`flyvis.py`
+
+::: flyvis_cli.flyvis_cli
+    options:
+      heading_level: 4
+
 
 ```
-usage: flyvis.py [-h] [--ensemble_id ENSEMBLE_ID] [--task_name TASK_NAME]
-                 command [command ...]
+usage: flyvis_cli.py [-h] [--ensemble_id ENSEMBLE_ID] [--task_name TASK_NAME]
+                     command [command ...]
 
 Run flyvis pipelines or individual scripts with compute cloud options.
 
@@ -37,8 +41,8 @@ download-pretrained  : Runs /groups/turaga/home/lappalainenj/FlyVis/private/flyv
 
 All additional arguments are passed directly to the respective scripts.
 For detailed help on each command, run: flyvis <command> --help
-usage: flyvis.py [-h] [--ensemble_id ENSEMBLE_ID] [--task_name TASK_NAME]
-                 command [command ...]
+usage: flyvis_cli.py [-h] [--ensemble_id ENSEMBLE_ID] [--task_name TASK_NAME]
+                     command [command ...]
 
 Run flyvis pipelines or individual scripts with compute cloud options.
 

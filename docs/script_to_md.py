@@ -4,7 +4,7 @@ from pathlib import Path
 
 HEADERS = {
     "download_pretrained_models.py": "Download Pretrained Models",
-    "flyvis.py": "Command Line Interface Entry Point",
+    "flyvis_cli.py": "Command Line Interface Entry Point",
     "training/train_single.py": "Run Training for Single Model",
     "training/train.py": "Launch Ensemble Training on Compute Cloud",
     "validation/val_single.py": "Run Validation for Single Model",
@@ -39,12 +39,16 @@ def script_to_md(script_path: Path, output_dir: Path, scripts_dir: Path):
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Generate the script path for documentation
-    doc_script_path = f"{relative_path}"
+    doc_script_path = f"""
+::: flyvis_cli.{str(relative_path).replace('/', '.').replace('.py', '')}
+    options:
+      heading_level: 4
+"""
 
     # Write the help message to a markdown file
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(f"# {HEADERS[str(relative_path)]}\n\n")
-        f.write(f"`{doc_script_path}`\n\n")
+        f.write(f"{doc_script_path}\n\n")
         f.write("```\n" + help_output + "\n```")
 
 

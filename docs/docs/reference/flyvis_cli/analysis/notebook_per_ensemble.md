@@ -1,6 +1,10 @@
 # Launch Notebook Per Ensemble on Compute Cloud
 
-`analysis/notebook_per_ensemble.py`
+
+::: flyvis_cli.analysis.notebook_per_ensemble
+    options:
+      heading_level: 4
+
 
 ```
 usage:

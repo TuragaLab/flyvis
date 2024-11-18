@@ -1,6 +1,10 @@
 # Launch Ensemble Validation on Compute Cloud
 
-`validation/validate.py`
+
+::: flyvis_cli.validation.validate
+    options:
+      heading_level: 4
+
 
 ```
 usage:

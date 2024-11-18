@@ -1,6 +1,10 @@
 # Run Validation for Single Model
 
-`validation/val_single.py`
+
+::: flyvis_cli.validation.val_single
+    options:
+      heading_level: 4
+
 
 ```
 usage:
