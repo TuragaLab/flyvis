@@ -50,7 +50,7 @@ if __name__ == "__main__":
             "[ensemble_analysis_script_options...]\n"
             "\n"
             "For a full list of options and default arguments, run: "
-            "flyvis ensemble_analysis --help"
+            "flyvis ensemble-analysis --help"
         ),
     )
     parser.add_argument(

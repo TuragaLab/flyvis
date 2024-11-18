@@ -48,7 +48,7 @@ if __name__ == "__main__":
             "[options] [synthetic_recordings_script_args...]\n"
             "\n"
             "For a full list of options and default arguments, run: "
-            "flyvis synthetic_recordings_single --help"
+            "flyvis synthetic-recordings-single --help"
         ),
     )
     parser.add_argument("--start", type=int, default=0, help="Start id of ensemble.")

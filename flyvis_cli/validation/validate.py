@@ -1,4 +1,4 @@
-"""Script to validate an each model of an ensemble on the cluster."""
+"""Script to validate an each model of an ensemble on the compute cloud."""
 
 import argparse
 import logging
@@ -37,7 +37,7 @@ def validate_models(args: argparse.Namespace, kwargs: List[str]) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Validate each model of an ensemble on the cluster.",
+        description="Validate each model of an ensemble on the compute cloud.",
         formatter_class=argparse.RawTextHelpFormatter,
         usage=(
             "\nflyvis validate [-h] [--start START] [--end END] [...] "

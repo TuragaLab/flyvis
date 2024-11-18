@@ -28,7 +28,7 @@ def main():
             "directory."
         ),
         usage=(
-            "\nflyvis val_single [-h] task_name=TASK ensemble_and_network_id=XXXX/YYY\n"
+            "\nflyvis val-single [-h] task_name=TASK ensemble_and_network_id=XXXX/YYY\n"
             "       or\n"
             "%(prog)s [-h] task_name=TASK ensemble_and_network_id=XXXX/YYY\n"
         ),
@@ -37,10 +37,10 @@ def main():
 Examples:
 --------
 1. Validate a specific network:
-    flyvis val_single task_name=flow ensemble_and_network_id=0045/000
+    flyvis val-single task_name=flow ensemble_and_network_id=0045/000
 
 2. Validate a network from a different task:
-    flyvis val_single task_name=depth ensemble_and_network_id=0023/012
+    flyvis val-single task_name=depth ensemble_and_network_id=0023/012
 """,
     )
 

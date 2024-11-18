@@ -13,7 +13,7 @@ torch.set_default_device(device)
 del torch
 
 
-dotenv.load_dotenv(dotenv.find_dotenv())
+dotenv.load_dotenv(dotenv.find_dotenv(usecwd=True))
 
 # Set up logging
 import logging
@@ -54,7 +54,7 @@ sintel_dir = root_dir / "SintelDataSet"
 connectome_file = root_dir / "connectome/fib25-fib19_v2.2.json"
 source_dir = (repo_dir := Path(__file__).parent.parent) / "flyvis"
 config_dir = repo_dir / "config"
-script_dir = Path(__file__).parent.parent / "scripts"
+script_dir = Path(__file__).parent.parent / "flyvis_cli"
 examples_dir = repo_dir / "examples"
 
 datamate.set_root_dir(root_dir)

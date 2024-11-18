@@ -33,7 +33,7 @@ if __name__ == "__main__":
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         usage=(
-            "\nflyvis synthetic_recordings [-h] task_name=TASK "
+            "\nflyvis synthetic-recordings [-h] task_name=TASK "
             "ensemble_and_network_id=XXXX/YYY [options]\n"
             "       or\n"
             "%(prog)s [-h] task_name=TASK ensemble_and_network_id=XXXX/YYY [options]\n"
@@ -42,14 +42,14 @@ if __name__ == "__main__":
 Examples:
 --------
 1. Generate all default synthetic recordings:
-   flyvis synthetic_recordings task_name=flow ensemble_and_network_id=0000/000
+   flyvis synthetic-recordings task_name=flow ensemble_and_network_id=0000/000
 
 2. Generate only specific response types:
-   flyvis synthetic_recordings task_name=flow ensemble_and_network_id=0000/000 \\
+   flyvis synthetic-recordings task_name=flow ensemble_and_network_id=0000/000 \\
        --functions spatial_impulses_responses central_impulses_responses
 
 3. Generate with custom batch size and clear existing recordings:
-   flyvis synthetic_recordings task_name=flow ensemble_and_network_id=0000/000 \\
+   flyvis synthetic-recordings task_name=flow ensemble_and_network_id=0000/000 \\
        --batch_size 16 --delete_recordings
 """,
     )

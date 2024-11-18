@@ -45,7 +45,7 @@ if __name__ == "__main__":
         hybrid_args=[],
         description="Run a notebook for each model of an ensemble on the compute cloud.",
         usage=(
-            "\nflyvis notebook_per_model [-h] [...] --ensemble_id ENSEMBLE_ID "
+            "\nflyvis notebook-per-model [-h] [...] --ensemble_id ENSEMBLE_ID "
             "--task_name TASK_NAME --notebook_per_model_path PATH\n"
             "       or\n"
             "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "

@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser = HybridArgumentParser(
         description=(
             "Train an ensemble of models. Launches a job for each model on "
-            "the cluster."
+            "the compute cloud."
         ),
         drop_disjoint_from="../../config/solver.yaml",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             "[hydra_options...]\n"
             "\n"
             "For a full list of hydra options and default arguments, run: "
-            "flyvis train_single --help"
+            "flyvis train-single --help"
         ),
     )
     parser.add_argument("--start", type=int, default=0, help="Start id of ensemble.")

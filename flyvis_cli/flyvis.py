@@ -31,18 +31,18 @@ SCRIPTS_DIR = Path(__file__).parent
 
 SCRIPT_COMMANDS = {
     "train": SCRIPTS_DIR / "training/train.py",
-    "train_single": SCRIPTS_DIR / "training/train_single.py",
+    "train-single": SCRIPTS_DIR / "training/train_single.py",
     "validate": SCRIPTS_DIR / "validation/validate.py",
-    "val_single": SCRIPTS_DIR / "validation/val_single.py",
+    "val-single": SCRIPTS_DIR / "validation/val_single.py",
     "record": SCRIPTS_DIR / "analysis/record.py",
-    "synthetic_recordings_single": SCRIPTS_DIR
+    "synthetic-recordings-single": SCRIPTS_DIR
     / "analysis/synthetic_recordings_single.py",
     "analysis": SCRIPTS_DIR / "analysis/analysis.py",
-    "ensemble_analysis": SCRIPTS_DIR / "analysis/ensemble_analysis.py",
-    "notebook_per_model": SCRIPTS_DIR / "analysis/notebook_per_model.py",
-    "notebook_per_ensemble": SCRIPTS_DIR / "analysis/notebook_per_ensemble.py",
+    "ensemble-analysis": SCRIPTS_DIR / "analysis/ensemble_analysis.py",
+    "notebook-per-model": SCRIPTS_DIR / "analysis/notebook_per_model.py",
+    "notebook-per-ensemble": SCRIPTS_DIR / "analysis/notebook_per_ensemble.py",
     "notebook": SCRIPTS_DIR / "analysis/notebook.py",
-    "download_pretrained_models": SCRIPTS_DIR / "download_pretrained_models.py",
+    "download-pretrained": SCRIPTS_DIR / "download_pretrained_models.py",
 }
 
 
@@ -105,14 +105,16 @@ def main():
 
     # Original argument parsing continues if not showing help for a specific command
     parser = argparse.ArgumentParser(
-        description="Manage ensemble operations.",
+        description=(
+            "Run flyvis pipelines or individual scripts with compute cloud options."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--ensemble_id", type=int, required=True, help="Id of the ensemble, e.g. 0045."
+        "--ensemble_id", type=int, required=False, help="Id of the ensemble, e.g. 0045."
     )
     parser.add_argument(
-        "--task_name", type=str, required=True, help="Name given to the task, e.g. flow."
+        "--task_name", type=str, required=False, help="Name given to the task, e.g. flow."
     )
     parser.add_argument(
         "commands",
@@ -124,7 +126,7 @@ def main():
 
     parser.epilog = """
 Runs multiple operations on an ensemble of models.
-This is to pipeline jobs on the cluster.
+This is to pipeline jobs on the compute cloud.
 Each command corresponds to a script that launches required jobs.
 
 {}

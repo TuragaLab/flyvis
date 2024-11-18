@@ -38,7 +38,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run ensemble notebook on the compute cloud.",
         usage=(
-            "\nflyvis notebook_per_ensemble [-h] [...] --ensemble_id ENSEMBLE_ID "
+            "\nflyvis notebook-per-ensemble [-h] [...] --ensemble_id ENSEMBLE_ID "
             "--task_name TASK_NAME --notebook_path PATH\n"
             "       or\n"
             "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "

@@ -22,7 +22,7 @@ if __name__ == "__main__":
         description="Analysis for ensemble.",
         formatter_class=argparse.RawTextHelpFormatter,
         usage=(
-            "\nflyvis ensemble_analysis [-h] [...] --ensemble_id ENSEMBLE_ID "
+            "\nflyvis ensemble-analysis [-h] [...] --ensemble_id ENSEMBLE_ID "
             "--task_name TASK_NAME [ensemble_analysis_script_options...]\n"
             "       or\n"
             "%(prog)s [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME "
@@ -30,7 +30,7 @@ if __name__ == "__main__":
             "\n"
             "Example:\n"
             "    Compute UMAP and clustering for the ensemble 0000:\n"
-            "    flyvis ensemble_analysis\n"
+            "    flyvis ensemble-analysis\n"
             "        task_name=flow\n"
             "        ensemble_and_network_id=0000/000\n"
             "        --functions umap_and_clustering_main\n"

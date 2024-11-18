@@ -3,24 +3,25 @@ import hashlib
 import io
 import os
 import zipfile
-from pathlib import Path
 from typing import Dict
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+
+from flyvis import root_dir
 
 checksums: Dict[str, str] = {
     "results_pretrained_models.zip": (
         "71c78d4070556a536b13b23ee3139cd2788aa2a9d07d430a223b4edead281db1"
     ),
     "results_umap_and_clustering.zip": (
-        "372ffcb1b8af59974ac21e56ca989f72d499605f049c36fc6f460ba402ceb08c"
+        "6300ec1e678cde4d95300ac88e697b75fda32f6404ebe9a50f71e9f653aa9b19"
     ),
 }
 
 large_files: Dict[str, bool] = {
     "results_pretrained_models.zip": False,
-    "results_umap_and_clustering.zip": True,
+    "results_umap_and_clustering.zip": False,
 }
 
 
@@ -118,6 +119,11 @@ def main() -> None:
         "The files are downloaded and unpacked to the 'data' directory in the "
         "project root.",
         formatter_class=argparse.RawTextHelpFormatter,
+        usage=(
+            "\nflyvis download-pretrained [-h] [--skip_large_files]\n"
+            "       or\n"
+            "%(prog)s [-h] [--skip_large_files]\n"
+        ),
     )
     arg_parser.add_argument(
         "--skip_large_files",
@@ -125,10 +131,10 @@ def main() -> None:
         help="Skip downloading large files. If set, only 'results_pretrained_models.zip' "
         "will be downloaded, and 'results_umap_and_clustering.zip' will be skipped.",
     )
-    args = arg_parser.parse_args()
+    args, _ = arg_parser.parse_known_intermixed_args()
 
     folder_id = "15_8gPaVVJV6wGAspwkrdN8r-2NxMY4Kj"
-    destination_dir = Path(__file__).parent.parent / "data"
+    destination_dir = root_dir / "data"
     api_key = "AIzaSyDOy2_N7B5UjxKy5Xxeyd9WZfnDWzQ4-54"
 
     download_and_unpack_files(
