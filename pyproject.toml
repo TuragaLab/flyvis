@@ -51,13 +51,14 @@ description = "Connectome and task-constrained vision models of the fruit fly."
 dynamic = ["version"]
 name = "flyvis"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.9,<3.12"
 
 [project.optional-dependencies]
 dev = [
   "pre-commit",
   "ruff",
   "pytest",
+  "pytest-cov",
   "jupyter",
   "papermill",
   "tabulate",
