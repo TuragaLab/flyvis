@@ -3,12 +3,14 @@
 `validation/val_single.py`
 
 ```
-usage: val_single.py [-h] [--ensemble_and_network_id ENSEMBLE_AND_NETWORK_ID]
-                     [--task_name TASK_NAME]
+usage:
+flyvis val-single [-h] task_name=TASK ensemble_and_network_id=XXXX/YYY
+       or
+val_single.py [-h] task_name=TASK ensemble_and_network_id=XXXX/YYY
 
-Validate a single network.
+Validate a single network across all its checkpoints. Computes and stores validation metrics in the network's validation directory.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 
 Hybrid Arguments:
@@ -19,5 +21,13 @@ Hybrid Arguments:
                         task_name=value: Name of the task. Resulting network
                         name will be task_name/ensemble_and_network_id.
                         (Required)
+
+Examples:
+--------
+1. Validate a specific network:
+    flyvis val-single task_name=flow ensemble_and_network_id=0045/000
+
+2. Validate a network from a different task:
+    flyvis val-single task_name=depth ensemble_and_network_id=0023/012
 
 ```

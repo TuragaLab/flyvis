@@ -1,10 +1,11 @@
 site_name: Flyvis Documentation
-site_url: http://turagas-ws4:8010/
-# site_url: "https://flyvis.github.io/"
+site_url: "https://flyvis.github.io/"
+repo_url: "https://github.com/turagalab/flyvis"
 
 nav:
   - Home: index.md
   - Installation: install.md
+  - Command Line Interface: reference/cli.md
   - Tutorials:
     - Explore the Connectome: examples/01_flyvision_connectome.md
     - Train the Network: examples/02_flyvision_optic_flow_task.md
@@ -19,43 +20,44 @@ nav:
     - Figure 3: examples/figure_03_naturalistic_stimuli_responses.md
     - Figure 4: examples/figure_04_mechanisms.md
   - API Reference:
-    - "Connectomes": reference/connectome.md
-    - "Network": reference/network.md
-    - "NetworkView": reference/network_view.md
-    - "EnsembleView": reference/ensemble_view.md
-    - "Sintel": reference/sintel.md
-    - "Task": reference/tasks.md
-    - "Decoder": reference/decoder.md
-    - "Training": reference/solver.md
-    - "Flash Responses": reference/flash_responses.md
-    - "Moving Stimulus Responses": reference/moving_stimulus_responses.md
-    - "Ensemble Clustering": reference/ensemble_clustering.md
-    - "Optimal Stimuli": reference/optimal_stimuli.md
+    - Connectomes: reference/connectome.md
+    - Network: reference/network.md
+    - NetworkView: reference/network_view.md
+    - EnsembleView: reference/ensemble_view.md
+    - Sintel: reference/sintel.md
+    - Task: reference/tasks.md
+    - Decoder: reference/decoder.md
+    - Training: reference/solver.md
+    - Flash Responses: reference/flash_responses.md
+    - Moving Stimulus Responses: reference/moving_stimulus_responses.md
+    - Ensemble Clustering: reference/ensemble_clustering.md
+    - Optimal Stimuli: reference/optimal_stimuli.md
     - Miscelleanous:
-      - "Rendering": reference/rendering.md
-      - "Hex Augmentations": reference/augmentation.md
-      - "Datasets": reference/datasets.md
-      - "Utils": reference/utils.md
-      - "Visualizations": reference/visualization.md
-      - "Animations": reference/animations.md
-    - "Scripts":
-      - "Data Download": reference/scripts/scripts/download_pretrained_models.md
-      - "Training":
-        - "Run Training for Single Model": reference/scripts/training/train_single.md
-        - "Launch Ensemble Training on Cluster": reference/scripts/training/train.md
-      - "Validation":
-        - "Run Validation for Single Model": reference/scripts/validation/val_single.md
-        - "Launch Ensemble Validation on Cluster": reference/scripts/validation/validate.md
-      - "Analysis":
-        - "Run Synthetic Recordings": reference/scripts/analysis/synthetic_recordings_single.md
-        - "Launch Synthetic Recordings on Cluster": reference/scripts/analysis/record.md
-        - "Run Ensemble Analysis": reference/scripts/analysis/ensemble_analysis.md
-        - "Launch Ensemble Analysis on Cluster": reference/scripts/analysis/analysis.md
-      - "Notebook":
-        - "Run Notebook": reference/scripts/analysis/notebook.md
-        - "Launch Notebook Per Ensemble on Cluster": reference/scripts/analysis/notebook_per_ensemble.md
-        - "Launch Notebook Per Model on Cluster": reference/scripts/analysis/notebook_per_model.md
-      - "Pipeline Manager": reference/scripts/scripts/flyvis.md
+      - Rendering: reference/rendering.md
+      - Hex Augmentations: reference/augmentation.md
+      - Datasets: reference/datasets.md
+      - Utils: reference/utils.md
+      - Visualizations: reference/visualization.md
+      - Animations: reference/animations.md
+    - CLI Reference:
+      - Command Line Interface: reference/cli.md
+      - CLI Entry Point: reference/flyvis_cli/flyvis.md
+      - Training:
+        - Run Training for Single Model: reference/flyvis_cli/training/train_single.md
+        - Launch Ensemble Training on Compute Cloud: reference/flyvis_cli/training/train.md
+      - Validation:
+        - Run Validation for Single Model: reference/flyvis_cli/validation/val_single.md
+        - Launch Ensemble Validation on Compute Cloud: reference/flyvis_cli/validation/validate.md
+      - Analysis:
+        - Run Synthetic Recordings: reference/flyvis_cli/analysis/synthetic_recordings_single.md
+        - Launch Synthetic Recordings on Compute Cloud: reference/flyvis_cli/analysis/record.md
+        - Run Ensemble Analysis: reference/flyvis_cli/analysis/ensemble_analysis.md
+        - Launch Ensemble Analysis on Compute Cloud: reference/flyvis_cli/analysis/analysis.md
+      - Notebook:
+        - Run Notebook: reference/flyvis_cli/analysis/notebook.md
+        - Launch Notebook Per Ensemble on Compute Cloud: reference/flyvis_cli/analysis/notebook_per_ensemble.md
+        - Launch Notebook Per Model on Compute Cloud: reference/flyvis_cli/analysis/notebook_per_model.md
+      - Data Download: reference/flyvis_cli/download_pretrained_models.md
   - Contributing: contribute.md
   - FAQ: faq.md
   - Acknowledgements: acknowledgements.md
@@ -167,8 +169,8 @@ plugins:
             merge_init_into_class: false
 
 watch:
-  - ../flyvision
-  - ../scripts
+  - ../flyvis
+  - ../flyvis_cli
 
 extra_css:
   - custom.css

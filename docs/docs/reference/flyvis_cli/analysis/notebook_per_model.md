@@ -1,15 +1,16 @@
-# Launch Ensemble Validation on Cluster
+# Launch Notebook Per Model on Compute Cloud
 
-`validation/validate.py`
+`analysis/notebook_per_model.py`
 
 ```
-usage: validate.py [-h] [--start START] [--end END] [--nP NP] [--gpu GPU]
-                   [--q Q] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME
-                   [--val_script VAL_SCRIPT] [--dry]
+usage:
+flyvis notebook-per-model [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME --notebook_per_model_path PATH
+       or
+notebook_per_model.py [-h] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME --notebook_per_model_path PATH
 
-Validate each model of an ensemble on the cluster.
+Run a notebook for each model of an ensemble on the compute cloud.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --start START         Start id of ensemble.
   --end END             End id of ensemble.
@@ -20,8 +21,8 @@ optional arguments:
                         Id of the ensemble, e.g. 0045.
   --task_name TASK_NAME
                         Name given to the task, e.g., flow.
-  --val_script VAL_SCRIPT
-                        Script to run for validation.
+  --notebook_per_model_path NOTEBOOK_PER_MODEL_PATH
+                        Path of the notebook to execute.
   --dry                 Perform a dry run without actually launching jobs.
 
 ```

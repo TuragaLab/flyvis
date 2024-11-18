@@ -1,13 +1,13 @@
 # Decoder
 
-::: flyvision.task.decoder.ActivityDecoder
+::: flyvis.task.decoder.ActivityDecoder
 
-::: flyvision.task.decoder.DecoderGAVP
+::: flyvis.task.decoder.DecoderGAVP
 
-::: flyvision.task.decoder.init_decoder
+::: flyvis.task.decoder.init_decoder
 
-::: flyvision.task.decoder.Conv2dHexSpace
+::: flyvis.task.decoder.Conv2dHexSpace
 
-::: flyvision.task.decoder.Conv2dConstWeight
+::: flyvis.task.decoder.Conv2dConstWeight
 
-::: flyvision.task.decoder.GlobalAvgPool
+::: flyvis.task.decoder.GlobalAvgPool

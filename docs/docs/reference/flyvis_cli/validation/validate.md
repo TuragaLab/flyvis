@@ -1,15 +1,18 @@
-# Validate
+# Launch Ensemble Validation on Compute Cloud
 
-`scripts/scripts/validate.py`
+`validation/validate.py`
 
 ```
-usage: validate.py [-h] [--start START] [--end END] [--nP NP] [--gpu GPU]
-                   [--q Q] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME
-                   [--val_script VAL_SCRIPT] [--dry]
+usage:
+flyvis validate [-h] [--start START] [--end END] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME [additional_options...]
+       or
+validate.py [-h] [--start START] [--end END] [...] --ensemble_id ENSEMBLE_ID --task_name TASK_NAME [additional_options...]
 
-Validate each model of an ensemble on the cluster.
+For a full list of validation options and default arguments, run: flyvis val_single --help
 
-optional arguments:
+Validate each model of an ensemble on the compute cloud.
+
+options:
   -h, --help            show this help message and exit
   --start START         Start id of ensemble.
   --end END             End id of ensemble.

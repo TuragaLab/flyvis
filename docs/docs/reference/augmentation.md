@@ -3,24 +3,24 @@
 
 ## Geometric Transformations
 
-::: flyvision.datasets.augmentation.hex.HexRotate
-::: flyvision.datasets.augmentation.hex.HexFlip
+::: flyvis.datasets.augmentation.hex.HexRotate
+::: flyvis.datasets.augmentation.hex.HexFlip
 
 ## Intensity Transformations
 
-::: flyvision.datasets.augmentation.hex.ContrastBrightness
-::: flyvision.datasets.augmentation.hex.PixelNoise
-::: flyvision.datasets.augmentation.hex.GammaCorrection
+::: flyvis.datasets.augmentation.hex.ContrastBrightness
+::: flyvis.datasets.augmentation.hex.PixelNoise
+::: flyvis.datasets.augmentation.hex.GammaCorrection
 
 ## Temporal Augmentations
 
-::: flyvision.datasets.augmentation.temporal.Interpolate
-::: flyvision.datasets.augmentation.temporal.CropFrames
+::: flyvis.datasets.augmentation.temporal.Interpolate
+::: flyvis.datasets.augmentation.temporal.CropFrames
 
 ## Base Class
 
-::: flyvision.datasets.augmentation.augmentation.Augmentation
+::: flyvis.datasets.augmentation.augmentation.Augmentation
 
 ## Utils
 
-::: flyvision.datasets.augmentation.utils
+::: flyvis.datasets.augmentation.utils

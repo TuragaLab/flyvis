@@ -1,68 +1,68 @@
 # Animations
 
-## flyvision.analysis.animations.imshow
+## flyvis.analysis.animations.imshow
 
 ### Classes
 
-::: flyvision.analysis.animations.imshow.Imshow
+::: flyvis.analysis.animations.imshow.Imshow
     options:
       heading_level: 4
 
-## flyvision.analysis.animations.hexscatter
+## flyvis.analysis.animations.hexscatter
 ### Classes
 
-::: flyvision.analysis.animations.hexscatter.HexScatter
+::: flyvis.analysis.animations.hexscatter.HexScatter
     options:
       heading_level: 4
 
-## flyvision.analysis.animations.hexflow
-
-### Classes
-
-::: flyvision.analysis.animations.hexflow.HexFlow
-    options:
-      heading_level: 4
-
-## flyvision.analysis.animations.sintel
+## flyvis.analysis.animations.hexflow
 
 ### Classes
 
-::: flyvision.analysis.animations.sintel.SintelSample
+::: flyvis.analysis.animations.hexflow.HexFlow
     options:
       heading_level: 4
 
-## flyvision.analysis.animations.activations
+## flyvis.analysis.animations.sintel
 
 ### Classes
 
-::: flyvision.analysis.animations.activations.StimulusResponse
+::: flyvis.analysis.animations.sintel.SintelSample
     options:
       heading_level: 4
 
-## flyvision.analysis.animations.network
+## flyvis.analysis.animations.activations
 
 ### Classes
 
-::: flyvision.analysis.animations.network.WholeNetworkAnimation
+::: flyvis.analysis.animations.activations.StimulusResponse
     options:
       heading_level: 4
 
-
-## flyvision.analysis.animations.animations
+## flyvis.analysis.animations.network
 
 ### Classes
 
-::: flyvision.analysis.animations.animations.Animation
+::: flyvis.analysis.animations.network.WholeNetworkAnimation
     options:
       heading_level: 4
 
-::: flyvision.analysis.animations.animations.AnimationCollector
+
+## flyvis.analysis.animations.animations
+
+### Classes
+
+::: flyvis.analysis.animations.animations.Animation
+    options:
+      heading_level: 4
+
+::: flyvis.analysis.animations.animations.AnimationCollector
     options:
       heading_level: 4
 
 ### Functions
 
-::: flyvision.analysis.animations.animations.convert
+::: flyvis.analysis.animations.animations.convert
     options:
       heading_level: 4
 
@@ -72,14 +72,14 @@
 
 
 
-## flyvision.analysis.animations.traces
+## flyvis.analysis.animations.traces
 
 ### Classes
 
-::: flyvision.analysis.animations.traces.Trace
+::: flyvis.analysis.animations.traces.Trace
     options:
       heading_level: 4
 
-::: flyvision.analysis.animations.traces.MultiTrace
+::: flyvis.analysis.animations.traces.MultiTrace
     options:
       heading_level: 4

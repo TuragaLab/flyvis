@@ -4,18 +4,18 @@ from pathlib import Path
 
 HEADERS = {
     "download_pretrained_models.py": "Download Pretrained Models",
-    "flyvis.py": "Pipeline Manager to Launch Multiple Scripts on Cluster",
+    "flyvis.py": "Command Line Interface Entry Point",
     "training/train_single.py": "Run Training for Single Model",
-    "training/train.py": "Launch Ensemble Training on Cluster",
+    "training/train.py": "Launch Ensemble Training on Compute Cloud",
     "validation/val_single.py": "Run Validation for Single Model",
-    "validation/validate.py": "Launch Ensemble Validation on Cluster",
+    "validation/validate.py": "Launch Ensemble Validation on Compute Cloud",
     "analysis/synthetic_recordings_single.py": "Run Synthetic Recordings",
-    "analysis/record.py": "Launch Synthetic Recordings on Cluster",
+    "analysis/record.py": "Launch Synthetic Recordings on Compute Cloud",
     "analysis/ensemble_analysis.py": "Run Ensemble Analysis",
-    "analysis/analysis.py": "Launch Ensemble Analysis on Cluster",
+    "analysis/analysis.py": "Launch Ensemble Analysis on Compute Cloud",
     "analysis/notebook.py": "Run Notebook",
-    "analysis/notebook_per_ensemble.py": "Launch Notebook Per Ensemble on Cluster",
-    "analysis/notebook_per_model.py": "Launch Notebook Per Model on Cluster",
+    "analysis/notebook_per_ensemble.py": "Launch Notebook Per Ensemble on Compute Cloud",
+    "analysis/notebook_per_model.py": "Launch Notebook Per Model on Compute Cloud",
 }
 
 
@@ -50,13 +50,15 @@ def script_to_md(script_path: Path, output_dir: Path, scripts_dir: Path):
 
 def main():
     # Path to the scripts directory
-    scripts_dir = Path(__file__).parent.parent / "scripts"
+    scripts_dir = Path(__file__).parent.parent / "flyvis_cli"
 
     # Path to the output directory
-    output_dir = Path(__file__).parent / "docs" / "reference" / "scripts"
+    output_dir = Path(__file__).parent / "docs" / "reference" / "flyvis_cli"
 
     # Process all Python scripts in the scripts directory and its subdirectories
     for script_path in scripts_dir.rglob("*.py"):
+        if script_path.name == "__init__.py":
+            continue
         print(script_path)
         script_to_md(script_path, output_dir, scripts_dir)
 

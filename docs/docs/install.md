@@ -33,7 +33,36 @@ For development, documentation, or to run examples, you can install additional d
 After installation, download the pretrained models by running:
 
 ```
-python scripts/download_pretrained_models.py
+flyvis download-pretrained
 ```
 
 Make sure to run this command from your active flyvision environment.
+
+
+## Set environment variables
+
+`flyvis` uses environment variables for configuration. These can be set using a `.env` file or manually.
+
+### Option 1: Using .env file
+
+Create a `.env` file in one of these locations (in order of precedence):
+
+1. Your current working directory (where you run your scripts)
+2. The root directory of your project
+3. Any parent directory of your working directory
+
+Example `.env` file contents:
+```bash
+# Set your preferred data directory (default: './data' relative to package directory)
+FLYVIS_ROOT_DIR='path/to/your/data'
+```
+
+### Option 2: Setting environment variables manually
+
+You can also set the environment variables directly in your shell:
+
+```bash
+export FLYVIS_ROOT_DIR='path/to/your/data'
+```
+
+> Note: The data directory is where `flyvis` will store downloaded models, cached data, and other files. If `FLYVIS_ROOT_DIR` is not set, it defaults to a `data` folder in the package directory.
