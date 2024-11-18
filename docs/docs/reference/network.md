@@ -1,26 +1,26 @@
 # Network
 
-::: flyvision.network.network.Network
+::: flyvis.network.network.Network
 
 ## Stimulus
 
 Stimuli must implement the `StimulusProtocol` to be compatible with
-`flyvision.network.network.Network`.
+`flyvis.network.network.Network`.
 
-::: flyvision.network.stimulus.StimulusProtocol
+::: flyvis.network.stimulus.StimulusProtocol
 
-::: flyvision.network.stimulus.Stimulus
+::: flyvis.network.stimulus.Stimulus
 
-::: flyvision.network.stimulus.register_stimulus
+::: flyvis.network.stimulus.register_stimulus
 
-::: flyvision.network.stimulus.init_stimulus
+::: flyvis.network.stimulus.init_stimulus
 
 ## Dynamics
 
-::: flyvision.network.dynamics.NetworkDynamics
+::: flyvis.network.dynamics.NetworkDynamics
 
-::: flyvision.network.dynamics.PPNeuronIGRSynapses
+::: flyvis.network.dynamics.PPNeuronIGRSynapses
 
 ## Initialization
 
-::: flyvision.network.initialization
+::: flyvis.network.initialization

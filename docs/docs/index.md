@@ -17,10 +17,7 @@ A connectome-constrained deep mechanistic network (DMN) model of the fruit fly v
 Flyvis is our official implementation of
 [Lappalainen et al., "Connectome-constrained networks predict neural activity across the fly visual system." Nature (2024).](https://www.nature.com/articles/s41586-024-07939-3)
 
-
-## Usage Guide
-
-To get started we recommend going through our tutorials. These will guide you through the core concepts and provide practical examples:
+## Getting Started
 
 ### Tutorials
 1. [Explore the Connectome](examples/01_flyvision_connectome.md): Learn about the structure of the fly visual system connectome.
@@ -40,16 +37,8 @@ These notebooks show the main results of the paper:
 3. [Fig. 3: Cluster analysis of DMN ensembles enables hypothesis generation and suggests experimental tests.](examples/figure_03_naturalistic_stimuli_responses.md)
 4. [Fig. 4: Task-optimal DMNs largely recapitulate known mechanisms of motion computation.](examples/figure_04_mechanisms.md)
 
-### API Reference
 
-For detailed information about flyvis' components and functions, please refer to our [API Reference](reference/connectome.md) section. This includes documentation for key modules such as Connectomes, Network, NetworkView, and more.
-
-### Scripts
-
-We also provide a set of scripts for various tasks, including data download, training, validation, and analysis. You can start with the [Scripts](reference/scripts/scripts/download_pretrained_models.md) section of our documentation.
-A good starting point is also the [pipeline manager](reference/scripts/scripts/pipeline_manager.md) to run the scripts in sequence on either LSF or SLURM compute clouds.
-
-## Installation
+## Usage Guide
 
 ### Quickstart with Google Colab
 
@@ -66,6 +55,24 @@ Try the models and code inside our Google Colab notebooks for a quickstart.
 ### Local Installation
 
 See [install.md](install.md) for details on how to install the package and download the pretrained models.
+
+### API Reference
+
+For detailed information about flyvis' components and functions, please refer to our [API Reference](reference/connectome.md) section. This includes documentation for things like
+
+- Core components like Connectomes, Network, NetworkView, EnsembleView
+- Analysis tools for flash responses, moving stimuli, optimal stimuli generation, ensemble clustering
+- Command line tools for training, validation, and analysis
+
+### Command Line Interface
+
+For running experiments and analysis pipelines, check out our [Command Line Interface](reference/cli.md) documentation. This provides tools for training models, running analysis, and managing experiments on compute clusters.
+
+## Related Projects
+
+Projects using or building upon flyvis:
+
+- [NeuroMechFly](https://neuromechfly.org/neuromechfly.html): A neuromechanical model of the adult fruit fly that integrates our visual system model for sensory processing.
 
 ## Citation
 

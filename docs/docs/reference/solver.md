@@ -1,6 +1,6 @@
 # Training
 
-::: flyvision.solver
+::: flyvis.solver
     options:
       members:
         - MultiTaskSolver

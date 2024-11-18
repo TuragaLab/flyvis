@@ -1,5 +1,5 @@
-::: flyvision.network.directories.EnsembleDir
+::: flyvis.network.directories.EnsembleDir
 
-::: flyvision.network.EnsembleView
+::: flyvis.network.EnsembleView
 
-::: flyvision.network.Ensemble
+::: flyvis.network.Ensemble

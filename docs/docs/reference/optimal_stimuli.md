@@ -3,18 +3,18 @@
 
 ## Naturalistic
 
-::: flyvision.analysis.optimal_stimuli.FindOptimalStimuli
+::: flyvis.analysis.optimal_stimuli.FindOptimalStimuli
 
-::: flyvision.analysis.optimal_stimuli.OptimalStimulus
+::: flyvis.analysis.optimal_stimuli.OptimalStimulus
 
 ## Artificial
 
-::: flyvision.analysis.optimal_stimuli.GeneratedOptimalStimulus
+::: flyvis.analysis.optimal_stimuli.GeneratedOptimalStimulus
 
-::: flyvision.analysis.optimal_stimuli.RegularizedOptimalStimulus
+::: flyvis.analysis.optimal_stimuli.RegularizedOptimalStimulus
 
 ## Visualization
 
-::: flyvision.analysis.optimal_stimuli.StimResponsePlot
+::: flyvis.analysis.optimal_stimuli.StimResponsePlot
 
-::: flyvision.analysis.optimal_stimuli.plot_stim_response
+::: flyvis.analysis.optimal_stimuli.plot_stim_response

@@ -4,6 +4,12 @@
 </p>
 </h1>
 
+![Python 3.7](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.7)
+![Python 3.8](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.8)
+![Python 3.9](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.9)
+![Python 3.10](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.10)
+![Python 3.11](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.11)
+
 A connectome-constrained deep mechanistic network (DMN) model of the fruit fly visual system in PyTorch.
 
 - Explore connectome-constrained models of the fruit fly visual system.
@@ -20,7 +26,7 @@ For detailed documentation, installation instructions, tutorials, and API refere
 
 ## Tutorials
 
-Explore our tutorials to get started with flyvis. You can run them locally or try them for a quick start in Google Colab:
+Explore our tutorials to get started with flyvis. You can read the prerun tutorials in the docs or try them yourself for a quick start in Google Colab:
 
 1. Explore the Connectome
    - [Tutorial](https://turagalab.github.io/flyvis/examples/01_flyvision_connectome/)
@@ -50,9 +56,10 @@ Explore our tutorials to get started with flyvis. You can run them locally or tr
    - [Tutorial](https://turagalab.github.io/flyvis/examples/07_flyvision_providing_custom_stimuli/)
    - [Google Colab](https://colab.research.google.com/github/TuragaLab/flyvis/blob/main/examples/07_flyvision_providing_custom_stimuli.ipynb)
 
-Note: Some Google Colab links are still being prepared and will be added soon.
 
 ## Main Results
+
+Find the notebooks for the main results in the documentation.
 
 - [Fig. 1: Connectome-constrained and task-optimized models of the fly visual system](https://turagalab.github.io/flyvis/examples/figure_01_fly_visual_system/)
 - [Fig. 2: Ensembles of DMNs predict tuning properties](https://turagalab.github.io/flyvis/examples/figure_02_simple_stimuli_responses/)

@@ -2,20 +2,20 @@
 
 ## Rendering
 
-::: flyvision.datasets.flashes.RenderedFlashes
+::: flyvis.datasets.flashes.RenderedFlashes
 
 ## Datasets
 
-::: flyvision.datasets.flashes.Flashes
+::: flyvis.datasets.flashes.Flashes
 
-::: flyvision.datasets.flashes.render_flash
+::: flyvis.datasets.flashes.render_flash
 
-::: flyvision.datasets.dots.Dots
+::: flyvis.datasets.dots.Dots
 
-::: flyvision.datasets.dots.CentralImpulses
+::: flyvis.datasets.dots.CentralImpulses
 
-::: flyvision.datasets.dots.SpatialImpulses
+::: flyvis.datasets.dots.SpatialImpulses
 
 ## Analysis
 
-::: flyvision.analysis.flash_responses
+::: flyvis.analysis.flash_responses

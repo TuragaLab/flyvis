@@ -2,18 +2,18 @@
 
 ## Rendering
 
-::: flyvision.datasets.moving_bar.RenderedOffsets
+::: flyvis.datasets.moving_bar.RenderedOffsets
 
 ## Datasets
 
-::: flyvision.datasets.moving_bar.MovingBar
+::: flyvis.datasets.moving_bar.MovingBar
 
-::: flyvision.datasets.moving_bar.MovingEdge
+::: flyvis.datasets.moving_bar.MovingEdge
 
 ## Response Analysis
 
-::: flyvision.analysis.moving_bar_responses
+::: flyvis.analysis.moving_bar_responses
 
 ## Current Analysis
 
-::: flyvision.analysis.moving_edge_currents.MovingEdgeCurrentView
+::: flyvis.analysis.moving_edge_currents.MovingEdgeCurrentView

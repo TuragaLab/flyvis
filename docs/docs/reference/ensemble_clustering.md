@@ -1,13 +1,13 @@
 # Ensemble Clustering
 
-::: flyvision.analysis.clustering.compute_umap_and_clustering
+::: flyvis.analysis.clustering.compute_umap_and_clustering
 
-::: flyvision.analysis.clustering.umap_embedding
+::: flyvis.analysis.clustering.umap_embedding
 
-::: flyvision.analysis.clustering.GaussianMixtureClustering
+::: flyvis.analysis.clustering.GaussianMixtureClustering
 
-::: flyvision.analysis.clustering.EnsembleEmbedding
+::: flyvis.analysis.clustering.EnsembleEmbedding
 
-::: flyvision.analysis.clustering.Embedding
+::: flyvis.analysis.clustering.Embedding
 
-::: flyvision.analysis.clustering.Clustering
+::: flyvis.analysis.clustering.Clustering

@@ -3,13 +3,13 @@
 
 ## BoxEye
 
-::: flyvision.datasets.rendering.eye.BoxEye
+::: flyvis.datasets.rendering.eye.BoxEye
 
 ## HexEye
 
-::: flyvision.datasets.rendering.eye.HexEye
+::: flyvis.datasets.rendering.eye.HexEye
 
 
 ## Utils
 
-::: flyvision.datasets.rendering.utils
+::: flyvis.datasets.rendering.utils

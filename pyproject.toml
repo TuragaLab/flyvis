@@ -3,7 +3,7 @@ build-backend = "setuptools.build_meta"
 requires = ["setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"]
 
 [tool.setuptools_scm]
-write_to = "flyvision/version.py"
+write_to = "flyvis/version.py"
 
 [tool.setuptools]
 include-package-data = true
@@ -26,13 +26,13 @@ classifiers = [
 ]
 dependencies = [
   "ipython",
-  "numba==0.55.2",
+  "numba",
   "datamate",
   "scipy",
-  "matplotlib==3.7.1",
+  "matplotlib",
   "networkx",
-  "scikit-learn==1.1.1",
-  "umap-learn==0.5.3",
+  "scikit-learn",
+  "umap-learn",
   "ffmpeg-python",
   "pytest",
   "torch",
@@ -43,21 +43,22 @@ dependencies = [
   "tqdm",
   "requests",
   "google-api-python-client",
-  "xarray==2023.7.0",
-  "pandas==2.2.2",
-  "joblib==1.3.2",
+  "xarray",
+  "pandas",
+  "joblib",
 ]
 description = "Connectome and task-constrained vision models of the fruit fly."
 dynamic = ["version"]
-name = "flyvision"
+name = "flyvis"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.9,<3.12"
 
 [project.optional-dependencies]
 dev = [
   "pre-commit",
   "ruff",
   "pytest",
+  "pytest-cov",
   "jupyter",
   "papermill",
   "tabulate",
@@ -79,22 +80,23 @@ docs = [
   "ipywidgets",
 ]
 examples = ["jupyter", "tabulate", "tqdm", "ipywidgets"]
-no-version-pins = [
-  "numba",
-  "matplotlib",
-  "scikit-learn",
-  "umap-learn",
-  "xarray",
-  "pandas",
-  "joblib",
+
+pretrained = [
+  "numba==0.55.2",
+  "matplotlib==3.7.1",
+  "scikit-learn==1.1.1",
+  "umap-learn==0.5.3",
+  "xarray==2023.7.0",
+  "pandas==2.2.2",
+  "joblib==1.3.2",
 ]
 
 # Package installation configuration
 [tool.setuptools.packages.find]
 exclude = [] # exclude packages matching these glob patterns (empty by default)
 include = [
-  "flyvision*",
   "flyvis*",
+  "flyvis_cli*",
 ] # package names should match these glob patterns (["*"] by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 where = ["."] # list of folders that contain the packages (["."] by default)
@@ -127,7 +129,7 @@ select = ["E", "F", "W", "B", "SIM", "I"]
 # case-sensitive = true
 # lines-between-types = 0  # like isort default.
 # relative-imports-order = "furthest-to-closest"  # like isort default.
-# known-first-party = ["flyvision", "tests", "examples", "scripts"]
+# known-first-party = ["flyvis", "tests", "examples", "scripts"]
 
 [tool.ruff.format]
 # exclude = ["*.ipynb"]
@@ -161,6 +163,9 @@ exclude = [
   "images",
 ]
 ignore = []
-include = ["flyvision", "scripts", "tests", "examples"]
+include = ["flyvis", "flyvis_cli", "tests", "examples"]
 python_version = "3.x"
 reportUnsupportedDunderAll = false
+
+[project.scripts]
+flyvis = "flyvis_cli.flyvis:main"

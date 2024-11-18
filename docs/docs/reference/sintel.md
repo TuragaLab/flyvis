@@ -2,14 +2,14 @@
 
 ## Rendering
 
-::: flyvision.datasets.sintel.RenderedSintel
+::: flyvis.datasets.sintel.RenderedSintel
 
 ## Datasets
 
-::: flyvision.datasets.sintel.MultiTaskSintel
+::: flyvis.datasets.sintel.MultiTaskSintel
 
-::: flyvision.datasets.sintel.AugmentedSintel
+::: flyvis.datasets.sintel.AugmentedSintel
 
 ## Utils
 
-::: flyvision.datasets.sintel_utils
+::: flyvis.datasets.sintel_utils

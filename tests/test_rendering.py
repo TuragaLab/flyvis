@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from flyvision.datasets import rendering
+from flyvis.datasets import rendering
 
 
 @pytest.fixture(scope="module")

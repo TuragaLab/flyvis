@@ -6,46 +6,98 @@ from pathlib import Path
 import nbformat
 import papermill as pm
 import pytest
+import torch
 
 pytestmark = pytest.mark.slow
 examples_path = Path(__file__).parent.parent / "examples"
 # List of notebook names
 notebooks = [
-    pytest.param("01_flyvision_connectome.ipynb"),
+    pytest.param("01_flyvision_connectome.ipynb", marks=[]),
     pytest.param(
-        "02_flyvision_optic_flow_task.ipynb", marks=pytest.mark.require_large_download
+        "02_flyvision_optic_flow_task.ipynb",
+        marks=[
+            pytest.mark.require_large_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
     pytest.param(
-        "03_flyvision_flash_responses.ipynb", marks=pytest.mark.require_download
+        "03_flyvision_flash_responses.ipynb",
+        marks=[
+            pytest.mark.require_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
     pytest.param(
-        "04_flyvision_moving_edge_responses.ipynb", marks=pytest.mark.require_download
+        "04_flyvision_moving_edge_responses.ipynb",
+        marks=[
+            pytest.mark.require_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
     pytest.param(
         "05_flyvision_umap_and_clustering_models.ipynb",
-        marks=pytest.mark.require_large_download,
+        marks=[
+            pytest.mark.require_large_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
     pytest.param(
         "06_flyvision_maximally_excitatory_stimuli.ipynb",
-        marks=pytest.mark.require_large_download,
+        marks=[
+            pytest.mark.require_large_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
     pytest.param(
         "07_flyvision_providing_custom_stimuli.ipynb",
-        marks=pytest.mark.require_download,
+        marks=[
+            pytest.mark.require_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
-    pytest.param("figure_01_fly_visual_system.ipynb", marks=pytest.mark.require_download),
     pytest.param(
-        "figure_02_simple_stimuli_responses.ipynb", marks=pytest.mark.require_download
+        "figure_01_fly_visual_system.ipynb",
+        marks=[
+            pytest.mark.require_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
+    ),
+    pytest.param(
+        "figure_02_simple_stimuli_responses.ipynb",
+        marks=[
+            pytest.mark.require_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
     pytest.param(
         "figure_03_naturalistic_stimuli_responses.ipynb",
-        marks=pytest.mark.require_download,
+        marks=[
+            pytest.mark.require_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
     ),
-    pytest.param("figure_04_mechanisms.ipynb", marks=pytest.mark.require_download),
+    pytest.param(
+        "figure_04_mechanisms.ipynb",
+        marks=[
+            pytest.mark.require_download,
+            pytest.mark.require_gpu,
+            pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
+        ],
+    ),
 ]
 
 
 # Define a parameterized test using pytest
+@pytest.mark.slow
 @pytest.mark.parametrize("notebook", notebooks)
 def test_notebook_execution(notebook, tmpdir):
     notebook_path = str(examples_path / notebook)

@@ -1,3 +1,3 @@
-::: flyvision.task.tasks
+::: flyvis.task.tasks
 
-::: flyvision.task.objectives
+::: flyvis.task.objectives

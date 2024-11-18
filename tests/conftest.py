@@ -1,8 +1,12 @@
+import tempfile
+from pathlib import Path
+
 import numpy as np
 import pytest
+from PIL import Image
 
-from flyvision import connectome_file
-from flyvision.connectome import ConnectomeFromAvgFilters
+from flyvis import connectome_file
+from flyvis.connectome import ConnectomeFromAvgFilters
 
 
 @pytest.fixture(scope="session")
@@ -20,3 +24,43 @@ def sequence_path(tmp_path_factory):
     path = tmp_path_factory.mktemp("tmp") / "sequences.npy"
     np.save(path, sequences)
     return str(path)
+
+
+@pytest.fixture(scope="session")
+def mock_sintel_data():
+    """Create a minimal mock Sintel dataset structure with original dimensions."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+
+        # Create directory structure
+        (tmp_path / "training/final/alley_1").mkdir(parents=True)
+        (tmp_path / "training/flow/alley_1").mkdir(parents=True)
+        (tmp_path / "training/depth/alley_1").mkdir(parents=True)
+
+        # Original dimensions
+        HEIGHT, WIDTH = 436, 1024
+
+        # Create dummy files with original dimensions
+        for i in range(20):  # Create enough frames for n_frames=19 test
+            # Luminance (final) - (436, 1024)
+            img = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
+            Image.fromarray(img).save(
+                tmp_path / f"training/final/alley_1/frame_{i:04d}.png"
+            )
+
+            # Flow - (2, 436, 1024)
+            with open(tmp_path / f"training/flow/alley_1/frame_{i:04d}.flo", 'wb') as f:
+                # Write header
+                np.array([202021.25], dtype=np.float32).tofile(f)  # Magic number
+                np.array([WIDTH, HEIGHT], dtype=np.int32).tofile(f)  # Dimensions
+                # Write flow data
+                np.zeros((HEIGHT, WIDTH, 2), dtype=np.float32).tofile(f)
+
+            # Depth - (436, 1024)
+            with open(tmp_path / f"training/depth/alley_1/frame_{i:04d}.dpt", 'wb') as f:
+                # Write header
+                np.array([WIDTH, HEIGHT], dtype=np.int32).tofile(f)  # Dimensions
+                # Write depth data
+                np.zeros((HEIGHT, WIDTH), dtype=np.float32).tofile(f)
+
+        yield tmp_path

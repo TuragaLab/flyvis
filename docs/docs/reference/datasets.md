@@ -2,28 +2,28 @@
 
 ## Base Classes
 
-::: flyvision.datasets.datasets.SequenceDataset
+::: flyvis.datasets.datasets.SequenceDataset
 
-::: flyvision.datasets.datasets.StimulusDataset
+::: flyvis.datasets.datasets.StimulusDataset
 
-::: flyvision.datasets.datasets.MultiTaskDataset
+::: flyvis.datasets.datasets.MultiTaskDataset
 
 ## Flashes
 
-::: flyvision.datasets.flashes.Flashes
+::: flyvis.datasets.flashes.Flashes
 
 ## Moving Bar
 
-::: flyvision.datasets.moving_bar.MovingBar
+::: flyvis.datasets.moving_bar.MovingBar
 
 ## Impulses
 
-::: flyvision.datasets.dots.Dots
+::: flyvis.datasets.dots.Dots
 
-::: flyvision.datasets.dots.SpatialImpulses
+::: flyvis.datasets.dots.SpatialImpulses
 
-::: flyvision.datasets.dots.CentralImpulses
+::: flyvis.datasets.dots.CentralImpulses
 
 ## Sintel
 
-::: flyvision.datasets.sintel.MultiTaskSintel
+::: flyvis.datasets.sintel.MultiTaskSintel

@@ -1,24 +1,32 @@
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 from datamate import set_root_context
+from PIL import Image
 
-from flyvision.datasets.sintel import MultiTaskSintel, RenderedSintel, sintel_meta
-
-# add large_download mark to deselect this test in CI
-pytestmark = pytest.mark.require_large_download
+from flyvis.datasets.sintel import MultiTaskSintel, RenderedSintel, sintel_meta
 
 
-def test_rendering(tmp_path_factory):
-    with set_root_context(tmp_path_factory.mktemp("tmp")):
-        rendered = RenderedSintel(
-            tasks=["flow"],
-            boxfilter=dict(extent=1, kernel_size=13),
-            vertical_splits=3,
-            n_frames=2,
-            gamma=1,
-            center_crop_fraction=0.7,
-            unittest=True,
-        )
+def test_rendering(mock_sintel_data, tmp_path_factory):
+    """Test rendering with mocked Sintel data."""
+    with patch('flyvis.datasets.sintel_utils.download_sintel') as mock_download:
+        mock_download.return_value = mock_sintel_data
+
+        with set_root_context(tmp_path_factory.mktemp("tmp")):
+            rendered = RenderedSintel(
+                tasks=["flow"],
+                boxfilter=dict(extent=1, kernel_size=13),
+                vertical_splits=3,
+                n_frames=2,
+                gamma=1,
+                center_crop_fraction=0.7,
+                unittest=True,
+            )
+
+    # Original assertions remain unchanged
     assert len(rendered) == 3
     split_1 = rendered(0)
     assert split_1["flow"].shape == (3, 2, 7)
@@ -36,34 +44,102 @@ def test_rendering(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
-def dataset():
-    return MultiTaskSintel(
-        tasks=["flow"],
-        boxfilter=dict(extent=15, kernel_size=13),
-        vertical_splits=3,
-        n_frames=19,
-        center_crop_fraction=0.7,
-        dt=1 / 50,
-        augment=True,
-        random_temporal_crop=True,
-        all_frames=False,
-        resampling=True,
-        interpolate=True,
-        p_flip=0.5,
-        p_rot=5 / 6,
-        contrast_std=0.2,
-        brightness_std=0.1,
-        gaussian_white_noise=0.08,
-        gamma_std=None,
-        _init_cache=True,
-        unittest=True,
-        flip_axes=[
-            0,
-            1,
-            2,
-            3,
-        ],  # 2 and 3 with all rotation axes lead to redundant transforms
-    )
+def mock_sintel_data():
+    """Create a minimal mock Sintel dataset structure with original dimensions."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+
+        # Create directory structure
+        (tmp_path / "training/final/alley_1").mkdir(parents=True)
+        (tmp_path / "training/flow/alley_1").mkdir(parents=True)
+        (tmp_path / "training/depth/alley_1").mkdir(parents=True)
+
+        # Original dimensions
+        HEIGHT, WIDTH = 436, 1024
+
+        # Create dummy files with original dimensions
+        for i in range(20):  # Create enough frames for n_frames=19 test
+            # Luminance (final) - (436, 1024)
+            img = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
+            Image.fromarray(img).save(
+                tmp_path / f"training/final/alley_1/frame_{i:04d}.png"
+            )
+
+            # Flow - (2, 436, 1024)
+            with open(tmp_path / f"training/flow/alley_1/frame_{i:04d}.flo", 'wb') as f:
+                # Write header
+                np.array([202021.25], dtype=np.float32).tofile(f)  # Magic number
+                np.array([WIDTH, HEIGHT], dtype=np.int32).tofile(f)  # Dimensions
+                # Write flow data
+                np.zeros((HEIGHT, WIDTH, 2), dtype=np.float32).tofile(f)
+
+            # Depth - (436, 1024)
+            with open(tmp_path / f"training/depth/alley_1/frame_{i:04d}.dpt", 'wb') as f:
+                # Write header
+                np.array([WIDTH, HEIGHT], dtype=np.int32).tofile(f)  # Dimensions
+                # Write depth data
+                np.zeros((HEIGHT, WIDTH), dtype=np.float32).tofile(f)
+
+        yield tmp_path
+
+
+@pytest.fixture(scope="module")
+def dataset(mock_sintel_data):
+    with patch('flyvis.datasets.sintel_utils.download_sintel') as mock_download:
+        mock_download.return_value = mock_sintel_data
+        return MultiTaskSintel(
+            tasks=["flow"],
+            boxfilter=dict(extent=15, kernel_size=13),
+            vertical_splits=3,
+            n_frames=19,
+            center_crop_fraction=0.7,
+            dt=1 / 50,
+            augment=True,
+            random_temporal_crop=True,
+            all_frames=False,
+            resampling=True,
+            interpolate=True,
+            p_flip=0.5,
+            p_rot=5 / 6,
+            contrast_std=0.2,
+            brightness_std=0.1,
+            gaussian_white_noise=0.08,
+            gamma_std=None,
+            _init_cache=True,
+            unittest=True,
+            flip_axes=[0, 1, 2, 3],
+        )
+
+
+# @pytest.fixture(scope="module")
+# def dataset():
+#     return MultiTaskSintel(
+#         tasks=["flow"],
+#         boxfilter=dict(extent=15, kernel_size=13),
+#         vertical_splits=3,
+#         n_frames=19,
+#         center_crop_fraction=0.7,
+#         dt=1 / 50,
+#         augment=True,
+#         random_temporal_crop=True,
+#         all_frames=False,
+#         resampling=True,
+#         interpolate=True,
+#         p_flip=0.5,
+#         p_rot=5 / 6,
+#         contrast_std=0.2,
+#         brightness_std=0.1,
+#         gaussian_white_noise=0.08,
+#         gamma_std=None,
+#         _init_cache=True,
+#         unittest=True,
+#         flip_axes=[
+#             0,
+#             1,
+#             2,
+#             3,
+#         ],  # 2 and 3 with all rotation axes lead to redundant transforms
+#     )
 
 
 @pytest.fixture(

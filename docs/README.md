@@ -17,6 +17,8 @@ This takes a while. Make sure that recordings are precomputed and cached, i.e., 
 
 ```bash
 export TESTING=true  # optional, will not run animations to speed things up
+export JUPYTER_CONFIG_DIR=$(mktemp -d) # to avoid conflicts with notebook version and extensions
+
 for notebook in ../examples/*.ipynb; do
     jupyter nbconvert --to notebook --execute "$notebook" --inplace
 done
