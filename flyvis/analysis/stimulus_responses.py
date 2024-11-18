@@ -29,6 +29,8 @@ __all__ = [
 ]
 
 
+# NOTE: joblib caching tracks this source file, so changes here will invalidate
+# all cached results.
 def compute_responses(
     network: "flyvis.network.CheckpointedNetwork",
     dataset_class: type,
@@ -145,6 +147,7 @@ def generic_responses(
         cached_compute_responses_fn = network_view.memory.cache(
             compute_responses, ignore=['batch_size']
         )
+
         call_in_cache = cached_compute_responses_fn.check_call_in_cache(
             checkpointed_network,
             dataset_class,
@@ -174,6 +177,7 @@ def generic_responses(
                 batch_size,
                 t_pre,
                 t_fade_in,
+                cell_index,
             )  # type: xr.Dataset
         )
         checkpoints.append(checkpointed_network.checkpoint)

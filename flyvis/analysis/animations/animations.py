@@ -119,7 +119,7 @@ class Animation:
         """
         total = getattr(self, key)
         _indices = set(range(total))
-        if input == "all":
+        if isinstance(input, str) and input == "all":
             indices = _indices
         elif isinstance(input, Iterable):
             indices = _indices.intersection(set(input))

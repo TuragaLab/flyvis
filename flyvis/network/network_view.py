@@ -10,6 +10,7 @@ import os
 from dataclasses import dataclass
 from functools import wraps
 from os import PathLike
+from pprint import pformat
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch.nn as nn
@@ -91,7 +92,7 @@ class NetworkView:
         best_checkpoint_fn: Callable = best_checkpoint_default_fn,
         best_checkpoint_fn_kwargs: dict = {
             "validation_subdir": "validation",
-            "loss_file_name": "loss",
+            "loss_file_name": "epe",
         },
         recover_fn: Callable = recover_network,
     ):
@@ -106,23 +107,38 @@ class NetworkView:
         self.connectome = self.connectome_view.dir
         self.checkpoints = checkpoint_mapper(self.dir)
         self.memory = Memory(
-            location=self.dir.path / "__cache__", verbose=0, backend="xarray_dataset_h5"
+            location=self.dir.path / "__cache__",
+            backend="xarray_dataset_h5",
+            verbose=0,
+            # verbose=11,
         )
         self.best_checkpoint_fn = best_checkpoint_fn
         self.best_checkpoint_fn_kwargs = best_checkpoint_fn_kwargs
         self.recover_fn = recover_fn
-        self._network = CheckpointedNetwork(
-            self.network_class,
-            self.dir.config.network.to_dict(),
-            self.name,
-            self.get_checkpoint("best"),
-            self.recover_fn,
-            network=None,
-        )
+        self._network_instance = None
         self.decoder = None
         self._initialized = {"network": None, "decoder": None}
         self.cache = FIFOCache(maxsize=3)
         logging.info("Initialized network view at %s", str(self.dir.path))
+
+    @property
+    def _network(self) -> CheckpointedNetwork:
+        """Lazy init of CheckpointedNetwork because get_checkpoint can be slow."""
+        if self._network_instance is None:
+            self._network_instance = CheckpointedNetwork(
+                self.network_class,
+                self.dir.config.network.to_dict(),
+                self.name,
+                self.get_checkpoint("best"),
+                self.recover_fn,
+                network=None,
+            )
+        return self._network_instance
+
+    @_network.setter
+    def _network(self, value):
+        """Setter for _network property."""
+        self._network_instance = value
 
     def _clear_cache(self):
         """Clear the FIFO cache."""
@@ -440,12 +456,28 @@ class CheckpointedNetwork:
             self.init()
         return self.recover_fn(self.network, checkpoint or self.checkpoint)
 
-    def __hash__(self):
-        return hash((
+    def __repr__(self):
+        return (
+            f"CheckpointedNetwork(\n"
+            f"    network_class={self.network_class.__name__},\n"
+            f"    name='{self.name}',\n"
+            f"    config={pformat(self.config, indent=4)},\n"
+            f"    checkpoint='{os.path.basename(str(self.checkpoint))}'\n"
+            f"    recover_fn={self.recover_fn.__name__}\n"
+            f")"
+        )
+
+    def _hash_key(self):
+        return (
             self.network_class,
+            self.name,
             make_hashable(self.config),
             self.checkpoint,
-        ))
+            self.recover_fn.__name__,
+        )
+
+    def __hash__(self):
+        return hash(self._hash_key())
 
     # Equality check based on hashable elements.
     def __eq__(self, other):
@@ -453,8 +485,10 @@ class CheckpointedNetwork:
             return False
         return (
             self.network_class == other.network_class
+            and self.name == other.name
             and make_hashable(self.config) == make_hashable(other.config)
             and self.checkpoint == other.checkpoint
+            and self.recover_fn.__name__ == other.recover_fn.__name__
         )
 
     # Custom reduce method to make the object compatible with joblib's pickling.
@@ -468,18 +502,17 @@ class CheckpointedNetwork:
         state["network"] = None  # Exclude the complex network from being pickled
 
         return (
-            self.__class__,  # The callable (class itself)
+            self.__class__,
             (
                 self.network_class,
                 self.config,
                 self.checkpoint,
-                self.recover_fn,
+                self.recover_fn.__name__,
                 None,
-            ),  # Arguments to reconstruct the object
-            state,  # State without the 'network' attribute
+            ),
+            state,
         )
 
-    # Restore the object's state, but do not load the network from the state.
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.network = None

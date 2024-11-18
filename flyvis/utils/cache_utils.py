@@ -61,29 +61,35 @@ def context_aware_cache(
 
 
 def make_hashable(obj: Any) -> Any:
-    """
-    Recursively converts an object into a hashable type.
-
-    Args:
-        obj: The object to be converted.
-
-    Returns:
-        A hashable representation of the input object.
-
-    Note:
-        This function handles various types including immutable types, lists, sets,
-        dictionaries, tuples, frozensets, and slices. For complex objects, it falls
-        back to string conversion, which may not be ideal for all use cases.
-    """
+    """Recursively converts an object into a hashable type."""
     if isinstance(obj, (int, float, str, bool, type(None))):
         return obj
     elif isinstance(obj, (list, set)):
-        return tuple(make_hashable(e) for e in obj)
+        try:
+            # Try direct sorting first
+            return tuple(make_hashable(e) for e in sorted(obj))
+        except TypeError:
+            # Fall back to sorting by hash
+            return tuple(
+                make_hashable(e)
+                for e in sorted(obj, key=lambda x: hash(make_hashable(x)))
+            )
     elif isinstance(obj, dict):
-        return tuple(sorted((k, make_hashable(v)) for k, v in obj.items()))
+        try:
+            # Try direct sorting of keys first
+            return tuple(sorted((k, make_hashable(v)) for k, v in obj.items()))
+        except TypeError:
+            # Fall back to sorting by hash of keys
+            return tuple(
+                sorted(
+                    ((k, make_hashable(v)) for k, v in obj.items()),
+                    key=lambda x: hash(make_hashable(x[0])),
+                )
+            )
     elif isinstance(obj, (tuple, frozenset)):
         return tuple(make_hashable(e) for e in obj)
     elif isinstance(obj, slice):
         return (obj.start, obj.stop, obj.step)
     else:
-        return str(obj)
+        # For other types, try to get a consistent string representation
+        return f"{obj.__class__.__module__}.{obj.__class__.__name__}:{str(obj)}"

@@ -45,6 +45,11 @@ def where_xarray(
         )
         ```
     """
+    # Force evaluation of coordinates
+    # Heisenbug, strangely required for the where() method to work
+    # to circumvent AttributeError: 'ScipyArrayWrapper' object has no attribute 'oindex'
+    for _, coord in dataset.coords.items():
+        _ = coord.values.dtype
 
     # Define a mapping of operators from string to functions
     operators = {
