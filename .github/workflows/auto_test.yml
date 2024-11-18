@@ -15,6 +15,7 @@ jobs:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
@@ -25,10 +26,6 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Install PyTorch separately
-      run: |
-        pip install torch torchvision
 
     - name: Install the repository in editable mode
       run: pip install -e ".[dev]"
