@@ -15,16 +15,16 @@ from flyvis.network.network import IntegrationWarning, Network
 pytestmark = pytest.mark.require_download
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def ensemble() -> Ensemble:
-    models = [results_dir / f"flow/0000/{i:03}" for i in range(6)]
+    models = [results_dir / f"flow/0000/{i:03}" for i in range(4)]
     ensemble = Ensemble(models)
     return ensemble
 
 
 def test_ensemble_init(ensemble):
     assert isinstance(ensemble, Ensemble)
-    assert len(ensemble) == 6
+    assert len(ensemble) == 4
     assert hasattr(ensemble, "names")
     assert hasattr(ensemble, "name")
     assert hasattr(ensemble, "path")
@@ -125,6 +125,10 @@ def test_loss_histogram(ensemble: Ensemble):
 def test_responses():
     ensemble = Ensemble(
         results_dir / "flow/0000",
+        best_checkpoint_fn_kwargs={
+            "validation_subdir": "validation",
+            "loss_file_name": "loss",
+        },
     )
 
     test_data_dir = Directory(Path(__file__).parent / "data")

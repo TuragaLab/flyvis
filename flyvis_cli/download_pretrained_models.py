@@ -134,12 +134,9 @@ def main() -> None:
     args, _ = arg_parser.parse_known_intermixed_args()
 
     folder_id = "15_8gPaVVJV6wGAspwkrdN8r-2NxMY4Kj"
-    destination_dir = root_dir / "data"
     api_key = "AIzaSyDOy2_N7B5UjxKy5Xxeyd9WZfnDWzQ4-54"
 
-    download_and_unpack_files(
-        folder_id, str(destination_dir), api_key, args.skip_large_files
-    )
+    download_and_unpack_files(folder_id, str(root_dir), api_key, args.skip_large_files)
 
 
 if __name__ == "__main__":
