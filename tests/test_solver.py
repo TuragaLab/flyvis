@@ -1,27 +1,29 @@
+from unittest.mock import patch
+
 import pytest
 from datamate import set_root_context
 
 from flyvis.solver import MultiTaskSolver
 from flyvis.utils.config_utils import get_default_config
 
-# add large_download mark to deselect this test in CI
-pytestmark = pytest.mark.require_large_download
-
 
 @pytest.fixture(scope="module")
-def solver(tmp_path_factory) -> MultiTaskSolver:
-    config = get_default_config(
-        path="../../config/solver.yaml",
-        overrides=[
-            "task_name=flow",
-            "ensemble_and_network_id=0",
-            "task.n_iters=50",
-        ],
-    )
+def solver(mock_sintel_data, tmp_path_factory) -> MultiTaskSolver:
+    with patch('flyvis.datasets.sintel_utils.download_sintel') as mock_download:
+        mock_download.return_value = mock_sintel_data
 
-    with set_root_context(str(tmp_path_factory.mktemp("tmp"))):
-        solver = MultiTaskSolver("test", config)
-    return solver
+        config = get_default_config(
+            path="../../config/solver.yaml",
+            overrides=[
+                "task_name=flow",
+                "ensemble_and_network_id=0",
+                "task.n_iters=50",
+            ],
+        )
+
+        with set_root_context(str(tmp_path_factory.mktemp("tmp"))):
+            solver = MultiTaskSolver("test", config)
+        return solver
 
 
 def test_solver_config():
