@@ -1,7 +1,8 @@
 import logging
 from contextlib import contextmanager
 from itertools import product
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -72,10 +73,12 @@ class RenderedSintel(Directory):
         n_frames: int = 19,
         center_crop_fraction: float = 0.7,
         unittest: bool = False,
+        sintel_path: Optional[Union[str, Path]] = None,
     ):
-        # Always downloads and renders flow data, but optionally also depth
-        render_depth = "depth" in tasks
-        sintel_path = download_sintel(depth=render_depth)
+        # Convert sintel_path to Path object if it's not None
+        sintel_path = (
+            Path(sintel_path) if sintel_path else download_sintel(depth="depth" in tasks)
+        )
         boxfilter = BoxEye(**boxfilter)
 
         lum_paths = (sintel_path / "training/final").iterdir()
@@ -131,7 +134,7 @@ class RenderedSintel(Directory):
                     ),
                     dim=2,
                 ).cpu()
-                if render_depth:
+                if "depth" in tasks:
                     # (frames, height, width)
                     depth = load_sequence(
                         depth_path,
@@ -157,7 +160,7 @@ class RenderedSintel(Directory):
 
                     self[f"{path}/flow"] = flow_hex[j]
 
-                    if render_depth:
+                    if "depth" in tasks:
                         self[f"{path}/depth"] = depth_hex[j]
             if unittest:
                 break
@@ -245,6 +248,7 @@ class MultiTaskSintel(MultiTaskDataset):
         _init_cache: bool = True,
         unittest: bool = False,
         flip_axes: List[int] = [0, 1],
+        sintel_path: Optional[Union[str, Path]] = None,
     ):
         def check_tasks(tasks):
             invalid_tasks = [x for x in tasks if x not in self.valid_tasks]
@@ -288,7 +292,11 @@ class MultiTaskSintel(MultiTaskDataset):
 
         self.unittest = unittest
 
-        self.sintel_path = download_sintel(depth="depth" in tasks)
+        # Download Sintel once and reuse the path
+        self.sintel_path = (
+            Path(sintel_path) if sintel_path else download_sintel(depth="depth" in tasks)
+        )
+
         self.rendered = RenderedSintel(
             tasks=tasks,
             boxfilter=boxfilter,
@@ -296,7 +304,9 @@ class MultiTaskSintel(MultiTaskDataset):
             n_frames=n_frames,
             center_crop_fraction=center_crop_fraction,
             unittest=unittest,
+            sintel_path=self.sintel_path,
         )
+
         self.meta = sintel_meta(
             self.rendered, self.sintel_path, n_frames, vertical_splits, "depth" in tasks
         )

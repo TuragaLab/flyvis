@@ -18,7 +18,13 @@ pytestmark = pytest.mark.require_download
 @pytest.fixture(scope="function")
 def ensemble() -> Ensemble:
     models = [results_dir / f"flow/0000/{i:03}" for i in range(4)]
-    ensemble = Ensemble(models)
+    ensemble = Ensemble(
+        models,
+        best_checkpoint_fn_kwargs={
+            "validation_subdir": "validation",
+            "loss_file_name": "loss",
+        },
+    )
     return ensemble
 
 
@@ -103,7 +109,13 @@ def test_task_error(ensemble):
 
 @pytest.mark.slow
 def test_cluster_indices():
-    ensemble = Ensemble("flow/0000")
+    ensemble = Ensemble(
+        "flow/0000",
+        best_checkpoint_fn_kwargs={
+            "validation_subdir": "validation",
+            "loss_file_name": "loss",
+        },
+    )
     for cell_type in ensemble.connectome.unique_cell_types[:].astype(str):
         cluster_indices = ensemble.cluster_indices(cell_type)
         assert isinstance(cluster_indices, dict)
@@ -115,7 +127,13 @@ def test_cluster_indices():
 
 
 def test_loss_histogram(ensemble: Ensemble):
-    ensemble_view = EnsembleView(ensemble)
+    ensemble_view = EnsembleView(
+        ensemble,
+        best_checkpoint_fn_kwargs={
+            "validation_subdir": "validation",
+            "loss_file_name": "loss",
+        },
+    )
     fig, ax = ensemble_view.task_error_histogram()
     fig.show()
     plt.close(fig)

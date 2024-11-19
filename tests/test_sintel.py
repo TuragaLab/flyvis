@@ -1,37 +1,30 @@
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
-
 import numpy as np
 import pytest
 from datamate import set_root_context
-from PIL import Image
 
 from flyvis.datasets.sintel import MultiTaskSintel, RenderedSintel, sintel_meta
 
 
 def test_rendering(mock_sintel_data, tmp_path_factory):
     """Test rendering with mocked Sintel data."""
-    with patch('flyvis.datasets.sintel_utils.download_sintel') as mock_download:
-        mock_download.return_value = mock_sintel_data
+    with set_root_context(tmp_path_factory.mktemp("tmp")):
+        rendered = RenderedSintel(
+            tasks=["flow"],
+            boxfilter=dict(extent=1, kernel_size=13),
+            vertical_splits=3,
+            n_frames=2,
+            gamma=1,
+            center_crop_fraction=0.7,
+            unittest=True,
+            sintel_path=mock_sintel_data,
+        )
 
-        with set_root_context(tmp_path_factory.mktemp("tmp")):
-            rendered = RenderedSintel(
-                tasks=["flow"],
-                boxfilter=dict(extent=1, kernel_size=13),
-                vertical_splits=3,
-                n_frames=2,
-                gamma=1,
-                center_crop_fraction=0.7,
-                unittest=True,
-            )
-
-    # Original assertions remain unchanged
     assert len(rendered) == 3
     split_1 = rendered(0)
     assert split_1["flow"].shape == (3, 2, 7)
     assert split_1["lum"].shape == (3, 1, 7)
-    assert rendered.config == dict(
+
+    expected_config = dict(
         type="RenderedSintel",
         tasks=["flow"],
         boxfilter=dict(extent=1, kernel_size=13),
@@ -40,106 +33,36 @@ def test_rendering(mock_sintel_data, tmp_path_factory):
         gamma=1,
         center_crop_fraction=0.7,
         unittest=True,
+        sintel_path=str(mock_sintel_data),
     )
-
-
-@pytest.fixture(scope="module")
-def mock_sintel_data():
-    """Create a minimal mock Sintel dataset structure with original dimensions."""
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_path = Path(tmp_dir)
-
-        # Create directory structure
-        (tmp_path / "training/final/alley_1").mkdir(parents=True)
-        (tmp_path / "training/flow/alley_1").mkdir(parents=True)
-        (tmp_path / "training/depth/alley_1").mkdir(parents=True)
-
-        # Original dimensions
-        HEIGHT, WIDTH = 436, 1024
-
-        # Create dummy files with original dimensions
-        for i in range(20):  # Create enough frames for n_frames=19 test
-            # Luminance (final) - (436, 1024)
-            img = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
-            Image.fromarray(img).save(
-                tmp_path / f"training/final/alley_1/frame_{i:04d}.png"
-            )
-
-            # Flow - (2, 436, 1024)
-            with open(tmp_path / f"training/flow/alley_1/frame_{i:04d}.flo", 'wb') as f:
-                # Write header
-                np.array([202021.25], dtype=np.float32).tofile(f)  # Magic number
-                np.array([WIDTH, HEIGHT], dtype=np.int32).tofile(f)  # Dimensions
-                # Write flow data
-                np.zeros((HEIGHT, WIDTH, 2), dtype=np.float32).tofile(f)
-
-            # Depth - (436, 1024)
-            with open(tmp_path / f"training/depth/alley_1/frame_{i:04d}.dpt", 'wb') as f:
-                # Write header
-                np.array([WIDTH, HEIGHT], dtype=np.int32).tofile(f)  # Dimensions
-                # Write depth data
-                np.zeros((HEIGHT, WIDTH), dtype=np.float32).tofile(f)
-
-        yield tmp_path
+    assert rendered.config == expected_config
 
 
 @pytest.fixture(scope="module")
 def dataset(mock_sintel_data):
-    with patch('flyvis.datasets.sintel_utils.download_sintel') as mock_download:
-        mock_download.return_value = mock_sintel_data
-        return MultiTaskSintel(
-            tasks=["flow"],
-            boxfilter=dict(extent=15, kernel_size=13),
-            vertical_splits=3,
-            n_frames=19,
-            center_crop_fraction=0.7,
-            dt=1 / 50,
-            augment=True,
-            random_temporal_crop=True,
-            all_frames=False,
-            resampling=True,
-            interpolate=True,
-            p_flip=0.5,
-            p_rot=5 / 6,
-            contrast_std=0.2,
-            brightness_std=0.1,
-            gaussian_white_noise=0.08,
-            gamma_std=None,
-            _init_cache=True,
-            unittest=True,
-            flip_axes=[0, 1, 2, 3],
-        )
-
-
-# @pytest.fixture(scope="module")
-# def dataset():
-#     return MultiTaskSintel(
-#         tasks=["flow"],
-#         boxfilter=dict(extent=15, kernel_size=13),
-#         vertical_splits=3,
-#         n_frames=19,
-#         center_crop_fraction=0.7,
-#         dt=1 / 50,
-#         augment=True,
-#         random_temporal_crop=True,
-#         all_frames=False,
-#         resampling=True,
-#         interpolate=True,
-#         p_flip=0.5,
-#         p_rot=5 / 6,
-#         contrast_std=0.2,
-#         brightness_std=0.1,
-#         gaussian_white_noise=0.08,
-#         gamma_std=None,
-#         _init_cache=True,
-#         unittest=True,
-#         flip_axes=[
-#             0,
-#             1,
-#             2,
-#             3,
-#         ],  # 2 and 3 with all rotation axes lead to redundant transforms
-#     )
+    return MultiTaskSintel(
+        tasks=["flow"],
+        boxfilter=dict(extent=1, kernel_size=13),
+        vertical_splits=3,
+        n_frames=4,
+        center_crop_fraction=0.7,
+        dt=1 / 24,
+        augment=True,
+        random_temporal_crop=True,
+        all_frames=False,
+        resampling=True,
+        interpolate=True,
+        p_flip=0.5,
+        p_rot=5 / 6,
+        contrast_std=0.2,
+        brightness_std=0.1,
+        gaussian_white_noise=0.08,
+        gamma_std=None,
+        _init_cache=True,
+        unittest=True,
+        flip_axes=[0, 1, 2, 3],
+        sintel_path=mock_sintel_data,
+    )
 
 
 @pytest.fixture(
@@ -158,8 +81,10 @@ def tasks(request):
     return request.param
 
 
-def test_init(tasks):
-    dataset = MultiTaskSintel(tasks=tasks, unittest=True)
+def test_init(tasks, mock_sintel_data):
+    dataset = MultiTaskSintel(
+        tasks=tasks, n_frames=4, unittest=True, sintel_path=mock_sintel_data
+    )
     assert hasattr(dataset, "tasks")
     assert "lum" in dataset.data_keys
     assert hasattr(dataset, "config")
@@ -167,7 +92,13 @@ def test_init(tasks):
     assert hasattr(dataset, "cached_sequences")
     assert hasattr(dataset, "arg_df")
     assert set(dataset[0].keys()) == set(["lum", *tasks])
-    dataset = MultiTaskSintel(tasks=tasks, unittest=True, _init_cache=False)
+    dataset = MultiTaskSintel(
+        tasks=tasks,
+        n_frames=4,
+        unittest=True,
+        _init_cache=False,
+        sintel_path=mock_sintel_data,
+    )
     assert not hasattr(dataset, "cached_sequences")
 
 
@@ -254,8 +185,8 @@ def test_getitem(dataset):
     dataset.augment = False
     data0 = dataset[0]
     assert set(data0.keys()) == set(["lum", "flow"])
-    assert data0["lum"].shape == (3, 1, 721)
-    assert data0["flow"].shape == (3, 2, 721)
+    assert data0["lum"].shape == (3, 1, 7)
+    assert data0["flow"].shape == (3, 2, 7)
 
     # switched off augmentation results in equal data
     data01 = dataset[0]
@@ -268,14 +199,14 @@ def test_getitem(dataset):
     assert set(data1.keys()) == set(["lum", "flow"])
     assert (data0["lum"] != data1["lum"]).any()
     assert (data0["flow"] != data1["flow"]).any()
-    assert data1["lum"].shape == (3, 1, 721)
-    assert data1["flow"].shape == (3, 2, 721)
+    assert data1["lum"].shape == (3, 1, 7)
+    assert data1["flow"].shape == (3, 2, 7)
 
     # change dt to 1/50
     dataset.dt = 1 / 50
     data2 = dataset[0]
-    assert data2["lum"].shape == (7, 1, 721)
-    assert data2["flow"].shape == (7, 2, 721)
+    assert data2["lum"].shape == (7, 1, 7)
+    assert data2["flow"].shape == (7, 2, 7)
 
 
 def test_apply_augmentation(dataset):
