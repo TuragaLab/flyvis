@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.1.1] - 2024-11-20
+
+### Documentation
+- Remove broken badges from README for now
+
 ## [v1.1.0] - 2024-11-20
 
 ### Breaking
