@@ -1,6 +1,8 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from importlib import resources
+
 
 import dotenv
 import torch
@@ -33,17 +35,20 @@ logging.basicConfig(
 
 del logging, timetz
 
-import datamate
 
-repo_dir = Path(__file__).parent.parent
+package_dir = Path(__file__).parent
+repo_dir = (
+    package_dir if package_dir.parent.name == "site-packages" else package_dir.parent
+)
 
 
 def resolve_root_dir():
-    "Resolving the root directory in which all data is downloaded and stored."
-
-    # Try to get root directory from environment variable
+    """Resolve the root directory where all data is downloaded and stored."""
     root_dir_env = os.getenv("FLYVIS_ROOT_DIR", str(repo_dir / "data"))
-    return Path(root_dir_env).expanduser().absolute()
+    root_dir = Path(root_dir_env).expanduser().absolute()
+    if not root_dir.exists():
+        root_dir.mkdir(parents=True, exist_ok=True)
+    return root_dir
 
 
 root_dir = resolve_root_dir()
@@ -51,11 +56,13 @@ root_dir = resolve_root_dir()
 results_dir = root_dir / "results"
 renderings_dir = root_dir / "renderings"
 sintel_dir = root_dir / "SintelDataSet"
-connectome_file = repo_dir / "data/connectome/fib25-fib19_v2.2.json"
+connectome_file = package_dir / "connectome/fib25-fib19_v2.2.json"
 source_dir = repo_dir / "flyvis"
 config_dir = repo_dir / "config"
 script_dir = repo_dir / "flyvis_cli"
 examples_dir = repo_dir / "examples"
+
+import datamate
 
 datamate.set_root_dir(root_dir)
 del datamate
@@ -67,3 +74,8 @@ from .network import *
 from .task import *
 from .analysis import *
 from .solver import *
+
+notebook_template = resources.files("flyvis.analysis").joinpath("__main__.ipynb")
+notebook_per_model_template = resources.files("flyvis.analysis").joinpath(
+    "__main_per_model__.ipynb"
+)

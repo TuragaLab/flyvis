@@ -5,9 +5,17 @@ requires = ["setuptools>=65", "wheel", "setuptools_scm[toml]>=3.4"]
 [tool.setuptools_scm]
 write_to = "flyvis/version.py"
 
+
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.package-data]
+flyvis = [
+  "connectome/*.json",
+  "analysis/visualization/matplotlibrc",
+  "analysis/__main__.ipynb",
+  "analysis/__main_per_model__.ipynb",
+]
 
 [project]
 classifiers = [

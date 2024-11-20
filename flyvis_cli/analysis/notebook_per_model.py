@@ -4,7 +4,7 @@ import argparse
 import logging
 from typing import List
 
-from flyvis import script_dir
+from flyvis import notebook_per_model_template, script_dir
 from flyvis.utils.compute_cloud_utils import launch_range
 from flyvis.utils.config_utils import HybridArgumentParser
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--notebook_per_model_path",
         type=str,
-        default="examples/__main_per_model__.ipynb",
+        default=str(notebook_per_model_template),
         help="Path of the notebook to execute.",
     )
     parser.add_argument(

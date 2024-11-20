@@ -3,6 +3,7 @@
 import json
 from contextlib import suppress
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import (
     Any,
@@ -163,12 +164,12 @@ class ConnectomeFromAvgFilters(Directory):
 
     def __init__(self, file=flyvis.connectome_file.name, extent=15, n_syn_fill=1) -> None:
         # case 0: file is an absolute path
-        if (Path(file)).exists():
+        if Path(file).exists():
             file = Path(file)
-        # case 1: file is specified relative to package directory
-        elif (flyvis.repo_dir / "data/connectome" / file).exists():
-            file = flyvis.repo_dir / "data/connectome" / file
-        # case 2: file is specified relative to root directory
+        # case 1: file is specified within the package resources
+        elif resources.is_resource("flyvis.connectome", file):
+            file = resources.files("flyvis.connectome").joinpath(file)
+        # case 2: file is specified relative to the root directory
         elif (flyvis.root_dir / "connectome" / file).exists():
             file = flyvis.root_dir / "connectome" / file
         else:

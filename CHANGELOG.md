@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.1.3] - 2024-11-20
+
+### Distribution
+- Update package-data handling
+
 ## [v1.1.2] - 2024-11-20
 
 ### Distribution

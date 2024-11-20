@@ -1,13 +1,13 @@
 """Plotting functions."""
 
-# -- Set default matplotlib figure dpi in notebooks and font
+# -- Set default matplotlib configuration
+from importlib.resources import files
 
-from pathlib import Path
-from flyvis import repo_dir
 import matplotlib
 import matplotlib.pyplot as plt
 
-matplotlib.rc_file(repo_dir / "matplotlibrc")
+matplotlibrc_path = files("flyvis.analysis.visualization").joinpath("matplotlibrc")
+matplotlib.rc_file(matplotlibrc_path)
 
 plt.set_loglevel(level="warning")
-del matplotlib, plt, repo_dir, Path
+del matplotlib, plt
