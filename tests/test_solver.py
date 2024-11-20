@@ -15,11 +15,15 @@ def solver(mock_sintel_data, tmp_path_factory) -> MultiTaskSolver:
             "task.n_iters=50",
             f"+task.dataset.sintel_path={str(mock_sintel_data)}",
             "task.original_split=false",
+            "task.dataset.boxfilter.extent=1",
+            "task.dataset.n_frames=4",
+            "task.dataset.dt=0.041",
+            "task.batch_size=2",
+            "network.connectome.extent=1",
         ],
     )
     with set_root_context(str(tmp_path_factory.mktemp("tmp"))):
-        solver = MultiTaskSolver("test", config)
-    return solver
+        return MultiTaskSolver("test", config)
 
 
 def test_solver_config():

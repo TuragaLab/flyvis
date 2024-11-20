@@ -13,7 +13,7 @@ from flyvis.connectome import ConnectomeFromAvgFilters
 def connectome(tmp_path_factory):
     return ConnectomeFromAvgFilters(
         tmp_path_factory.mktemp("tmp") / "test",
-        dict(file=connectome_file, extent=1, n_syn_fill=1),
+        dict(file=connectome_file.name, extent=1, n_syn_fill=1),
     )
 
 

@@ -1,9 +1,9 @@
-from datamate import Namespace
+from datamate import Namespace, set_root_context
 
 from flyvis.task.tasks import Task
 
 
-def test_task(mock_sintel_data, connectome):
+def test_task(mock_sintel_data, connectome, tmp_path_factory):
     task_config = Namespace(
         type="Task",
         dataset=Namespace(
@@ -50,19 +50,19 @@ def test_task(mock_sintel_data, connectome):
         train_seq_ind=None,
         val_seq_ind=None,
     )
+    with set_root_context(tmp_path_factory.mktemp("tmp")):
+        task = Task(
+            task_config.dataset,
+            task_config.decoder,
+            task_config.loss,
+            batch_size=4,
+            n_iters=250_000,
+            n_folds=4,
+            fold=1,
+            seed=0,
+        )
+        assert task is not None
+        assert task.dataset is not None
 
-    task = Task(
-        task_config.dataset,
-        task_config.decoder,
-        task_config.loss,
-        batch_size=4,
-        n_iters=250_000,
-        n_folds=4,
-        fold=1,
-        seed=0,
-    )
-    assert task is not None
-    assert task.dataset is not None
-
-    decoder = task.init_decoder(connectome)
-    assert decoder is not None
+        decoder = task.init_decoder(connectome)
+        assert decoder is not None

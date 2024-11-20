@@ -4,3 +4,4 @@ defaults:
   - dynamics: dynamics
   - edge_config: edge_config
   - node_config: node_config
+  - stimulus_config: stimulus_config

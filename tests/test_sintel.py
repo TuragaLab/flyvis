@@ -39,30 +39,31 @@ def test_rendering(mock_sintel_data, tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
-def dataset(mock_sintel_data):
-    return MultiTaskSintel(
-        tasks=["flow"],
-        boxfilter=dict(extent=1, kernel_size=13),
-        vertical_splits=3,
-        n_frames=4,
-        center_crop_fraction=0.7,
-        dt=1 / 24,
-        augment=True,
-        random_temporal_crop=True,
-        all_frames=False,
-        resampling=True,
-        interpolate=True,
-        p_flip=0.5,
-        p_rot=5 / 6,
-        contrast_std=0.2,
-        brightness_std=0.1,
-        gaussian_white_noise=0.08,
-        gamma_std=None,
-        _init_cache=True,
-        unittest=True,
-        flip_axes=[0, 1, 2, 3],
-        sintel_path=mock_sintel_data,
-    )
+def dataset(mock_sintel_data, tmp_path_factory):
+    with set_root_context(tmp_path_factory.mktemp("tmp")):
+        return MultiTaskSintel(
+            tasks=["flow"],
+            boxfilter=dict(extent=1, kernel_size=13),
+            vertical_splits=3,
+            n_frames=4,
+            center_crop_fraction=0.7,
+            dt=1 / 24,
+            augment=True,
+            random_temporal_crop=True,
+            all_frames=False,
+            resampling=True,
+            interpolate=True,
+            p_flip=0.5,
+            p_rot=5 / 6,
+            contrast_std=0.2,
+            brightness_std=0.1,
+            gaussian_white_noise=0.08,
+            gamma_std=None,
+            _init_cache=True,
+            unittest=True,
+            flip_axes=[0, 1, 2, 3],
+            sintel_path=mock_sintel_data,
+        )
 
 
 @pytest.fixture(
@@ -81,25 +82,26 @@ def tasks(request):
     return request.param
 
 
-def test_init(tasks, mock_sintel_data):
-    dataset = MultiTaskSintel(
-        tasks=tasks, n_frames=4, unittest=True, sintel_path=mock_sintel_data
-    )
-    assert hasattr(dataset, "tasks")
-    assert "lum" in dataset.data_keys
-    assert hasattr(dataset, "config")
-    assert hasattr(dataset, "meta")
-    assert hasattr(dataset, "cached_sequences")
-    assert hasattr(dataset, "arg_df")
-    assert set(dataset[0].keys()) == set(["lum", *tasks])
-    dataset = MultiTaskSintel(
-        tasks=tasks,
-        n_frames=4,
-        unittest=True,
-        _init_cache=False,
-        sintel_path=mock_sintel_data,
-    )
-    assert not hasattr(dataset, "cached_sequences")
+def test_init(tasks, mock_sintel_data, tmp_path_factory):
+    with set_root_context(tmp_path_factory.mktemp("tmp")):
+        dataset = MultiTaskSintel(
+            tasks=tasks, n_frames=4, unittest=True, sintel_path=mock_sintel_data
+        )
+        assert hasattr(dataset, "tasks")
+        assert "lum" in dataset.data_keys
+        assert hasattr(dataset, "config")
+        assert hasattr(dataset, "meta")
+        assert hasattr(dataset, "cached_sequences")
+        assert hasattr(dataset, "arg_df")
+        assert set(dataset[0].keys()) == set(["lum", *tasks])
+        dataset = MultiTaskSintel(
+            tasks=tasks,
+            n_frames=4,
+            unittest=True,
+            _init_cache=False,
+            sintel_path=mock_sintel_data,
+        )
+        assert not hasattr(dataset, "cached_sequences")
 
 
 def test_init_augmentation(dataset):
