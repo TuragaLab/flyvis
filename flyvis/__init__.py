@@ -35,14 +35,14 @@ del logging, timetz
 
 import datamate
 
+repo_dir = Path(__file__).parent.parent
+
 
 def resolve_root_dir():
     "Resolving the root directory in which all data is downloaded and stored."
 
     # Try to get root directory from environment variable
-    root_dir_env = os.getenv(
-        "FLYVIS_ROOT_DIR", str(Path(__file__).parent.parent / "data")
-    )
+    root_dir_env = os.getenv("FLYVIS_ROOT_DIR", str(repo_dir / "data"))
     return Path(root_dir_env).expanduser().absolute()
 
 
@@ -51,10 +51,10 @@ root_dir = resolve_root_dir()
 results_dir = root_dir / "results"
 renderings_dir = root_dir / "renderings"
 sintel_dir = root_dir / "SintelDataSet"
-connectome_file = root_dir / "connectome/fib25-fib19_v2.2.json"
-source_dir = (repo_dir := Path(__file__).parent.parent) / "flyvis"
+connectome_file = repo_dir / "data/connectome/fib25-fib19_v2.2.json"
+source_dir = repo_dir / "flyvis"
 config_dir = repo_dir / "config"
-script_dir = Path(__file__).parent.parent / "flyvis_cli"
+script_dir = repo_dir / "flyvis_cli"
 examples_dir = repo_dir / "examples"
 
 datamate.set_root_dir(root_dir)

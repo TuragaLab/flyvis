@@ -161,9 +161,18 @@ class ConnectomeFromAvgFilters(Directory):
         ```
     """
 
-    def __init__(self, file=flyvis.connectome_file, extent=15, n_syn_fill=1) -> None:
-        if not Path(file).exists():
+    def __init__(self, file=flyvis.connectome_file.name, extent=15, n_syn_fill=1) -> None:
+        # case 0: file is an absolute path
+        if (Path(file)).exists():
+            file = Path(file)
+        # case 1: file is specified relative to package directory
+        elif (flyvis.repo_dir / "data/connectome" / file).exists():
+            file = flyvis.repo_dir / "data/connectome" / file
+        # case 2: file is specified relative to root directory
+        elif (flyvis.root_dir / "connectome" / file).exists():
             file = flyvis.root_dir / "connectome" / file
+        else:
+            raise FileNotFoundError(f"Connectome file {file} not found.")
 
         # Load the connectome spec.
         spec = json.loads(Path(file).read_text())
