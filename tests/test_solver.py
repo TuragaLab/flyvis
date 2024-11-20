@@ -14,6 +14,7 @@ def solver(mock_sintel_data, tmp_path_factory) -> MultiTaskSolver:
             "ensemble_and_network_id=0",
             "task.n_iters=50",
             f"+task.dataset.sintel_path={str(mock_sintel_data)}",
+            "task.original_split=false",
         ],
     )
     with set_root_context(str(tmp_path_factory.mktemp("tmp"))):
