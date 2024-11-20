@@ -4,12 +4,6 @@
 </p>
 </h1>
 
-![Python 3.7](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.7)
-![Python 3.8](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.8)
-![Python 3.9](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.9)
-![Python 3.10](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.10)
-![Python 3.11](https://github.com/TuragaLab/flyvision/actions/workflows/auto_test.yml/badge.svg?branch=main&event=push&python-version=3.11)
-
 A connectome-constrained deep mechanistic network (DMN) model of the fruit fly visual system in PyTorch.
 
 - Explore connectome-constrained models of the fruit fly visual system.
