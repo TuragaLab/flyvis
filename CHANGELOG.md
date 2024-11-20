@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.1.2] - 2024-11-20
+
+### Distribution
+- Update project metadata for pypi
+
 ## [v1.1.1] - 2024-11-20
 
 ### Documentation

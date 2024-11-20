@@ -50,7 +50,7 @@ dependencies = [
 description = "Connectome and task-constrained vision models of the fruit fly."
 dynamic = ["version"]
 name = "flyvis"
-readme = "README.md"
+readme = "readme.md"
 requires-python = ">=3.9,<3.13"
 
 [project.optional-dependencies]
@@ -166,3 +166,9 @@ reportUnsupportedDunderAll = false
 
 [project.scripts]
 flyvis = "flyvis_cli.flyvis_cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/TuragaLab/flyvis"
+"Documentation" = "https://turagalab.github.io/flyvis"
+"Source Code" = "https://github.com/TuragaLab/flyvis"
+"Bug Tracker" = "https://github.com/TuragaLab/flyvis/issues"
