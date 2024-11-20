@@ -136,9 +136,6 @@ select = ["E", "F", "W", "B", "SIM", "I"]
 preview = true
 quote-style = "preserve"
 
-[tool.pylint."MESSAGES CONTROL"]
-disable = """"""
-
 # Pytest configuration
 [tool.pytest.ini_options]
 markers = [
