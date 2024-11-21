@@ -100,13 +100,7 @@ class LSFManager(ClusterManager):
     def get_submit_command(
         self, job_name: str, n_cpus: int, output_file: str, gpu: str, queue: str
     ) -> str:
-        return (
-            f"bsub -J {job_name} "
-            f"-n {n_cpus} "
-            f"-o {output_file} "
-            f"-gpu '{gpu}' "
-            f"-q {queue} "
-        )
+        return f"bsub -J {job_name} -n {n_cpus} -o {output_file} -gpu '{gpu}' -q {queue} "
 
 
 class SLURMManager(ClusterManager):
@@ -183,30 +177,29 @@ class VirtualClusterManager(ClusterManager):
         )
 
 
-def get_cluster_manager() -> ClusterManager:
+def get_cluster_manager(dry: bool = False) -> ClusterManager:
     """
     Autodetect the cluster type and return the appropriate ClusterManager.
 
+    Args:
+        dry: If True, return LSFManager even if no cluster is detected.
+
     Returns:
         An instance of the appropriate ClusterManager subclass.
-
-    Raises:
-        RuntimeError: If neither LSF nor SLURM commands are found.
     """
+    env_dry = os.environ.get("DRYRUN_ONLY", "").lower() in ("true", "1", "yes", "on")
+    is_dry = dry or env_dry
+
     if subprocess.getoutput("command -v bsub"):
         return LSFManager()
     elif subprocess.getoutput("command -v sbatch"):
         return SLURMManager()
     else:
-        raise RuntimeError("No cluster management system detected.")
-        # warnings.warn(
-        #     "No cluster management system detected. Using VirtualClusterManager for "
-        #     "local execution. "
-        #     "This is not recommended for production use.",
-        #     UserWarning,
-        #     stacklevel=2,
-        # )
-        # return VirtualClusterManager()
+        if is_dry:
+            # For dry runs, fall back to LSF even if no cluster is detected
+            return LSFManager()
+        else:
+            raise RuntimeError("No cluster management system detected.")
 
 
 class LazyClusterManager:
@@ -214,10 +207,16 @@ class LazyClusterManager:
 
     def __init__(self):
         self._instance = None
+        self._dry = False
+
+    def set_dry(self, dry: bool):
+        """Set dry run mode."""
+        self._dry = dry
+        self._instance = None  # Reset instance to force re-initialization
 
     def __getattr__(self, name):
         if self._instance is None:
-            self._instance = get_cluster_manager()
+            self._instance = get_cluster_manager(dry=self._dry)
         return getattr(self._instance, name)
 
 
@@ -235,10 +234,15 @@ def run_job(command: str, dry: bool) -> str:
     Returns:
         The job ID as a string, or "dry run" for dry runs.
     """
-    if dry:
+    env_dry = os.environ.get("DRYRUN_ONLY", "").lower() in ("true", "1", "yes", "on")
+    is_dry = dry or env_dry
+
+    if is_dry:
         job_id = "dry run"
         logger.info("Dry run command: %s", command)
         return job_id
+
+    CLUSTER_MANAGER.set_dry(is_dry)
     return CLUSTER_MANAGER.run_job(command)
 
 
