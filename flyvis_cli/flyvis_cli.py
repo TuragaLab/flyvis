@@ -23,7 +23,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -43,6 +43,7 @@ SCRIPT_COMMANDS = {
     "notebook-per-ensemble": SCRIPTS_DIR / "analysis/notebook_per_ensemble.py",
     "notebook": SCRIPTS_DIR / "analysis/notebook.py",
     "download-pretrained": SCRIPTS_DIR / "download_pretrained_models.py",
+    "init-config": SCRIPTS_DIR / "init_config.py",
 }
 
 
@@ -55,10 +56,16 @@ def run_script(script_path: Path, args: List[str]) -> None:
         args: List of command-line arguments to pass to the script.
     """
     cmd = [sys.executable, str(script_path)] + args
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running {script_path}: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
-def filter_args(argv: List[str], commands: List[str]) -> List[str]:
+def filter_args(
+    argv: List[str], allowed_commands: List[str]
+) -> Tuple[List[str], List[str]]:
     """
     Filter out commands from command line arguments.
 
@@ -69,14 +76,15 @@ def filter_args(argv: List[str], commands: List[str]) -> List[str]:
     Returns:
         List of arguments with commands removed
     """
-    # Find positions of commands in original argv
-    command_positions = []
-    for i, arg in enumerate(argv):
-        if arg in commands:
-            command_positions.append(i)
+    selected_commands = []
+    other_args = []
+    for arg in argv:
+        if arg in allowed_commands:
+            selected_commands.append(arg)
+        else:
+            other_args.append(arg)
 
-    # Create filtered arguments list without the commands
-    return [arg for i, arg in enumerate(argv) if i not in command_positions]
+    return selected_commands, other_args
 
 
 def handle_help_request(argv: List[str]) -> bool:
@@ -103,7 +111,6 @@ def main():
     if handle_help_request(sys.argv):
         return 0
 
-    # Original argument parsing continues if not showing help for a specific command
     parser = argparse.ArgumentParser(
         description=(
             "Run flyvis pipelines or individual scripts with compute cloud options."
@@ -119,7 +126,7 @@ def main():
     parser.add_argument(
         "commands",
         nargs="+",
-        choices=list(SCRIPT_COMMANDS.keys()),
+        # choices=list(SCRIPT_COMMANDS.keys()),
         help="Commands to run in order.",
         metavar="command",
     )
@@ -135,18 +142,18 @@ All additional arguments are passed directly to the respective scripts.
 For detailed help on each command, run: flyvis <command> --help
 """.format('\n'.join(f"{cmd:<20} : Runs {path}" for cmd, path in SCRIPT_COMMANDS.items()))
 
-    try:
-        args, remaining = parser.parse_known_args()
+    # args, remaining = parser.parse_known_args()
 
-        # Filter out commands from arguments
-        filtered_args = filter_args(sys.argv[1:], args.commands)
-
-        for command in args.commands:
-            run_script(SCRIPT_COMMANDS[command], filtered_args)
-    except SystemExit as e:
+    # Filter out commands from arguments
+    selected_commands, other_args = filter_args(
+        sys.argv[1:], list(SCRIPT_COMMANDS.keys())
+    )
+    if not selected_commands:
         parser.print_help()
-        sys.exit(e.code)
+        return 1
 
+    for command in selected_commands:
+        run_script(SCRIPT_COMMANDS[command], other_args)
     return 0
 
 

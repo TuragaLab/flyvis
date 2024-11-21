@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+from importlib import resources
 from typing import List
 
 from flyvis import script_dir
@@ -37,12 +38,14 @@ def train_models(args: argparse.Namespace, kwargs: List[str]) -> None:
 
 
 if __name__ == "__main__":
+    CONFIG_PATH = str(resources.files("flyvis") / "config" / "solver.yaml")
+
     parser = HybridArgumentParser(
         description=(
             "Train an ensemble of models. Launches a job for each model on "
             "the compute cloud."
         ),
-        drop_disjoint_from="../../config/solver.yaml",
+        drop_disjoint_from=CONFIG_PATH,
         formatter_class=argparse.RawTextHelpFormatter,
         usage=(
             "\nflyvis train [-h] [--start START] [--end END] [...] "

@@ -28,6 +28,7 @@ Example:
 
 import logging
 import shutil
+from importlib import resources
 from pathlib import Path
 
 import hydra
@@ -49,20 +50,25 @@ def save_env(target_dir: Path = None):
         pass
 
 
+CONFIG_PATH = str(resources.files("flyvis") / "config")
+
+
 @hydra.main(
-    config_path=str(Path(__file__).parent.parent.parent / "config"),
+    config_path="../../flyvis/config",
     config_name="solver.yaml",
     version_base="1.1",
 )
 def main(args):
-    logging.info("Initializing solver.")
+    config = prepare_config(args)
+    logging.info("Initializing solver with config: %s", config)
     with set_root_context(results_dir):
         solver = MultiTaskSolver(
-            config=prepare_config(args),
+            config=config,
             delete_if_exists=(
                 False if args.resume else args.get("delete_if_exists", False)
             ),
         )
+    logging.info("Initialized solver with NetworkDir at %s.", solver.dir.path)
 
     if args.get("save_environment", False):
         save_env(solver.dir.path)
