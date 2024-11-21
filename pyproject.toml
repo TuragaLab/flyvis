@@ -15,6 +15,8 @@ flyvis = [
   "analysis/visualization/matplotlibrc",
   "analysis/__main__.ipynb",
   "analysis/__main_per_model__.ipynb",
+  "config/**/*.yaml",
+  "config/**/*.yml",
 ]
 
 [project]

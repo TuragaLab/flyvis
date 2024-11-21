@@ -1,19 +1,26 @@
 # Changelog
 
-## [v1.1.3] - 2024-11-20
+## [v1.1.1] - 2024-11-21
 
 ### Distribution
-- Update package-data handling
+- Moved configuration files into package structure
+- Switched to `importlib.resources` for resource management
+- Removed MANIFEST.in in favor of pyproject.toml configuration
+- Enhanced root directory resolution logic
 
-## [v1.1.2] - 2024-11-20
+### Infrastructure
+- Improved cluster management with better dry-run and slurm support
 
-### Distribution
-- Update project metadata for pypi
-
-## [v1.1.1] - 2024-11-20
+### CLI
+- Enhanced command-line interface error handling
+- Improved argument parsing for multiple commands
+- Added `init_config` for config-based customization of network and training
 
 ### Documentation
-- Remove broken badges from README for now
+- Updated package metadata for PyPI
+- Added project URLs to package configuration
+- Removed broken badges from README
+- Added explanations for hydra-config-based customization of network and training in `CLI Reference`
 
 ## [v1.1.0] - 2024-11-20
 
@@ -27,10 +34,13 @@
 
 ### Documentation
 - Improved docs
+- Updated project metadata for PyPI
+- Removed broken badges from README
 
 ### Infrastructure
 - Removed strict version pins for better compatibility (particularly removed UMAP constraints)
 - Updated GitHub workflows
 - Updated README badges
+- Updated package-data handling
 
 [v1.1.0]: https://github.com/TuragaLab/flyvis/releases/tag/v1.1.0
