@@ -80,6 +80,19 @@ class ClusterManager(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_script_part(self, command: str) -> str:
+        """
+        Get the script part of the command.
+
+        Args:
+            command: The command to wrap.
+
+        Returns:
+            The wrapped command as a string.
+        """
+        pass
+
 
 class LSFManager(ClusterManager):
     """Cluster manager for LSF (Load Sharing Facility) systems."""
@@ -102,6 +115,9 @@ class LSFManager(ClusterManager):
     ) -> str:
         return f"bsub -J {job_name} -n {n_cpus} -o {output_file} -gpu '{gpu}' -q {queue} "
 
+    def get_script_part(self, command: str) -> str:
+        return command
+
 
 class SLURMManager(ClusterManager):
     """Cluster manager for SLURM systems.
@@ -117,8 +133,9 @@ class SLURMManager(ClusterManager):
         return job_id[0]
 
     def is_running(self, job_id: str) -> bool:
-        job_info = subprocess.getoutput("squeue -j " + job_id)
-        return job_id in job_info
+        cmd = f"sacct -j {job_id} --format=State --noheader -X"
+        state = subprocess.getoutput(cmd).strip()
+        return state in ["PENDING", "RUNNING", "REQUEUED"]
 
     def kill_job(self, job_id: str) -> str:
         return subprocess.getoutput(f"scancel {job_id}")
@@ -133,6 +150,9 @@ class SLURMManager(ClusterManager):
             f"--gres=gpu:{gpu} "
             f"--partition={queue} "
         )
+
+    def get_script_part(self, command: str) -> str:
+        return f"--wrap '{command}'"
 
 
 class VirtualClusterManager(ClusterManager):
@@ -176,6 +196,9 @@ class VirtualClusterManager(ClusterManager):
             f"echo 'CPUs: {n_cpus}, GPU: {gpu}, Queue: {queue}' && "
         )
 
+    def get_script_part(self, command: str) -> str:
+        return command
+
 
 def get_cluster_manager(dry: bool = False) -> ClusterManager:
     """
@@ -187,17 +210,24 @@ def get_cluster_manager(dry: bool = False) -> ClusterManager:
     Returns:
         An instance of the appropriate ClusterManager subclass.
     """
-    env_dry = os.environ.get("DRYRUN_ONLY", "").lower() in ("true", "1", "yes", "on")
-    is_dry = dry or env_dry
+    virtual = os.environ.get("VIRTUAL_CLUSTER", "").lower() in ("true", "1", "yes", "on")
+    dry = dry or os.environ.get("DRYRUN_ONLY", "").lower() in ("true", "1", "yes", "on")
 
     if subprocess.getoutput("command -v bsub"):
         return LSFManager()
     elif subprocess.getoutput("command -v sbatch"):
         return SLURMManager()
     else:
-        if is_dry:
-            # For dry runs, fall back to LSF even if no cluster is detected
+        if dry:
             return LSFManager()
+        elif virtual:
+            warnings.warn(
+                "No cluster management system detected. Using VirtualClusterManager for "
+                "local execution. This is not recommended for production use.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return VirtualClusterManager()
         else:
             raise RuntimeError("No cluster management system detected.")
 
@@ -316,7 +346,7 @@ def wait_for_many(job_id_names: Dict[str, str], dry: bool = False) -> None:
         if not dry:
             print("Jobs launched.. waiting 60s..")
             sleep(60)
-        while any(is_running(job_name, dry) for job_name in job_id_names.values()):
+        while any(is_running(job_id, dry) for job_id in job_id_names):
             if not dry:
                 print("Jobs still running.. waiting 60s..")
                 sleep(60)
@@ -395,7 +425,7 @@ def launch_range(
             f"{task_name}_{ensemble_and_network_id}", nP, log_file, gpu, q
         )
         SCRIPT_CMD = SCRIPT_PART.format(sys.executable, script, " ".join(kw))
-        command = LSF_CMD + SCRIPT_CMD
+        command = LSF_CMD + CLUSTER_MANAGER.get_script_part(SCRIPT_CMD)
         logger.info("Launching command: %s", command)
         job_id = run_job(command, dry)
         job_id_names[job_id] = f"{task_name}_{ensemble_and_network_id}"
@@ -450,7 +480,7 @@ def launch_single(
         f"{task_name}_{ensemble_id}", nP, log_file, gpu, q
     )
     SCRIPT_CMD = SCRIPT_PART.format(sys.executable, script, " ".join(kw))
-    command = LSF_CMD + SCRIPT_CMD
+    command = LSF_CMD + CLUSTER_MANAGER.get_script_part(SCRIPT_CMD)
     logger.info("Launching command: %s", command)
     job_id = run_job(command, dry)
     job_id_names[job_id] = f"{task_name}_{ensemble_id}"
