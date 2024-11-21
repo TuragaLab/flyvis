@@ -1,12 +1,16 @@
 import argparse
+import inspect
 import os
 import sys
+from importlib import resources
 from typing import Any, Dict, List, Optional, Union
 
 import hydra
 from datamate import Namespace, namespacify
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictKeyType, OmegaConf, errors
+
+CONFIG_PATH = str(resources.files("flyvis") / "config")
 
 
 def get_default_config(
@@ -48,7 +52,7 @@ def get_config_from_file(
     Get the configuration from a file.
 
     Args:
-        path: Path to the configuration file.
+        path: Path to the configuration file (absolute or relative).
         overrides: List of configuration overrides.
         resolve: Whether to resolve the configuration.
         throw_on_missing: Whether to throw an error if a key is missing.
@@ -56,10 +60,20 @@ def get_config_from_file(
     Returns:
         The configuration object.
     """
-    config_name = path.split(os.sep)[-1].replace(".yaml", "")
-    config_path = os.sep.join(path.split(os.sep)[:-1])
+    # Get absolute paths
+    caller_frame = inspect.stack()[1]
+    caller_file = caller_frame.filename
+    caller_dir = os.path.dirname(os.path.abspath(caller_file))
+
+    abs_config_path = os.path.join(caller_dir, path) if not os.path.isabs(path) else path
+
+    config_name = os.path.basename(abs_config_path).replace(".yaml", "")
+    config_dir = os.path.dirname(abs_config_path)
+
+    # Calculate relative path from caller to config directory
+    rel_config_dir = os.path.relpath(config_dir, caller_dir)
     GlobalHydra.instance().clear()
-    hydra.initialize(config_path=config_path, version_base=None)
+    hydra.initialize(config_path=rel_config_dir, version_base=None)
     config = hydra.compose(config_name=config_name, overrides=overrides)
     config = OmegaConf.to_container(
         config, resolve=resolve, throw_on_missing=throw_on_missing
