@@ -12,19 +12,47 @@ from flyvis_cli.flyvis_cli import (
 
 def test_filter_args():
     # Test filtering out commands from arguments
-    argv = ["--ensemble_id", "0001", "train", "--task_name", "flow", "validate"]
-    commands = ["train", "validate"]
-    filtered = filter_args(argv, commands)
-    assert filtered == ["--ensemble_id", "0001", "--task_name", "flow"]
+    argv = [
+        "--ensemble_id",
+        "0001",
+        "train",
+        "--task_name",
+        "flow",
+        "validate",
+        "task.n_iters=100",
+        "foo:int=1",
+        "record",
+    ]
+    commands = ["train", "validate", "record"]
+    selected_commands, filtered_args = filter_args(argv, commands)
+    assert selected_commands == ["train", "validate", "record"]
+    assert filtered_args == [
+        "--ensemble_id",
+        "0001",
+        "--task_name",
+        "flow",
+        "task.n_iters=100",
+        "foo:int=1",
+    ]
 
     # Test with no commands to filter
     argv = ["--ensemble_id", "0001", "--task_name", "flow"]
     commands = ["train", "validate"]
-    filtered = filter_args(argv, commands)
-    assert filtered == argv
+    selected_commands, filtered_args = filter_args(argv, commands)
+    assert selected_commands == []
+    assert filtered_args == argv
 
     # Test with empty input
-    assert filter_args([], []) == []
+    selected_commands, filtered_args = filter_args([], [])
+    assert selected_commands == []
+    assert filtered_args == []
+
+    # Test order preservation
+    argv = ["validate", "--ensemble_id", "0001", "train", "--task_name", "flow"]
+    commands = ["train", "validate"]
+    selected_commands, filtered_args = filter_args(argv, commands)
+    assert selected_commands == ["validate", "train"]  # Commands preserved in order found
+    assert filtered_args == ["--ensemble_id", "0001", "--task_name", "flow"]
 
 
 def test_handle_help_request():
@@ -42,29 +70,39 @@ def test_handle_help_request():
 
 
 @pytest.mark.parametrize(
-    "args,expected_return",
+    "args,expected_behavior",
     [
-        (["--ensemble_id", "0001", "--task_name", "flow", "train"], 0),
-        (["--help"], 0),  # Help message exits with 0
-        ([""], 2),  # Invalid flag exits with 2
+        (
+            ["--ensemble_id", "0001", "--task_name", "flow", "train"],
+            {"should_succeed": True, "expected_command": "train"},
+        ),
+        (
+            ["--help"],
+            {"should_succeed": False, "return_code": 1},
+        ),
+        (
+            [],
+            {"should_succeed": False, "return_code": 1},
+        ),
     ],
 )
-def test_main_argument_parsing(args, expected_return):
+def test_main_argument_parsing(args, expected_behavior):
+    """Test CLI argument parsing behavior."""
     with (
         patch('sys.argv', ['flyvis'] + args),
         patch('flyvis_cli.flyvis_cli.run_script') as mock_run,
     ):
-        if expected_return != 0:
-            with pytest.raises(SystemExit) as exc_info:
-                main()
-            assert exc_info.value.code == expected_return
+        result = main()
+
+        if expected_behavior["should_succeed"]:
+            assert result == 0
+            # Verify the correct script was called
+            mock_run.assert_called_once()
+            script_path = mock_run.call_args[0][0]
+            assert script_path.name == f"{expected_behavior['expected_command']}.py"
         else:
-            try:
-                assert main() == expected_return
-            except SystemExit as exc:
-                assert exc.code == expected_return
-            if "--help" not in args:
-                mock_run.assert_called()
+            # Help and usage errors return 1
+            assert result == expected_behavior["return_code"]
 
 
 def test_main_runs_multiple_commands():

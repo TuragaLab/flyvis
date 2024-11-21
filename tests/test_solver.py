@@ -8,7 +8,7 @@ from flyvis.utils.config_utils import get_default_config
 @pytest.fixture(scope="module")
 def solver(mock_sintel_data, tmp_path_factory) -> MultiTaskSolver:
     config = get_default_config(
-        path="../../config/solver.yaml",
+        path="../../flyvis/config/solver.yaml",
         overrides=[
             "task_name=flow",
             "ensemble_and_network_id=0",
@@ -28,7 +28,7 @@ def solver(mock_sintel_data, tmp_path_factory) -> MultiTaskSolver:
 
 def test_solver_config():
     config = get_default_config(
-        path="../../config/solver.yaml",
+        path="../../flyvis/config/solver.yaml",
         overrides=[
             "task_name=flow",
             "ensemble_and_network_id=0",
