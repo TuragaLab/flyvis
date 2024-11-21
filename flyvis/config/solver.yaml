@@ -38,7 +38,7 @@ hydra:
         Example:
             Train a network for 1000 iterations (and add description 'test'):
 
-            flyvis train_single \
+            flyvis train-single \
                 ensemble_and_network_id=0045/000 \
                 task_name=flow \
                 train=true \
