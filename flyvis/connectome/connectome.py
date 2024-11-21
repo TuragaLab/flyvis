@@ -167,7 +167,7 @@ class ConnectomeFromAvgFilters(Directory):
         if Path(file).exists():
             file = Path(file)
         # case 1: file is specified within the package resources
-        elif resources.is_resource("flyvis.connectome", file):
+        elif (resources.files("flyvis.connectome") / file).is_file():
             file = resources.files("flyvis.connectome").joinpath(file)
         # case 2: file is specified relative to the root directory
         elif (flyvis.root_dir / "connectome" / file).exists():
