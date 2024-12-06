@@ -3,15 +3,17 @@
 import argparse
 import logging
 import sys
+from importlib import resources
 from typing import List
 
-from flyvis import notebook_template, script_dir
 from flyvis.utils.compute_cloud_utils import launch_single
 
 logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+NOTEBOOK_SCRIPT_DIR = resources.files("flyvis_cli") / "analysis/notebook.py"
 
 
 def run_ensemble_notebook(args: argparse.Namespace, kwargs: List[str]) -> None:
@@ -28,7 +30,7 @@ def run_ensemble_notebook(args: argparse.Namespace, kwargs: List[str]) -> None:
         args.nP,
         args.gpu,
         args.q,
-        f"{str(script_dir)}/analysis/notebook.py",
+        str(NOTEBOOK_SCRIPT_DIR),
         args.dry,
         ["--notebook_path", args.notebook_path] + ["per_ensemble:bool=true"] + kwargs,
     )
@@ -60,11 +62,14 @@ if __name__ == "__main__":
         required=True,
         help="Name given to the task, e.g., flow.",
     )
+    DEFAULT_NOTEBOOK_PATH = str(
+        resources.files("flyvis.analysis").joinpath("__main__.ipynb")
+    )
     parser.add_argument(
         "--notebook_path",
         type=str,
-        default=str(notebook_template),
-        help="Path of the notebook to execute.",
+        default=DEFAULT_NOTEBOOK_PATH,
+        help=f"Path of the notebook to execute. Default: {DEFAULT_NOTEBOOK_PATH}",
     )
     parser.add_argument(
         "--dry",

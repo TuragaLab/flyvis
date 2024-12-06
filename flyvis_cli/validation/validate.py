@@ -2,9 +2,9 @@
 
 import argparse
 import logging
+from importlib import resources
 from typing import List
 
-from flyvis import script_dir
 from flyvis.utils.compute_cloud_utils import launch_range
 
 logging.basicConfig(
@@ -69,11 +69,12 @@ if __name__ == "__main__":
         required=True,
         help="Name given to the task, e.g., flow.",
     )
+    DEFAULT_SCRIPT = str(resources.files("flyvis_cli") / "validation/val_single.py")
     parser.add_argument(
         "--val_script",
         type=str,
-        default=f"{str(script_dir)}/validation/val_single.py",
-        help="Script to run for validation.",
+        default=DEFAULT_SCRIPT,
+        help=f"Script to run for validation. Default: {DEFAULT_SCRIPT}",
     )
     parser.add_argument(
         "--dry",

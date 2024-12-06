@@ -2,9 +2,9 @@
 
 import argparse
 import logging
+from importlib import resources
 from typing import List
 
-from flyvis import notebook_per_model_template, script_dir
 from flyvis.utils.compute_cloud_utils import launch_range
 from flyvis.utils.config_utils import HybridArgumentParser
 
@@ -12,6 +12,8 @@ logging.basicConfig(
     format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+NOTEBOOK_SCRIPT_DIR = resources.files("flyvis_cli") / "analysis/notebook.py"
 
 
 def run_notebook_ensemble(args: argparse.Namespace, kwargs: List[str]) -> None:
@@ -31,7 +33,7 @@ def run_notebook_ensemble(args: argparse.Namespace, kwargs: List[str]) -> None:
         args.nP,
         args.gpu,
         args.q,
-        f"{str(script_dir)}/analysis/notebook.py",
+        str(NOTEBOOK_SCRIPT_DIR),
         args.dry,
         # add hybrid argument
         ["--notebook_per_model_path", args.notebook_per_model_path]
@@ -69,11 +71,17 @@ if __name__ == "__main__":
         required=True,
         help="Name given to the task, e.g., flow.",
     )
+    DEFAULT_NOTEBOOK_PER_MODEL_PATH = str(
+        resources.files("flyvis.analysis").joinpath("__main_per_model__.ipynb")
+    )
     parser.add_argument(
         "--notebook_per_model_path",
         type=str,
-        default=str(notebook_per_model_template),
-        help="Path of the notebook to execute.",
+        default=DEFAULT_NOTEBOOK_PER_MODEL_PATH,
+        help=(
+            f"Path of the notebook to execute. "
+            f"Default: {DEFAULT_NOTEBOOK_PER_MODEL_PATH} "
+        ),
     )
     parser.add_argument(
         "--dry",

@@ -19,15 +19,13 @@ Example usage:
 # TODO: could look into click and typer for better CLI handling but this works for now.
 
 import argparse
-import os
 import subprocess
 import sys
+from importlib import resources
 from pathlib import Path
 from typing import List, Tuple
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-SCRIPTS_DIR = Path(__file__).parent
+SCRIPTS_DIR = resources.files('flyvis_cli')
 
 SCRIPT_COMMANDS = {
     "train": SCRIPTS_DIR / "training/train.py",

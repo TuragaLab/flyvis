@@ -2,9 +2,9 @@
 
 import argparse
 import logging
+from importlib import resources
 from typing import List
 
-from flyvis import script_dir
 from flyvis.utils.compute_cloud_utils import launch_single
 
 logging.basicConfig(
@@ -77,7 +77,9 @@ if __name__ == "__main__":
         required=True,
         help="Name given to the task, e.g., 'flow', 'depth', 'lum'.",
     )
-    DEFAULT_SCRIPT = f"{str(script_dir)}/analysis/ensemble_analysis.py"
+    DEFAULT_SCRIPT = str(
+        resources.files("flyvis_cli") / "analysis" / "ensemble_analysis.py"
+    )
     parser.add_argument(
         "--ensemble_analysis_script",
         type=str,

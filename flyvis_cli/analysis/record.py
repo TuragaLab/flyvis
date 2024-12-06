@@ -2,9 +2,9 @@
 
 import argparse
 import logging
+from importlib import resources
 from typing import List
 
-from flyvis import script_dir
 from flyvis.utils.compute_cloud_utils import launch_range
 
 logging.basicConfig(
@@ -68,7 +68,9 @@ if __name__ == "__main__":
         required=True,
         help="Name given to the task, e.g., flow.",
     )
-    DEFAULT_SCRIPT = f"{str(script_dir)}/analysis/synthetic_recordings_single.py"
+    DEFAULT_SCRIPT = str(
+        resources.files("flyvis_cli") / "analysis" / "synthetic_recordings_single.py"
+    )
     parser.add_argument(
         "--synthetic_recordings_script",
         type=str,
