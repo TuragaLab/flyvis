@@ -2,15 +2,19 @@ import argparse
 import inspect
 import os
 import sys
+import warnings
 from importlib import resources
 from typing import Any, Dict, List, Optional, Union
 
 import hydra
+from colorama import Fore, Style, init
 from datamate import Namespace, namespacify
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictKeyType, OmegaConf, errors
 
 CONFIG_PATH = str(resources.files("flyvis") / "config")
+
+init(autoreset=True)  # Initialize colorama
 
 
 def get_default_config(
@@ -231,6 +235,25 @@ class HybridArgumentParser(argparse.ArgumentParser):
 
         return args
 
+    def hydra_argv(self) -> List[str]:
+        hybrid_args = self.parse_with_hybrid_args()
+        return [
+            f"{key}={value}" for key, value in vars(hybrid_args).items() if ":" not in key
+        ]
+
+    def get_registered_args(self) -> List[str]:
+        """
+        Get a list of all argument names that were registered using add_argument.
+
+        Returns:
+            List of argument names (without the -- prefix)
+        """
+        return [
+            action.dest
+            for action in self._actions
+            if action.dest != "help"  # Exclude the default help action
+        ]
+
     def _filter_args_based_on_config(
         self, args: argparse.Namespace
     ) -> argparse.Namespace:
@@ -252,6 +275,7 @@ class HybridArgumentParser(argparse.ArgumentParser):
         )
 
         filtered_args = argparse.Namespace()
+        registered_args = self.get_registered_args()
 
         for arg, value in vars(args).items():
             if (
@@ -261,6 +285,19 @@ class HybridArgumentParser(argparse.ArgumentParser):
                 or arg.startswith('~')
             ):
                 setattr(filtered_args, arg, value)
+            elif arg not in registered_args:
+                warnings.warn(
+                    f"{Fore.YELLOW}Argument {Style.BRIGHT}{arg}={value}"
+                    f"{Style.RESET_ALL}{Fore.YELLOW} "
+                    f"does not affect the hydra config because it is not present in "
+                    f"the config file {Style.BRIGHT}{self.drop_disjoint_from}"
+                    f"{Style.RESET_ALL}{Fore.YELLOW}. "
+                    f"This may be unintended, like a typo, or intended, like a "
+                    f"hydra-style argument passed through to another script. "
+                    f"Check script docs and config file "
+                    f"for clarification.{Style.RESET_ALL}",
+                    stacklevel=2,
+                )
 
         return filtered_args
 

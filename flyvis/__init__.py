@@ -74,8 +74,3 @@ from .network import *
 from .task import *
 from .analysis import *
 from .solver import *
-
-notebook_template = resources.files("flyvis.analysis").joinpath("__main__.ipynb")
-notebook_per_model_template = resources.files("flyvis.analysis").joinpath(
-    "__main_per_model__.ipynb"
-)
