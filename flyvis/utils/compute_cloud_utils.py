@@ -166,12 +166,36 @@ class VirtualClusterManager(ClusterManager):
             stacklevel=2,
         )
         self.running_jobs = {}
+        self._current_output_file = None
+
+    def get_submit_command(
+        self, job_name: str, n_cpus: int, output_file: str, gpu: str, queue: str
+    ) -> str:
+        self._current_output_file = output_file
+        return f"echo 'Running {job_name} locally' && "
 
     def run_job(self, command: str) -> str:
         job_id = str(len(self.running_jobs) + 1)
-        process = multiprocessing.Process(target=os.system, args=(command,))
-        process.start()
-        self.running_jobs[job_id] = process
+        if self._current_output_file:
+            # Create the output directory if it doesn't exist
+            output_dir = os.path.dirname(self._current_output_file)
+            logger.info(f"Writing output to: {self._current_output_file}")
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+
+            with open(self._current_output_file, 'w') as f:
+                process = multiprocessing.Process(
+                    target=subprocess.run,
+                    args=(command,),
+                    kwargs={'shell': True, 'stdout': f, 'stderr': subprocess.STDOUT},
+                )
+                process.start()
+                self.running_jobs[job_id] = process
+        else:
+            logger.warning("No output file specified for job")
+            process = multiprocessing.Process(target=os.system, args=(command,))
+            process.start()
+            self.running_jobs[job_id] = process
         return job_id
 
     def is_running(self, job_id: str) -> bool:
@@ -187,14 +211,6 @@ class VirtualClusterManager(ClusterManager):
             del self.running_jobs[job_id]
             return f"Job {job_id} terminated"
         return f"Job {job_id} not found"
-
-    def get_submit_command(
-        self, job_name: str, n_cpus: int, output_file: str, gpu: str, queue: str
-    ) -> str:
-        return (
-            f"echo 'Running {job_name} locally' && "
-            f"echo 'CPUs: {n_cpus}, GPU: {gpu}, Queue: {queue}' && "
-        )
 
     def get_script_part(self, command: str) -> str:
         return command
@@ -237,6 +253,7 @@ class LazyClusterManager:
 
     def __init__(self):
         self._instance = None
+        # TODO: dry run handling currently not elegant but works for now
         self._dry = False
 
     def set_dry(self, dry: bool):
@@ -264,6 +281,7 @@ def run_job(command: str, dry: bool) -> str:
     Returns:
         The job ID as a string, or "dry run" for dry runs.
     """
+    # TODO: dry handling currently not elegant but works for now
     env_dry = os.environ.get("DRYRUN_ONLY", "").lower() in ("true", "1", "yes", "on")
     is_dry = dry or env_dry
 
@@ -272,7 +290,6 @@ def run_job(command: str, dry: bool) -> str:
         logger.info("Dry run command: %s", command)
         return job_id
 
-    CLUSTER_MANAGER.set_dry(is_dry)
     return CLUSTER_MANAGER.run_job(command)
 
 
@@ -308,7 +325,7 @@ def kill_job(job_id: str, dry: bool) -> str:
     return CLUSTER_MANAGER.kill_job(job_id)
 
 
-def wait_for_single(job_id: str, job_name: str, dry: bool = False) -> None:
+def wait_for_single(job_id: str, dry: bool = False) -> None:
     """
     Wait for a single job to finish on the cluster.
 
@@ -323,7 +340,7 @@ def wait_for_single(job_id: str, job_name: str, dry: bool = False) -> None:
     try:
         if not dry:
             sleep(60)
-        while is_running(job_name, dry):
+        while is_running(job_id, dry):
             if not dry:
                 sleep(60)
     except KeyboardInterrupt as e:
@@ -404,6 +421,8 @@ def launch_range(
     """
     SCRIPT_PART = "{} {} {}"
 
+    CLUSTER_MANAGER.set_dry(dry)
+
     job_id_names = {}
     for i in range(start, end):
         kw = kwargs.copy()
@@ -461,6 +480,8 @@ def launch_single(
         or following hydra syntax, i.e. ["kw=val", ...].
     """
     SCRIPT_PART = "{} {} {}"
+
+    CLUSTER_MANAGER.set_dry(dry)
 
     job_id_names = {}
     kw = kwargs.copy()
