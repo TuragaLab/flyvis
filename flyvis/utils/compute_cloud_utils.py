@@ -429,8 +429,8 @@ def launch_range(
         ensemble_and_network_id = f"{ensemble_id:04}/{i:03}"
         assert "_" not in ensemble_and_network_id
         network_dir = results_dir / task_name / ensemble_and_network_id
-        if not network_dir.exists():
-            network_dir.mkdir(parents=True)
+        if not network_dir.parent.exists():
+            network_dir.parent.mkdir(parents=True)
         log_file = (
             network_dir.parent / f"{i:04}_{script.split('/')[-1].split('.')[0]}.log"
         )
