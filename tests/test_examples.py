@@ -17,7 +17,7 @@ notebooks = [
         "02_flyvision_optic_flow_task.ipynb",
         marks=[
             pytest.mark.require_large_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -25,7 +25,7 @@ notebooks = [
         "03_flyvision_flash_responses.ipynb",
         marks=[
             pytest.mark.require_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -33,7 +33,7 @@ notebooks = [
         "04_flyvision_moving_edge_responses.ipynb",
         marks=[
             pytest.mark.require_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -41,7 +41,7 @@ notebooks = [
         "05_flyvision_umap_and_clustering_models.ipynb",
         marks=[
             pytest.mark.require_large_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -49,7 +49,7 @@ notebooks = [
         "06_flyvision_maximally_excitatory_stimuli.ipynb",
         marks=[
             pytest.mark.require_large_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -57,7 +57,7 @@ notebooks = [
         "07_flyvision_providing_custom_stimuli.ipynb",
         marks=[
             pytest.mark.require_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -65,7 +65,7 @@ notebooks = [
         "figure_01_fly_visual_system.ipynb",
         marks=[
             pytest.mark.require_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -73,7 +73,7 @@ notebooks = [
         "figure_02_simple_stimuli_responses.ipynb",
         marks=[
             pytest.mark.require_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -81,7 +81,7 @@ notebooks = [
         "figure_03_naturalistic_stimuli_responses.ipynb",
         marks=[
             pytest.mark.require_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),
@@ -89,7 +89,7 @@ notebooks = [
         "figure_04_mechanisms.ipynb",
         marks=[
             pytest.mark.require_download,
-            pytest.mark.require_gpu,
+            pytest.mark.gpu,
             pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU"),
         ],
     ),

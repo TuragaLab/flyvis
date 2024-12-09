@@ -117,8 +117,6 @@ This project uses `setuptools_scm` for versioning. The version is automatically 
 
 ## Additional Notes
 
-- The project uses `pyright` for static type checking. Configuration is in `pyproject.toml`.
-- Certain dependencies (like `numba`, `matplotlib`, etc.) have specific version pins. Be cautious when updating these.
 - The project includes optional dependencies for development, documentation, and examples. Install them as needed.
 
 For any questions or issues, please open an issue on the project's GitHub repository.

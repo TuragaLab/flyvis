@@ -7,7 +7,7 @@
 %load_ext autoreload
 %autoreload 2
 
-from flyvision import EnsembleView
+from flyvis import EnsembleView
 ```
 
 
@@ -19,7 +19,7 @@ ensemble = EnsembleView("flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-14 23:33:32] ensemble:166 Loaded 50 networks.
+    [2024-12-08 19:41:51] ensemble:166 Loaded 50 networks.
 
 
 
@@ -66,9 +66,9 @@ fig = ensemble[0].receptive_field(
 ```python
 import matplotlib.pyplot as plt
 
-from flyvision.datasets.sintel import MultiTaskSintel
-from flyvision.analysis.visualization.plots import hex_scatter, quick_hex_scatter
-from flyvision.analysis.visualization.plt_utils import rm_spines
+from flyvis.datasets.sintel import MultiTaskSintel
+from flyvis.analysis.visualization.plots import hex_scatter, quick_hex_scatter
+from flyvis.analysis.visualization.plt_utils import rm_spines
 ```
 
 
@@ -76,6 +76,9 @@ from flyvision.analysis.visualization.plt_utils import rm_spines
 dataset = MultiTaskSintel(dt=1 / 24)
 sequence = dataset.cartesian_sequence(0, outwidth=436)
 ```
+
+    [2024-12-08 19:41:59] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
 
 sintel movie
 
@@ -146,10 +149,10 @@ activations
 
 
 ```python
-from flyvision.connectome import ConnectomeFromAvgFilters
-from flyvision.analysis.visualization import plt_utils
-from flyvision.analysis.visualization.network_fig import WholeNetworkFigure
-from flyvision.utils.color_utils import cell_type_colors
+from flyvis.connectome import ConnectomeFromAvgFilters
+from flyvis.analysis.visualization import plt_utils
+from flyvis.analysis.visualization.network_fig import WholeNetworkFigure
+from flyvis.utils.color_utils import cell_type_colors
 ```
 
 
@@ -176,8 +179,8 @@ responses = (
 )
 ```
 
-    [2024-10-14 23:33:58] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-14 23:33:58] chkpt_utils:35 Recovered network state.
+    [2024-12-08 19:42:18] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:42:18] chkpt_utils:36 Recovered network state.
 
 
 
@@ -243,7 +246,7 @@ optic flow
 
 
 ```python
-from flyvision.analysis.visualization.plots import quick_hex_flow
+from flyvis.analysis.visualization.plots import quick_hex_flow
 ```
 
 

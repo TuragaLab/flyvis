@@ -28,7 +28,7 @@ options:
   --task_name TASK_NAME
                         Name given to the task, e.g., flow.
   --val_script VAL_SCRIPT
-                        Script to run for validation.
+                        Script to run for validation. Default: /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/flyvis_cli/validation/val_single.py
   --dry                 Perform a dry run without actually launching jobs.
 
 ```

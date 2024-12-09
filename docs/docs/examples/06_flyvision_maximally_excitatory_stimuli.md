@@ -2,16 +2,6 @@
 
 This notebook illustrates how to compute the stimuli that maximally excite a specific neuron.
 
-
-```python
-# basic imports
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-
-plt.rcParams['figure.dpi'] = 200
-```
-
 # Optimal naturalistic stimuli
 
 We first find the optimal naturalistic stimuli. To do that, we simulate the responses of
@@ -24,9 +14,14 @@ the offset version of this stimulus would also maximally excite the equivalently
 
 
 ```python
-from flyvision import NetworkView
-from flyvision.datasets.sintel import AugmentedSintel
-from flyvision.analysis.optimal_stimuli import (
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+
+from flyvis import NetworkView
+from flyvis.datasets.sintel import AugmentedSintel
+from flyvis.analysis.optimal_stimuli import (
     FindOptimalStimuli,
     GenerateOptimalStimuli,
     plot_stim_response,
@@ -40,7 +35,8 @@ dataset = AugmentedSintel(tasks=["lum"], temporal_split=True)
 network_view = NetworkView("flow/0000/000")
 ```
 
-    [2024-10-14 23:30:04] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
+    [2024-12-08 19:38:27] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+    [2024-12-08 19:38:33] network_view:122 Initialized network view at ../flyvis/data/results/flow/0000/000
 
 
 
@@ -48,8 +44,8 @@ network_view = NetworkView("flow/0000/000")
 findoptstim = FindOptimalStimuli(network_view, dataset)
 ```
 
-    [2024-10-14 23:30:12] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-14 23:30:12] chkpt_utils:35 Recovered network state.
+    [2024-12-08 19:38:41] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:38:41] chkpt_utils:36 Recovered network state.
 
 
 For the T4c neuron, we would expect that the maximally excitatory stimulus is an ON-edge
@@ -59,6 +55,9 @@ moving upward.
 ```python
 optstim = network_view.optimal_stimulus_responses("T4c")
 ```
+
+    ../flyvis/data/results/flow/0000/000/__cache__/flyvis/analysis/stimulus_responses/compute_optimal_stimulus_responses/ea86aff181a9f399fbee084d9288d046/output.h5
+
 
 
 ```python
@@ -75,7 +74,7 @@ stim_resp_plot = plot_stim_response(
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_10_0.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_8_0.png)
 
 
 
@@ -102,7 +101,7 @@ stim_resp_plot = plot_stim_response(
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_13_0.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_11_0.png)
 
 
 
@@ -129,7 +128,7 @@ plt.ylabel("response")
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_15_1.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_13_1.png)
 
 
 
@@ -146,7 +145,7 @@ of ON-edge moving upwards.
 genoptstim = GenerateOptimalStimuli(network_view)
 ```
 
-    [2024-10-14 23:30:24] chkpt_utils:35 Recovered network state.
+    [2024-12-08 19:38:54] chkpt_utils:36 Recovered network state.
 
 
 
@@ -169,7 +168,7 @@ stim_resp_plot = plot_stim_response(
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_20_0.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_18_0.png)
 
 
 
@@ -197,13 +196,13 @@ plt.legend()
 
 
 
-    <matplotlib.legend.Legend at 0x7fbc14900be0>
+    <matplotlib.legend.Legend at 0x7f12bafb8130>
 
 
 
 
 
-![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_22_1.png)
+![png](06_flyvision_maximally_excitatory_stimuli_files/06_flyvision_maximally_excitatory_stimuli_20_1.png)
 
 
 

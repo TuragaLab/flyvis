@@ -15,11 +15,9 @@ import numpy as np
 np.random.seed(42)
 import matplotlib.pyplot as plt
 
-plt.rcParams['figure.dpi'] = 200
-
-import flyvision
-from flyvision.utils.dataset_utils import load_moving_mnist
-from flyvision.analysis import animations
+import flyvis
+from flyvis.utils.dataset_utils import load_moving_mnist
+from flyvis.analysis import animations
 ```
 
 
@@ -56,7 +54,7 @@ Alternative: for an alternative dataset that is generated at runtime and does no
 
 
 ```python
-from flyvision.utils.dataset_utils import random_walk_of_blocks
+from flyvis.utils.dataset_utils import random_walk_of_blocks
 ```
 
 
@@ -84,8 +82,8 @@ We translate cartesian frames into receptor activations by placing simulated pho
 
 
 ```python
-import flyvision
-from flyvision.datasets.rendering import BoxEye
+import flyvis
+from flyvis.datasets.rendering import BoxEye
 ```
 
 
@@ -118,9 +116,9 @@ import matplotlib.pyplot as plt
 
 plt.rcParams['figure.dpi'] = 200
 
-import flyvision
-from flyvision.utils.dataset_utils import load_moving_mnist
-from flyvision.analysis.visualization import plt_utils, plots
+import flyvis
+from flyvis.utils.dataset_utils import load_moving_mnist
+from flyvis.analysis.visualization import plt_utils, plots
 ```
 
 
@@ -148,7 +146,7 @@ single_frame = sequences[0, 0]
 
 # the rendering uses pytorch native Conv2d module so it can be executed on GPU and fast
 # we first move the frame to GPU
-single_frame = torch.tensor(single_frame, device=flyvision.device).float()
+single_frame = torch.tensor(single_frame, device=flyvis.device).float()
 
 # because the inputs to the receptors instance must have four dimensions (samples, frames, height, width),
 # we create two empty dimensions for samples and frames
@@ -210,14 +208,14 @@ _ = ax.set_title("example frame rendered", fontsize=5)
 # # we can explicitly create sorted hex-coordinates from the integer radius of the hexagonal grid
 # # for a regular hexagonal lattice, the radius is uniquely determined from the number of hexagons
 
-# radius = flyvision.utils.hex_utils.get_hextent(rendered.shape[-1])
+# radius = flyvis.utils.hex_utils.get_hextent(rendered.shape[-1])
 
 # # here we create integer u, v coordinates, and we stick to the same function and convention
 # # everywhere in the code
-# u, v = flyvision.utils.hex_utils.get_hex_coords(radius)
+# u, v = flyvis.utils.hex_utils.get_hex_coords(radius)
 
 # # we transform them to pixel coordinates using our convention
-# x, y = flyvision.utils.hex_utils.hex_to_pixel(u, v)
+# x, y = flyvis.utils.hex_utils.hex_to_pixel(u, v)
 
 # # and can just scatter them to be back at the photoreceptor layout
 # fig, ax = plt_utils.init_plot(figsize=[2, 2], fontsize=5)
@@ -245,8 +243,8 @@ plt.rcParams['figure.dpi'] = 200
 from pathlib import Path
 from datamate import root, Directory
 
-import flyvision
-from flyvision.utils.dataset_utils import load_moving_mnist
+import flyvis
+from flyvis.utils.dataset_utils import load_moving_mnist
 ```
 
 
@@ -255,7 +253,7 @@ from flyvision.utils.dataset_utils import load_moving_mnist
 # on the filesystem
 
 # directory to store the rendered stimuli
-from flyvision import renderings_dir
+from flyvis import renderings_dir
 
 
 # root tells where the Directory-tree starts
@@ -356,10 +354,10 @@ plt.rcParams['figure.dpi'] = 200
 from pathlib import Path
 from datamate import root, Directory
 
-import flyvision
-from flyvision.utils.dataset_utils import load_moving_mnist
-from flyvision.datasets.datasets import SequenceDataset
-from flyvision.analysis import animations
+import flyvis
+from flyvis.utils.dataset_utils import load_moving_mnist
+from flyvis.datasets.datasets import SequenceDataset
+from flyvis.analysis import animations
 ```
 
 
@@ -368,7 +366,7 @@ from flyvision.analysis import animations
 # on the filesystem
 
 # directory to store the rendered stimuli
-from flyvision import renderings_dir
+from flyvis import renderings_dir
 
 
 # root tells where the Directory-tree starts
@@ -478,10 +476,10 @@ plt.rcParams['figure.dpi'] = 200
 from pathlib import Path
 from datamate import root, Directory
 
-import flyvision
-from flyvision.utils.dataset_utils import load_moving_mnist
-from flyvision.datasets.datasets import SequenceDataset
-from flyvision.utils.activity_utils import LayerActivity
+import flyvis
+from flyvis.utils.dataset_utils import load_moving_mnist
+from flyvis.datasets.datasets import SequenceDataset
+from flyvis.utils.activity_utils import LayerActivity
 ```
 
 
@@ -490,7 +488,7 @@ from flyvision.utils.activity_utils import LayerActivity
 # on the filesystem
 
 # directory to store the rendered stimuli
-from flyvision import renderings_dir
+from flyvis import renderings_dir
 
 
 # root tells where the Directory-tree starts
@@ -568,8 +566,8 @@ Paths to pretrained models from the ensemble end with four digit numbers which a
 
 ```python
 sorted([
-    p.relative_to(flyvision.results_dir)
-    for p in (flyvision.results_dir / "flow/0000").iterdir()
+    p.relative_to(flyvis.results_dir)
+    for p in (flyvis.results_dir / "flow/0000").iterdir()
     if p.name.isnumeric()
 ])
 ```
@@ -634,10 +632,10 @@ We use the `NetworkView` class to point to a model. This object can implement pl
 
 
 ```python
-network_view = flyvision.NetworkView(flyvision.results_dir / "flow/0000/000")
+network_view = flyvis.NetworkView(flyvis.results_dir / "flow/0000/000")
 ```
 
-    [2024-10-14 23:31:51] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
+    [2024-12-08 19:40:21] network_view:122 Initialized network view at ../flyvis/data/results/flow/0000/000
 
 
 
@@ -646,8 +644,8 @@ network_view = flyvision.NetworkView(flyvision.results_dir / "flow/0000/000")
 network = network_view.init_network()
 ```
 
-    [2024-10-14 23:31:59] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-14 23:31:59] chkpt_utils:35 Recovered network state.
+    [2024-12-08 19:40:30] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:40:30] chkpt_utils:36 Recovered network state.
 
 
 
@@ -779,11 +777,11 @@ plt.rcParams['figure.dpi'] = 200
 from pathlib import Path
 from datamate import root, Directory
 
-import flyvision
-from flyvision.utils.dataset_utils import load_moving_mnist
-from flyvision.datasets.datasets import SequenceDataset
-from flyvision.utils.activity_utils import LayerActivity
-from flyvision import EnsembleView
+import flyvis
+from flyvis.utils.dataset_utils import load_moving_mnist
+from flyvis.datasets.datasets import SequenceDataset
+from flyvis.utils.activity_utils import LayerActivity
+from flyvis import EnsembleView
 ```
 
 
@@ -792,7 +790,7 @@ from flyvision import EnsembleView
 # on the filesystem
 
 # directory to store the rendered stimuli
-from flyvision import renderings_dir
+from flyvis import renderings_dir
 
 
 # root tells where the Directory-tree starts
@@ -867,14 +865,14 @@ Similar to the `NetworkView` object, the `EnsembleView` object points to an ense
 
 
 ```python
-ensemble = EnsembleView(flyvision.results_dir / "flow/0000")
+ensemble = EnsembleView(flyvis.results_dir / "flow/0000")
 ```
 
 
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-14 23:32:25] ensemble:166 Loaded 50 networks.
+    [2024-12-08 19:40:51] ensemble:166 Loaded 50 networks.
 
 
 ##### Simulate responses for each network
@@ -897,57 +895,57 @@ responses = np.array(list(ensemble.simulate(movie_input[None], data.dt, fade_in=
     Simulating network:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-14 23:32:33] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:33] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:34] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:35] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:36] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:37] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:38] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:39] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:40] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:41] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:32:41] chkpt_utils:35 Recovered network state.
+    [2024-12-08 19:40:59] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:40:59] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:00] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:00] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:00] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:00] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:00] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:00] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:01] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:01] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:01] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:01] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:01] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:01] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:02] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:02] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:02] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:02] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:02] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:02] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:03] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:03] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:03] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:03] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:03] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:03] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:04] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:04] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:04] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:04] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:04] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:04] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:05] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:05] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:05] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:05] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:05] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:05] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:06] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:06] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:06] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:06] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:06] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:06] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:07] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:07] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:07] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:07] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:07] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:07] chkpt_utils:36 Recovered network state.
+    [2024-12-08 19:41:08] chkpt_utils:36 Recovered network state.
 
 
 
@@ -1070,7 +1068,7 @@ From the above plot it seems like different models generate different prediction
 cluster_indices = ensemble.cluster_indices(cell_type)
 ```
 
-    [2024-10-14 23:33:03] clustering:835 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering
+    [2024-12-08 19:41:26] clustering:835 Loaded T4c embedding and clustering from ../flyvis/data/results/flow/0000/umap_and_clustering
 
 
 

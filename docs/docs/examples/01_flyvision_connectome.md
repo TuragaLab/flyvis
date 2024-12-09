@@ -6,8 +6,8 @@ scaffold of the network.
 
 
 ```python
-from flyvision import connectome_file
-from flyvision import ConnectomeFromAvgFilters, ConnectomeView
+from flyvis import connectome_file
+from flyvis import ConnectomeFromAvgFilters, ConnectomeView
 ```
 
 
@@ -16,7 +16,7 @@ from flyvision import ConnectomeFromAvgFilters, ConnectomeView
 # This json-file includes a list of cell types (`nodes`) and average convolutional filters
 # (anatomical receptive fields) (`edges`) that are scattered across a regular hexagonal lattice
 # of 15 column extent and stored on the hierarchical filesystem as h5-files.
-config = dict(file=connectome_file, extent=15, n_syn_fill=1)
+config = dict(file=connectome_file.name, extent=15, n_syn_fill=1)
 connectome = ConnectomeFromAvgFilters(config)
 ```
 

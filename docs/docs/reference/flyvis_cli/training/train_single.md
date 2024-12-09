@@ -19,7 +19,7 @@ Train the visual system model using the specified configuration.
   Example:
       Train a network for 1000 iterations (and add description 'test'):
 
-      flyvis train_single \
+      flyvis train-single \
           ensemble_and_network_id=0045/000 \
           task_name=flow \
           train=true \
@@ -59,6 +59,7 @@ network/edge_config/syn_strength: syn_strength
 network/node_config: node_config
 network/node_config/bias: bias
 network/node_config/time_const: time_const
+network/stimulus_config: stimulus_config
 optim: optim
 penalizer: penalizer
 scheduler: scheduler
@@ -146,6 +147,9 @@ network:
       initial_dist: Value
       value: 0.05
       requires_grad: true
+  stimulus_config:
+    type: Stimulus
+    init_buffer: false
 task:
   dataset:
     type: MultiTaskSintel

@@ -30,6 +30,11 @@ done
 jupyter nbconvert --to markdown ../examples/*.ipynb --output-dir docs/examples/ --TagRemovePreprocessor.remove_cell_tags hide
 ```
 
+3. Clear all notebook outputs (optional):
+```bash
+jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace ../examples/*.ipynb
+```
+
 ### Build the scripts docs
 
 Only applies to making changes to the scripts.

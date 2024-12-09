@@ -9,7 +9,7 @@ The script `notebook_per_model.py' automatically copies this notebook to an ense
 
 
 ```python
-import flyvision
+import flyvis
 ```
 
 
@@ -20,7 +20,7 @@ task_name = "flow"  # type: str
 
 
 ```python
-network_view = flyvision.NetworkView(f"{task_name}/{ensemble_and_network_id}")
+network_view = flyvis.NetworkView(f"{task_name}/{ensemble_and_network_id}")
 ```
 
-    [2024-10-15 02:34:30] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
+    [2024-12-08 19:51:02] network_view:122 Initialized network view at ../flyvis/data/results/flow/0000/000

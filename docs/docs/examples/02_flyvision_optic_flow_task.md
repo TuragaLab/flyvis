@@ -3,36 +3,21 @@
 
 This notebook illustrates the optic flow task and how to use it with our pretrained fly visual system model and decoder.
 
+# The Sintel dataset
+
+We use the Sintel dataset to train our models as described in the paper. More infos about the Sintel dataset can be found on the official Sintel website: http://sintel.is.tue.mpg.de/.
+
 
 ```python
-# basic imports
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-plt.rcParams['figure.dpi'] = 200
+from flyvis.datasets.sintel import MultiTaskSintel
+from flyvis.analysis.animations.sintel import SintelSample
 ```
 
-# The Sintel dataset
-
-We use the Sintel dataset to train out models as described in the paper. More infos about the Sintel dataset can be found on the official Sintel website: http://sintel.is.tue.mpg.de/.
-
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-from flyvision.datasets.sintel import MultiTaskSintel
-from flyvision.analysis.animations.sintel import SintelSample
-
-%load_ext autoreload
-%autoreload 2
-```
-
-    The autoreload extension is already loaded. To reload it, use:
-      %reload_ext autoreload
-
-
-The class `MultiTaskSintel` loads, preprocesses, renders, and augments the sintel data. It adheres to the pytorch dataset primitive. It provides the interface to the input data and the output data for the flyvision networks. Note: the fly-eye rendering we use here, we introduce in the notebook on creating custom stimuli already.
+The class `MultiTaskSintel` loads, preprocesses, renders, and augments the sintel data. It adheres to the pytorch dataset primitive. It provides the interface to the input data and the output data for the flyvis networks. Note: the fly-eye rendering we use here, we introduce in the notebook on creating custom stimuli already.
 
 This is the full setting:
 
@@ -74,6 +59,9 @@ dataset = MultiTaskSintel(
     unittest=False,
 )
 ```
+
+    [2024-12-08 19:30:46] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
 
 
 ```python
@@ -208,6 +196,9 @@ dataset = MultiTaskSintel(
 )
 ```
 
+    [2024-12-08 19:30:51] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
+
 The first sample. For the target, the pixel-accurate motion vectors, the color indicates the direction of motion of the respective input pixel. The saturation indicates the magnitude of motion.
 
 
@@ -221,7 +212,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_13_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_11_0.png)
 
 
 
@@ -238,6 +229,10 @@ dataset = MultiTaskSintel(
 )
 ```
 
+    [2024-12-08 19:30:58] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+    [2024-12-08 19:30:58] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
+
 
 ```python
 lum1 = dataset[0]["lum"]
@@ -249,7 +244,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_16_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_14_0.png)
 
 
 
@@ -263,7 +258,7 @@ First, we split each sequence into three sequences vertically to leverage a wide
 
 
 ```python
-from flyvision.analysis.visualization.plots import quick_hex_scatter
+from flyvis.analysis.visualization.plots import quick_hex_scatter
 ```
 
 
@@ -276,6 +271,9 @@ dataset = MultiTaskSintel(
     augment=False,
 )
 ```
+
+    [2024-12-08 19:31:04] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
 
 Sintel has 23 movie sequences originally.
 
@@ -428,7 +426,7 @@ _ = plt.imshow(sequence[0, 0], cmap=plt.cm.binary_r)
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_29_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_27_0.png)
 
 
 
@@ -442,7 +440,7 @@ _ = quick_hex_scatter(dataset[2]['lum'][0].flatten(), fig=fig, ax=axes[2], cbar=
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_30_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_28_0.png)
 
 
 
@@ -471,6 +469,9 @@ dataset = MultiTaskSintel(
 )
 ```
 
+    [2024-12-08 19:31:14] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
+
 
 ```python
 # These two samples from the same original sequence should have stochastically different start and end frames.
@@ -486,7 +487,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_35_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_33_0.png)
 
 
 
@@ -515,6 +516,9 @@ dataset = MultiTaskSintel(
 )
 ```
 
+    [2024-12-08 19:31:22] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
+
 
 ```python
 # These two samples from the same original sequence should have stochastically different orientation.
@@ -530,7 +534,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_40_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_38_0.png)
 
 
 
@@ -552,7 +556,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_43_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_41_0.png)
 
 
 
@@ -581,6 +585,9 @@ dataset = MultiTaskSintel(
 )
 ```
 
+    [2024-12-08 19:31:35] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
+
 
 ```python
 # These two samples from the same original sequence have
@@ -597,7 +604,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_48_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_46_0.png)
 
 
 
@@ -619,6 +626,9 @@ dataset = MultiTaskSintel(
 )
 ```
 
+    [2024-12-08 19:31:42] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
+
 
 ```python
 # Now, every input frame appears twice and target frames are interpolated.
@@ -635,7 +645,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_53_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_51_0.png)
 
 
 
@@ -645,10 +655,10 @@ Before we get to training a network, we look at a few responses to these type of
 
 
 ```python
-from flyvision.network import NetworkView, Network
-from flyvision.utils.activity_utils import LayerActivity
+from flyvis.network import NetworkView, Network
+from flyvis.utils.activity_utils import LayerActivity
 
-from flyvision.datasets.sintel import MultiTaskSintel
+from flyvis.datasets.sintel import MultiTaskSintel
 ```
 
 
@@ -661,7 +671,7 @@ network = Network()
 # network = network_view.init_network(network)
 ```
 
-    [2024-10-14 20:56:54] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:31:59] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
 
 
 
@@ -682,6 +692,9 @@ dataset = MultiTaskSintel(
     interpolate=True,
 )
 ```
+
+    [2024-12-08 19:32:04] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
 
 
 ```python
@@ -712,7 +725,7 @@ plt.title("response of central T4c cell")
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_61_1.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_59_1.png)
 
 
 
@@ -722,8 +735,8 @@ We need to predict the pixel-accurate flow field that Sintel gives us. For that 
 
 
 ```python
-from flyvision.datasets.sintel import MultiTaskSintel
-from flyvision.task.decoder import DecoderGAVP
+from flyvis.datasets.sintel import MultiTaskSintel
+from flyvis.task.decoder import DecoderGAVP
 ```
 
 
@@ -731,7 +744,7 @@ from flyvision.task.decoder import DecoderGAVP
 network = Network()
 ```
 
-    [2024-10-14 20:57:10] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:32:15] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
 
 
 
@@ -739,8 +752,8 @@ network = Network()
 decoder = DecoderGAVP(network.connectome, shape=[8, 2], kernel_size=5)
 ```
 
-    [2024-10-14 20:57:15] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
-    [2024-10-14 20:57:15] decoder:283 DecoderGAVP(
+    [2024-12-08 19:32:20] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
+    [2024-12-08 19:32:20] decoder:283 DecoderGAVP(
       (base): Sequential(
         (0): Conv2dHexSpace(34, 8, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
         (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
@@ -768,6 +781,9 @@ dataset = MultiTaskSintel(
 )
 ```
 
+    [2024-12-08 19:32:20] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
+
 
 ```python
 data = dataset[0]
@@ -794,7 +810,7 @@ animation.animate_in_notebook(frames=np.arange(lum.shape[0])[::10])
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_70_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_68_0.png)
 
 
 
@@ -806,7 +822,7 @@ animation.animate_in_notebook(frames=np.arange(lum.shape[0])[::10])
 
 
 
-    tensor(0.9801, device='cuda:0', grad_fn=<MeanBackward0>)
+    tensor(0.9877, device='cuda:0', grad_fn=<MeanBackward0>)
 
 
 
@@ -820,11 +836,11 @@ from tqdm.notebook import tqdm
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from flyvision.network import Network
-from flyvision.task.decoder import DecoderGAVP
+from flyvis.network import Network
+from flyvis.task.decoder import DecoderGAVP
 
-from flyvision.datasets.sintel import MultiTaskSintel
-from flyvision.task.objectives import l2norm, epe
+from flyvis.datasets.sintel import MultiTaskSintel
+from flyvis.task.objectives import l2norm, epe
 ```
 
 
@@ -832,7 +848,7 @@ from flyvision.task.objectives import l2norm, epe
 network = Network()
 ```
 
-    [2024-10-14 20:57:31] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:32:37] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
 
 
 
@@ -840,8 +856,8 @@ network = Network()
 decoder = DecoderGAVP(network.connectome, shape=[8, 2], kernel_size=5)
 ```
 
-    [2024-10-14 20:57:36] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
-    [2024-10-14 20:57:36] decoder:283 DecoderGAVP(
+    [2024-12-08 19:32:42] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
+    [2024-12-08 19:32:42] decoder:283 DecoderGAVP(
       (base): Sequential(
         (0): Conv2dHexSpace(34, 8, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
         (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
@@ -868,6 +884,9 @@ dataset = MultiTaskSintel(
     interpolate=True,
 )
 ```
+
+    [2024-12-08 19:32:42] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
 
 
 ```python
@@ -924,106 +943,106 @@ for e in tqdm(range(epochs)):
       0%|          | 0/1000 [00:00<?, ?it/s]
 
 
-    Epoch 0: 10.713071823120117
-    Epoch 10: 10.694902420043945
-    Epoch 20: 10.680363655090332
-    Epoch 30: 10.666953086853027
-    Epoch 40: 10.656447410583496
-    Epoch 50: 10.645711898803711
-    Epoch 60: 10.63460636138916
-    Epoch 70: 10.62692642211914
-    Epoch 80: 10.619820594787598
-    Epoch 90: 10.611517906188965
-    Epoch 100: 10.607583045959473
-    Epoch 110: 10.601799964904785
-    Epoch 120: 10.597103118896484
-    Epoch 130: 10.589568138122559
-    Epoch 140: 10.583572387695312
-    Epoch 150: 10.573358535766602
-    Epoch 160: 10.557780265808105
-    Epoch 170: 10.541166305541992
-    Epoch 180: 10.5318603515625
-    Epoch 190: 10.528465270996094
-    Epoch 200: 10.524687767028809
-    Epoch 210: 10.522351264953613
-    Epoch 220: 10.519081115722656
-    Epoch 230: 10.51638412475586
-    Epoch 240: 10.513705253601074
-    Epoch 250: 10.510396957397461
-    Epoch 260: 10.509458541870117
-    Epoch 270: 10.505942344665527
-    Epoch 280: 10.504344940185547
-    Epoch 290: 10.500924110412598
-    Epoch 300: 10.499275207519531
-    Epoch 310: 10.497615814208984
-    Epoch 320: 10.495290756225586
-    Epoch 330: 10.495119094848633
-    Epoch 340: 10.489775657653809
-    Epoch 350: 10.48803997039795
-    Epoch 360: 10.486355781555176
-    Epoch 370: 10.485116958618164
-    Epoch 380: 10.482747077941895
-    Epoch 390: 10.482059478759766
-    Epoch 400: 10.478900909423828
-    Epoch 410: 10.47703742980957
-    Epoch 420: 10.475617408752441
-    Epoch 430: 10.47423267364502
-    Epoch 440: 10.472049713134766
-    Epoch 450: 10.471711158752441
-    Epoch 460: 10.46876049041748
-    Epoch 470: 10.466737747192383
-    Epoch 480: 10.466827392578125
-    Epoch 490: 10.46402359008789
-    Epoch 500: 10.464691162109375
-    Epoch 510: 10.46159553527832
-    Epoch 520: 10.460050582885742
-    Epoch 530: 10.460445404052734
-    Epoch 540: 10.458453178405762
-    Epoch 550: 10.456347465515137
-    Epoch 560: 10.454182624816895
-    Epoch 570: 10.452312469482422
-    Epoch 580: 10.451105117797852
-    Epoch 590: 10.449974060058594
-    Epoch 600: 10.449149131774902
-    Epoch 610: 10.447746276855469
-    Epoch 620: 10.445918083190918
-    Epoch 630: 10.444019317626953
-    Epoch 640: 10.442822456359863
-    Epoch 650: 10.440664291381836
-    Epoch 660: 10.440509796142578
-    Epoch 670: 10.437874794006348
-    Epoch 680: 10.436468124389648
-    Epoch 690: 10.434030532836914
-    Epoch 700: 10.432242393493652
-    Epoch 710: 10.429919242858887
-    Epoch 720: 10.428377151489258
-    Epoch 730: 10.425311088562012
-    Epoch 740: 10.422719955444336
-    Epoch 750: 10.421255111694336
-    Epoch 760: 10.418807029724121
-    Epoch 770: 10.415323257446289
-    Epoch 780: 10.412861824035645
-    Epoch 790: 10.40996265411377
-    Epoch 800: 10.408342361450195
-    Epoch 810: 10.405858993530273
-    Epoch 820: 10.403818130493164
-    Epoch 830: 10.40142822265625
-    Epoch 840: 10.397943496704102
-    Epoch 850: 10.394493103027344
-    Epoch 860: 10.390817642211914
-    Epoch 870: 10.38827133178711
-    Epoch 880: 10.383781433105469
-    Epoch 890: 10.382647514343262
-    Epoch 900: 10.379199981689453
-    Epoch 910: 10.374433517456055
-    Epoch 920: 10.372457504272461
-    Epoch 930: 10.37112045288086
-    Epoch 940: 10.366717338562012
-    Epoch 950: 10.36235237121582
-    Epoch 960: 10.36122989654541
-    Epoch 970: 10.356871604919434
-    Epoch 980: 10.3525390625
-    Epoch 990: 10.351277351379395
+    Epoch 0: 10.636537551879883
+    Epoch 10: 10.621147155761719
+    Epoch 20: 10.607827186584473
+    Epoch 30: 10.599922180175781
+    Epoch 40: 10.590510368347168
+    Epoch 50: 10.582784652709961
+    Epoch 60: 10.57673168182373
+    Epoch 70: 10.57288932800293
+    Epoch 80: 10.56686019897461
+    Epoch 90: 10.563536643981934
+    Epoch 100: 10.561113357543945
+    Epoch 110: 10.557619094848633
+    Epoch 120: 10.553178787231445
+    Epoch 130: 10.550191879272461
+    Epoch 140: 10.545988082885742
+    Epoch 150: 10.545486450195312
+    Epoch 160: 10.54134464263916
+    Epoch 170: 10.540717124938965
+    Epoch 180: 10.537071228027344
+    Epoch 190: 10.53472900390625
+    Epoch 200: 10.531929016113281
+    Epoch 210: 10.529220581054688
+    Epoch 220: 10.526920318603516
+    Epoch 230: 10.524316787719727
+    Epoch 240: 10.522162437438965
+    Epoch 250: 10.519787788391113
+    Epoch 260: 10.518158912658691
+    Epoch 270: 10.516519546508789
+    Epoch 280: 10.513129234313965
+    Epoch 290: 10.511229515075684
+    Epoch 300: 10.509740829467773
+    Epoch 310: 10.506508827209473
+    Epoch 320: 10.505179405212402
+    Epoch 330: 10.502842903137207
+    Epoch 340: 10.5007963180542
+    Epoch 350: 10.497834205627441
+    Epoch 360: 10.496322631835938
+    Epoch 370: 10.495060920715332
+    Epoch 380: 10.493014335632324
+    Epoch 390: 10.491446495056152
+    Epoch 400: 10.48892879486084
+    Epoch 410: 10.489540100097656
+    Epoch 420: 10.485395431518555
+    Epoch 430: 10.483999252319336
+    Epoch 440: 10.481637954711914
+    Epoch 450: 10.47884464263916
+    Epoch 460: 10.478631019592285
+    Epoch 470: 10.476183891296387
+    Epoch 480: 10.475756645202637
+    Epoch 490: 10.473572731018066
+    Epoch 500: 10.471808433532715
+    Epoch 510: 10.471207618713379
+    Epoch 520: 10.468792915344238
+    Epoch 530: 10.466946601867676
+    Epoch 540: 10.465457916259766
+    Epoch 550: 10.462742805480957
+    Epoch 560: 10.462434768676758
+    Epoch 570: 10.460104942321777
+    Epoch 580: 10.457630157470703
+    Epoch 590: 10.456503868103027
+    Epoch 600: 10.454134941101074
+    Epoch 610: 10.453128814697266
+    Epoch 620: 10.450531959533691
+    Epoch 630: 10.448619842529297
+    Epoch 640: 10.446551322937012
+    Epoch 650: 10.444059371948242
+    Epoch 660: 10.44367504119873
+    Epoch 670: 10.437813758850098
+    Epoch 680: 10.437586784362793
+    Epoch 690: 10.436905860900879
+    Epoch 700: 10.432501792907715
+    Epoch 710: 10.430790901184082
+    Epoch 720: 10.428460121154785
+    Epoch 730: 10.423649787902832
+    Epoch 740: 10.42512321472168
+    Epoch 750: 10.422974586486816
+    Epoch 760: 10.418354034423828
+    Epoch 770: 10.41611099243164
+    Epoch 780: 10.413171768188477
+    Epoch 790: 10.408281326293945
+    Epoch 800: 10.405777931213379
+    Epoch 810: 10.401845932006836
+    Epoch 820: 10.395087242126465
+    Epoch 830: 10.390754699707031
+    Epoch 840: 10.386748313903809
+    Epoch 850: 10.381792068481445
+    Epoch 860: 10.376413345336914
+    Epoch 870: 10.371747016906738
+    Epoch 880: 10.367315292358398
+    Epoch 890: 10.363433837890625
+    Epoch 900: 10.357799530029297
+    Epoch 910: 10.35655403137207
+    Epoch 920: 10.350890159606934
+    Epoch 930: 10.347064971923828
+    Epoch 940: 10.342965126037598
+    Epoch 950: 10.339473724365234
+    Epoch 960: 10.334851264953613
+    Epoch 970: 10.330768585205078
+    Epoch 980: 10.325502395629883
+    Epoch 990: 10.32119369506836
 
 
 
@@ -1034,13 +1053,13 @@ plt.plot(errors)
 
 
 
-    [<matplotlib.lines.Line2D at 0x7f15bb12f8b0>]
+    [<matplotlib.lines.Line2D at 0x7f0b0d0730a0>]
 
 
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_82_1.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_80_1.png)
 
 
 
@@ -1069,7 +1088,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_86_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_84_0.png)
 
 
 
@@ -1081,7 +1100,7 @@ animation.animate_in_notebook()
 
 
 
-    tensor(0.7608, device='cuda:0', grad_fn=<MeanBackward0>)
+    tensor(0.7563, device='cuda:0', grad_fn=<MeanBackward0>)
 
 
 
@@ -1089,12 +1108,12 @@ animation.animate_in_notebook()
 
 
 ```python
-from flyvision import results_dir
-from flyvision.network import NetworkView
-from flyvision.utils.activity_utils import LayerActivity
+from flyvis import results_dir
+from flyvis.network import NetworkView
+from flyvis.utils.activity_utils import LayerActivity
 
-from flyvision.datasets.sintel import MultiTaskSintel
-from flyvision.task.decoder import DecoderGAVP
+from flyvis.datasets.sintel import MultiTaskSintel
+from flyvis.task.decoder import DecoderGAVP
 ```
 
 
@@ -1103,7 +1122,7 @@ from flyvision.task.decoder import DecoderGAVP
 network_view = NetworkView(results_dir / "flow/0000/000")
 ```
 
-    [2024-10-14 20:59:36] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
+    [2024-12-08 19:34:48] network_view:122 Initialized network view at ../flyvis/data/results/flow/0000/000
 
 
 
@@ -1111,8 +1130,8 @@ network_view = NetworkView(results_dir / "flow/0000/000")
 network = network_view.init_network()
 ```
 
-    [2024-10-14 20:59:44] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-14 20:59:44] chkpt_utils:35 Recovered network state.
+    [2024-12-08 19:34:56] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
+    [2024-12-08 19:34:56] chkpt_utils:36 Recovered network state.
 
 
 
@@ -1141,8 +1160,8 @@ network_view.dir.config.task.decoder
 decoder = network_view.init_decoder()["flow"]
 ```
 
-    [2024-10-14 20:59:49] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
-    [2024-10-14 20:59:49] decoder:283 DecoderGAVP(
+    [2024-12-08 19:35:01] decoder:282 Initialized decoder with NumberOfParams(free=7427, fixed=0) parameters.
+    [2024-12-08 19:35:01] decoder:283 DecoderGAVP(
       (base): Sequential(
         (0): Conv2dHexSpace(34, 8, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
         (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
@@ -1154,7 +1173,7 @@ decoder = network_view.init_decoder()["flow"]
       )
       (head): Sequential()
     )
-    [2024-10-14 20:59:49] chkpt_utils:64 Recovered flow decoder state.
+    [2024-12-08 19:35:01] chkpt_utils:65 Recovered flow decoder state.
 
 
 
@@ -1171,6 +1190,9 @@ dataset = MultiTaskSintel(
     interpolate=True,
 )
 ```
+
+    [2024-12-08 19:35:01] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
 
 
 ```python
@@ -1197,7 +1219,7 @@ animation.animate_in_notebook()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_98_0.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_96_0.png)
 
 
 
@@ -1211,7 +1233,7 @@ We expect the accuracy is not as good as the overfitted example because this net
 
 
 
-    tensor(6.4105, device='cuda:0', grad_fn=<MeanBackward0>)
+    tensor(6.4274, device='cuda:0', grad_fn=<MeanBackward0>)
 
 
 
@@ -1221,7 +1243,7 @@ Last, we evaluated the task error of the 50 trained networks on a held out set o
 
 
 ```python
-from flyvision import EnsembleView
+from flyvis import EnsembleView
 ```
 
 
@@ -1233,7 +1255,7 @@ ensemble = EnsembleView("flow/0000")
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-14 21:00:15] ensemble:166 Loaded 50 networks.
+    [2024-12-08 19:35:21] ensemble:166 Loaded 50 networks.
 
 
 
@@ -1251,4 +1273,4 @@ ensemble.task_error_histogram()
 
 
 
-![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_105_1.png)
+![png](02_flyvision_optic_flow_task_files/02_flyvision_optic_flow_task_103_1.png)

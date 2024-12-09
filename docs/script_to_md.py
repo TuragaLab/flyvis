@@ -2,8 +2,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# new scripts need to be added here to be included in the docs
 HEADERS = {
     "download_pretrained_models.py": "Download Pretrained Models",
+    "init_config.py": "Initialize Configuration",
     "flyvis_cli.py": "Command Line Interface Entry Point",
     "training/train_single.py": "Run Training for Single Model",
     "training/train.py": "Launch Ensemble Training on Compute Cloud",

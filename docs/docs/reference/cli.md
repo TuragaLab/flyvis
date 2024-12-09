@@ -120,7 +120,7 @@ flyvis \
     --start 0 \
     --end 5 \
     --nP 8 \
-    solver.task.n_iters=1000  # note: this combines hydra and argparse syntax
+    task.n_iters=1000  # note: this combines hydra and argparse syntax
 
 # Example 8: Run a notebook for each model in ensemble 0001
 flyvis notebook-per-model --notebook_per_model_path notebooks/record_custom_stimuli_responses.ipynb \
@@ -141,7 +141,7 @@ flyvis notebook-per-ensemble --notebook_path notebooks/analyze_custom_stimuli_re
 - Note that all arguments are passed through from the entry point to the underlying
 scripts, so you can use all scripts through the entry-point `flyvis`.
 - The CLI combines the usage of argparse arguments like `--ensemble_id` and `--task_name`,
-hydra arguments like `solver.task.n_iters` and `solver.optim.lr`, and passes also typed
+hydra arguments like `task.n_iters` and `solver.optim.lr`, and passes also typed
 arguments, like `ensemble_id:str=0001` to paperpile for notebook execution (required arguments depend on the notebook definition).
 - See the help menu for each script for more information. This is not exhaustively tested
 in all available configurations, please report any issues on the GitHub repository.

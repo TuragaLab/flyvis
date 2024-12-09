@@ -2,25 +2,19 @@
 
 This notebook introduces moving edge responses and the direction selectivity index (DSI). The DSI measures motion selectivity of cells to visual input.
 
-
-```python
-# basic imports
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-
-plt.rcParams["figure.dpi"] = 200
-```
-
 ## Moving edge stimuli
 
 To elicit moving edge responses and characterise the motion selectivity of neurons, experimenters show an ON or OFF edge moving in different cardinal directions. We generate and render these stimuli with the `MovingEdge` dataset.
 
 
 ```python
-# import dataset and visualization helper
-from flyvision.datasets.moving_bar import MovingEdge
-from flyvision.analysis.animations.hexscatter import HexScatter
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+
+from flyvis.datasets.moving_bar import MovingEdge
+from flyvis.analysis.animations.hexscatter import HexScatter
 ```
 
 
@@ -286,7 +280,7 @@ animation.animate_in_notebook()
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_7_0.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_5_0.png)
 
 
 
@@ -296,21 +290,24 @@ Now that we have generated the stimulus, we can use it to drive a trained connec
 
 
 ```python
-from flyvision import results_dir
-from flyvision.network import NetworkView
+from flyvis import results_dir
+from flyvis.network import NetworkView
 
 # model are already sorted by task error
 # we take the best task-performing model from the pre-sorted ensemble
 network_view = NetworkView(results_dir / "flow/0000/000")
 ```
 
-    [2024-10-14 21:01:17] network_view:125 Initialized network view at /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/000
+    [2024-12-08 19:36:19] network_view:122 Initialized network view at ../flyvis/data/results/flow/0000/000
 
 
 
 ```python
 stims_and_resps = network_view.moving_edge_responses(dataset)
 ```
+
+    ../flyvis/data/results/flow/0000/000/__cache__/flyvis/analysis/stimulus_responses/compute_responses/8aa5ae3c0c09b91f372ef03516814bd1/output.h5
+
 
 We've now computed network moving edge responses for all cells in the network.
 
@@ -335,7 +332,7 @@ ax.set_title("T4c responses to moving edge")
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_13_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_11_1.png)
 
 
 
@@ -364,11 +361,11 @@ The DSI values range from 0 to 1. A DSI of 0 indicates no directional preference
 
 For the T4c cell plotted before, we can see that it preferentially responds to ON edges moving at an angle of 60 degrees, so we expect to see a large DSI.
 
- We compute the DSI with `flyvision.analysis.direction_selectivity_index`.
+ We compute the DSI with `flyvis.analysis.direction_selectivity_index`.
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import direction_selectivity_index
+from flyvis.analysis.moving_bar_responses import direction_selectivity_index
 ```
 
 
@@ -381,11 +378,11 @@ print(f"T4c DSI: {dsis.custom.where(cell_type='T4c', intensity=1).item():.2f}")
     T4c DSI: 0.63
 
 
-We compute the preferred direction of the cell with `flyvision.analysis.preferred_direction` (this is the direction that the tuning lobe points towards). We would expect the preferred direction to be around 60 degrees based on the response traces.
+We compute the preferred direction of the cell with `flyvis.analysis.preferred_direction` (this is the direction that the tuning lobe points towards). We would expect the preferred direction to be around 60 degrees based on the response traces.
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import preferred_direction
+from flyvis.analysis.moving_bar_responses import preferred_direction
 ```
 
 
@@ -405,7 +402,7 @@ Here we see clearly how the cell is tuned to stimuli moving at a 60 degree angle
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import plot_angular_tuning
+from flyvis.analysis.moving_bar_responses import plot_angular_tuning
 ```
 
 
@@ -422,7 +419,7 @@ plot_angular_tuning(stims_and_resps, cell_type="T4c", intensity=1)
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_23_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_21_1.png)
 
 
 
@@ -432,7 +429,7 @@ With the `dsi()` function we can also compute DSIs for every cell type at once. 
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import dsi_correlation_to_known
+from flyvis.analysis.moving_bar_responses import dsi_correlation_to_known
 ```
 
 
@@ -452,7 +449,7 @@ Further, for certain cell types, their actual tuning curves have also been measu
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import correlation_to_known_tuning_curves
+from flyvis.analysis.moving_bar_responses import correlation_to_known_tuning_curves
 ```
 
 
@@ -486,7 +483,7 @@ print(
 ```
 
     T4 tuning curve correlations: ['T4a' 'T4b' 'T4c' 'T4d']
-    [0.93699979 0.71944939 0.53721792 0.85661064]
+    [0.93699976 0.71944945 0.53721791 0.85661054]
 
 
 
@@ -497,7 +494,7 @@ print(
 ```
 
     T5 tuning curve correlations: ['T5a' 'T5b' 'T5c' 'T5d']
-    [0.84125431 0.90320943 0.94956469 0.90100505]
+    [0.84125431 0.90320938 0.94956469 0.90100506]
 
 
 So, the model yields accurate predictions for all T4 and T5 cell types.
@@ -508,7 +505,7 @@ Now we can compare motion selectivity properties across an ensemble of trained m
 
 
 ```python
-from flyvision import EnsembleView
+from flyvis import EnsembleView
 
 ensemble = EnsembleView(results_dir / "flow/0000")
 # choose best 10
@@ -519,14 +516,14 @@ ensemble = ensemble[ensemble.argsort()[:10]]
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-14 21:01:40] ensemble:166 Loaded 50 networks.
+    [2024-12-08 19:36:33] ensemble:166 Loaded 50 networks.
 
 
 
     Loading ensemble:   0%|          | 0/10 [00:00<?, ?it/s]
 
 
-    [2024-10-14 21:01:46] ensemble:166 Loaded 10 networks.
+    [2024-12-08 19:36:37] ensemble:166 Loaded 10 networks.
 
 
 
@@ -577,7 +574,7 @@ responses.custom.where(
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_43_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_41_1.png)
 
 
 
@@ -609,7 +606,7 @@ ax.set_ylabel("Number of networks")
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_47_1.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_45_1.png)
 
 
 
@@ -617,7 +614,7 @@ Most networks in this group recover some direction selectivity for T4c. We can a
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import dsi_violins_on_and_off
+from flyvis.analysis.moving_bar_responses import dsi_violins_on_and_off
 
 fig, ax = dsi_violins_on_and_off(
     dsis,
@@ -636,7 +633,7 @@ fig, ax = dsi_violins_on_and_off(
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_49_0.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_47_0.png)
 
 
 
@@ -682,7 +679,7 @@ dsi_corr.shape, t4_corrs.shape, t5_corrs.shape
 
 
 ```python
-from flyvision.analysis.visualization.plots import violin_groups
+from flyvis.analysis.visualization.plots import violin_groups
 
 fig, ax, *_ = violin_groups(
     np.stack([dsi_corr.values, t4_corrs.values, t5_corrs.values], axis=0)[:, None, :],
@@ -704,7 +701,7 @@ fig, ax, *_ = violin_groups(
 
 
 
-![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_55_0.png)
+![png](04_flyvision_moving_edge_responses_files/04_flyvision_moving_edge_responses_53_0.png)
 
 
 

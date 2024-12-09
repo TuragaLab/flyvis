@@ -2,25 +2,19 @@
 
 This notebook illustrates how to cluster the models of an ensemble after nonlinear dimensionality reduction on their predicted responses to naturalistic stimuli. This can be done for any cell type. Here we provide a detailed example focusing on clustering based on T4c responses.
 
-
-```python
-# basic imports
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-
-plt.rcParams['figure.dpi'] = 200
-```
-
 # Naturalistic stimuli dataset (Sintel)
 We load the dataset with our custom augmentations. The dataset contains movie sequences from the publicly available computer-animated movie Sintel rendered to the hexagonal lattice structure of the fly eye. For a more detailed introduction to the dataset class and parameters see the notebook on the optic flow task.
 
 
 ```python
-import flyvision
-from flyvision.datasets.sintel import AugmentedSintel
-from flyvision.analysis.animations import HexScatter
+import matplotlib.pyplot as plt
 import numpy as np
+import torch
+
+
+import flyvis
+from flyvis.datasets.sintel import AugmentedSintel
+from flyvis.analysis.animations import HexScatter
 ```
 
 
@@ -34,6 +28,9 @@ dataset = AugmentedSintel(
     dt=dt,
 )
 ```
+
+    [2024-12-08 19:36:52] sintel_utils:331 Found Sintel at ../flyvis/data/SintelDataSet
+
 
 
 ```python
@@ -215,7 +212,7 @@ animation.animate_in_notebook(frames=np.arange(5))
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_9_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_7_0.png)
 
 
 
@@ -225,14 +222,14 @@ We compute the responses of all models in the stored ensemble to the augmented S
 
 ```python
 # We load the ensemble trained on the optic flow task
-ensemble = flyvision.EnsembleView("flow/0000")
+ensemble = flyvis.EnsembleView("flow/0000")
 ```
 
 
     Loading ensemble:   0%|          | 0/50 [00:00<?, ?it/s]
 
 
-    [2024-10-14 21:02:31] ensemble:166 Loaded 50 networks.
+    [2024-12-08 19:37:13] ensemble:166 Loaded 50 networks.
 
 
 We use `ensemble.naturalistic_stimuli_responses` to return responses of all networks within the ensemble.
@@ -245,401 +242,65 @@ We use `ensemble.naturalistic_stimuli_responses` to return responses of all netw
 stims_and_resps = ensemble.naturalistic_stimuli_responses()
 ```
 
-    [2024-10-14 21:02:41] network:222 Initialized network with NumberOfParams(free=734, fixed=2959) parameters.
-    [2024-10-14 21:02:41] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:02:46] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:06:00] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/007/__cache__/flyvision/analysis/stimulus_responses/compute_responses/62f12e60e448f187eb7c3c597ad40084/output.h5
-    [2024-10-14 21:06:07] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:06:11] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:09:23] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/008/__cache__/flyvision/analysis/stimulus_responses/compute_responses/57f443b19940e708cd13ea4c8c285770/output.h5
-    [2024-10-14 21:09:29] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:09:34] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:12:50] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/009/__cache__/flyvision/analysis/stimulus_responses/compute_responses/8c63fb5782e9c87881de4ef9f68a9794/output.h5
-    [2024-10-14 21:12:56] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:13:00] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:16:16] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/010/__cache__/flyvision/analysis/stimulus_responses/compute_responses/b70bd43513f96a8ca2149b4b707cf55b/output.h5
-    [2024-10-14 21:16:22] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:16:27] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:19:43] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/011/__cache__/flyvision/analysis/stimulus_responses/compute_responses/0a2bc829a7f7a299dd597db764831509/output.h5
-    [2024-10-14 21:19:49] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:19:53] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:23:09] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/012/__cache__/flyvision/analysis/stimulus_responses/compute_responses/89d8b0766a56e2e8c9ab4019b752b186/output.h5
-    [2024-10-14 21:23:15] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:23:19] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:26:32] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/013/__cache__/flyvision/analysis/stimulus_responses/compute_responses/8e4ab5f546dddc67d4e5d818a5ce98fb/output.h5
-    [2024-10-14 21:26:38] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:26:43] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:29:55] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/014/__cache__/flyvision/analysis/stimulus_responses/compute_responses/ec463cad10d3570261974dd49b2f39b4/output.h5
-    [2024-10-14 21:30:01] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:30:06] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:33:19] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/015/__cache__/flyvision/analysis/stimulus_responses/compute_responses/9f12efdac08bb4ec43d6cfa2b410cb84/output.h5
-    [2024-10-14 21:33:25] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:33:29] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:36:42] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/016/__cache__/flyvision/analysis/stimulus_responses/compute_responses/b766af72495270e849c173fe33059a52/output.h5
-    [2024-10-14 21:36:48] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:36:52] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:40:05] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/017/__cache__/flyvision/analysis/stimulus_responses/compute_responses/547d8627bc643f80104e95aa70946f87/output.h5
-    [2024-10-14 21:40:11] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:40:16] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:43:29] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/018/__cache__/flyvision/analysis/stimulus_responses/compute_responses/e8623ea69603f974a7b3b8d5eadb3673/output.h5
-    [2024-10-14 21:43:35] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:43:39] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:46:51] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/019/__cache__/flyvision/analysis/stimulus_responses/compute_responses/25481e4909d43c99cf38eadd2587310e/output.h5
-    [2024-10-14 21:46:57] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:47:02] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:50:15] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/020/__cache__/flyvision/analysis/stimulus_responses/compute_responses/fbfc463c7bc43fd02c29dd9d621674ac/output.h5
-    [2024-10-14 21:50:21] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:50:25] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:53:39] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/021/__cache__/flyvision/analysis/stimulus_responses/compute_responses/47879cefa1cb64fad137fa3abcef9f72/output.h5
-    [2024-10-14 21:53:45] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:53:49] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 21:57:01] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/022/__cache__/flyvision/analysis/stimulus_responses/compute_responses/a95a2b7ddef91af37031848d7003b1f3/output.h5
-    [2024-10-14 21:57:08] chkpt_utils:35 Recovered network state.
-    [2024-10-14 21:57:12] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:00:25] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/023/__cache__/flyvision/analysis/stimulus_responses/compute_responses/48f1e15295ea1bd1ecd10d16406b2290/output.h5
-    [2024-10-14 22:00:31] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:00:36] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:03:48] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/024/__cache__/flyvision/analysis/stimulus_responses/compute_responses/6174edb2564849ef913daa0a8b68b9ec/output.h5
-    [2024-10-14 22:03:54] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:03:58] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:07:11] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/025/__cache__/flyvision/analysis/stimulus_responses/compute_responses/dc7c7535c7861e19b3ecab2cf7122136/output.h5
-    [2024-10-14 22:07:17] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:07:22] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:10:36] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/026/__cache__/flyvision/analysis/stimulus_responses/compute_responses/0f442e5e698f56a7df6a03ed8f7000a9/output.h5
-    [2024-10-14 22:10:42] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:10:46] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:14:00] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/027/__cache__/flyvision/analysis/stimulus_responses/compute_responses/cca57252f75a3f13eb6d01f1bf8d47c7/output.h5
-    [2024-10-14 22:14:06] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:14:11] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:17:24] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/028/__cache__/flyvision/analysis/stimulus_responses/compute_responses/438a5c4c26cf00e96e592fa3b05b8d46/output.h5
-    [2024-10-14 22:17:30] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:17:35] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:20:48] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/029/__cache__/flyvision/analysis/stimulus_responses/compute_responses/04c9bf7d4e1e29bd6c0e192faa3be95e/output.h5
-    [2024-10-14 22:20:54] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:20:58] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:24:12] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/030/__cache__/flyvision/analysis/stimulus_responses/compute_responses/f8ad0bbdc84d745bd24435f409659e18/output.h5
-    [2024-10-14 22:24:18] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:24:24] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:27:38] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/031/__cache__/flyvision/analysis/stimulus_responses/compute_responses/feb22aa77c3a671a7742cd26d19729b5/output.h5
-    [2024-10-14 22:27:44] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:27:48] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:31:02] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/032/__cache__/flyvision/analysis/stimulus_responses/compute_responses/3b7c08a1383d3077532a4435c16e9132/output.h5
-    [2024-10-14 22:31:08] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:31:12] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:34:26] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/033/__cache__/flyvision/analysis/stimulus_responses/compute_responses/3e014da9460072b9e468d5d4db901c36/output.h5
-    [2024-10-14 22:34:32] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:34:36] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:37:49] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/034/__cache__/flyvision/analysis/stimulus_responses/compute_responses/2f053e975330c272ea7e10e3f096a66f/output.h5
-    [2024-10-14 22:37:55] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:38:00] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:41:12] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/035/__cache__/flyvision/analysis/stimulus_responses/compute_responses/ff0bbe4777ee636da504d0c4edfd5846/output.h5
-    [2024-10-14 22:41:19] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:41:23] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:44:35] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/036/__cache__/flyvision/analysis/stimulus_responses/compute_responses/a8e6ccb3a83d8ea15533bd088bd59ef2/output.h5
-    [2024-10-14 22:44:41] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:44:46] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:47:59] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/037/__cache__/flyvision/analysis/stimulus_responses/compute_responses/e7a08d9c9dc1504228836eb499c33fb1/output.h5
-    [2024-10-14 22:48:05] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:48:09] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:51:22] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/038/__cache__/flyvision/analysis/stimulus_responses/compute_responses/1ff54cbc099f81f052a5661fc26d000a/output.h5
-    [2024-10-14 22:51:28] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:51:32] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:54:46] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/039/__cache__/flyvision/analysis/stimulus_responses/compute_responses/50bc9a814ddfb1fd6f4ccb5a8093534d/output.h5
-    [2024-10-14 22:54:52] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:54:56] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 22:58:10] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/040/__cache__/flyvision/analysis/stimulus_responses/compute_responses/ac5a53daa316bd164892a45b48fbcbf3/output.h5
-    [2024-10-14 22:58:16] chkpt_utils:35 Recovered network state.
-    [2024-10-14 22:58:21] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:01:33] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/041/__cache__/flyvision/analysis/stimulus_responses/compute_responses/dea4830713214750326ad2c0f74f43b4/output.h5
-    [2024-10-14 23:01:39] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:01:44] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:04:57] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/042/__cache__/flyvision/analysis/stimulus_responses/compute_responses/28f107cb005216c0c70c85156602badb/output.h5
-    [2024-10-14 23:05:03] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:05:07] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:08:24] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/043/__cache__/flyvision/analysis/stimulus_responses/compute_responses/9a536865e85de3f3bf6c7c0f51c48a68/output.h5
-    [2024-10-14 23:08:30] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:08:35] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:11:47] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/044/__cache__/flyvision/analysis/stimulus_responses/compute_responses/9dadf5ce41ea13977a03bf250f47182a/output.h5
-    [2024-10-14 23:11:53] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:11:58] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:15:12] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/045/__cache__/flyvision/analysis/stimulus_responses/compute_responses/7c5005bd1893429e6cf5fbd05351bd85/output.h5
-    [2024-10-14 23:15:18] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:15:22] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:18:37] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/046/__cache__/flyvision/analysis/stimulus_responses/compute_responses/cf1f47a50bfb0f93400c60652dd8a353/output.h5
-    [2024-10-14 23:18:43] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:18:48] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:22:01] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/047/__cache__/flyvision/analysis/stimulus_responses/compute_responses/babe9286fd9940a1d8f3910e35d166cb/output.h5
-    [2024-10-14 23:22:07] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:22:12] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:25:24] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/048/__cache__/flyvision/analysis/stimulus_responses/compute_responses/e2331bf2e28ee218ea340438d3b3e966/output.h5
-    [2024-10-14 23:25:30] chkpt_utils:35 Recovered network state.
-    [2024-10-14 23:25:35] network:757 Computing 2268 stimulus responses.
-
-
-
-    Batch:   0%|          | 0/567 [00:00<?, ?it/s]
-
-
-    [2024-10-14 23:28:47] xarray_joblib_backend:54 Store item /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/049/__cache__/flyvision/analysis/stimulus_responses/compute_responses/2a0503ab856cbb6d9206e77684949b55/output.h5
+    ../flyvis/data/results/flow/0000/000/__cache__/flyvis/analysis/stimulus_responses/compute_responses/86b080e815ea9ec928a380df83961c32/output.h5
+    ../flyvis/data/results/flow/0000/001/__cache__/flyvis/analysis/stimulus_responses/compute_responses/b59b4553d26177882434e7a38fcb1f36/output.h5
+    ../flyvis/data/results/flow/0000/002/__cache__/flyvis/analysis/stimulus_responses/compute_responses/34edb9af3c92827b50340e6903d4f04c/output.h5
+    ../flyvis/data/results/flow/0000/003/__cache__/flyvis/analysis/stimulus_responses/compute_responses/6d4092c24a8f5e5ea8a651c5d62a4cb1/output.h5
+    ../flyvis/data/results/flow/0000/004/__cache__/flyvis/analysis/stimulus_responses/compute_responses/f60dd61be87e6f68b35174932ea805a3/output.h5
+    ../flyvis/data/results/flow/0000/005/__cache__/flyvis/analysis/stimulus_responses/compute_responses/f680e802d1c70a1263dd82076bf33a36/output.h5
+    ../flyvis/data/results/flow/0000/006/__cache__/flyvis/analysis/stimulus_responses/compute_responses/04b4c82e6a1f299e0a95ce53517d4da6/output.h5
+    ../flyvis/data/results/flow/0000/007/__cache__/flyvis/analysis/stimulus_responses/compute_responses/56af0790abaf8e03689c4950c6dea1b6/output.h5
+    ../flyvis/data/results/flow/0000/008/__cache__/flyvis/analysis/stimulus_responses/compute_responses/fe446c2e81fb5c187996c349bf81fc75/output.h5
+    ../flyvis/data/results/flow/0000/009/__cache__/flyvis/analysis/stimulus_responses/compute_responses/39a60bf26ca578c6f8a61ade8fc76594/output.h5
+    ../flyvis/data/results/flow/0000/010/__cache__/flyvis/analysis/stimulus_responses/compute_responses/bd1d5ba31d334757b630351b33f3c7c8/output.h5
+    ../flyvis/data/results/flow/0000/011/__cache__/flyvis/analysis/stimulus_responses/compute_responses/78fbe4ae4959a666c6937dd423b9020b/output.h5
+    ../flyvis/data/results/flow/0000/012/__cache__/flyvis/analysis/stimulus_responses/compute_responses/e4b5a3ca0a903bbb40acb438b1f79e9c/output.h5
+    ../flyvis/data/results/flow/0000/013/__cache__/flyvis/analysis/stimulus_responses/compute_responses/34543762cd47e40c949ca970749e77e3/output.h5
+    ../flyvis/data/results/flow/0000/014/__cache__/flyvis/analysis/stimulus_responses/compute_responses/2801e68f00e754372714a56be09caf9f/output.h5
+    ../flyvis/data/results/flow/0000/015/__cache__/flyvis/analysis/stimulus_responses/compute_responses/42f01aafe2d1710ab594ae807a362bd9/output.h5
+    ../flyvis/data/results/flow/0000/016/__cache__/flyvis/analysis/stimulus_responses/compute_responses/b94b14adb8899e4eccc118660ea958c7/output.h5
+    ../flyvis/data/results/flow/0000/017/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9410fc09859bbade170b51880731dea9/output.h5
+    ../flyvis/data/results/flow/0000/018/__cache__/flyvis/analysis/stimulus_responses/compute_responses/544420c7e8246afcd778ee0b353106db/output.h5
+    ../flyvis/data/results/flow/0000/019/__cache__/flyvis/analysis/stimulus_responses/compute_responses/8dacb927f956aa97478480571577228d/output.h5
+    ../flyvis/data/results/flow/0000/020/__cache__/flyvis/analysis/stimulus_responses/compute_responses/531b4dc891cbcd37ac5f86738293c135/output.h5
+    ../flyvis/data/results/flow/0000/021/__cache__/flyvis/analysis/stimulus_responses/compute_responses/03684bc5f57d843f1716241f9a0fae72/output.h5
+    ../flyvis/data/results/flow/0000/022/__cache__/flyvis/analysis/stimulus_responses/compute_responses/b990cd15cf042aa0355aa481aa7d6b41/output.h5
+    ../flyvis/data/results/flow/0000/023/__cache__/flyvis/analysis/stimulus_responses/compute_responses/91cfee0552809c386b0a3e8eb754e6d6/output.h5
+    ../flyvis/data/results/flow/0000/024/__cache__/flyvis/analysis/stimulus_responses/compute_responses/301b1b68961db10e21d4f7bcf56c9906/output.h5
+    ../flyvis/data/results/flow/0000/025/__cache__/flyvis/analysis/stimulus_responses/compute_responses/fb26a6ba42c0925fa1021919378d8e27/output.h5
+    ../flyvis/data/results/flow/0000/026/__cache__/flyvis/analysis/stimulus_responses/compute_responses/99a1c6ed825f339bda0b78dfbe6d96d3/output.h5
+    ../flyvis/data/results/flow/0000/027/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9b18d2b42700af7481eccf2d6fa67589/output.h5
+    ../flyvis/data/results/flow/0000/028/__cache__/flyvis/analysis/stimulus_responses/compute_responses/528ab0ad496af746d023a6ba873ee0dc/output.h5
+    ../flyvis/data/results/flow/0000/029/__cache__/flyvis/analysis/stimulus_responses/compute_responses/df9a3ba79ce02c718ae39f1b691c2074/output.h5
+    ../flyvis/data/results/flow/0000/030/__cache__/flyvis/analysis/stimulus_responses/compute_responses/680207b961d14356a08d7e7e4749e59f/output.h5
+    ../flyvis/data/results/flow/0000/031/__cache__/flyvis/analysis/stimulus_responses/compute_responses/407f839a987942f6e2856df581147e43/output.h5
+    ../flyvis/data/results/flow/0000/032/__cache__/flyvis/analysis/stimulus_responses/compute_responses/dfd4875c806ccd1307ff6d7e804e1edf/output.h5
+    ../flyvis/data/results/flow/0000/033/__cache__/flyvis/analysis/stimulus_responses/compute_responses/22cd80bc7c98d11c5065ad66d38157b6/output.h5
+    ../flyvis/data/results/flow/0000/034/__cache__/flyvis/analysis/stimulus_responses/compute_responses/b6e433dcae4b37f7e59b29319839fc50/output.h5
+    ../flyvis/data/results/flow/0000/035/__cache__/flyvis/analysis/stimulus_responses/compute_responses/31e5ac10422aa1e1ebabb64c7b173e3c/output.h5
+    ../flyvis/data/results/flow/0000/036/__cache__/flyvis/analysis/stimulus_responses/compute_responses/4e94417495f0a61657c87c57fc87a1f0/output.h5
+    ../flyvis/data/results/flow/0000/037/__cache__/flyvis/analysis/stimulus_responses/compute_responses/7f6e7c8a72d475d81acf839a74db4b38/output.h5
+    ../flyvis/data/results/flow/0000/038/__cache__/flyvis/analysis/stimulus_responses/compute_responses/03f4135c61293835075130d011bd5d18/output.h5
+    ../flyvis/data/results/flow/0000/039/__cache__/flyvis/analysis/stimulus_responses/compute_responses/448f5e3d0b9ad7043ab9d4c22f91dd34/output.h5
+    ../flyvis/data/results/flow/0000/040/__cache__/flyvis/analysis/stimulus_responses/compute_responses/3e6c91f652149ed9c014bff467b93d6a/output.h5
+    ../flyvis/data/results/flow/0000/041/__cache__/flyvis/analysis/stimulus_responses/compute_responses/69572eb846355916126a1c8cfef5274f/output.h5
+    ../flyvis/data/results/flow/0000/042/__cache__/flyvis/analysis/stimulus_responses/compute_responses/f61388fda823e11dcc52a930c1ef3e93/output.h5
+    ../flyvis/data/results/flow/0000/043/__cache__/flyvis/analysis/stimulus_responses/compute_responses/dea992edd01893cbdf4d5b27de0d49ad/output.h5
+    ../flyvis/data/results/flow/0000/044/__cache__/flyvis/analysis/stimulus_responses/compute_responses/e81fe1e9587b7a4d7a1b5a4ebfd3c6c2/output.h5
+    ../flyvis/data/results/flow/0000/045/__cache__/flyvis/analysis/stimulus_responses/compute_responses/5a1a4580bf311568a60974671660c5c8/output.h5
+    ../flyvis/data/results/flow/0000/046/__cache__/flyvis/analysis/stimulus_responses/compute_responses/64f5f362d0a819dcf5666b901342c2c0/output.h5
+    ../flyvis/data/results/flow/0000/047/__cache__/flyvis/analysis/stimulus_responses/compute_responses/185b9cebe11b9efe2a625627cb848cba/output.h5
+    ../flyvis/data/results/flow/0000/048/__cache__/flyvis/analysis/stimulus_responses/compute_responses/1f72e3f57bfa4c1ddb6a6eee76cd02d4/output.h5
+    ../flyvis/data/results/flow/0000/049/__cache__/flyvis/analysis/stimulus_responses/compute_responses/5afe04583aca5c1f5a960427a81ae439/output.h5
 
 
 
 ```python
-# recommended to only run with precomputed responses using the record script
-norm = ensemble.responses_norm()
-responses = stims_and_resps["responses"] / (norm + 1e-6)
+# recommended to only run with precomputed responses using the pipeline manager script,
+# see example_submissions.sh in the repository
+# norm = ensemble.responses_norm()
+# responses = stims_and_resps["responses"] / (norm + 1e-6)
+responses = stims_and_resps["responses"]
 ```
 
 
@@ -660,7 +321,7 @@ ax.set_title("T4c responses to naturalistic stimuli")
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_15_1.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_13_1.png)
 
 
 
@@ -670,8 +331,8 @@ We see that the across models of the ensemble the predictions for T4c vary. Our 
 
 
 ```python
-from flyvision.analysis.clustering import EnsembleEmbedding, get_cluster_to_indices
-from flyvision.utils.activity_utils import CentralActivity
+from flyvis.analysis.clustering import EnsembleEmbedding, get_cluster_to_indices
+from flyvis.utils.activity_utils import CentralActivity
 ```
 
 
@@ -700,7 +361,7 @@ embedding = EnsembleEmbedding(central_responses)
 t4c_embedding = embedding("T4c", embedding_kwargs=embedding_kwargs)
 ```
 
-    [2024-10-14 23:29:06] clustering:482 reshaped X from (50, 2268, 80) to (50, 181440)
+    [2024-12-08 19:37:34] clustering:482 reshaped X from (50, 2268, 80) to (50, 181440)
     /home/lappalainenj@hhmi.org/miniconda3/envs/flyvision/lib/python3.9/site-packages/umap/umap_.py:1356: RuntimeWarning: divide by zero encountered in power
       return 1.0 / (1.0 + a * x ** (2 * b))
 
@@ -717,7 +378,7 @@ embeddingplot = t4c_embedding.plot(colors=task_error.colors)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_24_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_22_0.png)
 
 
 
@@ -750,7 +411,7 @@ embeddingplot = gm_clustering.plot(task_error=task_error.values, colors=task_err
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_28_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_26_0.png)
 
 
 
@@ -787,7 +448,7 @@ plt.subplots_adjust(wspace=0.3)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_32_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_30_0.png)
 
 
 
@@ -820,15 +481,67 @@ for cluster_id in cluster_to_indices:
 
 
 ```python
-from flyvision.analysis.moving_bar_responses import plot_angular_tuning
-from flyvision.analysis.visualization import plt_utils
-from flyvision.utils.color_utils import color_to_cmap
+from flyvis.analysis.moving_bar_responses import plot_angular_tuning
+from flyvis.analysis.visualization import plt_utils
+from flyvis.utils.color_utils import color_to_cmap
 ```
 
 
 ```python
 stims_and_resps_moving_edge = ensemble.moving_edge_responses()
 ```
+
+    ../flyvis/data/results/flow/0000/000/__cache__/flyvis/analysis/stimulus_responses/compute_responses/e236e47b9a57dc6d7b692906aca84495/output.h5
+    ../flyvis/data/results/flow/0000/001/__cache__/flyvis/analysis/stimulus_responses/compute_responses/2a1519d1c3b8bf0d0776e8ff2618353d/output.h5
+    ../flyvis/data/results/flow/0000/002/__cache__/flyvis/analysis/stimulus_responses/compute_responses/787654b3c56e4015939e72adfa768448/output.h5
+    ../flyvis/data/results/flow/0000/003/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9d4697cbfdcda0d4b910d26a3f48a2dd/output.h5
+    ../flyvis/data/results/flow/0000/004/__cache__/flyvis/analysis/stimulus_responses/compute_responses/546ffb3b9036631dbb8bc4f2d8c3639f/output.h5
+    ../flyvis/data/results/flow/0000/005/__cache__/flyvis/analysis/stimulus_responses/compute_responses/3fd5d79c2106974104a0362fd7e725a9/output.h5
+    ../flyvis/data/results/flow/0000/006/__cache__/flyvis/analysis/stimulus_responses/compute_responses/2ed32905ad23f346996a76987694ac26/output.h5
+    ../flyvis/data/results/flow/0000/007/__cache__/flyvis/analysis/stimulus_responses/compute_responses/13a800f25b57556abf12f6548482733b/output.h5
+    ../flyvis/data/results/flow/0000/008/__cache__/flyvis/analysis/stimulus_responses/compute_responses/c965f6ca1b4766760aff06bb066dcc4b/output.h5
+    ../flyvis/data/results/flow/0000/009/__cache__/flyvis/analysis/stimulus_responses/compute_responses/829fa2f59d755e13c7c04fd5a1a579bc/output.h5
+    ../flyvis/data/results/flow/0000/010/__cache__/flyvis/analysis/stimulus_responses/compute_responses/466b4cd31001f19423c507e2f3773c41/output.h5
+    ../flyvis/data/results/flow/0000/011/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9d71a4899b11135e9e39f192e82f06e0/output.h5
+    ../flyvis/data/results/flow/0000/012/__cache__/flyvis/analysis/stimulus_responses/compute_responses/ba1826533e24098d930150b0168b01cf/output.h5
+    ../flyvis/data/results/flow/0000/013/__cache__/flyvis/analysis/stimulus_responses/compute_responses/6662e8bb61523d17742c9dd11aa62eeb/output.h5
+    ../flyvis/data/results/flow/0000/014/__cache__/flyvis/analysis/stimulus_responses/compute_responses/cc480f1ea566ea82bfd19fcdf78cc27e/output.h5
+    ../flyvis/data/results/flow/0000/015/__cache__/flyvis/analysis/stimulus_responses/compute_responses/8bd5ed52daae786768e228fb58cd3210/output.h5
+    ../flyvis/data/results/flow/0000/016/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9db907610103a5d3087f87ca0c71a079/output.h5
+    ../flyvis/data/results/flow/0000/017/__cache__/flyvis/analysis/stimulus_responses/compute_responses/a12d63acadac2a74de55632d4cbabfe6/output.h5
+    ../flyvis/data/results/flow/0000/018/__cache__/flyvis/analysis/stimulus_responses/compute_responses/2f9340bb144de1c040c6f2a9b58a8376/output.h5
+    ../flyvis/data/results/flow/0000/019/__cache__/flyvis/analysis/stimulus_responses/compute_responses/e54f818c033f10227d1c003fc779b0c6/output.h5
+    ../flyvis/data/results/flow/0000/020/__cache__/flyvis/analysis/stimulus_responses/compute_responses/ab7e02a752bf6ee954804773846aa1d7/output.h5
+    ../flyvis/data/results/flow/0000/021/__cache__/flyvis/analysis/stimulus_responses/compute_responses/f5d6259ad9e757467b9ad037056132b8/output.h5
+    ../flyvis/data/results/flow/0000/022/__cache__/flyvis/analysis/stimulus_responses/compute_responses/968df97051a8ce2c4cf1a05f4b19359b/output.h5
+    ../flyvis/data/results/flow/0000/023/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9f89eb2dfe2edd056df6f20260a22445/output.h5
+    ../flyvis/data/results/flow/0000/024/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9f08ba3ff4e47076a25f868011998fae/output.h5
+    ../flyvis/data/results/flow/0000/025/__cache__/flyvis/analysis/stimulus_responses/compute_responses/5d8879e61a3f98f4f81ff3cc31f67f3c/output.h5
+    ../flyvis/data/results/flow/0000/026/__cache__/flyvis/analysis/stimulus_responses/compute_responses/c8ed3248070002d27bd42b83e49e1eb2/output.h5
+    ../flyvis/data/results/flow/0000/027/__cache__/flyvis/analysis/stimulus_responses/compute_responses/0efca814750b326442bb2057c2a3141d/output.h5
+    ../flyvis/data/results/flow/0000/028/__cache__/flyvis/analysis/stimulus_responses/compute_responses/875bc3ea335ae2f70612495aa9a753c4/output.h5
+    ../flyvis/data/results/flow/0000/029/__cache__/flyvis/analysis/stimulus_responses/compute_responses/383a5857257bc8be754e28b37b2e4e79/output.h5
+    ../flyvis/data/results/flow/0000/030/__cache__/flyvis/analysis/stimulus_responses/compute_responses/ab8a858f91290a52306a0bb6f9545ed5/output.h5
+    ../flyvis/data/results/flow/0000/031/__cache__/flyvis/analysis/stimulus_responses/compute_responses/1481eb1faa2b00dcc79036a1bf9f3b9b/output.h5
+    ../flyvis/data/results/flow/0000/032/__cache__/flyvis/analysis/stimulus_responses/compute_responses/ac160912a60ac748329b349c16ba207f/output.h5
+    ../flyvis/data/results/flow/0000/033/__cache__/flyvis/analysis/stimulus_responses/compute_responses/660978a75b531be9c285d84986160ca6/output.h5
+    ../flyvis/data/results/flow/0000/034/__cache__/flyvis/analysis/stimulus_responses/compute_responses/fa00c670234802d529e1981655483861/output.h5
+    ../flyvis/data/results/flow/0000/035/__cache__/flyvis/analysis/stimulus_responses/compute_responses/1ae43649496d389d88bc56ca7ccaa383/output.h5
+    ../flyvis/data/results/flow/0000/036/__cache__/flyvis/analysis/stimulus_responses/compute_responses/d50ab62a3869886437176a4ecf124d75/output.h5
+    ../flyvis/data/results/flow/0000/037/__cache__/flyvis/analysis/stimulus_responses/compute_responses/37238a6c41451b197bc11f3c37aef4f2/output.h5
+    ../flyvis/data/results/flow/0000/038/__cache__/flyvis/analysis/stimulus_responses/compute_responses/9cfa9e971c84bc253c53fbfea3c7ebe6/output.h5
+    ../flyvis/data/results/flow/0000/039/__cache__/flyvis/analysis/stimulus_responses/compute_responses/95010c81b682cb979ff3b4f2a6aa6576/output.h5
+    ../flyvis/data/results/flow/0000/040/__cache__/flyvis/analysis/stimulus_responses/compute_responses/fc266127c935e1835cf20757d3fe581c/output.h5
+    ../flyvis/data/results/flow/0000/041/__cache__/flyvis/analysis/stimulus_responses/compute_responses/1e5972877c3873b7a1aac86a2f4bba75/output.h5
+    ../flyvis/data/results/flow/0000/042/__cache__/flyvis/analysis/stimulus_responses/compute_responses/b6af0cb714a199fda52a11619981cb0d/output.h5
+    ../flyvis/data/results/flow/0000/043/__cache__/flyvis/analysis/stimulus_responses/compute_responses/8292e9a29c31b23123bfa531f9b24d9b/output.h5
+    ../flyvis/data/results/flow/0000/044/__cache__/flyvis/analysis/stimulus_responses/compute_responses/8b0eda1e0717ec0690d6766e688dace7/output.h5
+    ../flyvis/data/results/flow/0000/045/__cache__/flyvis/analysis/stimulus_responses/compute_responses/c95394b9922b11a072e992c8d4e2feb5/output.h5
+    ../flyvis/data/results/flow/0000/046/__cache__/flyvis/analysis/stimulus_responses/compute_responses/439ba05c490dac452c5aa3fafed9fe9f/output.h5
+    ../flyvis/data/results/flow/0000/047/__cache__/flyvis/analysis/stimulus_responses/compute_responses/c6894caf2471e76e06aa04f0073d8af5/output.h5
+    ../flyvis/data/results/flow/0000/048/__cache__/flyvis/analysis/stimulus_responses/compute_responses/3c149c1b1c09ff2c958605cf994742a2/output.h5
+    ../flyvis/data/results/flow/0000/049/__cache__/flyvis/analysis/stimulus_responses/compute_responses/ae15b6627cbbd1ce3802b4b74fc69e66/output.h5
+
 
 
 ```python
@@ -858,7 +571,7 @@ plt.subplots_adjust(wspace=0.3)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_42_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_40_0.png)
 
 
 
@@ -880,7 +593,7 @@ plot_angular_tuning(
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_43_1.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_41_1.png)
 
 
 
@@ -916,7 +629,7 @@ plt.subplots_adjust(wspace=0.5)
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_44_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_42_0.png)
 
 
 
@@ -932,7 +645,7 @@ cell_type = "T4c"
 clustering = ensemble.clustering(cell_type)
 ```
 
-    [2024-10-14 23:29:47] clustering:835 Loaded T4c embedding and clustering from /groups/turaga/home/lappalainenj/FlyVis/private/flyvision/data/results/flow/0000/umap_and_clustering
+    [2024-12-08 19:38:15] clustering:835 Loaded T4c embedding and clustering from ../flyvis/data/results/flow/0000/umap_and_clustering
 
 
 
@@ -947,7 +660,7 @@ embeddingplot = clustering.plot(task_error=task_error.values, colors=task_error.
 
 
 
-![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_50_0.png)
+![png](05_flyvision_umap_and_clustering_models_files/05_flyvision_umap_and_clustering_models_48_0.png)
 
 
 

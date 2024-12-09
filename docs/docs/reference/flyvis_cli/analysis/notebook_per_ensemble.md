@@ -24,7 +24,9 @@ options:
   --task_name TASK_NAME
                         Name given to the task, e.g., flow.
   --notebook_path NOTEBOOK_PATH
-                        Path of the notebook to execute.
+                        Path of the notebook to execute. Default: /groups/tura
+                        ga/home/lappalainenj/FlyVis/private/flyvision/flyvis/a
+                        nalysis/__main__.ipynb
   --dry                 Perform a dry run without actually launching jobs.
 
 ```

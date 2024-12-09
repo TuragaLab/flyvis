@@ -4,7 +4,7 @@
 Example usage:
     ```bash
     # Run a pipeline of operations
-    python flyvis.py \
+    flyvis \
         --ensemble_id 0001 \
         --task_name flow \
         train \
