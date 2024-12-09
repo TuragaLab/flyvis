@@ -32,7 +32,7 @@ the actual release.
 rm -rf dist/
 
 # Set version temporarily for this session manually (change version number)
-export SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0.dev4
+export SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0.dev7
 
 # Now build and test
 python -m build
@@ -46,7 +46,7 @@ python -m twine upload --repository testpypi dist/*
 In a clean environment, run these sporadic tests to verify the installation:
 ```bash
 # Install in clean environment to test (change version number)
-python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ flyvis==0.0.0.dev4
+python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ flyvis==0.0.0.dev7
 
 # Test installation
 flyvis download-pretrained
