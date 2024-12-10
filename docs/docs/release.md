@@ -123,21 +123,11 @@ git push public_repo v1.1.2
 # Clean previous builds
 rm -rf dist/
 
-# Build package
-python -m build
-
 # Set version temporarily for this session manually
 export SETUPTOOLS_SCM_PRETEND_VERSION=1.1.2
 
-# Now build and test
+# Build package
 python -m build
-python -m twine upload --repository testpypi dist/*
-
-# When done testing, unset it
-unset SETUPTOOLS_SCM_PRETEND_VERSION
-
-# Upload to Test PyPI first (recommended)
-python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ flyvis==1.1.2
 
 # Upload to PyPI
 python -m twine upload dist/*

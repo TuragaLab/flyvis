@@ -2,31 +2,25 @@
 
 ## Local installation
 
-> Note: `flyvis` is only tested on Linux.
+Make sure to run `flyvis` in your active python environment.
 
-### Create virtual environment
-#### Option 1: Using conda (recommended)
+### Option 1: Install from PyPI
 
-1. Create a new conda environment: `conda create --name flyvision python=3.9 -y`
-2. Activate the new conda environment: `conda activate flyvision`
+```bash
+pip install flyvis
+```
 
-#### Option 2: Using venv
+> `flyvis` is tested on Linux for python 3.9, 3.10, 3.11, 3.12.
 
-1. Create a new virtual environment: `python -m venv flyvision_env`
-2. Activate the virtual environment: `source flyvision_env/bin/activate`
+### Option 2: Install from source
 
-### Clone repo and install
-
-3. Clone the repository: `git clone https://github.com/TuragaLab/flyvis.git`
-4. Navigate to the repo: `cd flyvis`
-5. Install in developer mode: `pip install -e .`
+1. Clone the repository: `git clone https://github.com/TuragaLab/flyvis.git`
+2. Navigate to the repo: `cd flyvis`
+3. Install in developer mode: `pip install -e .`
 
 For development, documentation, or to run examples, you can install additional dependencies:
-- For development: `pip install -e ".[dev]"`
-- For documentation: `pip install -e ".[docs]"`
-- For examples: `pip install -e ".[example]"`
+- `pip install -e ".[dev,examples,docs]"`
 
-> Note: We make flyvision available on pypi soon to simplify the installation process.
 
 ## Download pretrained models
 
@@ -35,9 +29,6 @@ After installation, download the pretrained models by running:
 ```
 flyvis download-pretrained
 ```
-
-Make sure to run this command from your active flyvision environment.
-
 
 ## Set environment variables
 
@@ -66,3 +57,13 @@ export FLYVIS_ROOT_DIR='path/to/your/data'
 ```
 
 > Note: The data directory is where `flyvis` will store downloaded models, cached data, and other files. If `FLYVIS_ROOT_DIR` is not set, it defaults to a `data` folder in the package directory.
+
+## Training new models
+
+For training new models with custom settings, the following command will create a default config in your current working directory to be able to create overrides.
+
+```bash
+flyvis init-config
+```
+
+See the config [hydra config docs](reference/hydra_default_config.md) for more details.

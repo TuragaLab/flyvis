@@ -56,3 +56,9 @@ See [mkdocs user guide](https://www.mkdocs.org/user-guide/deploying-your-docs/) 
 ```bash
 mkdocs gh-deploy
 ```
+
+or optionally specify a remote repository:
+
+```bash
+mkdocs gh-deploy --remote <remote_name>
+```
