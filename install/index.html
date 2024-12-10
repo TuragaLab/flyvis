@@ -376,42 +376,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#create-virtual-environment" class="md-nav__link">
+  <a href="#option-1-install-from-pypi" class="md-nav__link">
     <span class="md-ellipsis">
-      Create virtual environment
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Create virtual environment">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-1-using-conda-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      Option 1: Using conda (recommended)
+      Option 1: Install from PyPI
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#option-2-using-venv" class="md-nav__link">
+  <a href="#option-2-install-from-source" class="md-nav__link">
     <span class="md-ellipsis">
-      Option 2: Using venv
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#clone-repo-and-install" class="md-nav__link">
-    <span class="md-ellipsis">
-      Clone repo and install
+      Option 2: Install from source
     </span>
   </a>
   
@@ -461,6 +437,15 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#training-new-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Training new models
+    </span>
+  </a>
   
 </li>
       
@@ -2040,42 +2025,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#create-virtual-environment" class="md-nav__link">
+  <a href="#option-1-install-from-pypi" class="md-nav__link">
     <span class="md-ellipsis">
-      Create virtual environment
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Create virtual environment">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-1-using-conda-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      Option 1: Using conda (recommended)
+      Option 1: Install from PyPI
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#option-2-using-venv" class="md-nav__link">
+  <a href="#option-2-install-from-source" class="md-nav__link">
     <span class="md-ellipsis">
-      Option 2: Using venv
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#clone-repo-and-install" class="md-nav__link">
-    <span class="md-ellipsis">
-      Clone repo and install
+      Option 2: Install from source
     </span>
   </a>
   
@@ -2128,6 +2089,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#training-new-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Training new models
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2148,38 +2118,25 @@
 
 <h1 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h1>
 <h2 id="local-installation">Local installation<a class="headerlink" href="#local-installation" title="Permanent link">&para;</a></h2>
+<p>Make sure to run <code>flyvis</code> in your active python environment.</p>
+<h3 id="option-1-install-from-pypi">Option 1: Install from PyPI<a class="headerlink" href="#option-1-install-from-pypi" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>flyvis
+</code></pre></div>
 <blockquote>
-<p>Note: <code>flyvis</code> is only tested on Linux.</p>
+<p><code>flyvis</code> is tested on Linux for python 3.9, 3.10, 3.11, 3.12.</p>
 </blockquote>
-<h3 id="create-virtual-environment">Create virtual environment<a class="headerlink" href="#create-virtual-environment" title="Permanent link">&para;</a></h3>
-<h4 id="option-1-using-conda-recommended">Option 1: Using conda (recommended)<a class="headerlink" href="#option-1-using-conda-recommended" title="Permanent link">&para;</a></h4>
-<ol>
-<li>Create a new conda environment: <code>conda create --name flyvision python=3.9 -y</code></li>
-<li>Activate the new conda environment: <code>conda activate flyvision</code></li>
-</ol>
-<h4 id="option-2-using-venv">Option 2: Using venv<a class="headerlink" href="#option-2-using-venv" title="Permanent link">&para;</a></h4>
-<ol>
-<li>Create a new virtual environment: <code>python -m venv flyvision_env</code></li>
-<li>Activate the virtual environment: <code>source flyvision_env/bin/activate</code></li>
-</ol>
-<h3 id="clone-repo-and-install">Clone repo and install<a class="headerlink" href="#clone-repo-and-install" title="Permanent link">&para;</a></h3>
+<h3 id="option-2-install-from-source">Option 2: Install from source<a class="headerlink" href="#option-2-install-from-source" title="Permanent link">&para;</a></h3>
 <ol>
 <li>Clone the repository: <code>git clone https://github.com/TuragaLab/flyvis.git</code></li>
 <li>Navigate to the repo: <code>cd flyvis</code></li>
 <li>Install in developer mode: <code>pip install -e .</code></li>
 </ol>
 <p>For development, documentation, or to run examples, you can install additional dependencies:
-- For development: <code>pip install -e ".[dev]"</code>
-- For documentation: <code>pip install -e ".[docs]"</code>
-- For examples: <code>pip install -e ".[example]"</code></p>
-<blockquote>
-<p>Note: We make flyvision available on pypi soon to simplify the installation process.</p>
-</blockquote>
+- <code>pip install -e ".[dev,examples,docs]"</code></p>
 <h2 id="download-pretrained-models">Download pretrained models<a class="headerlink" href="#download-pretrained-models" title="Permanent link">&para;</a></h2>
 <p>After installation, download the pretrained models by running:</p>
 <div class="highlight"><pre><span></span><code>flyvis download-pretrained
 </code></pre></div>
-<p>Make sure to run this command from your active flyvision environment.</p>
 <h2 id="set-environment-variables">Set environment variables<a class="headerlink" href="#set-environment-variables" title="Permanent link">&para;</a></h2>
 <p><code>flyvis</code> uses environment variables for configuration. These can be set using a <code>.env</code> file or manually.</p>
 <h3 id="option-1-using-env-file">Option 1: Using .env file<a class="headerlink" href="#option-1-using-env-file" title="Permanent link">&para;</a></h3>
@@ -2200,6 +2157,11 @@
 <blockquote>
 <p>Note: The data directory is where <code>flyvis</code> will store downloaded models, cached data, and other files. If <code>FLYVIS_ROOT_DIR</code> is not set, it defaults to a <code>data</code> folder in the package directory.</p>
 </blockquote>
+<h2 id="training-new-models">Training new models<a class="headerlink" href="#training-new-models" title="Permanent link">&para;</a></h2>
+<p>For training new models with custom settings, the following command will create a default config in your current working directory to be able to create overrides.</p>
+<div class="highlight"><pre><span></span><code>flyvis<span class="w"> </span>init-config
+</code></pre></div>
+<p>See the config <a href="../reference/hydra_default_config/">hydra config docs</a> for more details.</p>
 
 
 
