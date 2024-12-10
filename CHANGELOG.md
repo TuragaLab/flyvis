@@ -1,5 +1,35 @@
 # Changelog
 
+## [v1.1.2] - 2024-12-09
+
+### Infrastructure
+- Migrated to importlib.resources for file path handling
+  - Improved package installation reliability
+  - Standardized default script path definitions
+  - Removed unused PROJECT_ROOT constant
+- Added colorama dependency
+- Added warning system for unrecognized CLI arguments with colored output
+- Improved virtual cluster output handling
+  - Added proper output file handling for virtual cluster jobs
+  - Added automatic output directory creation
+  - Improved process management for local execution
+  - Fixed job status tracking to use job_id
+
+### Bug Fixes
+- Fixed file exists error
+- Fixed notebook compatibility issues
+
+### Documentation
+- Renamed package from 'flyvision' to 'flyvis' across all documentation, examples
+- Updated CLI documentation and usage examples
+- Added optional notebook output clearing step to building docs
+- Removed pyright and version pin notes from contribute.md
+- Cleaned up CLI help text formatting
+- Updated file paths in examples to use relative paths
+- Removed duplicate CLI documentation from mkdocs.yml
+
+[v1.1.2]: https://github.com/TuragaLab/flyvis/releases/tag/v1.1.2
+
 ## [v1.1.1] - 2024-11-21
 
 ### Distribution

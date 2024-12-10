@@ -102,20 +102,20 @@ Commit all open changes to the repository.
 
 ```bash
 git add CHANGELOG.md
-git commit -m "docs: add changelog for vX.Y.Z"
+git commit -m "docs: add changelog for v1.1.2"
 ```
 
 ### Create and Push Tag
 
 ```bash
 # Create annotated tag using changelog
-git tag -a vX.Y.Z -F CHANGELOG.md
+git tag -a v1.1.2 -F CHANGELOG.md
 
 # Push to both remotes
 git push origin main
-git push origin vX.Y.Z
+git push origin v1.1.2
 git push public_repo main
-git push public_repo vX.Y.Z
+git push public_repo v1.1.2
 ```
 
 ### Build and Upload to PyPI
@@ -127,7 +127,7 @@ rm -rf dist/
 python -m build
 
 # Set version temporarily for this session manually
-export SETUPTOOLS_SCM_PRETEND_VERSION=X.Y.Z
+export SETUPTOOLS_SCM_PRETEND_VERSION=1.1.2
 
 # Now build and test
 python -m build
@@ -137,7 +137,7 @@ python -m twine upload --repository testpypi dist/*
 unset SETUPTOOLS_SCM_PRETEND_VERSION
 
 # Upload to Test PyPI first (recommended)
-python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ flyvis==X.Y.Z
+python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ flyvis==1.1.2
 
 # Upload to PyPI
 python -m twine upload dist/*
