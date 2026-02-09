@@ -185,3 +185,5 @@ import_profile*
 docs/site/
 *.dev
 dev
+outputs
+**/**/LEGACY_AUDIT.md

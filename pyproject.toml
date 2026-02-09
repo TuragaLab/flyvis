@@ -17,6 +17,8 @@ flyvis = [
   "analysis/__main_per_model__.ipynb",
   "config/**/*.yaml",
   "config/**/*.yml",
+  "baselines/**/*.yaml",
+  "baselines/**/*.yml",
 ]
 
 [project]

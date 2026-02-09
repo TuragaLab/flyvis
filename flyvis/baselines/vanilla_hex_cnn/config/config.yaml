@@ -1,0 +1,57 @@
+ensemble_and_network_id: ???
+task_name: ???
+arch: VanillaHexCNNBaseline
+batch_size: 8
+beta: 0.999
+bias_decay: 0.0
+chkpt_every: 1000
+delete_if_exists: false
+epochs: 140000
+lr: 0.1
+loss_name: l2norm
+validation_metric: epe
+max_steps: null
+milestones:
+  - 10000
+  - 20000
+  - 13000
+momentum: 0.9
+scheduler_gamma: 0.2
+solver: adam
+weight_decay: 0.0
+workers: 0
+
+dataset:
+  type: MultiTaskSintel
+  tasks:
+    - flow
+  boxfilter:
+    extent: 15
+    kernel_size: 13
+  vertical_splits: 3
+  n_frames: ${arch_kwargs.n_frames}
+  center_crop_fraction: 0.7
+  dt: 0.02
+  augment: true
+  random_temporal_crop: true
+  all_frames: false
+  resampling: true
+  interpolate: true
+  p_flip: 0.5
+  p_rot: 0.5
+  contrast_std: 0.2
+  brightness_std: 0.1
+  gaussian_white_noise: 0.08
+  gamma_std: null
+  _init_cache: true
+  unittest: false
+  flip_axes:
+    - 0
+    - 1
+    - 2
+    - 3
+
+defaults:
+  - _self_
+  - arch_kwargs: S
+
