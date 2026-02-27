@@ -439,7 +439,7 @@ def umap_embedding(
     metric: str = "correlation",
     n_epochs: int = 1500,
     **kwargs,
-) -> Tuple[np.ndarray, np.ndarray, UMAP]:
+) -> Tuple[np.ndarray, np.ndarray, Optional[UMAP]]:
     """
     Perform UMAP embedding on input data.
 
@@ -458,9 +458,12 @@ def umap_embedding(
         A tuple containing:
         - embedding: The UMAP embedding (n_samples, n_components). May be NaN
           if insufficient data.
-        - mask: Boolean mask (length n_samples) showing which rows had nonzero
-          variance and were connected.
-        - reducer: The fitted UMAP object or None if insufficient data.
+        - mask: Boolean mask (length n_samples). When reducer is not None,
+          True indicates rows with nonzero variance that were also connected
+          in the UMAP graph. When reducer is None (insufficient data), True
+          indicates only rows with nonzero variance.
+        - reducer: The fitted UMAP object or None if fewer than 2 rows had
+          nonzero variance.
 
     Raises:
         ValueError: If n_components is too large relative to sample size.
