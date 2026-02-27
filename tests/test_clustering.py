@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from flyvis.analysis.clustering import umap_embedding
 
