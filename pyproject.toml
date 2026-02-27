@@ -63,7 +63,7 @@ description = "Connectome and task-constrained vision models of the fruit fly."
 dynamic = ["version"]
 name = "flyvis"
 readme = "readme.md"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9,<3.14"
 
 [project.optional-dependencies]
 dev = [
@@ -94,7 +94,7 @@ docs = [
 examples = ["jupyter", "tabulate", "tqdm", "ipywidgets"]
 
 pretrained = [
-  "numba==0.55.2",
+  "numba==0.61.2",
   "matplotlib==3.7.1",
   "scikit-learn==1.1.1",
   "umap-learn==0.5.3",
