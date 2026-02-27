@@ -237,7 +237,10 @@ class EnsembleView(Ensemble):
         responses = self.flash_responses()
         fris = flash_response_index(responses, radius=6)
         if cell_types is not None:
+            requested_cell_types = cell_types
             fris = fris.custom.where(cell_type=cell_types)
+            cell_types = fris.cell_type.values
+            kwargs.setdefault("sorted_type_list", requested_cell_types)
         else:
             cell_types = fris.cell_type.values
         task_error = self.task_error()
