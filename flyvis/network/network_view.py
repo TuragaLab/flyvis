@@ -92,7 +92,7 @@ class NetworkView:
         best_checkpoint_fn: Callable = best_checkpoint_default_fn,
         best_checkpoint_fn_kwargs: dict = {
             "validation_subdir": "validation",
-            "loss_file_name": "epe",
+            "loss_file_name": "loss",
         },
         recover_fn: Callable = recover_network,
     ):

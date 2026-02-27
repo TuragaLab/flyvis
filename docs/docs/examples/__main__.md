@@ -35,7 +35,7 @@ ensemble_name = "flow/0001"  # type: str
 
 ```python
 validation_subdir = "validation"
-loss_file_name = "epe"
+loss_file_name = "loss"
 ```
 
 
