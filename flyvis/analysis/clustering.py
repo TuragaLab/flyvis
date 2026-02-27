@@ -439,7 +439,7 @@ def umap_embedding(
     metric: str = "correlation",
     n_epochs: int = 1500,
     **kwargs,
-) -> Tuple[np.ndarray, np.ndarray, UMAP]:
+) -> Tuple[np.ndarray, np.ndarray, Optional[UMAP]]:
     """
     Perform UMAP embedding on input data.
 
@@ -456,9 +456,14 @@ def umap_embedding(
 
     Returns:
         A tuple containing:
-        - embedding: The UMAP embedding.
-        - mask: Boolean mask for valid samples.
-        - reducer: The fitted UMAP object.
+        - embedding: The UMAP embedding (n_samples, n_components). May be NaN
+          if insufficient data.
+        - mask: Boolean mask (length n_samples). When reducer is not None,
+          True indicates rows with nonzero variance that were also connected
+          in the UMAP graph. When reducer is None (insufficient data), True
+          indicates only rows with nonzero variance.
+        - reducer: The fitted UMAP object or None if fewer than 2 rows had
+          nonzero variance.
 
     Raises:
         ValueError: If n_components is too large relative to sample size.
@@ -481,10 +486,16 @@ def umap_embedding(
         X = X.reshape(X.shape[0], -1)
         logging.info("reshaped X from %s to %s", shape, X.shape)
 
-    embedding = np.ones([X.shape[0], n_components]) * np.nan
-    # umap doesn't like contant rows
+    n_samples = X.shape[0]
+    embedding = np.ones([n_samples, n_components]) * np.nan
+    # umap doesn't like constant rows
     mask = ~np.isclose(X.std(axis=1), 0)
-    X = X[mask]
+    X_nonconst = X[mask]
+
+    # If fewer than 2 rows remain, skip UMAP and return embedding of NaNs.
+    if X_nonconst.shape[0] < 2:
+        return embedding, mask, None
+
     reducer = UMAP(
         n_neighbors=n_neighbors,
         min_dist=min_dist,
@@ -495,7 +506,7 @@ def umap_embedding(
         n_epochs=n_epochs,
         **kwargs,
     )
-    _embedding = reducer.fit_transform(X)
+    _embedding = reducer.fit_transform(X_nonconst)
 
     # gaussian mixture doesn't like nans through disconnected vertices in umap
     connected_vertices_mask = ~disconnected_vertices(reducer)
