@@ -1,11 +1,13 @@
 import logging
+import math
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 from torch import nn
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -28,11 +30,14 @@ MODEL_REGISTRY = {
 
 
 def _prepare_lum_inputs(lum: torch.Tensor, n_frames: int) -> torch.Tensor:
-    # Legacy VanillaHexCNN expects a single luminance channel.
     if lum.ndim == 4 and lum.shape[2] != 1:
         lum = lum.mean(dim=2, keepdim=True)
     if lum.ndim == 4 and lum.shape[1] != n_frames:
-        lum = lum[:, -n_frames:]
+        raise ValueError(
+            f"Expected {n_frames} input frames but dataset returned "
+            f"{lum.shape[1]}. Check dataset.resampling and "
+            f"dataset.n_frames settings."
+        )
     return lum
 
 
@@ -46,6 +51,35 @@ class TrainingResult:
 
 def build_baseline_network_name(task_name: str, ensemble_and_network_id: str) -> str:
     return f"baselines/{task_name}/{ensemble_and_network_id}"
+
+
+def _build_scheduler(
+    optimizer: torch.optim.Optimizer, config: Dict
+) -> Optional[torch.optim.lr_scheduler.LRScheduler]:
+    sched_type = config.get("scheduler", "multistep")
+    if sched_type == "cosine_warmup":
+        warmup_epochs = config.get("warmup_epochs", 1000)
+        total_epochs = config["epochs"]
+        min_lr_ratio = config.get("min_lr_ratio", 0.0)
+
+        def lr_lambda(epoch: int) -> float:
+            if epoch < warmup_epochs:
+                return epoch / max(warmup_epochs, 1)
+            progress = (epoch - warmup_epochs) / max(total_epochs - warmup_epochs, 1)
+            return min_lr_ratio + (1.0 - min_lr_ratio) * 0.5 * (
+                1.0 + math.cos(math.pi * progress)
+            )
+
+        return LambdaLR(optimizer, lr_lambda)
+    elif sched_type == "multistep":
+        milestones = config.get("milestones")
+        if milestones:
+            return torch.optim.lr_scheduler.MultiStepLR(
+                optimizer,
+                milestones=milestones,
+                gamma=config["scheduler_gamma"],
+            )
+    return None
 
 
 def _build_dataloaders(config) -> Tuple[DataLoader, DataLoader]:
@@ -155,12 +189,7 @@ def train_baseline(config: Dict) -> TrainingResult:
     else:
         raise ValueError(f"Unsupported solver '{config['solver']}'")
 
-    milestones = config.get("milestones")
-    scheduler = None
-    if milestones:
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer, milestones=milestones, gamma=config["scheduler_gamma"]
-        )
+    scheduler = _build_scheduler(optimizer, config)
 
     loss_fn = getattr(task_objectives, config["loss_name"])
     val_metric_fn = getattr(task_objectives, config["validation_metric"])
