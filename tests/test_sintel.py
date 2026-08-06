@@ -199,10 +199,17 @@ def test_getitem(dataset):
     dataset.augment = True
     data1 = dataset[0]
     assert set(data1.keys()) == set(["lum", "flow"])
-    assert (data0["lum"] != data1["lum"]).any()
-    assert (data0["flow"] != data1["flow"]).any()
     assert data1["lum"].shape == (3, 1, 7)
     assert data1["flow"].shape == (3, 2, 7)
+    # the input is always changed, it is jittered and noised
+    assert (data0["lum"] != data1["lum"]).any()
+    # targets are only rotated, flipped and temporally cropped -- they are neither
+    # jittered nor noised -- so a sampled augmentation leaves them untouched
+    # whenever it draws neither a rotation nor a flip, which happens with
+    # probability (1 - p_rot) * (1 - p_flip) = 1/12. Ask for a rotation explicitly
+    # rather than asserting on the draw.
+    rotated = dataset.apply_augmentation(dataset.cached_sequences[0], n_rot=1, flip_axis=0)
+    assert (data0["flow"] != rotated["flow"]).any()
 
     # change dt to 1/50
     dataset.dt = 1 / 50
@@ -224,8 +231,13 @@ def test_apply_augmentation(dataset):
     data = dataset[0]
     data1 = dataset.apply_augmentation(data)
     assert set(data1.keys()) == set(data.keys())
+    # the input is always changed, it is jittered and noised
     assert (data["lum"] != data1["lum"]).any()
-    assert (data["flow"] != data1["flow"]).any()
+    # targets are only rotated, flipped and temporally cropped, so a sampled
+    # augmentation leaves them untouched whenever it draws neither a rotation nor
+    # a flip. Request a rotation explicitly rather than asserting on the draw.
+    rotated = dataset.apply_augmentation(data, n_rot=1, flip_axis=0)
+    assert (data["flow"] != rotated["flow"]).any()
 
 
 def test_original_sequence_index(dataset):
