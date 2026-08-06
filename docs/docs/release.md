@@ -1,5 +1,50 @@
 # Release Process
 
+Releases are published to PyPI by the
+[`Release` workflow](https://github.com/TuragaLab/flyvis/blob/main/.github/workflows/release.yml).
+The manual steps further down are the fallback for when the workflow cannot be used.
+
+## Automated release
+
+Every push to `main` builds the source distribution and the wheel and checks them,
+so a packaging mistake --- a data file that stopped being included, for instance ---
+surfaces at merge time. Nothing is uploaded on a merge: PyPI versions are immutable
+and can never be reused, so publishing is tied to a version tag rather than to every
+commit that lands on `main`.
+
+To cut a release:
+
+1. Merge to `main` and let the tests and the build check pass.
+2. Update `CHANGELOG.md` with the new version.
+3. Tag and push:
+   ```bash
+   git tag -a v1.1.4 -F CHANGELOG.md
+   git push origin main v1.1.4
+   ```
+4. Publish a GitHub Release pointing at that tag. That triggers the upload.
+
+The workflow refuses to publish if the version derived by `setuptools_scm` does not
+match the release tag, if the distributions fail `twine check`, or if the
+precomputed response norms are missing from them. It then installs the built wheel
+in a clean virtualenv and verifies that the constants can be read from the installed
+package before uploading.
+
+### One-time setup
+
+Uploads use [PyPI trusted publishing](https://docs.pypi.org/trusted-publishers/), so
+no API token is stored in the repository. On PyPI, under the `flyvis` project's
+*Publishing* settings, add a GitHub publisher with:
+
+| Field | Value |
+| --- | --- |
+| Owner | `TuragaLab` |
+| Repository | `flyvis` |
+| Workflow name | `release.yml` |
+| Environment name | `pypi` |
+
+Adding required reviewers to the `pypi` environment in the repository settings makes
+every upload wait for a human approval.
+
 ## Prerequisites
 
 1. Ensure all tests pass:
@@ -16,7 +61,9 @@ The deployment to github can be done last or via workflow.
 python -m pip install build twine
 ```
 
-## Release Steps
+## Manual release steps
+
+These are the fallback for when the automated release cannot be used.
 
 0. **Test PyPi before committing (optional)**
 

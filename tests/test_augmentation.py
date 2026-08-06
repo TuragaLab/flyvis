@@ -170,10 +170,13 @@ def test_random_crop():
     assert cropped2.min() in sequence and cropped2.max() in sequence
     assert np.allclose(cropped1, cropped2)
 
-    # random start frame
+    # random start frame. A sampled start of 0 would legitimately reproduce
+    # cropped1, so assert that the sampled start is what was applied rather than
+    # that the crop differs.
     random_crop.set_or_sample(start=None, total_sequence_length=len(sequence))
     cropped3 = random_crop(sequence).cpu().numpy().flatten()
-    assert not np.allclose(cropped1, cropped3)
+    assert len(cropped3) == 10 and _is_monotonous(cropped3)
+    assert np.allclose(cropped3, cropped1 + random_crop.start)
 
     # provided start frame
     random_crop.set_or_sample(start=42, total_sequence_length=len(sequence))

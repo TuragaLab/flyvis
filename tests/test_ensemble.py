@@ -63,8 +63,11 @@ def test_validation_losses(ensemble):
 def test_rank_by_validation_error(ensemble):
     sorted_names = deepcopy(ensemble.names)
 
-    # destroy current task sorting in place
-    np.random.shuffle(ensemble.names)
+    # Destroy the current task sorting. A random shuffle reproduces the sorted
+    # order once in len(ensemble)! draws -- 1 in 24 here -- which would make the
+    # `!= random_names` assertion below fail. Rotating is a derangement for any
+    # ensemble with more than one model, so it always destroys the sorting.
+    ensemble.names = sorted_names[1:] + sorted_names[:1]
 
     random_names = deepcopy(ensemble.names)
 
