@@ -91,7 +91,12 @@ jobs:
           assert len(norms.checkpoint_hashes) == 50, norms
           print("installed package ships constants for", norms)
           PY
-          /tmp/smoke/bin/flyvis --help > /dev/null
+          # `flyvis --help` prints the help and exits 1, because a bare invocation
+          # selects no command. Check what it prints rather than its status, which
+          # also verifies that the command registry survived packaging.
+          /tmp/smoke/bin/flyvis --help > /tmp/smoke-help.txt 2>&1 || true
+          grep -q "responses-norm" /tmp/smoke-help.txt
+          echo "installed console script lists the expected commands"
 
       - uses: actions/upload-artifact@v4
         with:
