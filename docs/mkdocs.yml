@@ -53,6 +53,7 @@ nav:
         - Launch Synthetic Recordings on Compute Cloud: reference/flyvis_cli/analysis/record.md
         - Run Ensemble Analysis: reference/flyvis_cli/analysis/ensemble_analysis.md
         - Launch Ensemble Analysis on Compute Cloud: reference/flyvis_cli/analysis/analysis.md
+        - Store Response Normalization Constants: reference/flyvis_cli/analysis/responses_norm.md
       - Notebook:
         - Run Notebook: reference/flyvis_cli/analysis/notebook.md
         - Launch Notebook Per Ensemble on Compute Cloud: reference/flyvis_cli/analysis/notebook_per_ensemble.md

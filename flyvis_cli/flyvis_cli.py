@@ -37,6 +37,7 @@ SCRIPT_COMMANDS = {
     / "analysis/synthetic_recordings_single.py",
     "analysis": SCRIPTS_DIR / "analysis/analysis.py",
     "ensemble-analysis": SCRIPTS_DIR / "analysis/ensemble_analysis.py",
+    "responses-norm": SCRIPTS_DIR / "analysis/responses_norm.py",
     "notebook-per-model": SCRIPTS_DIR / "analysis/notebook_per_model.py",
     "notebook-per-ensemble": SCRIPTS_DIR / "analysis/notebook_per_ensemble.py",
     "notebook": SCRIPTS_DIR / "analysis/notebook.py",
