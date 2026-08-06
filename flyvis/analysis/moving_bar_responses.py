@@ -7,7 +7,7 @@ Info:
 
 from __future__ import annotations
 
-from typing import Iterable, List, Tuple, Union
+from typing import Callable, Iterable, List, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,6 +28,7 @@ __all__ = [
     "dsi_violins_on_and_off",
     "dsi_violins",
     "preferred_direction",
+    "angular_tuning",
     "plot_angular_tuning",
     "plot_T4_tuning",
     "plot_T5_tuning",
@@ -633,6 +634,55 @@ def simple_angle_distance(
     return y / np.pi * upper
 
 
+def angular_tuning(
+    peak_responses_da: xr.DataArray,
+    cell_type: str,
+    intensity: int,
+    weighted_average: xr.DataArray = None,
+    average_models: bool = False,
+    model_reduction: Union[str, Callable] = "mean",
+) -> xr.DataArray:
+    """
+    Angular tuning of a cell type, averaged over speeds and widths.
+
+    Args:
+        peak_responses_da: Peak responses, e.g. from
+            [`peak_responses`][flyvis.analysis.moving_bar_responses.peak_responses].
+        cell_type: Cell type to select.
+        intensity: Intensity level (0 or 1).
+        weighted_average: Weights for averaging models.
+        average_models: Whether to reduce across models.
+        model_reduction: How to reduce across models if `average_models` is True and
+            no `weighted_average` is given. Either the name of a reduction of the
+            underlying DataArray, e.g. `"mean"` or `"median"`, or a callable taking
+            the tuning and the dimension name to reduce.
+
+    Returns:
+        Tuning over the `angle` dimension. Not normalized, so that tunings of
+        different models or reductions can be compared on a common scale.
+    """
+    peak_responses_da = peak_responses_da.set_index(
+        sample=["angle", "width", "intensity", "speed"]
+    ).unstack("sample")
+
+    # Select the specific cell type
+    peak = peak_responses_da.custom.where(cell_type=cell_type, intensity=intensity)
+
+    # Average over speeds and widths
+    tuning = peak.mean(dim=('speed', 'width'))
+
+    # Reduce over models if specified
+    if average_models and weighted_average is not None:
+        tuning = tuning.weighted(weighted_average).mean(dim='network_id')
+    elif average_models:
+        if callable(model_reduction):
+            tuning = model_reduction(tuning, 'network_id')
+        else:
+            tuning = getattr(tuning, model_reduction)(dim='network_id')
+
+    return tuning
+
+
 def plot_angular_tuning(
     dataset: xr.Dataset,
     cell_type: int,
@@ -649,6 +699,8 @@ def plot_angular_tuning(
     peak_responses_da: xr.DataArray = None,
     weighted_average: xr.DataArray = None,
     average_models: bool = False,
+    model_reduction: Union[str, Callable] = "mean",
+    normalize_by: float = None,
     colors: str = None,
     zorder: Union[int, Iterable] = 0,
     **kwargs,
@@ -671,7 +723,15 @@ def plot_angular_tuning(
         ax: Existing axes.
         peak_responses_da: Precomputed peak responses.
         weighted_average: Weights for averaging models.
-        average_models: Whether to average across models.
+        average_models: Whether to reduce across models.
+        model_reduction: How to reduce across models if `average_models` is True and
+            no `weighted_average` is given. Either the name of a reduction of the
+            underlying DataArray, e.g. `"mean"` or `"median"`, or a callable taking
+            the tuning and the dimension name to reduce.
+        normalize_by: Constant to divide the tuning by. Defaults to the peak of the
+            tuning itself, i.e. each curve fills the axis. Pass a shared constant to
+            draw several curves --- e.g. single models and their mean --- on a common
+            scale, so that their amplitudes stay comparable.
         colors: Color for the plot.
         zorder: Z-order for plotting.
         **kwargs: Additional keyword arguments for plotting.
@@ -682,28 +742,20 @@ def plot_angular_tuning(
     if peak_responses_da is None:
         peak_responses_da = peak_responses(dataset)
 
-    peak_responses_da = peak_responses_da.set_index(
-        sample=["angle", "width", "intensity", "speed"]
-    ).unstack("sample")
-
-    # Select the specific cell type
-    peak = peak_responses_da.custom.where(cell_type=cell_type, intensity=intensity)
-
-    # Squeeze irrelevant dimensions
-    # peak = peak.squeeze(dim=['width', 'intensity', 'speed'], drop=True)
-
-    # Average over speeds
-    average_tuning = peak.mean(dim=('speed', 'width'))
-
-    # Average over models if specified
-    if average_models and weighted_average is not None:
-        average_tuning = average_tuning.weighted(weighted_average).mean(dim='network_id')
-    elif average_models:
-        average_tuning = average_tuning.mean(dim='network_id')
+    average_tuning = angular_tuning(
+        peak_responses_da,
+        cell_type=cell_type,
+        intensity=intensity,
+        weighted_average=weighted_average,
+        average_models=average_models,
+        model_reduction=model_reduction,
+    )
 
     color = (ON if intensity == 1 else OFF) if colors is None else colors
 
-    average_tuning = average_tuning / average_tuning.max()
+    average_tuning = average_tuning / (
+        average_tuning.max() if normalize_by is None else normalize_by
+    )
 
     angles = average_tuning['angle'].values
     fig, ax = polar(

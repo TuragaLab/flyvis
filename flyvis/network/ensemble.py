@@ -34,7 +34,11 @@ from torch import nn
 from tqdm.auto import tqdm
 
 import flyvis
-from flyvis.analysis import stimulus_responses, stimulus_responses_currents
+from flyvis.analysis import (
+    response_norms,
+    stimulus_responses,
+    stimulus_responses_currents,
+)
 from flyvis.analysis.clustering import (
     GaussianMixtureClustering,
     compute_umap_and_clustering,
@@ -309,7 +313,8 @@ class Ensemble(dict):
             total=len(self.names),
         ):
             yield (
-                network.simulate(
+                network
+                .simulate(
                     movie_input,
                     dt,
                     initial_state=(
@@ -478,7 +483,7 @@ class Ensemble(dict):
         """
         return len(self) - self.argsort(validation_subdir, loss_file_name).argsort()
 
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def validation_losses(
         self, subdir: Optional[str] = None, file: Optional[str] = None
     ) -> np.ndarray:
@@ -683,7 +688,9 @@ class Ensemble(dict):
         """
         network_params = {}
         for network_view in self.values():
-            chkpt_params = torch.load(network_view.network('best').checkpoint)
+            chkpt_params = torch.load(
+                network_view.network('best').checkpoint, weights_only=False
+            )
             for key, val in chkpt_params["network"].items():
                 if key not in network_params:
                     network_params[key] = []
@@ -726,43 +733,43 @@ class Ensemble(dict):
         return parameter_keys
 
     @wraps(stimulus_responses.flash_responses)
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def flash_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate flash responses."""
         return stimulus_responses.flash_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.moving_edge_responses)
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def moving_edge_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving edge responses."""
         return stimulus_responses.moving_edge_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.moving_bar_responses)
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def moving_bar_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate moving bar responses."""
         return stimulus_responses.moving_bar_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.naturalistic_stimuli_responses)
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def naturalistic_stimuli_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate naturalistic stimuli responses."""
         return stimulus_responses.naturalistic_stimuli_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.central_impulses_responses)
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def central_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate central ommatidium impulses responses."""
         return stimulus_responses.central_impulses_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses.spatial_impulses_responses)
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def spatial_impulses_responses(self, *args, **kwargs) -> xr.Dataset:
         """Generate spatial ommatidium impulses responses."""
         return stimulus_responses.spatial_impulses_responses(self, *args, **kwargs)
 
     @wraps(stimulus_responses_currents.moving_edge_currents)
-    @context_aware_cache(context=lambda self: (self.names))
+    @context_aware_cache(context=lambda self: self.names)
     def moving_edge_currents(
         self, *args, **kwargs
     ) -> List[stimulus_responses_currents.ExperimentData]:
@@ -830,44 +837,35 @@ class Ensemble(dict):
 
         return cluster_indices
 
-    def responses_norm(self, rectified: bool = False) -> np.ndarray:
-        """Compute the norm of responses to naturalistic stimuli.
+    def responses_norm(
+        self,
+        rectified: bool = False,
+        force_recompute: bool = False,
+        store: bool = True,
+    ) -> np.ndarray:
+        """Norm of the responses to naturalistic stimuli, per model and cell type.
+
+        Reuses stored constants if available and only simulates the naturalistic
+        stimuli responses otherwise, because simulating them for a whole ensemble
+        is expensive. See
+        [`response_norms`][flyvis.analysis.response_norms] for where constants are
+        stored and looked up.
 
         Args:
-            rectified: Whether to rectify responses before computing norm.
+            rectified: Whether to rectify responses before computing the norm.
+            force_recompute: Recompute from responses even if constants are stored.
+            store: Whether to store newly computed constants in the ensemble
+                directory for reuse.
 
         Returns:
-            np.ndarray: Norm of responses for each network.
+            np.ndarray: Norm of responses of shape (n_models, 1, 1, n_cell_types),
+                in the order of `self.names`.
         """
-        response_set = self.naturalistic_stimuli_responses()
-        responses = response_set['responses'].values
-
-        def compute_norm(X, rectified=True):
-            """Computes a normalization constant for stimulus
-                responses per cell hypothesis, i.e. cell_type independent values.
-
-            Args:
-                X: (n_stimuli, n_frames, n_cell_types)
-            """
-            if rectified:
-                X = np.maximum(X, 0)
-            n_models, n_samples, n_frames, n_cell_types = X.shape
-
-            # replace NaNs with 0
-            X[np.isnan(X)] = 0
-
-            return (
-                1
-                / np.sqrt(n_samples * n_frames)
-                * np.linalg.norm(
-                    X,
-                    axis=(1, 2),
-                    keepdims=True,
-                )
-            )
-
-        return np.take(
-            compute_norm(responses, rectified=rectified), self.model_index, axis=0
+        return response_norms.responses_norm(
+            self,
+            rectified=rectified,
+            force_recompute=force_recompute,
+            store=store,
         )
 
 

@@ -37,6 +37,7 @@ Other commands available are:
 - `val-single` - Validate a single model
 - `synthetic-recordings-single` - Record responses for a single model
 - `ensemble-analysis` - Perform analysis on an ensemble
+- `responses-norm` - Store the response normalization constants of an ensemble
 - `download-pretrained-models` - Download pretrained models
 - `notebook` - Run a notebook
 
@@ -59,6 +60,7 @@ The following scripts are called by the commands above:
 - [`synthetic_recordings_single`](flyvis_cli/analysis/synthetic_recordings_single.md) - Generate synthetic recordings for individual models
 - [`analysis`](flyvis_cli/analysis/analysis.md) - Launch analysis script for model ensembles
 - [`ensemble_analysis`](flyvis_cli/analysis/ensemble_analysis.md) - Analysis script for model ensembles
+- [`responses_norm`](flyvis_cli/analysis/responses_norm.md) - Store the response normalization constants of an ensemble
 
 #### Notebook Generation
 - [`notebook_per_model`](flyvis_cli/analysis/notebook_per_model.md) - Generate analysis notebooks for individual models
