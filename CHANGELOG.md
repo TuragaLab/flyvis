@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [v1.2.0] - 2026-08-06
 
 ### Features
 - Added precomputed response normalization constants for the released ensemble
@@ -29,9 +29,11 @@
   precomputed response norms are present in both the wheel and the source
   distribution before uploading.
 - Made the test suite deterministic. Five tests asserted on unseeded randomness and
-  failed on roughly one run in seven between them. The global generators are now
+  failed on roughly one run in four between them. The global generators are now
   seeded before every test, `FLYVIS_TEST_SEED` re-runs the suite under a different
   seed, and the assertions that were only true for most draws were corrected.
+
+[v1.2.0]: https://github.com/TuragaLab/flyvis/releases/tag/v1.2.0
 
 ## [v1.1.3] - 2026-03-07
 
