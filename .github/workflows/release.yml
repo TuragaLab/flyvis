@@ -1,0 +1,120 @@
+name: Release
+
+# Every push to main builds and validates the distributions, so a packaging
+# mistake surfaces at merge time rather than at release time. Publishing to PyPI
+# happens when a GitHub Release is published: PyPI versions are immutable and
+# unique, so a release has to be tied to a version tag rather than to every merge.
+on:
+  push:
+    branches: ["main"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and check distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # setuptools_scm derives the version from the tags, it needs all of them
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build twine
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Check distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Check the precomputed response norms are packaged
+        # they are loaded from inside the installed package, so a wheel without
+        # them silently falls back to simulating naturalistic stimuli responses
+        run: |
+          python - <<'PY'
+          import glob, sys, tarfile, zipfile
+
+          expected = "flyvis/data/responses_norm.h5"
+          wheel = glob.glob("dist/*.whl")[0]
+          sdist = glob.glob("dist/*.tar.gz")[0]
+
+          in_wheel = expected in zipfile.ZipFile(wheel).namelist()
+          in_sdist = any(
+              name.split("/", 1)[-1] == expected for name in tarfile.open(sdist).getnames()
+          )
+          print(f"{expected} in wheel: {in_wheel}, in sdist: {in_sdist}")
+          if not (in_wheel and in_sdist):
+              sys.exit(f"{expected} is missing from the distributions")
+          PY
+
+      - name: Check the version matches the release tag
+        if: github.event_name == 'release'
+        run: |
+          python - <<'PY'
+          import glob, os, sys
+
+          tag = os.environ["TAG"].lstrip("v")
+          built = glob.glob("dist/*.whl")[0].split("/")[-1].split("-")[1]
+          print(f"tag: {tag}, built version: {built}")
+          if built != tag:
+              sys.exit(
+                  f"built version {built} does not match release tag {tag}; "
+                  "the release must point at an annotated version tag"
+              )
+          PY
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+
+      - name: Smoke test the wheel
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install --upgrade pip
+          /tmp/smoke/bin/pip install dist/*.whl
+          /tmp/smoke/bin/python - <<'PY'
+          from flyvis.analysis import response_norms
+
+          norms = response_norms.read_response_norms(
+              response_norms.PRECOMPUTED_FILE, "flow/0000"
+          )
+          assert norms is not None, f"{response_norms.PRECOMPUTED_FILE} is not installed"
+          assert len(norms.model_names) == 50, norms
+          assert len(norms.checkpoint_hashes) == 50, norms
+          print("installed package ships constants for", norms)
+          PY
+          /tmp/smoke/bin/flyvis --help > /dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    # Configure this environment name in the PyPI trusted publisher, and add
+    # required reviewers here if releases should be approved by a human.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/flyvis
+    permissions:
+      # required for trusted publishing, no API token needs to be stored
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

@@ -22,6 +22,13 @@
 - Added `examples/figure_04_top_models.py`, which reproduces figure 4a,b for the
   models with the lowest task error instead of the task-optimal cluster.
 
+### Infrastructure
+- Added a `Release` workflow that builds and checks the distributions on every push
+  to `main` and publishes them to PyPI via trusted publishing when a GitHub Release
+  is published. It verifies that the version matches the release tag and that the
+  precomputed response norms are present in both the wheel and the source
+  distribution before uploading.
+
 ## [v1.1.3] - 2026-03-07
 
 ### Bug Fixes
