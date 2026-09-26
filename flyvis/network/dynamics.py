@@ -190,6 +190,7 @@ class PPNeuronIGRSynapses(NetworkDynamics):
         target_sum: Callable,
         x_t: torch.Tensor,
         dt: float,
+        current_sum: Callable = None,
         **kwargs,
     ) -> None:
         """
@@ -202,19 +203,20 @@ class PPNeuronIGRSynapses(NetworkDynamics):
             target_sum: Function to sum edge values for each target node.
             x_t: External input at time t.
             dt: Time step.
+            current_sum: Optional node-level weighted aggregation. The sparse
+                backend activates each neuron before propagation instead of
+                materializing an activated copy for every outgoing edge.
             **kwargs: Additional keyword arguments.
         """
+        internal_current = (
+            target_sum(params.edges.weight * self.activation(state.sources.activity))
+            if current_sum is None
+            else current_sum(self.activation(state.nodes.activity))
+        )
         vel.nodes.activity = (
             1
             / torch.max(params.nodes.time_const, torch.tensor(dt).float())
-            * (
-                -state.nodes.activity
-                + params.nodes.bias
-                + target_sum(
-                    params.edges.weight * self.activation(state.sources.activity)
-                )  # internal chemical current
-                + x_t
-            )
+            * (-state.nodes.activity + params.nodes.bias + internal_current + x_t)
         )
 
     def currents(
