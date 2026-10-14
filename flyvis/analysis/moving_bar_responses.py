@@ -453,15 +453,17 @@ def correlation_to_known_tuning_curves(
         Correlation values for each cell type.
     """
     tuning = peak_responses(dataset)
-    gt_tuning = get_known_tuning_curves(
-        ["T4a", "T4b", "T4c", "T4d", "T5a", "T5b", "T5c", "T5d"], np.arange(0, 360, 30)
-    )
 
     tuning = (
         tuning.set_index(sample=["angle", "intensity", "width", "speed"])
         .unstack("sample")
         .fillna(0.0)
         .custom.where(cell_type=["T4a", "T4b", "T4c", "T4d", "T5a", "T5b", "T5c", "T5d"])
+    )
+
+    # ground truth in the order of the selected neurons
+    gt_tuning = get_known_tuning_curves(
+        list(tuning.cell_type.values), np.arange(0, 360, 30)
     )
 
     # reset the neuron axis to make it compatible with the ground truth tuning curves
@@ -562,10 +564,15 @@ def angular_distance_to_known(pds: xr.DataArray) -> xr.DataArray:
     Returns:
         Angular distances to known preferred directions.
     """
+    known = groundtruth_utils.preferred_directions
     t4s = pds.custom.where(cell_type=["T4a", "T4b", "T4c", "T4d"], intensity=1)
-    t4_distances = angular_distances(t4s, np.array([np.pi, 0, np.pi / 2, 3 * np.pi / 2]))
+    t4_distances = angular_distances(
+        t4s, np.radians([known[ct] for ct in t4s.cell_type.values])
+    )
     t5s = pds.custom.where(cell_type=["T5a", "T5b", "T5c", "T5d"], intensity=0)
-    t5_distances = angular_distances(t5s, np.array([np.pi, 0, np.pi / 2, 3 * np.pi / 2]))
+    t5_distances = angular_distances(
+        t5s, np.radians([known[ct] for ct in t5s.cell_type.values])
+    )
     # concatenate both xarrays again in the neuron dimension, drop intensity
     return xr.concat(
         [t4_distances.drop('intensity'), t5_distances.drop('intensity')], dim='neuron'
@@ -923,7 +930,8 @@ def time_window(
     to_column += 2.25 / 5.8
 
     assert abs(start_in_columns) >= abs(from_column)
-    assert abs(end_in_columns) >= abs(to_column)
+    # both sides are equal for the default to_column, up to rounding
+    assert abs(end_in_columns) >= abs(to_column) - 1e-9
 
     # Calculate when the edge is at the from_column
     t_start = (abs(start_in_columns) - abs(from_column)) / speed
