@@ -7,7 +7,7 @@ from typing import Dict, Optional, Protocol, Union
 
 import numpy as np
 import torch
-from datamate import Directory, Namespace
+from datamate import Directory, Namespace, namespacify
 from toolz import valfilter, valmap
 from torch import nn
 
@@ -15,6 +15,7 @@ from flyvis.network.directories import NetworkDir
 from flyvis.network.network import Network
 from flyvis.task.tasks import Task
 from flyvis.utils.chkpt_utils import (
+    best_checkpoint_default_fn,
     recover_decoder,
     recover_network,
     recover_optimizer,
@@ -23,9 +24,33 @@ from flyvis.utils.chkpt_utils import (
 )
 from flyvis.utils.tensor_utils import asymmetric_weighting
 
+try:
+    from datamate import delete_if_exists as delete_existing_directory
+except ImportError:  # datamate < 1.0
+    from datamate.directory import delete_if_exists as delete_existing_directory
+
 logging = logging.getLogger(__name__)
 
 __all__ = ["MultiTaskSolver", "Penalty", "HyperParamScheduler"]
+
+
+def open_legacy_network_dir(name: str, config: dict) -> Optional[NetworkDir]:
+    """Open a network directory that stores delete_if_exists in its config.
+
+    Earlier versions passed delete_if_exists in the config, so directories created
+    by them store it and no longer match the config. Returns the directory if the
+    flag is the only difference, else None.
+    """
+    existing = NetworkDir(name)
+    stored = existing.config
+    if (
+        stored is not None
+        and "delete_if_exists" in stored
+        and stored.without("delete_if_exists")
+        == Namespace({"type": stored.type, **namespacify(config)})
+    ):
+        return existing
+    return None
 
 
 class SolverProtocol(Protocol):
@@ -106,9 +131,21 @@ class MultiTaskSolver:
     ) -> None:
         name = name or config["network_name"]
         assert isinstance(name, str), "Provided name argument is not a string."
-        self.dir = NetworkDir(
-            name, {**(config or {}), **dict(delete_if_exists=delete_if_exists)}
-        )
+        # Pass the deletion flag as context, not in the config: datamate stores it
+        # with a new directory but drops it when opening an existing one, so the
+        # configs would never match again.
+        config = {**(config or {})}
+        config.pop("delete_if_exists", None)
+        if delete_if_exists:
+            with delete_existing_directory():
+                self.dir = NetworkDir(name, config)
+        else:
+            try:
+                self.dir = NetworkDir(name, config)
+            except FileExistsError:
+                self.dir = open_legacy_network_dir(name, config)
+                if self.dir is None:
+                    raise
 
         self.path = self.dir.path
 
@@ -283,12 +320,20 @@ class MultiTaskSolver:
         logging.info("Training for %s epochs.", n_epochs)
         logging.info("Checkpointing every %s epochs.", chkpt_every_epoch)
 
-        # Initialize data structures to store the loss and activity over iterations.
-        loss_over_iters = []
-        activity_over_iters = []
-        activity_min_over_iters = []
-        activity_max_over_iters = []
-        loss_per_task = {f"loss_{task}": [] for task in self.task.dataset.tasks}
+        # Initialize data structures to store the loss and activity over iterations,
+        # starting from the history of earlier calls or of a recovered checkpoint.
+        def history(key):
+            if key in self.dir:
+                return list(self.dir[key][: self.iteration])
+            return []
+
+        loss_over_iters = history("loss")
+        activity_over_iters = history("activity")
+        activity_min_over_iters = history("activity_min")
+        activity_max_over_iters = history("activity_max")
+        loss_per_task = {
+            f"loss_{task}": history(f"loss_{task}") for task in self.task.dataset.tasks
+        }
 
         start_time = time.time()
         with self.task.dataset.augmentation(augment):
@@ -420,7 +465,7 @@ class MultiTaskSolver:
             ```
         """
         self._last_chkpt_ind += 1
-        self._curr_chkpt_ind += 1
+        self._curr_chkpt_ind = self._last_chkpt_ind
 
         # Tracking of validation loss and training batch loss.
         logging.info("Test on validation data.")
@@ -588,35 +633,46 @@ class MultiTaskSolver:
             decoder: Recover decoder parameters.
             optimizer: Recover optimizer parameters.
             penalty: Recover penalty parameters.
-            checkpoint: Index of the checkpoint to recover.
+            checkpoint: "best", or the position of the checkpoint in the sorted
+                list of checkpoints, e.g. -1 for the last one.
             validation_subdir: Name of the subdir to base the best checkpoint on.
             loss_file_name: Name of the loss to base the best checkpoint on.
             strict: Whether to load the state dict of the decoders strictly.
             force: Force recovery of checkpoint if _curr_chkpt_ind is already
                 the same as the checkpoint index.
         """
-        checkpoints = resolve_checkpoints(
-            self.dir, checkpoint, validation_subdir, loss_file_name
-        )
+        checkpoints = resolve_checkpoints(self.dir)
 
-        if checkpoint.index is None or not any((network, decoder, optimizer, penalty)):
+        if not checkpoints.paths or not any((network, decoder, optimizer, penalty)):
             logging.info("No checkpoint found. Continuing with initialized parameters.")
             return
 
-        if checkpoints.index == self._curr_chkpt_ind and not force:
+        if checkpoint == "best":
+            path = best_checkpoint_default_fn(
+                self.dir.path, validation_subdir, loss_file_name
+            )
+            position = [p.name for p in checkpoints.paths].index(path.name)
+        else:
+            position = checkpoint
+        path = checkpoints.paths[position]
+        index = checkpoints.indices[position]
+
+        if index == self._curr_chkpt_ind and not force:
             logging.info("Checkpoint already recovered.")
             return
 
         # Set the current and last checkpoint index. New checkpoints incrementally
         # increase the last checkpoint index.
         self._last_chkpt_ind = checkpoints.indices[-1]
-        self._curr_chkpt_ind = checkpoints.index
+        self._curr_chkpt_ind = index
 
         # Load checkpoint data.
-        state_dict = torch.load(checkpoints.path)
-        logging.info(f"Checkpoint {checkpoints.path} loaded.")
+        state_dict = torch.load(path, weights_only=False)
+        logging.info(f"Checkpoint {path} loaded.")
 
-        self.iteration = state_dict.get("iteration", None)
+        # Checkpoints store the last completed iteration, self.iteration - 1.
+        iteration = state_dict.get("iteration", None)
+        self.iteration = 0 if iteration is None else iteration + 1
 
         if "scheduler" in self._initialized:
             # Set the scheduler to the right iteration.

@@ -70,6 +70,12 @@ def main(args):
         )
     logging.info("Initialized solver with NetworkDir at %s.", solver.dir.path)
 
+    if solver.checkpoints and not args.resume:
+        raise FileExistsError(
+            f"{solver.dir.path} already has checkpoints. Pass resume=true to continue "
+            "training or delete_if_exists=true to start over."
+        )
+
     if args.get("save_environment", False):
         save_env(solver.dir.path)
 
