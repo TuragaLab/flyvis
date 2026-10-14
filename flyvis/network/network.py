@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import warnings
 from contextlib import contextmanager
+from functools import partial
 from typing import Any, Callable, Dict, Iterable, Literal, Optional, Union
 
 import numpy as np
@@ -29,8 +30,9 @@ from flyvis.utils.dataset_utils import IndexSampler
 from flyvis.utils.nn_utils import n_params, simulation
 from flyvis.utils.tensor_utils import AutoDeref, RefTensor
 
-from .dynamics import NetworkDynamics
+from .dynamics import NetworkDynamics, PPNeuronIGRSynapses, activation_fns
 from .initialization import Parameter
+from .sparse import SparseCurrent
 from .stimulus import init_stimulus
 
 logger = logging.getLogger(__name__)
@@ -46,6 +48,9 @@ class Network(nn.Module):
         dynamics: Network dynamics configuration.
         node_config: Node parameter configuration.
         edge_config: Edge parameter configuration.
+        backend: ``"scatter"`` (default) or ``"sparse_trainable"``. The latter
+            avoids edge-by-batch activations for the default PPNeuronIGRSynapses
+            dynamics, with first-order float32/float64 gradients on CPU/CUDA.
 
     Attributes:
         connectome (Connectome): Connectome directory.
@@ -120,6 +125,7 @@ class Network(nn.Module):
             ),
         ),
         stimulus_config: Dict[str, Any] = Namespace(type="Stimulus", init_buffer=False),
+        backend: str = "scatter",
     ):
         super().__init__()
 
@@ -133,6 +139,21 @@ class Network(nn.Module):
         # Store the connectome, dynamics, and parameters.
         self.connectome = init_connectome(**connectome)
         self.dynamics = forward_subclass(NetworkDynamics, dynamics)
+        if backend not in ("scatter", "sparse_trainable"):
+            raise ValueError(f"Unknown propagation backend: {backend!r}")
+        if backend == "sparse_trainable" and (
+            type(self.dynamics) is not PPNeuronIGRSynapses
+            or type(self.dynamics.activation) not in tuple(activation_fns.values())
+            or getattr(self.dynamics.activation, "inplace", False)
+        ):
+            raise ValueError(
+                "sparse_trainable requires PPNeuronIGRSynapses with a built-in, "
+                "out-of-place pointwise activation"
+            )
+        self.backend = backend
+        # Leave old configurations unchanged unless the new backend is selected.
+        if backend != "scatter":
+            self.config.backend = backend
 
         # Load constant indices into memory.
         # Store source/target indices.
@@ -141,6 +162,11 @@ class Network(nn.Module):
 
         self.n_nodes = len(self.connectome.nodes.index)
         self.n_edges = len(self.connectome.edges.source_index)
+        self._sparse_current = (
+            SparseCurrent(self._source_indices, self._target_indices, self.n_nodes)
+            if backend == "sparse_trainable"
+            else None
+        )
 
         # Optional way of parameter sharing is averaging at every call across
         # precomputed masks. This can be useful for e.g. symmetric electrical
@@ -293,6 +319,8 @@ class Network(nn.Module):
                 params[route][param_name] = RefTensor(values, indices)
         # Add derived parameters.
         self.dynamics.write_derived_params(params)
+        if self._sparse_current is not None:
+            params.edges.csr_weight = self._sparse_current.prepare(params.edges.weight)
         for k, v in params.nodes.items():
             if k not in params.sources:
                 params.sources[k] = self._source_gather(v)
@@ -397,8 +425,13 @@ class Network(nn.Module):
         """
         vel = AutoDeref(nodes=AutoDeref(), edges=AutoDeref())
 
+        kwargs = {}
+        if self._sparse_current is not None:
+            kwargs["current_sum"] = partial(
+                self._sparse_current, values=params.edges.csr_weight
+            )
         self.dynamics.write_state_velocity(
-            vel, state, params, self.target_sum, x_t, dt=dt
+            vel, state, params, self.target_sum, x_t, dt=dt, **kwargs
         )
 
         next_state = AutoDeref(
@@ -863,13 +896,15 @@ class Network(nn.Module):
                     states = self(stimulus(), dt, state=fade_in_state, as_states=True)
                     return (
                         stim.cpu().numpy().squeeze(),
-                        torch.stack(
+                        torch
+                        .stack(
                             [s.nodes.activity.cpu() for s in states],
                             dim=1,
                         )
                         .numpy()
                         .squeeze(),
-                        torch.stack(
+                        torch
+                        .stack(
                             [self.dynamics.currents(s, params).cpu() for s in states],
                             dim=1,
                         )
