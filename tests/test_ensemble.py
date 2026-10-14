@@ -1,13 +1,16 @@
+import shutil
 from copy import deepcopy
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 from datamate import Directory, Namespace
 
 from flyvis import results_dir
+from flyvis.datasets.datasets import SequenceDataset
 from flyvis.network.ensemble import Ensemble, TaskError
 from flyvis.network.ensemble_view import EnsembleView
 from flyvis.network.network import IntegrationWarning, Network
@@ -53,6 +56,47 @@ def test_simulate(ensemble: Ensemble):
 
     with pytest.raises(ValueError):
         activity = np.array(list(ensemble.simulate(torch.ones(1, 2, 721).random_(2), 1)))
+
+
+def test_getitem_subset_keeps_arguments(ensemble, tmp_path):
+    for name in ensemble.names[:3]:
+        shutil.copytree(results_dir / name, tmp_path / name)
+    other_root = Ensemble(
+        tmp_path / "flow/0000",
+        root_dir=tmp_path,
+        best_checkpoint_fn_kwargs=ensemble[0].best_checkpoint_fn_kwargs,
+    )
+
+    for subset, index in [(other_root[0:2], [0, 1]), (other_root[[2, 0]], [2, 0])]:
+        assert isinstance(subset, Ensemble)
+        assert [nv.dir.path for nv in subset.values()] == [
+            other_root[i].dir.path for i in index
+        ]
+        for nv in subset.values():
+            assert nv.best_checkpoint_fn_kwargs == other_root[0].best_checkpoint_fn_kwargs
+
+
+class ConstantStimuli(SequenceDataset):
+    dt = 1 / 50
+    t_pre = 0.0
+    t_post = 0.0
+
+    def __init__(self, n_stimuli, n_frames=4, n_hexals=721):
+        self.arg_df = pd.DataFrame({"stimulus": np.arange(n_stimuli)})
+        self.n_frames = n_frames
+        self.n_hexals = n_hexals
+
+    def get_item(self, key):
+        return torch.full((self.n_frames, self.n_hexals), 0.5)
+
+
+def test_simulate_from_dataset_last_batch_smaller(ensemble):
+    dataset = ConstantStimuli(n_stimuli=3)
+    responses = list(
+        ensemble[0:1].simulate_from_dataset(dataset, dt=1 / 50, t_pre=0.1, batch_size=2)
+    )
+    assert len(responses) == 1
+    assert responses[0].shape[:2] == (3, dataset.n_frames)
 
 
 def test_validation_losses(ensemble):

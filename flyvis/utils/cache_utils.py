@@ -64,7 +64,7 @@ def make_hashable(obj: Any) -> Any:
     """Recursively converts an object into a hashable type."""
     if isinstance(obj, (int, float, str, bool, type(None))):
         return obj
-    elif isinstance(obj, (list, set)):
+    elif isinstance(obj, (set, frozenset)):
         try:
             # Try direct sorting first
             return tuple(make_hashable(e) for e in sorted(obj))
@@ -86,7 +86,7 @@ def make_hashable(obj: Any) -> Any:
                     key=lambda x: hash(make_hashable(x[0])),
                 )
             )
-    elif isinstance(obj, (tuple, frozenset)):
+    elif isinstance(obj, (list, tuple)):
         return tuple(make_hashable(e) for e in obj)
     elif isinstance(obj, slice):
         return (obj.start, obj.stop, obj.step)

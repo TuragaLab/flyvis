@@ -203,10 +203,11 @@ class Ensemble(dict):
         """
         if isinstance(key, (int, np.integer)):
             return dict.__getitem__(self, self.names[key])
-        elif isinstance(key, slice):
-            return self.__class__(self.names[key])
-        elif isinstance(key, (np.ndarray, list)):
-            return self.__class__(np.array(self.names)[key])
+        elif isinstance(key, (slice, np.ndarray, list)):
+            names = np.array(self.names)[key]
+            paths = [dict.__getitem__(self, name).dir.path for name in names]
+            # same constructor arguments, but no try_sort to keep the order of key
+            return self.__class__(paths, *self._init_args[1:-1])
         elif key in self.names:
             return dict.__getitem__(self, key)
         else:
@@ -375,7 +376,7 @@ class Ensemble(dict):
                     else:
                         yield resp
 
-            r = np.stack(list(handle_network(network)))
+            r = np.concatenate(list(handle_network(network)))
             yield r.reshape(-1, r.shape[-2], r.shape[-1])
 
             progress_bar.update(1)
